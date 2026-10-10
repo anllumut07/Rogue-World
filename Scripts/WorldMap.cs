@@ -75,6 +75,15 @@ public partial class WorldMap : Node2D
     private float _targetZoom = 1f;
     private Vector2 _targetPos = Vector2.Zero;
 
+    // Görsel iyileştirme #7: Dönem (era) tonu + gündüz/gece terminatörü
+    private float _eraAlpha;
+    private Color _eraColor = Colors.Transparent;
+    private float _terminatorX;
+    private GradientTexture2D _terminatorTexture;
+    private MapEffects _effects;
+    private const float TerminatorPeriod = 60f;       // saniye cinsinden bir tam tur
+    private const float TerminatorBandWidthRatio = 0.35f;
+
     public override void _Ready()
     {
         Instance = this;
@@ -97,6 +106,22 @@ public partial class WorldMap : Node2D
         BuildFromGeoJson();
         BuildCamera();
         BuildZoomLabels();
+
+        // Görsel #7: gündüz/gece terminatörü + dönem tonu (era) — ülkelerin ÜSTÜNDE,
+        // etiketlerin (CanvasLayer 1) ALTINDA çizilir. Yılda bir kez hesaplanır,
+        // sahne başına bir kez dokusu üretilir → performans maliyeti yok.
+        _terminatorTexture = new GradientTexture2D
+        {
+            Width = 64,
+            Height = 1,
+            Fill = GradientTexture2D.FillEnum.Linear,
+            FillFrom = new Vector2(0f, 0f),
+            FillTo = new Vector2(1f, 0f),
+            Gradient = BuildTerminatorGradient(),
+        };
+        _effects = new MapEffects();
+        AddChild(_effects); // BuildFromGeoJson'dan SONRA eklendi → ülkelerin üstüne çizer
+
         RefreshOwnershipColors();
         QueueRedraw();
         GD.Print($"WorldMap: hazır — kamera zoom={_camera?.Zoom.X:0.00} pos={_camera?.Position}, viewport={GetViewportRect().Size}");
@@ -133,11 +158,32 @@ public partial class WorldMap : Node2D
 
     public override void _Process(double delta)
     {
-        HandleKeyboardPan((float)delta);
+        float fDelta = (float)delta;
+        HandleKeyboardPan(fDelta);
         UpdateNameLabels();
-        AnimateSelectedBorder((float)delta);
+        AnimateSelectedBorder(fDelta);
         UpdateBorderWidthsByZoom();
-        AnimateZoom((float)delta);
+        AnimateZoom(fDelta);
+
+        // Görsel #7: Dönem (era) tonu — yıl bazlı, yumuşak geçiş.
+        if (GameManager.IsAvailable)
+        {
+            int year = GameManager.Instance.CurrentDate.Year;
+            float targetAlpha = year <= 1938 ? 0f : (year <= 1941 ? 0.04f : 0.07f);
+            Color targetColor = year <= 1938 ? Colors.Transparent
+                                : (year <= 1941 ? new Color(1f, 0.4f, 0.2f, 1f)   // 1939-41: sıcak, savaş öncesi
+                                               : new Color(0.6f, 0.2f, 0.15f, 1f)); // 1942+: karanlık, savaş yılları
+            float lerpSpeed = Mathf.Clamp(fDelta * 2f, 0f, 1f);
+            _eraAlpha = Mathf.Lerp(_eraAlpha, targetAlpha, lerpSpeed);
+            _eraColor = _eraColor.Lerp(targetColor, lerpSpeed);
+        }
+
+        // Terminatör: gerçek zamanla (oyun hızı bağımsız) yavaş doğu→batı sweep.
+        float t = (Time.GetTicksMsec() / 1000f / TerminatorPeriod) % 1f;
+        _terminatorX = t * MapSize.X;
+
+        // Efekt katmanını her kare yeniden çiz (terminatör hareket + era değişimi)
+        _effects?.QueueRedraw();
 
         // SubViewport layout oturana kadar boyut (2,2) olabilir; gerçek boyuta
         // ulaşınca kamerayı bir kez haritaya sığdır.
@@ -598,6 +644,45 @@ public partial class WorldMap : Node2D
             // Pulsing: kalınlık yumuşakça oscille eder, renk hafif parlar
             outline.Width = selW * (0.85f + pulse * 0.3f);
             outline.DefaultColor = GoldBorderColor.Lightened(pulse * 0.2f);
+        }
+    }
+
+    // Gündüz/gece terminatörü gradyanı: kenarlar şeffaf, merkez koyu mavi-yumuşak.
+    private static Gradient BuildTerminatorGradient()
+    {
+        var g = new Gradient();
+        g.SetColor(0, new Color(0f, 0f, 0f, 0f));
+        g.AddPoint(0.5f, new Color(0f, 0f, 0.15f, 0.25f)); // gece bandının kalbi: %25 karartma
+        g.SetColor(1, new Color(0f, 0f, 0f, 0f));
+        return g;
+    }
+
+    // Görsel #7: Harita efekt katmanı — ülkelerin üstünde, etiketlerin altında.
+    // WorldMap._Draw'tan değil, ayrı child node'dan çizilir çünkü _Draw ebeveyn
+    // node'un çocuklarından ÖNCE çalışır; biz ülke poligonlarının ÜSTÜNE çizmek istiyoruz.
+    public partial class MapEffects : Node2D
+    {
+        public override void _Draw()
+        {
+            var wm = WorldMap.Instance;
+            if (wm == null) return;
+
+            // Dönem tonu (era): tüm haritayı hafifçe renklendir (1939+ sıcak, 1942+ karanlık)
+            if (wm._eraAlpha > 0.001f)
+            {
+                var bigRect = new Rect2(-1000f, -1000f, wm.MapSize.X + 2000f, wm.MapSize.Y + 2000f);
+                DrawRect(bigRect, new Color(wm._eraColor.R, wm._eraColor.G, wm._eraColor.B, wm._eraAlpha));
+            }
+
+            // Gündüz/gece terminatörü: yumuşak kenarlı dikey gece bandı
+            if (wm._terminatorTexture != null)
+            {
+                float bandW = wm.MapSize.X * TerminatorBandWidthRatio;
+                var rect = new Rect2(
+                    wm._terminatorX - bandW / 2f, -1000f,
+                    bandW, wm.MapSize.Y + 2000f);
+                DrawTextureRect(wm._terminatorTexture, rect, false);
+            }
         }
     }
 }

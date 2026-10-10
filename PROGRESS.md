@@ -40,7 +40,7 @@
 | 4 | HUD: organized top bar, speed indicator, PP/Stability/WS labels, bottom bar, tooltips | ✅ |
 | 5 | Animations: Tween fade/slide for panels, button hover scale | ✅ PopIn/PopOut (fade+scale), FadeIn/FadeOut, AddHoverScale tüm menü/panel butonlarında |
 | 6 | Main menu: slow gradient/map background, stylized title | ✅ Nefes alan lacivert gradyan, ızgara drifti (MapGridNode), vinyet, altın başlık nabzı, sürüm footer |
-| 7 | Extra effects (day/night/era) — only if performant | ⬜ |
+| 7 | Extra effects (day/night/era) — only if performant | ✅ Era tint (yıl bazlı: 1939+ sıcak, 1942+ karanlık), terminatör bandı (60s'de bir tam dünya turu, 0.35× genişlik, yumuşak kenar) |
 
 ---
 

@@ -84,11 +84,14 @@ public partial class Game : Control
     private void OnCountrySelected(string countryId, string countryName)
     {
         _infoPanel.ShowCountry(CountryDatabase.GetOrCreate(countryId, countryName), countryName);
+        // Alt çubuğa da seçimi yaz
+        _hud?.OnCountrySelected(countryName);
     }
 
     private void OnCountryDeselected()
     {
         _infoPanel.HidePanel();
+        _hud?.OnCountryDeselected();
     }
 
     private void OnDayChangedForDebug(long totalDays)

@@ -59,7 +59,6 @@ public partial class WorldMap : Node2D
     private Country _selected;
     private Country _hovered;
     private Camera2D _camera;
-    private Label _selectionLabel;
     private CanvasLayer _nameLayer;
     private bool _dragging;
     private Vector2 _lastMousePos;
@@ -97,7 +96,6 @@ public partial class WorldMap : Node2D
 
         BuildFromGeoJson();
         BuildCamera();
-        BuildSelectionLabel();
         BuildZoomLabels();
         RefreshOwnershipColors();
         QueueRedraw();
@@ -578,18 +576,13 @@ public partial class WorldMap : Node2D
             // Eski ülkenin sınırı normal stile dönsün (zoom'a göre hesaplanacak)
             _lastBorderZoom = -1f;
             foreach (var node in old.Nodes) if (GodotObject.IsInstanceValid(node)) node.Color = old == _hovered ? old.MapColor.Lightened(0.25f) : old.MapColor;
+            EmitSignal(SignalName.CountryDeselected);
         }
         if (_selected != null)
         {
             foreach (var node in _selected.Nodes) if (GodotObject.IsInstanceValid(node)) node.Color = SelectedColor;
             foreach (var outline in _selected.Outlines) if (GodotObject.IsInstanceValid(outline)) { outline.DefaultColor = GoldBorderColor; outline.Width = 2.5f; }
-            _selectionLabel.Text = $"Selected: {_selected.Name}";
             EmitSignal(SignalName.CountrySelected, _selected.Id, _selected.Name);
-        }
-        else
-        {
-            _selectionLabel.Text = "Selected: -";
-            EmitSignal(SignalName.CountryDeselected);
         }
     }
 
@@ -606,17 +599,5 @@ public partial class WorldMap : Node2D
             outline.Width = selW * (0.85f + pulse * 0.3f);
             outline.DefaultColor = GoldBorderColor.Lightened(pulse * 0.2f);
         }
-    }
-
-    private void BuildSelectionLabel()
-    {
-        var layer = new CanvasLayer(); AddChild(layer);
-        _selectionLabel = new Label { Text = "Selected: -" };
-        _selectionLabel.MouseFilter = Control.MouseFilterEnum.Ignore;
-        _selectionLabel.AddThemeFontSizeOverride("font_size", 18);
-        _selectionLabel.SetAnchorsPreset(Control.LayoutPreset.BottomLeft);
-        _selectionLabel.OffsetLeft = 340; _selectionLabel.OffsetTop = -40;
-        _selectionLabel.OffsetBottom = -10; _selectionLabel.OffsetRight = 900;
-        layer.AddChild(_selectionLabel);
     }
 }

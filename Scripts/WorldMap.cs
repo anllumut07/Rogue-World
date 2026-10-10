@@ -18,6 +18,8 @@ public partial class WorldMap : Node2D
     private static readonly Color SelectedColor = new("C9A227");
     private static readonly Color BorderColor = new("0E141B");
     private static readonly Color GoldBorderColor = new("FFD700");
+    // Oyuncu ülkesi sınır vurgusu: kalıcı, yarı saydam altın (M3 görsel)
+    private static readonly Color PlayerBorderColor = new Color(0.79f, 0.64f, 0.15f, 0.55f);
 
     // HOI4 tarzı kısık (desatüre) ülke paleti: hepsi bir arada uyumlu görünür.
     private static readonly Color[] CountryPalette =
@@ -122,6 +124,10 @@ public partial class WorldMap : Node2D
         _effects = new MapEffects();
         AddChild(_effects); // BuildFromGeoJson'dan SONRA eklendi → ülkelerin üstüne çizer
 
+        // M3: Oyuncu ülkesi değişince harita vurgusunu yenile
+        if (GameManager.IsAvailable)
+            GameManager.Instance.PlayerCountryChanged += OnPlayerCountryChanged;
+
         RefreshOwnershipColors();
         QueueRedraw();
         GD.Print($"WorldMap: hazır — kamera zoom={_camera?.Zoom.X:0.00} pos={_camera?.Position}, viewport={GetViewportRect().Size}");
@@ -153,7 +159,24 @@ public partial class WorldMap : Node2D
 
     public override void _ExitTree()
     {
+        if (GameManager.IsAvailable)
+            GameManager.Instance.PlayerCountryChanged -= OnPlayerCountryChanged;
         if (Instance == this) Instance = null;
+    }
+
+    // Oyuncu ülkesi değişti → sahiplik renkleri + sınır stilleri yenilenir
+    private void OnPlayerCountryChanged(string id)
+    {
+        _lastBorderZoom = -1f; // sınır renkleri yeniden hesaplansın
+        RefreshOwnershipColors();
+    }
+
+    // Bu ülke oyuncunun ülkesi mi? (id'ler harita GeoJSON zincirinden gelir, ham eşleşme)
+    private static bool IsPlayerCountry(Country c)
+    {
+        return GameManager.IsAvailable &&
+               !string.IsNullOrEmpty(GameManager.Instance.PlayerCountryId) &&
+               c.Id == GameManager.Instance.PlayerCountryId;
     }
 
     public override void _Process(double delta)
@@ -235,11 +258,12 @@ public partial class WorldMap : Node2D
         foreach (var c in _countries)
         {
             if (c == _selected) continue; // seçili: altın pulse ayrı
+            Color borderColor = IsPlayerCountry(c) ? PlayerBorderColor : BorderColor;
             foreach (var outline in c.Outlines)
             {
                 if (!GodotObject.IsInstanceValid(outline)) continue;
                 outline.Width = w;
-                outline.DefaultColor = BorderColor;
+                outline.DefaultColor = borderColor;
             }
         }
     }
@@ -360,7 +384,10 @@ public partial class WorldMap : Node2D
             if (c == _selected) target = SelectedColor;
             else if (c == _hovered) target = c.MapColor.Lightened(0.25f);
             foreach (var node in c.Nodes) if (GodotObject.IsInstanceValid(node)) node.Color = target;
-            foreach (var outline in c.Outlines) if (GodotObject.IsInstanceValid(outline) && c != _selected) outline.DefaultColor = BorderColor;
+            // Sınır: normal koyu, oyuncu ülkesi → yarı saydam altın vurgu (seçili hariç)
+            foreach (var outline in c.Outlines)
+                if (GodotObject.IsInstanceValid(outline) && c != _selected)
+                    outline.DefaultColor = IsPlayerCountry(c) ? PlayerBorderColor : BorderColor;
         }
     }
 

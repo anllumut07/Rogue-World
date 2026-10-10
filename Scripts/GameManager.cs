@@ -150,6 +150,8 @@ public partial class GameManager : Node
         if (PlayerCountryId == id) return;
         PlayerCountryId = id ?? "";
         _playerCountryData = null; // cache temizle
+        var data = PlayerCountryData;
+        GD.Print($"GameManager: Oyuncu ülkesi = {PlayerCountryId} ({data?.Name ?? "—"})");
         EmitSignal(SignalName.PlayerCountryChanged, PlayerCountryId);
         EmitSignal(SignalName.PlayerCountryDataChanged);
     }

@@ -1,6 +1,7 @@
 using Godot;
 
 // Seçili ülkenin bilgi paneli (sol panel): bayrak/adı, GDP, nüfus, asker, kaynaklar, fabrikalar.
+// M3.2: PLAY AS butonu → GameManager.SetPlayerCountry + buton durumu geri bildirimi.
 public partial class CountryInfoPanel : Control
 {
     private ColorRect _flagRect;
@@ -16,9 +17,12 @@ public partial class CountryInfoPanel : Control
     private Label _factoriesLabel;
     private Label _resourcesLabel;
     private Label _divisionsLabel;
+    private Button _playButton;
 
     private CountryData _currentData;
     private string _currentCountryId = "";
+
+    private GameManager GM => GameManager.Instance;
 
     public override void _Ready()
     {
@@ -26,7 +30,30 @@ public partial class CountryInfoPanel : Control
         UITheme.ApplyTheme(this);
 
         BuildUi();
+
+        // Oyuncu ülkesi değişirse buton durumunu güncelle (ör. başka yerden değişirse)
+        if (GameManager.IsAvailable)
+            GM.PlayerCountryChanged += OnPlayerCountryChanged;
+
         Hide();
+    }
+
+    public override void _ExitTree()
+    {
+        if (!GameManager.IsAvailable) return;
+        GM.PlayerCountryChanged -= OnPlayerCountryChanged;
+    }
+
+    private void OnPlayerCountryChanged(string id) => UpdatePlayButton();
+
+    // PLAY AS butonunu oyuncu ülkesine göre günceller (metin + disabled).
+    private void UpdatePlayButton()
+    {
+        if (_playButton == null || !GodotObject.IsInstanceValid(_playButton)) return;
+
+        bool isPlayer = GM.HasPlayer && _currentCountryId == GM.PlayerCountryId;
+        _playButton.Text = isPlayer ? "PLAYING AS THIS COUNTRY" : "PLAY AS THIS COUNTRY";
+        _playButton.Disabled = isPlayer || string.IsNullOrEmpty(_currentCountryId);
     }
 
     private void BuildUi()
@@ -103,15 +130,23 @@ public partial class CountryInfoPanel : Control
         _divisionsLabel = NewLabel("Divisions: —", 16);
         vbox.AddChild(_divisionsLabel);
 
-        // "Play as" butonu (Milestone 3'te hook edilecek)
-        var playBtn = new Button { Text = "PLAY AS THIS COUNTRY", FocusMode = Control.FocusModeEnum.None };
-        playBtn.Pressed += () =>
+        // "Play as" butonu (M3.2: SetPlayerCountry + durum geri bildirimi)
+        _playButton = new Button
+        {
+            Text = "PLAY AS THIS COUNTRY",
+            FocusMode = Control.FocusModeEnum.None
+        };
+        _playButton.AddThemeColorOverride("font_disabled_color", UITheme.TextMuted);
+        _playButton.Pressed += () =>
         {
             if (!string.IsNullOrEmpty(_currentCountryId))
-                GameManager.Instance.SetPlayerCountry(_currentCountryId);
+            {
+                GD.Print($"CountryInfoPanel: PLAY AS {_currentCountryId}");
+                GM.SetPlayerCountry(_currentCountryId);
+            }
         };
-        vbox.AddChild(playBtn);
-        UITheme.AddHoverScale(playBtn);
+        vbox.AddChild(_playButton);
+        UITheme.AddHoverScale(_playButton);
     }
 
     private Label NewLabel(string text, int size, Color? color = null)
@@ -146,6 +181,9 @@ public partial class CountryInfoPanel : Control
 
         // Bayrak placeholder rengi (ideoloji rengi)
         _flagRect.Color = data.GetFlagColor();
+
+        // Buton durumunu yeni seçime göre güncelle
+        UpdatePlayButton();
 
         // Açılış animasyonu: fade in
         UITheme.FadeIn(this, 0.12f);

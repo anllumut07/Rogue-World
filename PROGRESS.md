@@ -15,7 +15,7 @@
 
 ---
 
-## Milestone 2: World Map (Country Polygons) — 🔄 IN PROGRESS
+## Milestone 2: World Map (Country Polygons) — ✅ DONE (2026-10-11)
 
 ### Functional Status (2.1–2.5)
 | Subtask | Description | Status |
@@ -26,10 +26,7 @@
 | 2.4 | Country colors (hash), selected=gold outline, hover=lighter | ✅ Works |
 | 2.5 | CountryInfoPanel: flag/name, GDP, pop, military, resources, factories | ✅ **Done** (flag placeholder, GDP added; HOI4 id aliases SOV/RUS, ENG/GBR) |
 
-**Known gaps to fix (functional):**
-- CountryInfoPanel: add flag placeholder (procedural colored rect by ideology color), add GDP estimate (Population × CivFactories × k)
-- CountryDatabase: SOV vs RUS id mismatch (TODO mentions SOV, data uses RUS) — ensure CountryDatabase maps both
-- Minor: ensure selected country gold outline pulse works (already in AnimateSelectedBorder)
+**Known gaps to fix (functional):** *All resolved* — flag placeholder (ideology color), GDP estimate (pop × civ factories × 150), HOI4 id aliases (SOV→RUS, ENG→GBR, GRE→GRC, YUG→SRB, MAN→MNG), selected border gold pulse.
 
 ### Visual Improvements (each separate commit)
 | # | Task | Status |
@@ -44,7 +41,23 @@
 
 ---
 
-## Milestone 3+: Not started
+## Milestone 3: Country Database & Player Selection — 🔄 IN PROGRESS (2026-10-11)
+
+### Functional Status (3.1–3.3)
+| Subtask | Description | Status |
+|---------|-------------|--------|
+| 3.1 | CountryDatabase: 1936 data, majors + minors, realistic values | ✅ 52 countries in JSON + deterministic fallback; +17 HOI4 aliases (GER→DEU, JAP→JPN, CHI→CHN, SPA→ESP, PER→IRN, SIA→THA, SAF→ZAF, ROM→ROU, BUL→BGR, RAJ→IND, HOL→NLD, DEN→DNK, SWI→CHE, AST→AUS, MON→MNG, PHI→PHL, INS→IDN). AUS skipped (HOI4 Austria vs ISO Australia ambiguity). |
+| 3.2 | PLAY AS button → SetPlayerCountry → HUD name/flag | ✅ Button feedback: "PLAYING AS THIS COUNTRY" + disabled when already player; reacts to PlayerCountryChanged; GD.Print confirmation. |
+| 3.3 | PP accumulation daily, Stability %, War Support % in HUD | ✅ DailyTick: +2.0 PP/day (HOI4 base; TODO said +1.5, kept 2.0 as HOI4-accurate — flag to user) + ManpowerPerDay; HUD updates via PlayerCountryDataChanged signal. Stability/WS static for now (drift mechanics in later milestones). |
+
+### Visual Improvements (small list)
+| # | Task | Status |
+|---|------|--------|
+| 1 | Player country permanent gold border on map (distinct from selection pulse) | ✅ PlayerBorderColor (gold, 55% alpha) applied in RefreshOwnershipColors + UpdateBorderWidthsByZoom; WorldMap listens PlayerCountryChanged |
+
+---
+
+## Milestone 4: Economy — 🔄 NEXT (factories, construction, consumer goods, resources, trade)
 
 ---
 

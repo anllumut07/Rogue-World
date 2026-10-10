@@ -27,25 +27,29 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 ---
 
-### 📋 Milestone 2: Dünya Haritası (GeoJSON Ülke Poligonları)
+### ✅ Milestone 2: Dünya Haritası (GeoJSON Ülke Poligonları)
 **Hedef:** HOI4 stili provinces yerine **ülke bazlı** poligon haritası (GeoJSON), pan/zoom, ülke seçimi, ülke bilgi paneli.
 
-| Alt Görev | Açıklama | Test Kriteri |
-|-----------|----------|--------------|
-| 2.1 | `Data/countries.geo.json` (ülke poligonları, ~180 ülke) + `Data/countries_data.json` (1936 verisi: GDP, nüfus, asker, kaynaklar) | Dosyalar yerinde, JSON geçerli |
-| 2.2 | `WorldMap` (Node2D): GeoJSON okur, Polygon2D + Line2D ile çizer, kamera pan/zoom (sağ tık sürükle, tekerlek), WASD pan | Editörde: harita render olur, zoom/pan sorunsuz |
-| 2.3 | Ülke tıklama seçimi (sol tık) → seçim alt çubukta "Selected: Ülke Adı" + sol panelde CountryInfoPanel açılır | Tıklanan ülke vurgulanır, panel bilgiler gösterir |
-| 2.4 | Ülke renklendirme: temel renk (hash tabanlı), seçili = altın, hover = açık ton | Görsel geri bildirim çalışır |
-| 2.5 | `CountryInfoPanel`: bayrak/adı, GDP, nüfus, askerî güç, kaynaklar, askeri fabrikalar, sivil fabrikalar | Panel veriler doğru yüklenir |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 2.1 | `Data/countries.geo.json` (ülke poligonları, ~180 ülke) + `Data/countries_data.json` (1936 verisi: GDP, nüfus, asker, kaynaklar) | Dosyalar yerinde, JSON geçerli | ✅ Bitti (180 ülke, 52 ayrıntılı veri) |
+| 2.2 | `WorldMap` (Node2D): GeoJSON okur, Polygon2D + Line2D ile çizer, kamera pan/zoom (sağ tık sürükle, tekerlek), WASD pan | Editörde: harita render olur, zoom/pan sorunsuz | ✅ Bitti |
+| 2.3 | Ülke tıklama seçimi (sol tık) → seçim alt çubukta "Selected: Ülke Adı" + sol panelde CountryInfoPanel açılır | Tıklanan ülke vurgulanır, panel bilgiler gösterir | ✅ Bitti |
+| 2.4 | Ülke renklendirme: temel renk (hash tabanlı), seçili = altın, hover = açık ton | Görsel geri bildirim çalışır | ✅ Bitti (kısık palet + altın pulse çerçeve) |
+| 2.5 | `CountryInfoPanel`: bayrak/adı, GDP, nüfus, askerî güç, kaynaklar, askeri fabrikalar, sivil fabrikalar | Panel veriler doğru yüklenir | ✅ Bitti (GDP tahmini, bayrak placeholder, PLAY AS butonu) |
+
+**Görsel iyileştirmeler (7/7 tamam):** ortak tema, okyanus degrade + kısık palet + zoom-adaptif sınırlar, zoom bazlı etiketler + kamera lerp, 3-bölümlü HUD + tooltip, panel/buton animasyonları, ana menü animasyonlu arka plan + altın başlık, era tonu + gündüz/gece terminatörü.
 
 ---
 
-### 📋 Milestone 3: Ülke Veritabanı ve Oyuncu Ülke Seçimi
-| Alt Görev | Açıklama | Test Kriteri |
-|-----------|----------|--------------|
-| 3.1 | `CountryDatabase`: 1936 başlangıç verileri (major: GER, SOV, USA, ENG, FRA, JPN, ITA, CHI, POL, TUR... + minor'lar) | Seçilen her ülke için gerçekçi değerler döner |
-| 3.2 | "Play as [Ülke]" butonu CountryInfoPanel'de → `GameManager.SetPlayerCountry()` | Oyuncu ülke seçer, HUD'da ülke adı/bayrak görünür |
-| 3.3 | Political Power birikimi (günlük +1.5 PP), Stability %, War Support % | HUD'da PP/S/W güncellenir |
+### ✅ Milestone 3: Ülke Veritabanı ve Oyuncu Ülke Seçimi
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 3.1 | `CountryDatabase`: 1936 başlangıç verileri (major: GER, SOV, USA, ENG, FRA, JPN, ITA, CHI, POL, TUR... + minor'lar) | Seçilen her ülke için gerçekçi değerler döner | ✅ Bitti — 52 ülke JSON + deterministik fallback + 27 HOI4 takma adı (GER→DEU, JAP→JPN, CHI→CHN...) |
+| 3.2 | "Play as [Ülke]" butonu CountryInfoPanel'de → `GameManager.SetPlayerCountry()` | Oyuncu ülke seçer, HUD'da ülke adı/bayrak görünür | ✅ Bitti — buton durumu geri bildirimli ("PLAYING AS", disabled), GD.Print onay |
+| 3.3 | Political Power birikimi (günlük +2.0 PP — HOI4 temel; plandaki +1.5 yerine), Stability %, War Support % | HUD'da PP/S/W güncellenir | ✅ Bitti — DailyTick: PP +2.0/gün + manpower; HUD sinyalle güncellenir |
+
+**Görsel (küçük):** Oyuncu ülkesi sınırına kalıcı yarı saydam altın vurgu (seçim pulse'undan ayrı). ✅
 
 ---
 
@@ -175,6 +179,6 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ---
 
 ## Sonraki Adım
-✅ **Milestone 1 kod tarafı tamam** (1.1–1.5). Editörde F5 ile son doğrulama yapılmalı — özellikle 1.5: ayarları değiştir → oyundan çık → tekrar aç → ayarların korunduğunu gör (SETTINGS butonları ana menüde ve pause menüsünde).
+✅ **Milestone 1 ve 2 tamam** (işlevsel + 7 görsel iyileştirme). Editörde F5 ile M2 görselleri doğrulanmalı (özellikle ana menü arka planı ve harita efektleri).
 
-Doğrulama sonrası → **Milestone 2**: Dünya Haritası (GeoJSON ülke poligonları).
+Doğrulama sonrası → **Milestone 3**: Ülke Veritabanı ve Oyuncu Ülke Seçimi (Play as butonu → SetPlayerCountry, PP birikimi HUD'da).

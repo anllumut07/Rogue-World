@@ -1,0 +1,402 @@
+[
+	{
+		"Id": "DEU", "Name": "Germany", "Capital": "Berlin", "Ideology": "Fascism",
+		"Population": 68000000, "ManpowerPool": 1360000,
+		"CivFactories": 26, "MilFactories": 20, "Dockyards": 4,
+		"Oil": 2, "Rubber": 0, "Steel": 22, "Aluminum": 6, "Tungsten": 3, "Chromium": 2,
+		"PoliticalPower": 30, "StabilityPercent": 80, "WarSupportPercent": 40,
+		"ResearchSlots": 4, "StartingDivisions": 40
+	},
+	{
+		"Id": "GBR", "Name": "United Kingdom", "Capital": "London", "Ideology": "Democracy",
+		"Population": 47000000, "ManpowerPool": 940000,
+		"CivFactories": 35, "MilFactories": 10, "Dockyards": 15,
+		"Oil": 3, "Rubber": 10, "Steel": 15, "Aluminum": 8, "Tungsten": 2, "Chromium": 2,
+		"PoliticalPower": 30, "StabilityPercent": 70, "WarSupportPercent": 20,
+		"ResearchSlots": 4, "StartingDivisions": 30
+	},
+	{
+		"Id": "RUS", "Name": "Soviet Union", "Capital": "Moscow", "Ideology": "Communism",
+		"Population": 170000000, "ManpowerPool": 3400000,
+		"CivFactories": 40, "MilFactories": 25, "Dockyards": 10,
+		"Oil": 30, "Rubber": 0, "Steel": 20, "Aluminum": 8, "Tungsten": 4, "Chromium": 4,
+		"PoliticalPower": 30, "StabilityPercent": 60, "WarSupportPercent": 30,
+		"ResearchSlots": 4, "StartingDivisions": 80
+	},
+	{
+		"Id": "USA", "Name": "United States", "Capital": "Washington D.C.", "Ideology": "Democracy",
+		"Population": 128000000, "ManpowerPool": 2560000,
+		"CivFactories": 110, "MilFactories": 12, "Dockyards": 12,
+		"Oil": 30, "Rubber": 8, "Steel": 40, "Aluminum": 12, "Tungsten": 2, "Chromium": 2,
+		"PoliticalPower": 30, "StabilityPercent": 80, "WarSupportPercent": 10,
+		"ResearchSlots": 4, "StartingDivisions": 24
+	},
+	{
+		"Id": "FRA", "Name": "France", "Capital": "Paris", "Ideology": "Democracy",
+		"Population": 42000000, "ManpowerPool": 840000,
+		"CivFactories": 30, "MilFactories": 6, "Dockyards": 4,
+		"Oil": 2, "Rubber": 4, "Steel": 10, "Aluminum": 4, "Tungsten": 1, "Chromium": 1,
+		"PoliticalPower": 30, "StabilityPercent": 50, "WarSupportPercent": 15,
+		"ResearchSlots": 3, "StartingDivisions": 40
+	},
+	{
+		"Id": "ITA", "Name": "Italy", "Capital": "Rome", "Ideology": "Fascism",
+		"Population": 43000000, "ManpowerPool": 860000,
+		"CivFactories": 20, "MilFactories": 10, "Dockyards": 8,
+		"Oil": 2, "Rubber": 1, "Steel": 8, "Aluminum": 3, "Tungsten": 1, "Chromium": 2,
+		"PoliticalPower": 30, "StabilityPercent": 70, "WarSupportPercent": 35,
+		"ResearchSlots": 3, "StartingDivisions": 30
+	},
+	{
+		"Id": "JPN", "Name": "Japan", "Capital": "Tokyo", "Ideology": "Fascism",
+		"Population": 73000000, "ManpowerPool": 1460000,
+		"CivFactories": 25, "MilFactories": 15, "Dockyards": 14,
+		"Oil": 3, "Rubber": 8, "Steel": 12, "Aluminum": 3, "Tungsten": 1, "Chromium": 2,
+		"PoliticalPower": 30, "StabilityPercent": 75, "WarSupportPercent": 45,
+		"ResearchSlots": 3, "StartingDivisions": 50
+	},
+	{
+		"Id": "POL", "Name": "Poland", "Capital": "Warsaw", "Ideology": "Neutral",
+		"Population": 32000000, "ManpowerPool": 640000,
+		"CivFactories": 15, "MilFactories": 5, "Dockyards": 2,
+		"Oil": 6, "Rubber": 0, "Steel": 6, "Aluminum": 1, "Tungsten": 2, "Chromium": 3,
+		"PoliticalPower": 30, "StabilityPercent": 55, "WarSupportPercent": 20,
+		"ResearchSlots": 3, "StartingDivisions": 35
+	},
+	{
+		"Id": "TUR", "Name": "Turkey", "Capital": "Ankara", "Ideology": "Neutral",
+		"Population": 17000000, "ManpowerPool": 340000,
+		"CivFactories": 6, "MilFactories": 2, "Dockyards": 1,
+		"Oil": 3, "Rubber": 0, "Steel": 3, "Aluminum": 1, "Tungsten": 3, "Chromium": 4,
+		"PoliticalPower": 30, "StabilityPercent": 60, "WarSupportPercent": 20,
+		"ResearchSlots": 3, "StartingDivisions": 20
+	},
+	{
+		"Id": "CHN", "Name": "China", "Capital": "Nanjing", "Ideology": "Neutral",
+		"Population": 480000000, "ManpowerPool": 9600000,
+		"CivFactories": 20, "MilFactories": 8, "Dockyards": 2,
+		"Oil": 2, "Rubber": 2, "Steel": 8, "Aluminum": 1, "Tungsten": 5, "Chromium": 2,
+		"PoliticalPower": 30, "StabilityPercent": 40, "WarSupportPercent": 40,
+		"ResearchSlots": 2, "StartingDivisions": 120
+	},
+	{
+		"Id": "ESP", "Name": "Spain", "Capital": "Madrid", "Ideology": "Neutral",
+		"Population": 25000000, "ManpowerPool": 500000,
+		"CivFactories": 12, "MilFactories": 4, "Dockyards": 3,
+		"Oil": 1, "Rubber": 0, "Steel": 4, "Aluminum": 1, "Tungsten": 2, "Chromium": 1,
+		"PoliticalPower": 30, "StabilityPercent": 35, "WarSupportPercent": 25,
+		"ResearchSlots": 3, "StartingDivisions": 25
+	},
+	{
+		"Id": "SWE", "Name": "Sweden", "Capital": "Stockholm", "Ideology": "Democracy",
+		"Population": 6200000, "ManpowerPool": 124000,
+		"CivFactories": 10, "MilFactories": 2, "Dockyards": 2,
+		"Oil": 0, "Rubber": 0, "Steel": 10, "Aluminum": 2, "Tungsten": 4, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 80, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 10
+	},
+	{
+		"Id": "NOR", "Name": "Norway", "Capital": "Oslo", "Ideology": "Democracy",
+		"Population": 2900000, "ManpowerPool": 58000,
+		"CivFactories": 6, "MilFactories": 1, "Dockyards": 2,
+		"Oil": 0, "Rubber": 0, "Steel": 3, "Aluminum": 2, "Tungsten": 1, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 80, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 6
+	},
+	{
+		"Id": "FIN", "Name": "Finland", "Capital": "Helsinki", "Ideology": "Democracy",
+		"Population": 3700000, "ManpowerPool": 74000,
+		"CivFactories": 6, "MilFactories": 1, "Dockyards": 1,
+		"Oil": 0, "Rubber": 0, "Steel": 2, "Aluminum": 1, "Tungsten": 1, "Chromium": 1,
+		"PoliticalPower": 30, "StabilityPercent": 75, "WarSupportPercent": 15,
+		"ResearchSlots": 3, "StartingDivisions": 10
+	},
+	{
+		"Id": "DNK", "Name": "Denmark", "Capital": "Copenhagen", "Ideology": "Democracy",
+		"Population": 3700000, "ManpowerPool": 74000,
+		"CivFactories": 7, "MilFactories": 1, "Dockyards": 1,
+		"Oil": 0, "Rubber": 0, "Steel": 2, "Aluminum": 1, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 80, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 4
+	},
+	{
+		"Id": "NLD", "Name": "Netherlands", "Capital": "Amsterdam", "Ideology": "Democracy",
+		"Population": 8500000, "ManpowerPool": 170000,
+		"CivFactories": 12, "MilFactories": 2, "Dockyards": 3,
+		"Oil": 8, "Rubber": 12, "Steel": 3, "Aluminum": 2, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 80, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 8
+	},
+	{
+		"Id": "BEL", "Name": "Belgium", "Capital": "Brussels", "Ideology": "Democracy",
+		"Population": 8300000, "ManpowerPool": 166000,
+		"CivFactories": 10, "MilFactories": 2, "Dockyards": 1,
+		"Oil": 1, "Rubber": 12, "Steel": 4, "Aluminum": 2, "Tungsten": 2, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 75, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 10
+	},
+	{
+		"Id": "CHE", "Name": "Switzerland", "Capital": "Bern", "Ideology": "Democracy",
+		"Population": 4100000, "ManpowerPool": 82000,
+		"CivFactories": 8, "MilFactories": 1, "Dockyards": 0,
+		"Oil": 0, "Rubber": 0, "Steel": 1, "Aluminum": 2, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 90, "WarSupportPercent": 5,
+		"ResearchSlots": 3, "StartingDivisions": 8
+	},
+	{
+		"Id": "AUT", "Name": "Austria", "Capital": "Vienna", "Ideology": "Neutral",
+		"Population": 6700000, "ManpowerPool": 134000,
+		"CivFactories": 8, "MilFactories": 1, "Dockyards": 0,
+		"Oil": 0, "Rubber": 0, "Steel": 3, "Aluminum": 2, "Tungsten": 1, "Chromium": 1,
+		"PoliticalPower": 30, "StabilityPercent": 65, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 6
+	},
+	{
+		"Id": "CZE", "Name": "Czechoslovakia", "Capital": "Prague", "Ideology": "Democracy",
+		"Population": 10500000, "ManpowerPool": 210000,
+		"CivFactories": 12, "MilFactories": 4, "Dockyards": 0,
+		"Oil": 1, "Rubber": 0, "Steel": 7, "Aluminum": 2, "Tungsten": 2, "Chromium": 1,
+		"PoliticalPower": 30, "StabilityPercent": 70, "WarSupportPercent": 15,
+		"ResearchSlots": 3, "StartingDivisions": 16
+	},
+	{
+		"Id": "HUN", "Name": "Hungary", "Capital": "Budapest", "Ideology": "Neutral",
+		"Population": 9100000, "ManpowerPool": 182000,
+		"CivFactories": 7, "MilFactories": 2, "Dockyards": 0,
+		"Oil": 2, "Rubber": 0, "Steel": 3, "Aluminum": 2, "Tungsten": 1, "Chromium": 1,
+		"PoliticalPower": 30, "StabilityPercent": 60, "WarSupportPercent": 15,
+		"ResearchSlots": 3, "StartingDivisions": 10
+	},
+	{
+		"Id": "ROU", "Name": "Romania", "Capital": "Bucharest", "Ideology": "Neutral",
+		"Population": 19000000, "ManpowerPool": 380000,
+		"CivFactories": 8, "MilFactories": 2, "Dockyards": 0,
+		"Oil": 12, "Rubber": 0, "Steel": 4, "Aluminum": 2, "Tungsten": 1, "Chromium": 1,
+		"PoliticalPower": 30, "StabilityPercent": 60, "WarSupportPercent": 15,
+		"ResearchSlots": 3, "StartingDivisions": 16
+	},
+	{
+		"Id": "BGR", "Name": "Bulgaria", "Capital": "Sofia", "Ideology": "Neutral",
+		"Population": 6200000, "ManpowerPool": 124000,
+		"CivFactories": 5, "MilFactories": 1, "Dockyards": 0,
+		"Oil": 0, "Rubber": 0, "Steel": 2, "Aluminum": 1, "Tungsten": 1, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 60, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 10
+	},
+	{
+		"Id": "GRC", "Name": "Greece", "Capital": "Athens", "Ideology": "Neutral",
+		"Population": 7000000, "ManpowerPool": 140000,
+		"CivFactories": 5, "MilFactories": 1, "Dockyards": 1,
+		"Oil": 0, "Rubber": 0, "Steel": 1, "Aluminum": 1, "Tungsten": 0, "Chromium": 2,
+		"PoliticalPower": 30, "StabilityPercent": 60, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 10
+	},
+	{
+		"Id": "SRB", "Name": "Yugoslavia", "Capital": "Belgrade", "Ideology": "Neutral",
+		"Population": 14500000, "ManpowerPool": 290000,
+		"CivFactories": 7, "MilFactories": 2, "Dockyards": 1,
+		"Oil": 1, "Rubber": 0, "Steel": 2, "Aluminum": 2, "Tungsten": 2, "Chromium": 3,
+		"PoliticalPower": 30, "StabilityPercent": 50, "WarSupportPercent": 15,
+		"ResearchSlots": 3, "StartingDivisions": 16
+	},
+	{
+		"Id": "CAN", "Name": "Canada", "Capital": "Ottawa", "Ideology": "Democracy",
+		"Population": 11000000, "ManpowerPool": 220000,
+		"CivFactories": 15, "MilFactories": 3, "Dockyards": 4,
+		"Oil": 4, "Rubber": 0, "Steel": 6, "Aluminum": 4, "Tungsten": 2, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 80, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 8
+	},
+	{
+		"Id": "MEX", "Name": "Mexico", "Capital": "Mexico City", "Ideology": "Neutral",
+		"Population": 18000000, "ManpowerPool": 360000,
+		"CivFactories": 8, "MilFactories": 1, "Dockyards": 1,
+		"Oil": 8, "Rubber": 0, "Steel": 3, "Aluminum": 1, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 55, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 12
+	},
+	{
+		"Id": "BRA", "Name": "Brazil", "Capital": "Rio de Janeiro", "Ideology": "Neutral",
+		"Population": 37000000, "ManpowerPool": 740000,
+		"CivFactories": 12, "MilFactories": 2, "Dockyards": 2,
+		"Oil": 3, "Rubber": 8, "Steel": 5, "Aluminum": 2, "Tungsten": 2, "Chromium": 3,
+		"PoliticalPower": 30, "StabilityPercent": 60, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 14
+	},
+	{
+		"Id": "ARG", "Name": "Argentina", "Capital": "Buenos Aires", "Ideology": "Neutral",
+		"Population": 13000000, "ManpowerPool": 260000,
+		"CivFactories": 8, "MilFactories": 1, "Dockyards": 1,
+		"Oil": 2, "Rubber": 0, "Steel": 3, "Aluminum": 1, "Tungsten": 1, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 65, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 10
+	},
+	{
+		"Id": "AUS", "Name": "Australia", "Capital": "Canberra", "Ideology": "Democracy",
+		"Population": 6800000, "ManpowerPool": 136000,
+		"CivFactories": 8, "MilFactories": 1, "Dockyards": 2,
+		"Oil": 1, "Rubber": 0, "Steel": 4, "Aluminum": 3, "Tungsten": 2, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 80, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 6
+	},
+	{
+		"Id": "NZL", "Name": "New Zealand", "Capital": "Wellington", "Ideology": "Democracy",
+		"Population": 1600000, "ManpowerPool": 32000,
+		"CivFactories": 4, "MilFactories": 1, "Dockyards": 1,
+		"Oil": 0, "Rubber": 0, "Steel": 1, "Aluminum": 1, "Tungsten": 1, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 80, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 3
+	},
+	{
+		"Id": "ZAF", "Name": "South Africa", "Capital": "Pretoria", "Ideology": "Democracy",
+		"Population": 9500000, "ManpowerPool": 190000,
+		"CivFactories": 6, "MilFactories": 1, "Dockyards": 1,
+		"Oil": 0, "Rubber": 0, "Steel": 4, "Aluminum": 2, "Tungsten": 2, "Chromium": 4,
+		"PoliticalPower": 30, "StabilityPercent": 75, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 6
+	},
+	{
+		"Id": "IND", "Name": "British Raj", "Capital": "Delhi", "Ideology": "Neutral",
+		"Population": 340000000, "ManpowerPool": 6800000,
+		"CivFactories": 15, "MilFactories": 4, "Dockyards": 3,
+		"Oil": 2, "Rubber": 4, "Steel": 8, "Aluminum": 2, "Tungsten": 3, "Chromium": 3,
+		"PoliticalPower": 30, "StabilityPercent": 50, "WarSupportPercent": 10,
+		"ResearchSlots": 2, "StartingDivisions": 20
+	},
+	{
+		"Id": "IDN", "Name": "Dutch East Indies", "Capital": "Batavia", "Ideology": "Neutral",
+		"Population": 60000000, "ManpowerPool": 1200000,
+		"CivFactories": 6, "MilFactories": 1, "Dockyards": 2,
+		"Oil": 20, "Rubber": 20, "Steel": 3, "Aluminum": 2, "Tungsten": 1, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 55, "WarSupportPercent": 5,
+		"ResearchSlots": 2, "StartingDivisions": 8
+	},
+	{
+		"Id": "IRN", "Name": "Iran", "Capital": "Tehran", "Ideology": "Neutral",
+		"Population": 14000000, "ManpowerPool": 280000,
+		"CivFactories": 4, "MilFactories": 1, "Dockyards": 0,
+		"Oil": 12, "Rubber": 0, "Steel": 1, "Aluminum": 1, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 60, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 10
+	},
+	{
+		"Id": "IRQ", "Name": "Iraq", "Capital": "Baghdad", "Ideology": "Neutral",
+		"Population": 3500000, "ManpowerPool": 70000,
+		"CivFactories": 3, "MilFactories": 1, "Dockyards": 0,
+		"Oil": 10, "Rubber": 0, "Steel": 1, "Aluminum": 0, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 55, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 5
+	},
+	{
+		"Id": "EGY", "Name": "Egypt", "Capital": "Cairo", "Ideology": "Neutral",
+		"Population": 16000000, "ManpowerPool": 320000,
+		"CivFactories": 4, "MilFactories": 1, "Dockyards": 0,
+		"Oil": 2, "Rubber": 0, "Steel": 1, "Aluminum": 1, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 60, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 5
+	},
+	{
+		"Id": "SAU", "Name": "Saudi Arabia", "Capital": "Riyadh", "Ideology": "Neutral",
+		"Population": 3000000, "ManpowerPool": 60000,
+		"CivFactories": 2, "MilFactories": 0, "Dockyards": 0,
+		"Oil": 2, "Rubber": 0, "Steel": 1, "Aluminum": 0, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 50, "WarSupportPercent": 10,
+		"ResearchSlots": 2, "StartingDivisions": 4
+	},
+	{
+		"Id": "KOR", "Name": "Korea", "Capital": "Seoul", "Ideology": "Neutral",
+		"Population": 22000000, "ManpowerPool": 440000,
+		"CivFactories": 8, "MilFactories": 3, "Dockyards": 2,
+		"Oil": 0, "Rubber": 2, "Steel": 6, "Aluminum": 1, "Tungsten": 2, "Chromium": 1,
+		"PoliticalPower": 30, "StabilityPercent": 50, "WarSupportPercent": 20,
+		"ResearchSlots": 3, "StartingDivisions": 12
+	},
+	{
+		"Id": "PRK", "Name": "North Korea", "Capital": "Pyongyang", "Ideology": "Neutral",
+		"Population": 9000000, "ManpowerPool": 180000,
+		"CivFactories": 4, "MilFactories": 2, "Dockyards": 1,
+		"Oil": 0, "Rubber": 0, "Steel": 4, "Aluminum": 2, "Tungsten": 4, "Chromium": 1,
+		"PoliticalPower": 30, "StabilityPercent": 50, "WarSupportPercent": 20,
+		"ResearchSlots": 3, "StartingDivisions": 8
+	},
+	{
+		"Id": "THA", "Name": "Siam", "Capital": "Bangkok", "Ideology": "Neutral",
+		"Population": 15000000, "ManpowerPool": 300000,
+		"CivFactories": 4, "MilFactories": 1, "Dockyards": 1,
+		"Oil": 0, "Rubber": 10, "Steel": 1, "Aluminum": 1, "Tungsten": 2, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 60, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 8
+	},
+	{
+		"Id": "PHL", "Name": "Philippines", "Capital": "Manila", "Ideology": "Democracy",
+		"Population": 16000000, "ManpowerPool": 320000,
+		"CivFactories": 4, "MilFactories": 1, "Dockyards": 1,
+		"Oil": 0, "Rubber": 4, "Steel": 2, "Aluminum": 1, "Tungsten": 1, "Chromium": 1,
+		"PoliticalPower": 30, "StabilityPercent": 65, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 6
+	},
+	{
+		"Id": "AFG", "Name": "Afghanistan", "Capital": "Kabul", "Ideology": "Neutral",
+		"Population": 9000000, "ManpowerPool": 180000,
+		"CivFactories": 1, "MilFactories": 0, "Dockyards": 0,
+		"Oil": 0, "Rubber": 0, "Steel": 1, "Aluminum": 0, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 50, "WarSupportPercent": 10,
+		"ResearchSlots": 2, "StartingDivisions": 5
+	},
+	{
+		"Id": "ETH", "Name": "Ethiopia", "Capital": "Addis Ababa", "Ideology": "Neutral",
+		"Population": 12000000, "ManpowerPool": 240000,
+		"CivFactories": 1, "MilFactories": 0, "Dockyards": 0,
+		"Oil": 0, "Rubber": 0, "Steel": 1, "Aluminum": 0, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 40, "WarSupportPercent": 30,
+		"ResearchSlots": 2, "StartingDivisions": 10
+	},
+	{
+		"Id": "UKR", "Name": "Ukraine", "Capital": "Kyiv", "Ideology": "Communism",
+		"Population": 30000000, "ManpowerPool": 600000,
+		"CivFactories": 10, "MilFactories": 5, "Dockyards": 2,
+		"Oil": 3, "Rubber": 0, "Steel": 8, "Aluminum": 2, "Tungsten": 1, "Chromium": 1,
+		"PoliticalPower": 30, "StabilityPercent": 55, "WarSupportPercent": 20,
+		"ResearchSlots": 3, "StartingDivisions": 15
+	},
+	{
+		"Id": "MNG", "Name": "Mongolia", "Capital": "Ulaanbaatar", "Ideology": "Communism",
+		"Population": 800000, "ManpowerPool": 16000,
+		"CivFactories": 1, "MilFactories": 0, "Dockyards": 0,
+		"Oil": 0, "Rubber": 0, "Steel": 1, "Aluminum": 0, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 60, "WarSupportPercent": 15,
+		"ResearchSlots": 2, "StartingDivisions": 2
+	},
+	{
+		"Id": "PER", "Name": "Peru", "Capital": "Lima", "Ideology": "Neutral",
+		"Population": 6500000, "ManpowerPool": 130000,
+		"CivFactories": 3, "MilFactories": 1, "Dockyards": 1,
+		"Oil": 2, "Rubber": 2, "Steel": 2, "Aluminum": 1, "Tungsten": 1, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 55, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 5
+	},
+	{
+		"Id": "CHL", "Name": "Chile", "Capital": "Santiago", "Ideology": "Democracy",
+		"Population": 4600000, "ManpowerPool": 92000,
+		"CivFactories": 4, "MilFactories": 1, "Dockyards": 1,
+		"Oil": 0, "Rubber": 0, "Steel": 3, "Aluminum": 1, "Tungsten": 3, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 65, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 5
+	},
+	{
+		"Id": "VEN", "Name": "Venezuela", "Capital": "Caracas", "Ideology": "Neutral",
+		"Population": 3500000, "ManpowerPool": 70000,
+		"CivFactories": 3, "MilFactories": 0, "Dockyards": 0,
+		"Oil": 14, "Rubber": 0, "Steel": 1, "Aluminum": 1, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 55, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 4
+	},
+	{
+		"Id": "COL", "Name": "Colombia", "Capital": "Bogota", "Ideology": "Neutral",
+		"Population": 8700000, "ManpowerPool": 174000,
+		"CivFactories": 3, "MilFactories": 1, "Dockyards": 0,
+		"Oil": 3, "Rubber": 1, "Steel": 1, "Aluminum": 0, "Tungsten": 0, "Chromium": 0,
+		"PoliticalPower": 30, "StabilityPercent": 60, "WarSupportPercent": 10,
+		"ResearchSlots": 3, "StartingDivisions": 5
+	}
+]

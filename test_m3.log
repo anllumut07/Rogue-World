@@ -1,0 +1,23 @@
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+
+GameManager hazır. Başlangıç tarihi: 1 Jan 1936 | Hız: 5
+MapViewportFrame: hazır
+WorldMap hazır: 180 ülke, 292 parça çizildi.
+WorldMap: hazır — kamera zoom=0.03 pos=(1080, 560), viewport=(64, 64)
+Game: harita + paneller hazır
+Game: hazır
+WARNING: Can't change the size of a `SubViewport` with a `SubViewportContainer` parent that has `stretch` enabled. Set `SubViewportContainer.stretch` to `false` to allow changing the size manually.
+   at: _internal_set_size (scene/main/viewport.cpp:5627)
+   C# backtrace (most recent call first):
+       [0] void Godot.NativeCalls.godot_icall_1_34(nint, nint, Godot.Vector2I*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/NativeCalls.cs:307)
+       [1] void Godot.SubViewport.SetSize(Godot.Vector2I) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/SubViewport.cs:180)
+       [2] void Godot.SubViewport.set_Size(Godot.Vector2I) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Generated/GodotObjects/SubViewport.cs:68)
+       [3] void Game+<>c__DisplayClass5_0.<OnMapFrameReady>b__0() (C:\Users\rogue\Desktop\rogue world\Scripts\Game.cs:56)
+       [4] void Godot.Callable.<From>g__Trampoline|1_0(object, Godot.NativeInterop.NativeVariantPtrArgs, Godot.NativeInterop.godot_variant&) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/Callable.generics.cs:39)
+       [5] void Godot.DelegateUtils.InvokeWithVariantArgs(nint, System.Void*, Godot.NativeInterop.godot_variant**, int, Godot.NativeInterop.godot_variant*) (/root/godot/modules/mono/glue/GodotSharp/GodotSharp/Core/DelegateUtils.cs:86)
+[Teşhis] SubViewport boyut=(2, 2), konteyner rect=(0, 0), (0, 0), Stretch=True, görünür=True
+[TICK] Gün 1 — 2 Jan 1936
+[TICK] Gün 2 — 3 Jan 1936
+[TICK] Gün 3 — 4 Jan 1936
+[TICK] Gün 4 — 5 Jan 1936
+[TICK] Gün 5 — 6 Jan 1936

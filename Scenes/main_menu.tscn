@@ -34,12 +34,16 @@ theme_override_constants/separation = 24
 
 [node name="TitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.843, 0, 1)
+theme_override_colors/font_outline_color = Color(0.02, 0.04, 0.06, 1)
+theme_override_constants/outline_size = 12
 theme_override_font_sizes/font_size = 72
 text = "ROGUE WORLD"
 horizontal_alignment = 1
 
 [node name="SubtitleLabel" type="Label" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.64, 0.675, 1)
 theme_override_font_sizes/font_size = 18
 text = "A Hearts of Iron Inspired Grand Strategy Game"
 horizontal_alignment = 1

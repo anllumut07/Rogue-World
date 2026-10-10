@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Linq;
 
 /// <summary>
 /// Ekonomi paneli (M4): inşaat kuyruğu, fabrika sayıları, CG oranı, ekonomi yasası,
@@ -11,6 +12,7 @@ public partial class EconomyPanel : Control
 
     // UI referansları
     private VBoxContainer _queueBox;
+    private VBoxContainer _tradeBox; // ticaret anlaşmaları listesi
     private Label _civLabel, _milLabel, _dockLabel, _freeCivLabel, _cgRateLabel;
     private OptionButton _lawOption;
     private Label[] _resourceLabels;
@@ -186,6 +188,17 @@ public partial class EconomyPanel : Control
             _resourceLabels[i] = lbl;
             resGrid.AddChild(lbl);
         }
+
+        // --- Aktif ticaret anlaşmaları (içeriği SyncFromEconomy'de doldurulur) ---
+        vbox.AddChild(new HSeparator());
+
+        var tradeTitle = new Label { Text = "ACTIVE TRADE DEALS" };
+        tradeTitle.AddThemeFontSizeOverride("font_size", 18);
+        vbox.AddChild(tradeTitle);
+
+        _tradeBox = new VBoxContainer();
+        _tradeBox.AddThemeConstantOverride("separation", 4);
+        vbox.AddChild(_tradeBox);
     }
 
     private Label NewStatLabel(string text, Color? color = null)
@@ -283,8 +296,47 @@ public partial class EconomyPanel : Control
         {
             EconomySystem.Stockpiles.TryGetValue(key, out long stock);
             int prod = EconomySystem.GetDailyProduction(key);
-            _resourceLabels[idxRes].Text = $"{key}: {stock} / {prod}/day";
+
+            var deal = EconomySystem.TradeDeals.FirstOrDefault(t => t.Resource == key);
+            if (deal != null)
+                _resourceLabels[idxRes].Text = $"{key}: {stock} / {prod}/day  (+{deal.AmountPerDay}/day trade from {deal.ExporterName})";
+            else
+                _resourceLabels[idxRes].Text = $"{key}: {stock} / {prod}/day";
+
             idxRes++;
+        }
+
+        // Ticaret anlaşmaları listesini yenile
+        foreach (Node child in _tradeBox.GetChildren())
+        {
+            _tradeBox.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        foreach (var deal in EconomySystem.TradeDeals)
+        {
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 12);
+
+            var name = new Label { Text = $"{deal.Resource}: +{deal.AmountPerDay}/day from {deal.ExporterName}", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+            name.AddThemeFontSizeOverride("font_size", 14);
+            row.AddChild(name);
+
+            // Konvoy sayısı
+            var convoyLbl = new Label { Text = $"({deal.AmountPerDay} convoy)" };
+            convoyLbl.AddThemeFontSizeOverride("font_size", 12);
+            convoyLbl.AddThemeColorOverride("font_color", UITheme.TextMuted);
+            row.AddChild(convoyLbl);
+
+            _tradeBox.AddChild(row);
+        }
+
+        if (EconomySystem.TradeDeals.Count == 0)
+        {
+            var none = new Label { Text = "No active trade deals" };
+            none.AddThemeFontSizeOverride("font_size", 14);
+            none.AddThemeColorOverride("font_color", UITheme.TextMuted);
+            _tradeBox.AddChild(none);
         }
     }
 

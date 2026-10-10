@@ -62,11 +62,20 @@ public static class EconomySystem
     // Kaynak stokları (M4.4) — CountryData'daki alanlar üretim değeridir, stok değil
     private static readonly Dictionary<string, long> _stockpiles = new();
 
-    // Ticaret (M4.5): kaynağa atanmış ithalat konvoyu sayısı
-    private static readonly Dictionary<string, int> _importConvoys = new();
+    // Ticaret (M4.5): aktif ithalat anlaşmaları
+    private static readonly List<TradeDeal> _tradeDeals = new();
 
-    // Konvoy filosu (inşa edilebilir; Infrastructure/Convoy tamamlanınca artar)
+    // Konvoy filosu (inşa edilebilir; Convoy tamamlanınca artar)
     private static int _convoyCount = 20; // HOI4 benzeri başlangıç
+
+    // Ticaret anlaşması: belirli bir kaynağı günde X birim ithal eder
+    public class TradeDeal
+    {
+        public string Resource;     // "Oil", "Steel"...
+        public int AmountPerDay;    // günlük ithal miktarı (1 konvoy = 1 birim/gün)
+        public string ExporterId;   // ihraç eden ülke id
+        public string ExporterName; // görünen ad
+    }
 
     // İnşaat kuyruğu öğesi
     public class BuildItem
@@ -100,7 +109,7 @@ public static class EconomySystem
     {
         _constructionQueue.Clear();
         _stockpiles.Clear();
-        _importConvoys.Clear();
+        _tradeDeals.Clear();
         _convoyCount = 20;
 
         if (data == null)
@@ -249,45 +258,93 @@ public static class EconomySystem
         return true;
     }
 
-    // ===== Otomatik ticaret (M4.5, basitleştirilmiş) =====
+    // ===== Otomatik ticaret (M4.5) =====
 
-    // Kural: stok 30 günlük üretimin altına düşen kaynak için konvoy ata;
-    // her konvoy günde +1 birim ithal eder (80% ihraç limiti ileride ülke bazında).
+    private static readonly string[] TrackedResources = { "Oil", "Rubber", "Steel", "Aluminum", "Tungsten", "Chromium" };
+
+    // Ülkenin kaynak üretim alanı adı → CountryData alanı eşlemesi
+    private static int GetProductionOf(CountryData d, string key) => key switch
+    {
+        "Oil" => d.Oil,
+        "Rubber" => d.Rubber,
+        "Steel" => d.Steel,
+        "Aluminum" => d.Aluminum,
+        "Tungsten" => d.Tungsten,
+        "Chromium" => d.Chromium,
+        _ => 0
+    };
+
+    // Kural: stok, 30 günlük üretimin (veya üretim 0 ise 100 birim) altına düşerse
+    // en büyük üreticiden ithalat anlaşması kur; stok 2 katına çıkınca iptal et.
+    // HOI4 kuralı: ihraç eden ülke üretiminin en fazla %80'ini satabilir.
     private static void ProcessAutomaticTrade()
     {
         var d = Player;
         if (d == null) return;
 
-        foreach (var key in new[] { "Oil", "Rubber", "Steel", "Aluminum", "Tungsten", "Chromium" })
+        foreach (var key in TrackedResources)
         {
             int production = GetDailyProduction(key);
             long stock = _stockpiles.GetValueOrDefault(key);
-
-            // 30 günlük üretim eşiği (üretimi 0 olan ülkeler için 100 birim sabit stok)
             long threshold = production > 0 ? production * 30 : 100;
 
-            if (stock < threshold)
+            var deal = _tradeDeals.Find(t => t.Resource == key);
+
+            if (stock < threshold && deal == null)
             {
-                // Konvoy atanmamışsa ata (boş konvoy varsa)
-                if (_importConvoys.GetValueOrDefault(key) == 0 && _convoyCount > 0)
+                // Yeni anlaşma kur: en büyük üreticiyi bul (%80 limitini aşmayacak kadar)
+                var exporter = FindBestExporter(d, key);
+                if (exporter == null)
                 {
-                    _importConvoys[key] = 1;
-                    _convoyCount--;
-                    GD.Print($"[Trade] {key} stoğu düşük ({stock}) → 1 konvoy ithalata atandı");
+                    // Dünyada satılacak kaynak yok → bu günlük atla (log'u spam'lemek için bir kez yaz)
+                    continue;
                 }
 
-                // Atanmış konvoy günde +1 ithal eder
-                if (_importConvoys.GetValueOrDefault(key) > 0)
-                    _stockpiles[key] = stock + _importConvoys[key];
+                int amount = 2; // 2 birim/gün (2 konvoy)
+                deal = new TradeDeal
+                {
+                    Resource = key,
+                    AmountPerDay = amount,
+                    ExporterId = exporter.Id,
+                    ExporterName = exporter.Name
+                };
+                _tradeDeals.Add(deal);
+                _convoyCount -= amount;
+                GD.Print($"[Trade] Anlaşma kuruldu: {exporter.Name} → {key} {amount}/gün " +
+                         $"(kalan konvoy: {_convoyCount}, stok: {stock}/{threshold})");
             }
-            else if (_importConvoys.GetValueOrDefault(key) > 0)
+            else if (stock >= threshold * 2 && deal != null)
             {
-                // Stok yeterli → konvoyu serbest bırak
-                _convoyCount += _importConvoys[key];
-                _importConvoys[key] = 0;
-                GD.Print($"[Trade] {key} stoğu yeterli ({stock}) → ithalat konvoyu serbest");
+                // Stok bol → anlaşmayı iptal et, konvoyları serbest bırak
+                _convoyCount += deal.AmountPerDay;
+                GD.Print($"[Trade] Anlaşma iptal: {key} (stok yeterli: {stock}) — konvoylar serbest");
+                _tradeDeals.Remove(deal);
             }
         }
+
+        // Aktif anlaşmaların ithalatını uygula
+        foreach (var deal in _tradeDeals)
+            _stockpiles[deal.Resource] = _stockpiles.GetValueOrDefault(deal.Resource) + deal.AmountPerDay;
+    }
+
+    // Kaynak için en iyi ihracatçı: oyuncu değil, bu kaynağı en çok üreten ülke.
+    // %80 limit: seçilen miktar ihracatçının üretiminin %80'ini aşmamalı.
+    private static CountryData FindBestExporter(CountryData player, string key)
+    {
+        CountryData best = null;
+        int bestProd = 2; // en az 2 birim/gün satabilmeli (2 birimlik anlaşma için)
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c == player || c.IsAnnexed) continue;
+            int prod = GetProductionOf(c, key);
+            // %80 ihraç limiti: 2 birim satmak için üretimin ≥ 2/0.8 = 2.5 olması gerekir → 3
+            if (prod * 8 >= 2 * 10 && prod > bestProd) // prod*0.8 >= amount (2)
+            {
+                best = c;
+                bestProd = prod;
+            }
+        }
+        return best;
     }
 
     // ===== Getters (UI için) =====
@@ -310,7 +367,7 @@ public static class EconomySystem
 
     public static int ConvoyCount => _convoyCount;
     public static IReadOnlyDictionary<string, long> Stockpiles => _stockpiles;
-    public static IReadOnlyDictionary<string, int> ImportConvoys => _importConvoys;
+    public static IReadOnlyList<TradeDeal> TradeDeals => _tradeDeals;
 
     // Fabrika sayıları CountryData'dan okunur (tek doğruluk kaynağı)
     public static int TotalCivFactories => Player?.CivFactories ?? 0;

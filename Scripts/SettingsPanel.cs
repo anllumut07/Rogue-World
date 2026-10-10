@@ -30,6 +30,9 @@ public partial class SettingsPanel : Control
         // Pause menüden açıldığında ağaç paused olur -> panel her zaman canlı çalışsın.
         ProcessMode = ProcessModeEnum.Always;
 
+        // Ortak koyu tema
+        UITheme.ApplyTheme(this);
+
         BuildUi();
 
         // Önce mevcut ayarları kontrollere yansıt, SONRA sinyalleri bağla

@@ -92,6 +92,9 @@ public partial class PauseMenu : CanvasLayer
         _backdrop.MouseFilter = Control.MouseFilterEnum.Stop;
         AddChild(_backdrop);
 
+        // Ortak koyu tema (backdrop çocukları: panel + butonlar)
+        UITheme.ApplyTheme(_backdrop);
+
         var center = new CenterContainer();
         center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _backdrop.AddChild(center);

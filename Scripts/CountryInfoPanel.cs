@@ -3,6 +3,7 @@ using Godot;
 // Seçili ülkenin bilgi paneli (sol panel): bayrak/adı, GDP, nüfus, asker, kaynaklar, fabrikalar.
 public partial class CountryInfoPanel : Control
 {
+    private ColorRect _flagRect;
     private Label _nameLabel;
     private Label _capitalLabel;
     private Label _ideologyLabel;
@@ -11,6 +12,7 @@ public partial class CountryInfoPanel : Control
     private Label _ppLabel;
     private Label _populationLabel;
     private Label _manpowerLabel;
+    private Label _gdpLabel;
     private Label _factoriesLabel;
     private Label _resourcesLabel;
     private Label _divisionsLabel;
@@ -20,6 +22,9 @@ public partial class CountryInfoPanel : Control
 
     public override void _Ready()
     {
+        // Ortak koyu tema
+        UITheme.ApplyTheme(this);
+
         BuildUi();
         Hide();
     }
@@ -42,8 +47,17 @@ public partial class CountryInfoPanel : Control
         vbox.AddThemeConstantOverride("separation", 8);
         scroll.AddChild(vbox);
 
-        _nameLabel = NewLabel("Ülke Seçilmedi", 24, new Color(0.85f, 0.66f, 0.22f));
-        vbox.AddChild(_nameLabel);
+        // --- Bayrak placeholder + ülke adı satırı ---
+        var headerRow = new HBoxContainer();
+        headerRow.AddThemeConstantOverride("separation", 10);
+        vbox.AddChild(headerRow);
+
+        _flagRect = new ColorRect { CustomMinimumSize = new Vector2(42, 28) };
+        _flagRect.MouseFilter = Control.MouseFilterEnum.Ignore; // dekoratif: tıklamayı yutmasın
+        headerRow.AddChild(_flagRect);
+
+        _nameLabel = NewLabel("No Country Selected", 24, new Color(0.85f, 0.66f, 0.22f));
+        headerRow.AddChild(_nameLabel);
 
         _capitalLabel = NewLabel("", 16);
         vbox.AddChild(_capitalLabel);
@@ -67,6 +81,8 @@ public partial class CountryInfoPanel : Control
 
         vbox.AddChild(new HSeparator());
 
+        _gdpLabel = NewLabel("GDP: —", 16);
+        vbox.AddChild(_gdpLabel);
         _populationLabel = NewLabel("Population: —", 16);
         vbox.AddChild(_populationLabel);
         _manpowerLabel = NewLabel("Manpower: —", 16);
@@ -117,6 +133,7 @@ public partial class CountryInfoPanel : Control
         _warSupportLabel.Text = $"War Support: {data.WarSupportPercent:N0}%";
         _ppLabel.Text = $"Political Power: {data.PoliticalPower:N1}";
 
+        _gdpLabel.Text = $"GDP: {data.EstimatedGDP:N0}";
         _populationLabel.Text = $"Population: {data.Population:N0}";
         _manpowerLabel.Text = $"Manpower Pool: {data.ManpowerPool:N0}";
 
@@ -125,6 +142,9 @@ public partial class CountryInfoPanel : Control
         _resourcesLabel.Text = $"Resources: Oil {data.Oil} | Rubber {data.Rubber} | Steel {data.Steel} | Al {data.Aluminum} | W {data.Tungsten} | Cr {data.Chromium}";
 
         _divisionsLabel.Text = $"Starting Divisions: {data.StartingDivisions}";
+
+        // Bayrak placeholder rengi (ideoloji rengi)
+        _flagRect.Color = data.GetFlagColor();
 
         Show();
     }

@@ -8,19 +8,30 @@ public static class CountryDatabase
 {
     private const string Path = "res://Data/countries_data.json";
 
+    // HOI4 kodu ↔ GeoJSON ISO A3 takma adları (ör. SOV=RUS)
+    private static readonly Dictionary<string, string> Aliases = new()
+    {
+        ["SOV"] = "RUS",
+        ["ENG"] = "GBR",
+        ["GRE"] = "GRC",
+        ["YUG"] = "SRB",
+        ["MAN"] = "MNG",
+    };
+
     private static Dictionary<string, CountryData> _byId = new();
     private static bool _loaded = false;
 
     public static CountryData Get(string id)
     {
         EnsureLoaded();
-        return id != null && _byId.TryGetValue(id, out var data) ? data : null;
+        return id != null && _byId.TryGetValue(Normalize(id), out var data) ? data : null;
     }
 
     public static CountryData GetOrCreate(string id, string name)
     {
         EnsureLoaded();
         if (id == null) return null;
+        id = Normalize(id);
         if (_byId.TryGetValue(id, out var data)) return data;
 
         data = GenerateFallback(id, name ?? id);
@@ -32,6 +43,12 @@ public static class CountryDatabase
     {
         EnsureLoaded();
         return _byId.Values;
+    }
+
+    // HOI4 takma adını (SOV vb.) veri dosyasındaki ISO A3'e çevirir.
+    private static string Normalize(string id)
+    {
+        return Aliases.TryGetValue(id, out var canonical) ? canonical : id;
     }
 
     // Verisi olmayan ülkeler için id bazlı istikrarlı (deterministik) değerler.

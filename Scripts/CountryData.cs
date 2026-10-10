@@ -43,6 +43,10 @@ public class CountryData
 
     public long ManpowerPerDay => (long)(Population / 100_000); // günlük manpower artışı (basit model)
 
+    // Basit GDP tahmini: Nüfus × SivilFabrika × katsayı (1936 doları civarında)
+    // HOI4'te GDP ayrı alan yok; factories × population proxy'si kullanılır.
+    public long EstimatedGDP => (long)(Population * CivFactories * 150);
+
     public string GetIdeologyColor()
     {
         return Ideology switch
@@ -52,5 +56,11 @@ public class CountryData
             "Communism" => "#B03A2E",
             _ => "#8E9AA5"
         };
+    }
+
+    // Bayrak placeholder için ideolojiye dayalı arka plan rengi (prosedürel bayrak yerine)
+    public Color GetFlagColor()
+    {
+        return new Color(GetIdeologyColor());
     }
 }

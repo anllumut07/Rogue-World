@@ -5,6 +5,9 @@ public partial class MainMenu : Control
 {
     public override void _Ready()
     {
+        // Ortak koyu tema
+        UITheme.ApplyTheme(this);
+
         // Sahne değişiminde pause kilitli kalabilir -> ana menü her zaman canlı açılır.
         GetTree().Paused = false;
 

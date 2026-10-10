@@ -46,6 +46,9 @@ public partial class GameHud : CanvasLayer
         margin.AddThemeConstantOverride("margin_right", 20);
         margin.MouseFilter = Control.MouseFilterEnum.Ignore;
 
+        // Ortak koyu tema (margin ve butonlar)
+        UITheme.ApplyTheme(margin);
+
         var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Begin };
         margin.AddChild(row);
 
@@ -81,7 +84,7 @@ public partial class GameHud : CanvasLayer
         _pauseButton.Pressed += () => GM.TogglePause();
         bar.AddChild(_pauseButton);
 
-        // Hız butonları: 1x - 5x (HOI4 gibi)
+        // Hız butonları: 1x - 5x (HOI4 gibi, kompakt toolbar varyantı)
         _speedButtons = new Button[5];
         for (int i = 0; i < 5; i++)
         {
@@ -90,7 +93,8 @@ public partial class GameHud : CanvasLayer
             {
                 Text = $"{speed}x",
                 ToggleMode = true,
-                FocusMode = Control.FocusModeEnum.None
+                FocusMode = Control.FocusModeEnum.None,
+                ThemeTypeVariation = "ToolbarButton"
             };
             b.Pressed += () =>
             {

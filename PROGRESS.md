@@ -24,7 +24,7 @@
 | 2.2 | WorldMap: GeoJSON→Polygon2D/Line2D, pan/zoom (RMB drag, wheel), WASD pan | ✅ Works |
 | 2.3 | Left-click select → "Selected: X" bottom bar + CountryInfoPanel | ✅ Works |
 | 2.4 | Country colors (hash), selected=gold outline, hover=lighter | ✅ Works |
-| 2.5 | CountryInfoPanel: flag/name, GDP, pop, military, resources, factories | 🔄 **Missing: flag display, GDP field** |
+| 2.5 | CountryInfoPanel: flag/name, GDP, pop, military, resources, factories | ✅ **Done** (flag placeholder, GDP added; HOI4 id aliases SOV/RUS, ENG/GBR) |
 
 **Known gaps to fix (functional):**
 - CountryInfoPanel: add flag placeholder (procedural colored rect by ideology color), add GDP estimate (Population × CivFactories × k)

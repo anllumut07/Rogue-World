@@ -8,14 +8,33 @@ public static class CountryDatabase
 {
     private const string Path = "res://Data/countries_data.json";
 
-    // HOI4 kodu ↔ GeoJSON ISO A3 takma adları (ör. SOV=RUS)
+    // HOI4 kodu ↔ GeoJSON ISO A3 takma adları (ör. SOV=RUS).
+    // NOT: HOI4'te AUS = Avusturya, ISO'da AUS = Avustralya olduğu için
+    // "AUS" kasıtlı olarak eşlenmedi (belirsiz; ISO anlamı korunur).
     private static readonly Dictionary<string, string> Aliases = new()
     {
-        ["SOV"] = "RUS",
-        ["ENG"] = "GBR",
-        ["GRE"] = "GRC",
-        ["YUG"] = "SRB",
-        ["MAN"] = "MNG",
+        ["SOV"] = "RUS",   // Sovyetler Birliği
+        ["ENG"] = "GBR",   // Birleşik Krallık
+        ["GER"] = "DEU",   // Almanya
+        ["JAP"] = "JPN",   // Japonya
+        ["CHI"] = "CHN",   // Çin
+        ["SPA"] = "ESP",   // İspanya
+        ["GRE"] = "GRC",   // Yunanistan
+        ["YUG"] = "SRB",   // Yugoslavya
+        ["MAN"] = "MNG",   // Mançurya
+        ["MON"] = "MNG",   // Moğolistan
+        ["PER"] = "IRN",   // Pers İran
+        ["SIA"] = "THA",   // Siyam/Tayland
+        ["SAF"] = "ZAF",   // Güney Afrika
+        ["ROM"] = "ROU",   // Romanya
+        ["BUL"] = "BGR",   // Bulgaristan
+        ["RAJ"] = "IND",   // Britanya Rajı
+        ["HOL"] = "NLD",   // Hollanda
+        ["DEN"] = "DNK",   // Danimarka
+        ["SWI"] = "CHE",   // İsviçre
+        ["AST"] = "AUS",   // Avustralya
+        ["PHI"] = "PHL",   // Filipinler
+        ["INS"] = "IDN",   // Hollanda Doğu Hint Adaları
     };
 
     private static Dictionary<string, CountryData> _byId = new();

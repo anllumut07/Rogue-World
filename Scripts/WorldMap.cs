@@ -71,6 +71,11 @@ public partial class WorldMap : Node2D
     private GradientTexture2D _oceanTexture;
     private float _lastBorderZoom = -1f;
 
+    // Yumuşak kamera (zoom lerp): hedefe doğru yumuşak yaklaşma
+    private bool _zoomAnim;
+    private float _targetZoom = 1f;
+    private Vector2 _targetPos = Vector2.Zero;
+
     public override void _Ready()
     {
         Instance = this;
@@ -134,6 +139,7 @@ public partial class WorldMap : Node2D
         UpdateNameLabels();
         AnimateSelectedBorder((float)delta);
         UpdateBorderWidthsByZoom();
+        AnimateZoom((float)delta);
 
         // SubViewport layout oturana kadar boyut (2,2) olabilir; gerçek boyuta
         // ulaşınca kamerayı bir kez haritaya sığdır.
@@ -146,6 +152,29 @@ public partial class WorldMap : Node2D
                 _cameraNeedsFit = false;
             }
         }
+    }
+
+    // Yumuşak zoom: kamerayı hedef zoom/pozisyona lerp ile yaklaştırır.
+    private void AnimateZoom(float delta)
+    {
+        if (!_zoomAnim || _camera == null) return;
+        float t = Mathf.Clamp(delta * 14f, 0f, 1f); // ~0.07 saniyede oturur
+        var target = ClampedTargetPos();
+        _camera.Zoom = _camera.Zoom.Lerp(new Vector2(_targetZoom, _targetZoom), t);
+        _camera.Position = _camera.Position.Lerp(target, t);
+        if (Mathf.Abs(_camera.Zoom.X - _targetZoom) < 0.004f &&
+            _camera.Position.DistanceTo(target) < 1.5f / _targetZoom)
+        {
+            _camera.Zoom = new Vector2(_targetZoom, _targetZoom);
+            _camera.Position = target;
+            _zoomAnim = false;
+        }
+    }
+
+    // Zoom değiştikçe görünür alan genişler; pan sırasında hedef de sınırlansın
+    private Vector2 ClampedTargetPos()
+    {
+        return ClampCameraPos(_targetPos);
     }
 
     // Zoom'a göre sınır çizgisi kalınlığını güncelle (ekranda ~1.1px kalınlıkta kalır).
@@ -205,7 +234,9 @@ public partial class WorldMap : Node2D
             _lastMousePos = motion.Position;
             if (_camera != null && deltaPos != Vector2.Zero)
             {
+                _zoomAnim = false; // manuel pan -> zoom animasyonu iptal
                 _camera.Position -= deltaPos / _camera.Zoom.X;
+                _targetPos = _camera.Position; // hedefi de senkronize et
                 ClampCamera();
                 GetViewport().SetInputAsHandled();
             }
@@ -266,15 +297,15 @@ public partial class WorldMap : Node2D
         if (Input.IsKeyPressed(Key.A) || Input.IsKeyPressed(Key.Left)) dir.X -= 1;
         if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right)) dir.X += 1;
         if (dir == Vector2.Zero) return;
+        _zoomAnim = false; // kullanıcı pan yaparken zoom animasyonu iptal
         _camera.Position += dir.Normalized() * (KeyPanSpeed / _camera.Zoom.X) * delta;
+        _targetPos = _camera.Position; // hedefi senkron tut
         ClampCamera();
     }
 
     private void ClampCamera()
     {
-        _camera.Position = new Vector2(
-            Mathf.Clamp(_camera.Position.X, -400f, MapSize.X + 400f),
-            Mathf.Clamp(_camera.Position.Y, -400f, MapSize.Y + 400f));
+        _camera.Position = ClampCameraPos(_camera.Position);
     }
 
     public void RefreshOwnershipColors()
@@ -429,7 +460,7 @@ public partial class WorldMap : Node2D
             if (label == null || !GodotObject.IsInstanceValid(label)) continue;
             Vector2 screen = (c.LabelAnchor - _camera.Position) * zoom + vp / 2f;
             float wpx = c.LargestBBox.X * zoom; float hpx = c.LargestBBox.Y * zoom;
-            bool bigEnough = wpx > 45f && hpx > 22f;
+            bool bigEnough = wpx > 55f && hpx > 26f; // küçük ülkelerin etiketleri zoom artınca görünür
             bool onScreen = screen.X > -80f && screen.X < vp.X + 80f && screen.Y > -30f && screen.Y < vp.Y + 30f;
             label.Visible = bigEnough && onScreen;
             if (label.Visible) label.Position = screen - label.Size / 2f;
@@ -457,6 +488,10 @@ public partial class WorldMap : Node2D
         _camera = new Camera2D { Position = MapSize / 2f };
         AddChild(_camera); _camera.MakeCurrent();
         FitCameraToViewport();
+        // Animasyon hedeflerini başlangıç durumuna ayarla
+        _targetZoom = _camera.Zoom.X;
+        _targetPos = _camera.Position;
+        _zoomAnim = false;
     }
 
     // Kamerayı haritayı viewport'a sığdıracak şekilde ayarla
@@ -468,6 +503,10 @@ public partial class WorldMap : Node2D
         float fit = Mathf.Min(vp.X / MapSize.X, vp.Y / MapSize.Y) * 0.95f;
         _camera.Zoom = new Vector2(fit, fit);
         _camera.Position = new Vector2(MapSize.X / 2f, MapSize.Y / 2f - 80f);
+        // Animasyon hedeflerini senkronize et (anında uygulanacak)
+        _targetZoom = fit;
+        _targetPos = _camera.Position;
+        _zoomAnim = false;
     }
 
     // İlk kareden sonra çağrılır: SubViewport'ta kamera current düşmüşse düzelt
@@ -480,13 +519,25 @@ public partial class WorldMap : Node2D
     private void ZoomAt(Vector2 screenPos, float factor)
     {
         _cameraNeedsFit = false; // kullanıcı kontrolü devraldı
-        float z = Mathf.Clamp(_camera.Zoom.X * factor, 0.25f, 6f);
-        if (Mathf.IsEqualApprox(z, _camera.Zoom.X)) return;
+        float z = Mathf.Clamp(_targetZoom * factor, 0.25f, 6f);
+        if (Mathf.IsEqualApprox(z, _targetZoom) && !_zoomAnim) return;
+
+        // Zoom, imleç altındaki noktayı sabit tutar; hedefe doğru lerp ile yumuşak gider.
+        // Ardışık tekerlek hareketleri hedef üzerinde birikir (kekleşme yok).
         var center = GetViewportRect().Size / 2f;
-        var before = (screenPos - center) / _camera.Zoom.X + _camera.Position;
-        _camera.Zoom = new Vector2(z, z);
-        var after = (screenPos - center) / z + _camera.Position;
-        _camera.Position += before - after;
+        var before = (screenPos - center) / _targetZoom + _targetPos;
+        var after = (screenPos - center) / z + _targetPos;
+        _targetZoom = z;
+        _targetPos = ClampCameraPos(_camera.Position + (before - after));
+        _zoomAnim = true;
+    }
+
+    // Pozisyonu harita sınırları içinde tut (lerp hedefi ve anlık pozisyon için)
+    private Vector2 ClampCameraPos(Vector2 pos)
+    {
+        return new Vector2(
+            Mathf.Clamp(pos.X, -400f, MapSize.X + 400f),
+            Mathf.Clamp(pos.Y, -400f, MapSize.Y + 400f));
     }
 
     private void UpdateHover(Vector2 worldPos)

@@ -66,14 +66,16 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 ---
 
-### 📋 Milestone 5: Araştırma Ağacı (Technology Tree)
-| Alt Görev | Açıklama | Test Kriteri |
-|-----------|----------|--------------|
-| 5.1 | Kategoriler: Infantry, Support, Armor, Artillery, Naval, Air, Industry, Electronics, Doctrines (Land/Naval/Air) | Ağaç UI kategorilerle açılır |
-| 5.2 | Teknolojiler: ID, isim, açıklama, era (1936/1939/1941/1943), maliyet (research cost), önkoşullar, etkiler | Bir teknoloji araştırılır, etkileri (ör. +10% org) uygulanır |
-| 5.3 | Araştırma slotları: başlangıç 2 slot, odak/teknoloji ile +1 (max 5) | Slot sayısı artırılır, eşzamanlı araştırma çalışır |
-| 5.4 | Research bonus: focus/olay/decoder/teknoloji paylaşımı | Bonus uygulanır, araştırma hızı artar |
-| 5.5 | Research panel UI: filtre (era/kategori), ilerleme çubuğu, "Start Research" butonu | Editörde test: teknoloji seçilir, günlük tick'te ilerler, tamamlanır |
+### ✅ Milestone 5: Teknoloji Ağacı (Technology Tree)
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 5.1 | Kategoriler: Infantry, Support, Artillery, Armor, Naval, Air, Industry, Electronics, Doctrines (Land/Naval/Air) | Ağaç UI kategorilerle açılır | ✅ 9 kategori, 72 teknoloji, Data/technologies.json |
+| 5.2 | Teknolojiler: ID, isim, açıklama, era (1936/1939/1941/1943), maliyet, önkoşullar, etkiler | Bir teknoloji araştırılır, etkileri uygulanır | ✅ 72 tech, modifikatörler (construction_speed, factory_output, resource_gain, research_speed) |
+| 5.3 | Araştırma slotları: başlangıç 2, odak/teknoloji ile +1 (max 5) | Slot sayısı artırılır, eşzamanlı araştırma çalışır | ✅ CountryData.ResearchSlots (ülke verisinden), TechnologySystem slot yönetimi |
+| 5.4 | Araştırma bonusu: focus/olay/decoder/teknoloji paylaşımı | Bonus uygulanır, araştırma hızı artar | ✅ research_speed modifikatörü (Electronics/Doktrin) + EconomySystem/TechnologySystem hızı uygular |
+| 5.5 | Research panel UI: filtre (era/kategori), ilerleme çubuğu, "Start Research" butonu | Editörde test: teknoloji seçilir, günlük tick'te ilerler, tamamlanır | ✅ ResearchPanel: kategori/era filtresi, START butonu, aktif araştırma progress bar, slot/speed bilgisi |
+
+**Görsel (küçük):** ProgressBar teması (varsayılan), tooltip düzeltmeleri.
 
 ---
 
@@ -181,6 +183,6 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ---
 
 ## Sonraki Adım
-✅ **Milestone 4 işlevsel %100** (EconomySystem + EconomyPanel + trade). Editörde F5 ile doğrulama: ECONOMY butonu, inşaat butonları, kuyruk progress, yasa değiştirme (150 PP), kaynak ithalatı (ihracatçı adı), ticaret anlaştırma/iptal logları.
+✅ **Milestone 5 işlevsel %100** (TechnologySystem + ResearchPanel + 72 tech). Editörde F5 ile doğrulama: RESEARCH butonu, kategori/era filtreleri, START butonu, aktif araştırma progress bar'ları, slot limiti, tamamlanınca modifier etkisi (inşaat/üretim hızlanması).
 
-Doğrulama sonrası → **Milestone 5**: Teknoloji Ağacı (Technology Tree) — kategoriler, teknoloji öğeleri, araştırma slotları, bonuslar.
+Doğrulama sonrası → **Milestone 6**: Üretim (Production Lines) — ekipman tipleri, üretim hatları (efficiency), stok yönetimi.

@@ -144,6 +144,7 @@ public static class EconomySystem
 
         // 3) İnşaat kuyruğu: öndeki öğelere en fazla 15'er fabrika ata (HOI4 gibi)
         int remaining = freeCivs;
+        float constructionMult = 1f + TechnologySystem.GetModifier("construction_speed");
         for (int i = 0; i < _constructionQueue.Count; i++)
         {
             var item = _constructionQueue[i];
@@ -151,7 +152,8 @@ public static class EconomySystem
             item.AssignedFactories = assign;
             if (assign <= 0) break;
 
-            item.PointsDone += assign * PointsPerFactoryPerDay;
+            // construction_speed teknolojileri inşaatı hızlandırır
+            item.PointsDone += (int)(assign * PointsPerFactoryPerDay * constructionMult);
             remaining -= assign;
 
             if (item.IsComplete)
@@ -176,12 +178,14 @@ public static class EconomySystem
     private static void ProduceResources()
     {
         var d = Player;
-        AddToStock("Oil", d.Oil);
-        AddToStock("Rubber", d.Rubber);
-        AddToStock("Steel", d.Steel);
-        AddToStock("Aluminum", d.Aluminum);
-        AddToStock("Tungsten", d.Tungsten);
-        AddToStock("Chromium", d.Chromium);
+        float resMult = 1f + TechnologySystem.GetModifier("resource_gain");
+
+        AddToStock("Oil", (int)(d.Oil * resMult));
+        AddToStock("Rubber", (int)(d.Rubber * resMult));
+        AddToStock("Steel", (int)(d.Steel * resMult));
+        AddToStock("Aluminum", (int)(d.Aluminum * resMult));
+        AddToStock("Tungsten", (int)(d.Tungsten * resMult));
+        AddToStock("Chromium", (int)(d.Chromium * resMult));
     }
 
     private static void AddToStock(string key, int amount)

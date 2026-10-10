@@ -86,7 +86,35 @@
 
 ---
 
-## Milestone 5: Technology Tree — 🔄 NEXT
+## Milestone 5: Technology Tree — ✅ DONE (functional, 2026-10-11)
+
+### Functional Status (5.1–5.5)
+| Subtask | Description | Status |
+|---------|-------------|--------|
+| 5.1 | Categories: Infantry, Support, Artillery, Armor, Air, Naval, Industry, Electronics, Doctrines | ✅ 9 categories, 72 techs in JSON (eras 1936/1939/1941/1943, costs, prereqs, effects, modifiers) |
+| 5.2 | Technologies with ID, name, description, era, cost, prerequisites, effects | ✅ 72 techs; modifiers for construction_speed, factory_output, resource_gain, research_speed |
+| 5.3 | Research slots from country data (2–4), max 5, simultaneous research | ✅ CountryData.ResearchSlots used; slot limit enforced in TechnologySystem |
+| 5.4 | Research bonuses: electronics/doctrine techs add research_speed modifier (stacking) | ✅ ResearchSpeedMult = 1 + Σ research_speed; applied in TechnologySystem.DailyTick |
+| 5.5 | Research panel UI: category/era filters, tech list with status icons, START buttons, active research progress bars, slot/speed display | ✅ ResearchPanel overlay with filters, active research progress bars, START buttons with prereq checks |
+
+### Visual (minimal)
+| # | Task | Status |
+|---|------|--------|
+| 1 | ProgressBar theme | ⬜ (default Godot style; functional) |
+
+### Test Checklist (manual)
+- [ ] HUD RESEARCH button opens panel; ESC closes
+- [ ] Category filter (All + 9) and Era filter (All/1936/1939/1941/1943) work
+- [ ] Tech list: ✓ researched, ⟳ in progress, ○ available, 🔒 missing prereq
+- [ ] START button enabled only when Available (prereqs met, slot free)
+- [ ] Active research section: name, progress bar, days left, cancel X works
+- [ ] Slot info shows used/total + speed multiplier (e.g., 1.02x after Electronics)
+- [ ] Research completes after correct days (cost / speed multiplier); logs on completion
+- [ ] Construction/Factory/Resource speed modifiers take effect (build faster, produce more)
+
+---
+
+## Milestone 6: Production (Production Lines) — 🔄 NEXT
 
 ---
 

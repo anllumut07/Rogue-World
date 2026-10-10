@@ -121,6 +121,9 @@ public partial class GameManager : Node
         data.PoliticalPower += BasePPDailyGain;
         data.ManpowerPool += data.ManpowerPerDay;
 
+        // M4: Ekonomi günlük tick'i (inşaat, kaynaklar, ticaret)
+        EconomySystem.DailyTick();
+
         EmitSignal(SignalName.PlayerCountryDataChanged);
     }
 
@@ -152,6 +155,10 @@ public partial class GameManager : Node
         _playerCountryData = null; // cache temizle
         var data = PlayerCountryData;
         GD.Print($"GameManager: Oyuncu ülkesi = {PlayerCountryId} ({data?.Name ?? "—"})");
+
+        // Ekonomi sistemini yeni ülkeyle başlat (M4)
+        EconomySystem.Initialize(data);
+
         EmitSignal(SignalName.PlayerCountryChanged, PlayerCountryId);
         EmitSignal(SignalName.PlayerCountryDataChanged);
     }

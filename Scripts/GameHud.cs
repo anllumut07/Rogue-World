@@ -124,7 +124,7 @@ public partial class GameHud : CanvasLayer
             UITheme.AddHoverScale(b, 1.08f);
         }
 
-        // --- SAĞ: PP | Stability | War Support ---
+        // --- SAĞ: PP | Stability | War Support | ECONOMY | Pause ---
         var rightSection = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         rightSection.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         rightSection.AddThemeConstantOverride("separation", 20);
@@ -147,6 +147,12 @@ public partial class GameHud : CanvasLayer
         _warSupportLabel.AddThemeColorOverride("font_color", new Color(1f, 0.6f, 0.4f));
         _warSupportLabel.TooltipText = "War Support % (savaş performansını etkiler)";
         rightSection.AddChild(_warSupportLabel);
+
+        // ECONOMY butonu
+        var economyBtn = new Button { Text = "ECONOMY", FocusMode = Control.FocusModeEnum.None, TooltipText = "Economy panel (build queue, factories, resources)" };
+        economyBtn.Pressed += () => EconomyPanel.OpenUnder(this);
+        rightSection.AddChild(economyBtn);
+        UITheme.AddHoverScale(economyBtn);
 
         // Pause/Play butonu (en sağda)
         _pauseButton = new Button { FocusMode = Control.FocusModeEnum.None, TooltipText = "Pause/Resume (Space)" };

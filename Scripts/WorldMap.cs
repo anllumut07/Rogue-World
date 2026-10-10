@@ -19,6 +19,17 @@ public partial class WorldMap : Node2D
     private static readonly Color BorderColor = new("0E141B");
     private static readonly Color GoldBorderColor = new("FFD700");
 
+    // HOI4 tarzı kısık (desatüre) ülke paleti: hepsi bir arada uyumlu görünür.
+    private static readonly Color[] CountryPalette =
+    {
+        new Color("#8F8259"), new Color("#7B8471"), new Color("#9C8862"), new Color("#7D5F49"),
+        new Color("#6E7F8D"), new Color("#8C6E83"), new Color("#5F8F7A"), new Color("#8A9550"),
+        new Color("#6B7B9C"), new Color("#9C7C5B"), new Color("#7A8F6E"), new Color("#8F6E5F"),
+        new Color("#5C7A8F"), new Color("#99886B"), new Color("#6E6B8F"), new Color("#8F7A6B"),
+        new Color("#4F6E5A"), new Color("#7A6E8F"), new Color("#8E8A7A"), new Color("#6E8F8A"),
+        new Color("#9C6B5A"), new Color("#5C8F6B"), new Color("#8F8A6E"), new Color("#6B5E52"),
+    };
+
     public sealed class Country
     {
         public string Id = "?";
@@ -56,11 +67,26 @@ public partial class WorldMap : Node2D
     private bool _cameraNeedsFit = true; // SubViewport gerçek boyutuna ulaşınca kamerayı oturt
     private static readonly Color OceanColor = new("0A1628");
 
+    // Görsel iyileştirmeler
+    private GradientTexture2D _oceanTexture;
+    private float _lastBorderZoom = -1f;
+
     public override void _Ready()
     {
         Instance = this;
         _nameLayer = new CanvasLayer { Layer = 1 };
         AddChild(_nameLayer);
+
+        // Okyanus degrade dokusu (kutuplar koyu, ekvator daha mavi)
+        _oceanTexture = new GradientTexture2D
+        {
+            Width = 16,
+            Height = 512,
+            Fill = 0, // GradientFillMode.Linear = 0
+            FillFrom = new Vector2(0f, 0f),
+            FillTo = new Vector2(0f, 1f),
+            Gradient = BuildOceanGradient(),
+        };
 
         SetProcessInput(true);
 
@@ -73,11 +99,28 @@ public partial class WorldMap : Node2D
         GD.Print($"WorldMap: hazır — kamera zoom={_camera?.Zoom.X:0.00} pos={_camera?.Position}, viewport={GetViewportRect().Size}");
     }
 
+    // Dikey okyanus degradesi: kutuplar (üst/alt) koyu, ekvator (orta) mavi
+    private static Gradient BuildOceanGradient()
+    {
+        var g = new Gradient();
+        g.SetColor(0, new Color("#060B12"));
+        g.AddPoint(0.45f, new Color("#10233C"));
+        g.AddPoint(0.75f, new Color("#0C1B30"));
+        g.SetColor(1, new Color("#050A10"));
+        return g;
+    }
+
     public override void _Draw()
     {
-        // Okyanus arka planı: SubViewport'un render ettiğinin görsel kanıtı (gri = hiç render yok)
-        DrawRect(new Rect2(-2000f, -1000f, MapSize.X + 4000f, MapSize.Y + 2000f), OceanColor);
-        DrawRect(new Rect2(Vector2.Zero, MapSize), new Color(0.12f, 0.25f, 0.45f), false, 2f); // harita sınırı
+        // Okyanus: koyu mavi degrade (kutuplar koyu -> ekvator hafif mavi)
+        var big = new Rect2(-2000f, -1000f, MapSize.X + 4000f, MapSize.Y + 2000f);
+        if (_oceanTexture != null)
+            DrawTextureRect(_oceanTexture, big, false);
+        else
+            DrawRect(big, OceanColor);
+
+        // Harita sınırı (ince, yumuşak mavi)
+        DrawRect(new Rect2(Vector2.Zero, MapSize), new Color(0.12f, 0.25f, 0.45f), false, 2f);
     }
 
     public override void _ExitTree()
@@ -90,6 +133,7 @@ public partial class WorldMap : Node2D
         HandleKeyboardPan((float)delta);
         UpdateNameLabels();
         AnimateSelectedBorder((float)delta);
+        UpdateBorderWidthsByZoom();
 
         // SubViewport layout oturana kadar boyut (2,2) olabilir; gerçek boyuta
         // ulaşınca kamerayı bir kez haritaya sığdır.
@@ -100,6 +144,29 @@ public partial class WorldMap : Node2D
             {
                 FitCameraToViewport();
                 _cameraNeedsFit = false;
+            }
+        }
+    }
+
+    // Zoom'a göre sınır çizgisi kalınlığını güncelle (ekranda ~1.1px kalınlıkta kalır).
+    // Seçili ülkenin altın çerçevesi AnimateSelectedBorder'da ayrı yönetilir.
+    private void UpdateBorderWidthsByZoom()
+    {
+        if (_camera == null) return;
+        float zoom = _camera.Zoom.X;
+        if (Mathf.Abs(zoom - _lastBorderZoom) < 0.03f) return;
+        _lastBorderZoom = zoom;
+
+        float w = Mathf.Clamp(1.1f / zoom, 0.35f, 3f); // normal sınır: ince
+
+        foreach (var c in _countries)
+        {
+            if (c == _selected) continue; // seçili: altın pulse ayrı
+            foreach (var outline in c.Outlines)
+            {
+                if (!GodotObject.IsInstanceValid(outline)) continue;
+                outline.Width = w;
+                outline.DefaultColor = BorderColor;
             }
         }
     }
@@ -224,13 +291,18 @@ public partial class WorldMap : Node2D
 
     private static Color ColorForId(string id)
     {
+        // Antarktika ve buzul toprakları: gri-buz tonu (renkli duruyor, çirkin olur)
+        if (id == "ATA" || id == "ATF") return new Color("#93A5B1");
+
         unchecked
         {
             int hash = 0; foreach (char ch in id) hash = hash * 31 + ch;
-            float hue = Mathf.PosMod(hash, 360) / 360f;
-            float sat = 0.38f + Mathf.PosMod(hash >> 8, 20) / 100f;
-            float val = 0.42f + Mathf.PosMod(hash >> 16, 14) / 100f;
-            return Color.FromHsv(hue, sat, val);
+            var baseColor = CountryPalette[Mathf.Abs(hash) % CountryPalette.Length];
+            // Deterministik hafif ton kayması: aynı paletten komşular ayrışsın
+            int v = (hash >> 12) % 5;
+            if (v == 0) return baseColor.Darkened(0.08f);
+            if (v == 4) return baseColor.Lightened(0.08f);
+            return baseColor;
         }
     }
 
@@ -256,7 +328,8 @@ public partial class WorldMap : Node2D
             {
                 var body = new Polygon2D { Polygon = ring, Color = country.MapColor };
                 AddChild(body); country.Nodes.Add(body);
-                var outline = new Line2D { Points = ring, DefaultColor = BorderColor, Width = 2f, Closed = true };
+                // İnce başlangıç kalınlığı; zoom'a göre _Process'te güncellenecek
+                var outline = new Line2D { Points = ring, DefaultColor = BorderColor, Width = 1.1f, Closed = true };
                 AddChild(outline); country.Outlines.Add(outline);
                 parts++;
             }
@@ -451,7 +524,8 @@ public partial class WorldMap : Node2D
         var old = _selected; _selected = c;
         if (old != null)
         {
-            foreach (var outline in old.Outlines) if (GodotObject.IsInstanceValid(outline)) { outline.DefaultColor = BorderColor; outline.Width = 2f; }
+            // Eski ülkenin sınırı normal stile dönsün (zoom'a göre hesaplanacak)
+            _lastBorderZoom = -1f;
             foreach (var node in old.Nodes) if (GodotObject.IsInstanceValid(node)) node.Color = old == _hovered ? old.MapColor.Lightened(0.25f) : old.MapColor;
         }
         if (_selected != null)
@@ -470,9 +544,17 @@ public partial class WorldMap : Node2D
 
     private void AnimateSelectedBorder(float delta)
     {
-        if (_selected == null) return;
+        if (_selected == null || _camera == null) return;
+        float zoom = _camera.Zoom.X;
         _goldPulse += delta * 2f; float pulse = 0.5f + 0.5f * Mathf.Sin(_goldPulse);
-        foreach (var outline in _selected.Outlines) if (GodotObject.IsInstanceValid(outline)) { outline.Width = 2f + pulse * 1.5f; outline.DefaultColor = GoldBorderColor.Lightened(pulse * 0.2f); }
+        float selW = Mathf.Clamp(2.2f / zoom, 0.8f, 6f); // altın çerçeve: ekranda kalın
+        foreach (var outline in _selected.Outlines)
+        {
+            if (!GodotObject.IsInstanceValid(outline)) continue;
+            // Pulsing: kalınlık yumuşakça oscille eder, renk hafif parlar
+            outline.Width = selW * (0.85f + pulse * 0.3f);
+            outline.DefaultColor = GoldBorderColor.Lightened(pulse * 0.2f);
+        }
     }
 
     private void BuildSelectionLabel()

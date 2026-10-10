@@ -124,6 +124,9 @@ public partial class GameManager : Node
         // M4: Ekonomi günlük tick'i (inşaat, kaynaklar, ticaret)
         EconomySystem.DailyTick();
 
+        // M5: Teknoloji araştırması günlük ilerleme
+        TechnologySystem.DailyTick();
+
         EmitSignal(SignalName.PlayerCountryDataChanged);
     }
 
@@ -158,6 +161,8 @@ public partial class GameManager : Node
 
         // Ekonomi sistemini yeni ülkeyle başlat (M4)
         EconomySystem.Initialize(data);
+        // Teknoloji sistemini sıfırla (M5)
+        TechnologySystem.Initialize();
 
         EmitSignal(SignalName.PlayerCountryChanged, PlayerCountryId);
         EmitSignal(SignalName.PlayerCountryDataChanged);

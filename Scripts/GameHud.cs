@@ -148,6 +148,12 @@ public partial class GameHud : CanvasLayer
         _warSupportLabel.TooltipText = "War Support % (savaş performansını etkiler)";
         rightSection.AddChild(_warSupportLabel);
 
+        // RESEARCH butonu
+        var researchBtn = new Button { Text = "RESEARCH", FocusMode = Control.FocusModeEnum.None, TooltipText = "Technology tree (research slots, progress)" };
+        researchBtn.Pressed += () => ResearchPanel.OpenUnder(this);
+        rightSection.AddChild(researchBtn);
+        UITheme.AddHoverScale(researchBtn);
+
         // ECONOMY butonu
         var economyBtn = new Button { Text = "ECONOMY", FocusMode = Control.FocusModeEnum.None, TooltipText = "Economy panel (build queue, factories, resources)" };
         economyBtn.Pressed += () => EconomyPanel.OpenUnder(this);

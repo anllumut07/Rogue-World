@@ -1,0 +1,367 @@
+[
+	{
+		"Id": "infantry_weapons_1", "Name": "Infantry Weapons I", "Category": "Infantry", "Era": 1936, "Cost": 120,
+		"Description": "Standard bolt-action rifles and light machine guns for infantry divisions.",
+		"Prerequisites": [], "Effects": ["+10% Infantry Attack", "+5% Infantry Defense"], "Modifiers": {}
+	},
+	{
+		"Id": "infantry_weapons_2", "Name": "Infantry Weapons II", "Category": "Infantry", "Era": 1939, "Cost": 160,
+		"Description": "Semi-automatic rifles and improved squad weapons.",
+		"Prerequisites": ["infantry_weapons_1"], "Effects": ["+10% Infantry Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "infantry_weapons_3", "Name": "Infantry Weapons III", "Category": "Infantry", "Era": 1941, "Cost": 200,
+		"Description": "Assault rifles and improved infantry equipment.",
+		"Prerequisites": ["infantry_weapons_2"], "Effects": ["+10% Infantry Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "infantry_weapons_4", "Name": "Infantry Weapons IV", "Category": "Infantry", "Era": 1943, "Cost": 240,
+		"Description": "Modern small arms and improved body armor.",
+		"Prerequisites": ["infantry_weapons_3"], "Effects": ["+10% Infantry Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "marines", "Name": "Marines", "Category": "Infantry", "Era": 1936, "Cost": 100,
+		"Description": "Naval infantry specialized in amphibious assaults.",
+		"Prerequisites": [], "Effects": ["Unlocks Marines battalions"], "Modifiers": {}
+	},
+	{
+		"Id": "mountaineers", "Name": "Mountaineers", "Category": "Infantry", "Era": 1936, "Cost": 100,
+		"Description": "Elite mountain warfare troops.",
+		"Prerequisites": [], "Effects": ["Unlocks Mountaineers battalions"], "Modifiers": {}
+	},
+	{
+		"Id": "paratroopers", "Name": "Paratroopers", "Category": "Infantry", "Era": 1936, "Cost": 100,
+		"Description": "Airborne infantry dropped behind enemy lines.",
+		"Prerequisites": [], "Effects": ["Unlocks Paratroopers battalions"], "Modifiers": {}
+	},
+	{
+		"Id": "engineers_1", "Name": "Engineers I", "Category": "Support", "Era": 1936, "Cost": 110,
+		"Description": "Combat engineers for fortification and river crossing.",
+		"Prerequisites": [], "Effects": ["+5% Attack", "+10% Defense", "+0.4 River Crossing"], "Modifiers": {}
+	},
+	{
+		"Id": "engineers_2", "Name": "Engineers II", "Category": "Support", "Era": 1941, "Cost": 170,
+		"Description": "Improved engineer equipment and tactics.",
+		"Prerequisites": ["engineers_1"], "Effects": ["+5% Attack", "+10% Defense"], "Modifiers": {}
+	},
+	{
+		"Id": "recon_1", "Name": "Recon I", "Category": "Support", "Era": 1936, "Cost": 110,
+		"Description": "Motorized reconnaissance units.",
+		"Prerequisites": [], "Effects": ["+5% Movement Speed", "+10% Planning Speed"], "Modifiers": {}
+	},
+	{
+		"Id": "recon_2", "Name": "Recon II", "Category": "Support", "Era": 1941, "Cost": 170,
+		"Description": "Improved armored cars and recon doctrine.",
+		"Prerequisites": ["recon_1"], "Effects": ["+5% Movement Speed"], "Modifiers": {}
+	},
+	{
+		"Id": "signal_1", "Name": "Signal Company I", "Category": "Support", "Era": 1936, "Cost": 110,
+		"Description": "Radio equipment at division level.",
+		"Prerequisites": [], "Effects": ["+10% Reinforce Rate", "+10% Planning Speed"], "Modifiers": {}
+	},
+	{
+		"Id": "signal_2", "Name": "Signal Company II", "Category": "Support", "Era": 1941, "Cost": 170,
+		"Description": "Improved communications networks.",
+		"Prerequisites": ["signal_1"], "Effects": ["+10% Reinforce Rate"], "Modifiers": {}
+	},
+	{
+		"Id": "hospital_1", "Name": "Field Hospital", "Category": "Support", "Era": 1936, "Cost": 110,
+		"Description": "Medical units to reduce casualties.",
+		"Prerequisites": [], "Effects": ["-20% Casualties"], "Modifiers": {}
+	},
+	{
+		"Id": "logistics_1", "Name": "Logistics Company I", "Category": "Support", "Era": 1936, "Cost": 110,
+		"Description": "Supply units to reduce attrition.",
+		"Prerequisites": [], "Effects": ["-10% Supply Use"], "Modifiers": {}
+	},
+	{
+		"Id": "maintenance_1", "Name": "Maintenance Company I", "Category": "Support", "Era": 1936, "Cost": 110,
+		"Description": "Repair units to reduce equipment loss.",
+		"Prerequisites": [], "Effects": ["-20% Equipment Loss Rate"], "Modifiers": {}
+	},
+	{
+		"Id": "artillery_1", "Name": "Artillery I", "Category": "Artillery", "Era": 1936, "Cost": 130,
+		"Description": "Towed field artillery pieces.",
+		"Prerequisites": [], "Effects": ["+15% Artillery Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "artillery_2", "Name": "Artillery II", "Category": "Artillery", "Era": 1939, "Cost": 170,
+		"Description": "Improved range and shell weight.",
+		"Prerequisites": ["artillery_1"], "Effects": ["+15% Artillery Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "artillery_3", "Name": "Artillery III", "Category": "Artillery", "Era": 1941, "Cost": 210,
+		"Description": "Heavy artillery with improved fire control.",
+		"Prerequisites": ["artillery_2"], "Effects": ["+15% Artillery Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "artillery_4", "Name": "Artillery IV", "Category": "Artillery", "Era": 1943, "Cost": 250,
+		"Description": "Modern artillery with advanced ammunition.",
+		"Prerequisites": ["artillery_3"], "Effects": ["+15% Artillery Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "anti_tank_1", "Name": "Anti-Tank I", "Category": "Artillery", "Era": 1936, "Cost": 130,
+		"Description": "Towed anti-tank guns.",
+		"Prerequisites": [], "Effects": ["+15% Piercing"], "Modifiers": {}
+	},
+	{
+		"Id": "anti_tank_2", "Name": "Anti-Tank II", "Category": "Artillery", "Era": 1941, "Cost": 210,
+		"Description": "High-velocity anti-tank weapons.",
+		"Prerequisites": ["anti_tank_1"], "Effects": ["+20% Piercing"], "Modifiers": {}
+	},
+	{
+		"Id": "anti_air_1", "Name": "Anti-Air I", "Category": "Artillery", "Era": 1936, "Cost": 130,
+		"Description": "Towed anti-aircraft guns.",
+		"Prerequisites": [], "Effects": ["+15% Air Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "anti_air_2", "Name": "Anti-Air II", "Category": "Artillery", "Era": 1941, "Cost": 210,
+		"Description": "Improved AA tracking and fire control.",
+		"Prerequisites": ["anti_air_1"], "Effects": ["+20% Air Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "light_tank_1", "Name": "Light Tank I", "Category": "Armor", "Era": 1936, "Cost": 130,
+		"Description": "Light tanks for exploitation and recon.",
+		"Prerequisites": [], "Effects": ["Unlocks Light Tank I"], "Modifiers": {}
+	},
+	{
+		"Id": "light_tank_2", "Name": "Light Tank II", "Category": "Armor", "Era": 1939, "Cost": 170,
+		"Description": "Improved light tank design.",
+		"Prerequisites": ["light_tank_1"], "Effects": ["Unlocks Light Tank II"], "Modifiers": {}
+	},
+	{
+		"Id": "medium_tank_1", "Name": "Medium Tank I", "Category": "Armor", "Era": 1939, "Cost": 170,
+		"Description": "The main battle tank of the war.",
+		"Prerequisites": ["light_tank_1"], "Effects": ["Unlocks Medium Tank I"], "Modifiers": {}
+	},
+	{
+		"Id": "medium_tank_2", "Name": "Medium Tank II", "Category": "Armor", "Era": 1941, "Cost": 210,
+		"Description": "Improved armor and gun.",
+		"Prerequisites": ["medium_tank_1"], "Effects": ["Unlocks Medium Tank II"], "Modifiers": {}
+	},
+	{
+		"Id": "medium_tank_3", "Name": "Medium Tank III", "Category": "Armor", "Era": 1943, "Cost": 250,
+		"Description": "Advanced medium tank designs.",
+		"Prerequisites": ["medium_tank_2"], "Effects": ["Unlocks Medium Tank III"], "Modifiers": {}
+	},
+	{
+		"Id": "heavy_tank_1", "Name": "Heavy Tank I", "Category": "Armor", "Era": 1939, "Cost": 170,
+		"Description": "Heavily armored breakthrough vehicles.",
+		"Prerequisites": ["medium_tank_1"], "Effects": ["Unlocks Heavy Tank I"], "Modifiers": {}
+	},
+	{
+		"Id": "heavy_tank_2", "Name": "Heavy Tank II", "Category": "Armor", "Era": 1941, "Cost": 210,
+		"Description": "Improved heavy tank.",
+		"Prerequisites": ["heavy_tank_1"], "Effects": ["Unlocks Heavy Tank II"], "Modifiers": {}
+	},
+	{
+		"Id": "fighter_1", "Name": "Fighter I", "Category": "Air", "Era": 1936, "Cost": 130,
+		"Description": "Basic monoplane fighters.",
+		"Prerequisites": [], "Effects": ["Unlocks Fighter I"], "Modifiers": {}
+	},
+	{
+		"Id": "fighter_2", "Name": "Fighter II", "Category": "Air", "Era": 1940, "Cost": 180,
+		"Description": "Improved engine and armament.",
+		"Prerequisites": ["fighter_1"], "Effects": ["Unlocks Fighter II"], "Modifiers": {}
+	},
+	{
+		"Id": "cas_1", "Name": "CAS I", "Category": "Air", "Era": 1936, "Cost": 130,
+		"Description": "Close air support aircraft.",
+		"Prerequisites": [], "Effects": ["Unlocks CAS I"], "Modifiers": {}
+	},
+	{
+		"Id": "cas_2", "Name": "CAS II", "Category": "Air", "Era": 1941, "Cost": 210,
+		"Description": "Improved ground attack aircraft.",
+		"Prerequisites": ["cas_1"], "Effects": ["Unlocks CAS II"], "Modifiers": {}
+	},
+	{
+		"Id": "tactical_bomber_1", "Name": "Tactical Bomber I", "Category": "Air", "Era": 1936, "Cost": 130,
+		"Description": "Medium bombers for interdiction.",
+		"Prerequisites": [], "Effects": ["Unlocks Tactical Bomber I"], "Modifiers": {}
+	},
+	{
+		"Id": "tactical_bomber_2", "Name": "Tactical Bomber II", "Category": "Air", "Era": 1941, "Cost": 210,
+		"Description": "Improved medium bombers.",
+		"Prerequisites": ["tactical_bomber_1"], "Effects": ["Unlocks Tactical Bomber II"], "Modifiers": {}
+	},
+	{
+		"Id": "naval_bomber_1", "Name": "Naval Bomber I", "Category": "Air", "Era": 1936, "Cost": 130,
+		"Description": "Torpedo bombers for anti-ship strikes.",
+		"Prerequisites": [], "Effects": ["Unlocks Naval Bomber I"], "Modifiers": {}
+	},
+	{
+		"Id": "strategic_bomber_1", "Name": "Strategic Bomber I", "Category": "Air", "Era": 1938, "Cost": 180,
+		"Description": "Heavy bombers for strategic bombing.",
+		"Prerequisites": ["tactical_bomber_1"], "Effects": ["Unlocks Strategic Bomber I"], "Modifiers": {}
+	},
+	{
+		"Id": "destroyer_1", "Name": "Destroyer I", "Category": "Naval", "Era": 1936, "Cost": 130,
+		"Description": "Fast escort vessels for convoy protection.",
+		"Prerequisites": [], "Effects": ["Unlocks Destroyer I"], "Modifiers": {}
+	},
+	{
+		"Id": "destroyer_2", "Name": "Destroyer II", "Category": "Naval", "Era": 1941, "Cost": 210,
+		"Description": "Improved destroyers with better ASW.",
+		"Prerequisites": ["destroyer_1"], "Effects": ["Unlocks Destroyer II"], "Modifiers": {}
+	},
+	{
+		"Id": "cruiser_1", "Name": "Cruiser I", "Category": "Naval", "Era": 1936, "Cost": 140,
+		"Description": "Light cruisers for fleet screening.",
+		"Prerequisites": [], "Effects": ["Unlocks Cruiser I"], "Modifiers": {}
+	},
+	{
+		"Id": "cruiser_2", "Name": "Cruiser II", "Category": "Naval", "Era": 1942, "Cost": 220,
+		"Description": "Heavy cruisers with improved guns.",
+		"Prerequisites": ["cruiser_1"], "Effects": ["Unlocks Cruiser II"], "Modifiers": {}
+	},
+	{
+		"Id": "battleship_1", "Name": "Battleship I", "Category": "Naval", "Era": 1936, "Cost": 150,
+		"Description": "Dreadnoughts — the capital ships.",
+		"Prerequisites": [], "Effects": ["Unlocks Battleship I"], "Modifiers": {}
+	},
+	{
+		"Id": "battleship_2", "Name": "Battleship II", "Category": "Naval", "Era": 1940, "Cost": 220,
+		"Description": "Fast battleships with 16-inch guns.",
+		"Prerequisites": ["battleship_1"], "Effects": ["Unlocks Battleship II"], "Modifiers": {}
+	},
+	{
+		"Id": "carrier_1", "Name": "Carrier I", "Category": "Naval", "Era": 1938, "Cost": 180,
+		"Description": "Aircraft carriers for naval aviation.",
+		"Prerequisites": [], "Effects": ["Unlocks Carrier I"], "Modifiers": {}
+	},
+	{
+		"Id": "carrier_2", "Name": "Carrier II", "Category": "Naval", "Era": 1942, "Cost": 240,
+		"Description": "Fleet carriers with armored decks.",
+		"Prerequisites": ["carrier_1"], "Effects": ["Unlocks Carrier II"], "Modifiers": {}
+	},
+	{
+		"Id": "submarine_1", "Name": "Submarine I", "Category": "Naval", "Era": 1936, "Cost": 130,
+		"Description": "Attack submarines for convoy raiding.",
+		"Prerequisites": [], "Effects": ["Unlocks Submarine I"], "Modifiers": {}
+	},
+	{
+		"Id": "submarine_2", "Name": "Submarine II", "Category": "Naval", "Era": 1941, "Cost": 210,
+		"Description": "Improved submarines with better range.",
+		"Prerequisites": ["submarine_1"], "Effects": ["Unlocks Submarine II"], "Modifiers": {}
+	},
+	{
+		"Id": "construction_1", "Name": "Construction I", "Category": "Industry", "Era": 1936, "Cost": 120,
+		"Description": "Improved construction techniques.",
+		"Prerequisites": [], "Effects": ["+10% Construction Speed"], "Modifiers": { "construction_speed": 0.10 }
+	},
+	{
+		"Id": "construction_2", "Name": "Construction II", "Category": "Industry", "Era": 1939, "Cost": 160,
+		"Description": "Heavy machinery for large projects.",
+		"Prerequisites": ["construction_1"], "Effects": ["+10% Construction Speed"], "Modifiers": { "construction_speed": 0.10 }
+	},
+	{
+		"Id": "construction_3", "Name": "Construction III", "Category": "Industry", "Era": 1942, "Cost": 200,
+		"Description": "Advanced construction methods.",
+		"Prerequisites": ["construction_2"], "Effects": ["+10% Construction Speed"], "Modifiers": { "construction_speed": 0.10 }
+	},
+	{
+		"Id": "production_1", "Name": "Production Efficiency I", "Category": "Industry", "Era": 1936, "Cost": 120,
+		"Description": "Assembly line techniques.",
+		"Prerequisites": [], "Effects": ["+10% Factory Output"], "Modifiers": { "factory_output": 0.10 }
+	},
+	{
+		"Id": "production_2", "Name": "Production Efficiency II", "Category": "Industry", "Era": 1939, "Cost": 160,
+		"Description": "Improved manufacturing processes.",
+		"Prerequisites": ["production_1"], "Effects": ["+10% Factory Output"], "Modifiers": { "factory_output": 0.10 }
+	},
+	{
+		"Id": "production_3", "Name": "Production Efficiency III", "Category": "Industry", "Era": 1942, "Cost": 200,
+		"Description": "Mass production methods.",
+		"Prerequisites": ["production_2"], "Effects": ["+10% Factory Output"], "Modifiers": { "factory_output": 0.10 }
+	},
+	{
+		"Id": "tools_1", "Name": "Machine Tools I", "Category": "Industry", "Era": 1936, "Cost": 120,
+		"Description": "Precision machine tools for factories.",
+		"Prerequisites": [], "Effects": ["+5% Factory Output"], "Modifiers": { "factory_output": 0.05 }
+	},
+	{
+		"Id": "tools_2", "Name": "Machine Tools II", "Category": "Industry", "Era": 1941, "Cost": 200,
+		"Description": "Automated production machinery.",
+		"Prerequisites": ["tools_1"], "Effects": ["+5% Factory Output"], "Modifiers": { "factory_output": 0.05 }
+	},
+	{
+		"Id": "excavation_1", "Name": "Excavation I", "Category": "Industry", "Era": 1936, "Cost": 120,
+		"Description": "Improved resource extraction.",
+		"Prerequisites": [], "Effects": ["+10% Resource Gain"], "Modifiers": { "resource_gain": 0.10 }
+	},
+	{
+		"Id": "excavation_2", "Name": "Excavation II", "Category": "Industry", "Era": 1941, "Cost": 200,
+		"Description": "Heavy mining equipment.",
+		"Prerequisites": ["excavation_1"], "Effects": ["+10% Resource Gain"], "Modifiers": { "resource_gain": 0.10 }
+	},
+	{
+		"Id": "electronics_1", "Name": "Electronic Mechanical Engineering", "Category": "Electronics", "Era": 1936, "Cost": 120,
+		"Description": "Basic research into mechanical computing.",
+		"Prerequisites": [], "Effects": ["+2% Research Speed"], "Modifiers": { "research_speed": 0.02 }
+	},
+	{
+		"Id": "radio", "Name": "Radio", "Category": "Electronics", "Era": 1939, "Cost": 160,
+		"Description": "Radio communication equipment.",
+		"Prerequisites": ["electronics_1"], "Effects": ["+3% Research Speed", "+5% Planning Speed"], "Modifiers": { "research_speed": 0.03 }
+	},
+	{
+		"Id": "radar_1", "Name": "Radar I", "Category": "Electronics", "Era": 1940, "Cost": 180,
+		"Description": "Early warning radar systems.",
+		"Prerequisites": ["radio"], "Effects": ["+3% Research Speed", "+10% Air Detection"], "Modifiers": { "research_speed": 0.03 }
+	},
+	{
+		"Id": "radar_2", "Name": "Radar II", "Category": "Electronics", "Era": 1943, "Cost": 240,
+		"Description": "Improved radar with greater range.",
+		"Prerequisites": ["radar_1"], "Effects": ["+3% Research Speed", "+15% Air Detection"], "Modifiers": { "research_speed": 0.03 }
+	},
+	{
+		"Id": "decryption", "Name": "Decryption", "Category": "Electronics", "Era": 1939, "Cost": 160,
+		"Description": "Code-breaking capabilities.",
+		"Prerequisites": ["electronics_1"], "Effects": ["+5% Intelligence"], "Modifiers": {}
+	},
+	{
+		"Id": "encryption", "Name": "Encryption", "Category": "Electronics", "Era": 1939, "Cost": 160,
+		"Description": "Improved codes and ciphers.",
+		"Prerequisites": ["electronics_1"], "Effects": ["+5% Counter-Intelligence"], "Modifiers": {}
+	},
+	{
+		"Id": "land_doctrine_1", "Name": "Land Doctrine I", "Category": "Doctrine", "Era": 1936, "Cost": 150,
+		"Description": "Mass Mobilization: numbers over quality.",
+		"Prerequisites": [], "Effects": ["+5% Land Doctrine Research", "+10% Organization"], "Modifiers": {}
+	},
+	{
+		"Id": "land_doctrine_2", "Name": "Land Doctrine II", "Category": "Doctrine", "Era": 1939, "Cost": 200,
+		"Description": "Deep Battle: coordinated breakthrough operations.",
+		"Prerequisites": ["land_doctrine_1"], "Effects": ["+10% Organization", "+5% Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "land_doctrine_3", "Name": "Land Doctrine III", "Category": "Doctrine", "Era": 1941, "Cost": 250,
+		"Description": "Operational Art: large-scale maneuver warfare.",
+		"Prerequisites": ["land_doctrine_2"], "Effects": ["+10% Organization", "+5% Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "land_doctrine_4", "Name": "Land Doctrine IV", "Category": "Doctrine", "Era": 1943, "Cost": 300,
+		"Description": "Modern Combined Arms: integrated operations.",
+		"Prerequisites": ["land_doctrine_3"], "Effects": ["+15% Organization", "+10% Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "naval_doctrine_1", "Name": "Naval Doctrine I", "Category": "Doctrine", "Era": 1936, "Cost": 150,
+		"Description": "Fleet in Being: preserve capital ships.",
+		"Prerequisites": [], "Effects": ["+10% Naval Organization"], "Modifiers": {}
+	},
+	{
+		"Id": "naval_doctrine_2", "Name": "Naval Doctrine II", "Category": "Doctrine", "Era": 1941, "Cost": 250,
+		"Description": "Base Strike: carrier-centered operations.",
+		"Prerequisites": ["naval_doctrine_1"], "Effects": ["+15% Naval Organization"], "Modifiers": {}
+	},
+	{
+		"Id": "air_doctrine_1", "Name": "Air Doctrine I", "Category": "Doctrine", "Era": 1936, "Cost": 150,
+		"Description": "Strategic Destruction: bomb the enemy industry.",
+		"Prerequisites": [], "Effects": ["+10% Air Superiority"], "Modifiers": {}
+	},
+	{
+		"Id": "air_doctrine_2", "Name": "Air Doctrine II", "Category": "Doctrine", "Era": 1941, "Cost": 250,
+		"Description": "Operational Integrity: flexible air operations.",
+		"Prerequisites": ["air_doctrine_1"], "Effects": ["+15% Air Superiority"], "Modifiers": {}
+	}
+]

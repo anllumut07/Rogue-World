@@ -54,13 +54,15 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ---
 
 ### 📋 Milestone 4: Ekonomi — Fabrikalar, İnşaat, Kaynaklar
-| Alt Görev | Açıklama | Test Kriteri |
-|-----------|----------|--------------|
-| 4.1 | Sivil Fabrikalar (CivFactory) / Askeri Fabrikalar (MilFactory) / Tersaneler (Dockyard) sayacı | Ülke verisinden başlangıç sayıları gelir |
-| 4.2 | İnşaat kuyruğu: fabrikalar/altyapı/sevkiyat/askeri kompleks inşa, build time (70 gün/fabrika) | İnşaat başlatılır, kuyrukta görülür, günlük ilerler, tamamlandığında sayı artar |
-| 4.3 | Tüketim malları (Consumer Goods): sivil fabrikaların %15-30'u (ekonomi yasasına göre) | Ekonomi yasası değiştirildiğinde CG oranı değişir, boş sivil fabrika güncellenir |
-| 4.4 | Kaynaklar: Oil, Rubber, Steel, Aluminum, Tungsten, Chromium — ülke başına üretim, ticaret (80% import limit) | Kaynak paneli: üretim/import/export/stok görünür |
-| 4.5 | Ticaret otomatikleşmesi: eksik kaynak için otomotik teklif (konvoy maliyeti) | Eksik kaynak için konvoy atanır, günlük ticaret günlüğü |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 4.1 | Sivil Fabrikalar / Askeri Fabrikalar / Tersaneler sayacı | Ülke verisinden başlangıç sayıları gelir | ✅ EconomySystem.TotalCivFactories/MilFactories/Dockyards (CountryData'dan) |
+| 4.2 | İnşaat kuyruğu: 5 yapı tipi, 70/25/30 gün, seri işleme (max 15 fabrika/hat) | İnşaat başlatılır, kuyrukta progress bar ile görülür, günlük ilerler, tamamlandığında fabrika sayısı artar | ✅ EconomySystem + EconomyPanel (5 buton, kuyruk listesi, iptal) |
+| 4.3 | Tüketim malları (CG): 5 yasa (Sivil 30% → Toplam 10%), yasa değişimi 150 PP | Yasa OptionButton ile değiştirilir, CG oranı değişir, boş sivil fabrika anında güncellenir | ✅ EconomySystem.ChangeLaw + EconomyPanel law seçici |
+| 4.4 | Kaynaklar: 6 kaynak (Oil/Rubber/Steel/Al/Tu/Cr) — üretim, ticaret (%80 ihraç limiti), stok | Kaynak paneli: stok / günlük üretim / ithalat konvoyu görünür | ✅ EconomyPanel kaynak gridinde stok+üretim+ithalat kaynağı; ihracatçı adı |
+| 4.5 | Ticaret otomatikleşmesi: eksik kaynak için konvoy atama, %80 ihraç limiti, günlük ticaret günlüğü | Stok eşiğinin altındaki kaynaklar için konvoy atanır, ticaret günlüğü loglanır | ✅ TradeDeal modeli (2 birim/gün), %80 ihraç limiti, ihracatçı seçimi, anlaştırma/iptal logu |
+
+**Tamamlanan:** EconomySystem (core), EconomyPanel (UI), GameHud ECONOMY butonu. M4 işlevsel %100.
 
 ---
 
@@ -179,6 +181,6 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ---
 
 ## Sonraki Adım
-✅ **Milestone 1 ve 2 tamam** (işlevsel + 7 görsel iyileştirme). Editörde F5 ile M2 görselleri doğrulanmalı (özellikle ana menü arka planı ve harita efektleri).
+✅ **Milestone 4 işlevsel %100** (EconomySystem + EconomyPanel + trade). Editörde F5 ile doğrulama: ECONOMY butonu, inşaat butonları, kuyruk progress, yasa değiştirme (150 PP), kaynak ithalatı (ihracatçı adı), ticaret anlaştırma/iptal logları.
 
-Doğrulama sonrası → **Milestone 3**: Ülke Veritabanı ve Oyuncu Ülke Seçimi (Play as butonu → SetPlayerCountry, PP birikimi HUD'da).
+Doğrulama sonrası → **Milestone 5**: Teknoloji Ağacı (Technology Tree) — kategoriler, teknoloji öğeleri, araştırma slotları, bonuslar.

@@ -57,7 +57,36 @@
 
 ---
 
-## Milestone 4: Economy — 🔄 NEXT (factories, construction, consumer goods, resources, trade)
+## Milestone 4: Economy — ✅ DONE (functional, 2026-10-11)
+
+### Functional Status (4.1–4.5)
+| Subtask | Description | Status |
+|---------|-------------|--------|
+| 4.1 | Factory counters from country data | ✅ TotalCiv/Mil/Dock via CountryData |
+| 4.2 | Construction queue (5 types, 70/25/30 days, 15 factories/line cap) | ✅ Queue with progress bars, serial processing, completion increments CountryData |
+| 4.3 | Consumer Goods laws (5 laws: Civilian 30% → Total 10%), 150 PP switch cost | ✅ ChangeLaw emits PlayerCountryDataChanged for instant HUD PP refresh |
+| 4.4 | 6 resources (Oil/Rubber/Steel/Al/Tu/Cr) — stockpile, daily production | ✅ Stockpile grid + trade source (exporter name) in EconomyPanel |
+| 4.5 | Automated trade: deficit → 2-unit/day deal (2 convoys), 80% export limit, exporter selection | ✅ TradeDeal model; FindBestExporter respects 80% cap; logs on create/cancel |
+
+### Visual (minimal)
+| # | Task | Status |
+|---|------|--------|
+| 1 | ProgressBar theme | ⬜ (default Godot style; functional) |
+| 2 | Trade deal tooltips | ⬜ |
+
+### Test Checklist (manual)
+- [ ] HUD ECONOMY button opens panel; ESC closes
+- [ ] 5 build buttons add items to queue with correct progress math
+- [ ] Queue rows show progress bar, points, assigned factories, cancel works
+- [ ] Factory counts update when construction completes (Civ/Mil/Dock)
+- [ ] Law selector: Civilian(30%) → War(15%) changes FreeCivFactories instantly; costs 150 PP
+- [ ] Resources: stockpile increments daily; deficit triggers trade deal (+2/day from exporter)
+- [ ] TradeDeals section lists active deals with exporter names and convoy count
+- [ ] Deal create/cancel logged with country names
+
+---
+
+## Milestone 5: Technology Tree — 🔄 NEXT
 
 ---
 

@@ -5,6 +5,7 @@ using Godot;
 // sahne değişimi yapılmaz (oyun durumu korunur).
 // Değerler SettingsSystem üzerinden uygulanır ve user://settings.json'a kaydedilir;
 // açılışta SettingsSystem.Load() ile yüklenen değerler panele yansıtılır.
+// Animasyon: backdrop fade, panel slide+fade (UITheme helpers).
 public partial class SettingsPanel : Control
 {
     private static PackedScene _scene;
@@ -13,6 +14,10 @@ public partial class SettingsPanel : Control
     private Label _volumeValueLabel;
     private CheckBox _fullscreenCheck;
     private OptionButton _resolutionOption;
+
+    // Animasyon için referanslar
+    private ColorRect _backdrop;
+    private PanelContainer _panel;
 
     public static bool IsOpen { get; private set; }
 
@@ -41,6 +46,11 @@ public partial class SettingsPanel : Control
         ConnectSignals();
 
         IsOpen = true;
+
+        // Açılış animasyonu: backdrop fade + panel pop-in (fade+scale)
+        UITheme.FadeIn(_backdrop, 0.1f);
+        UITheme.PopIn(_panel, 0.15f);
+
         GD.Print("SettingsPanel: hazır");
     }
 
@@ -62,27 +72,27 @@ public partial class SettingsPanel : Control
     private void BuildUi()
     {
         // Arkaplan: arkadaki menü butonlarına tıklamayı engeller
-        var backdrop = new ColorRect
+        _backdrop = new ColorRect
         {
             Color = new Color(0f, 0f, 0f, 0.75f),
             MouseFilter = Control.MouseFilterEnum.Stop
         };
-        backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        AddChild(backdrop);
+        _backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(_backdrop);
 
         var center = new CenterContainer();
         center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        backdrop.AddChild(center);
+        _backdrop.AddChild(center);
 
-        var panel = new PanelContainer { CustomMinimumSize = new Vector2(520, 320) };
-        center.AddChild(panel);
+        _panel = new PanelContainer { CustomMinimumSize = new Vector2(520, 320) };
+        center.AddChild(_panel);
 
         var margin = new MarginContainer();
         margin.AddThemeConstantOverride("margin_left", 40);
         margin.AddThemeConstantOverride("margin_right", 40);
         margin.AddThemeConstantOverride("margin_top", 30);
         margin.AddThemeConstantOverride("margin_bottom", 30);
-        panel.AddChild(margin);
+        _panel.AddChild(margin);
 
         var vbox = new VBoxContainer();
         vbox.AddThemeConstantOverride("separation", 18);
@@ -112,7 +122,7 @@ public partial class SettingsPanel : Control
             MinValue = 0,
             MaxValue = 100,
             Step = 1,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
         volumeRow.AddChild(_volumeSlider);
 
@@ -134,7 +144,7 @@ public partial class SettingsPanel : Control
 
         _resolutionOption = new OptionButton
         {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             FocusMode = Control.FocusModeEnum.None
         };
         for (int i = 0; i < SettingsSystem.Resolutions.Length; i++)
@@ -156,6 +166,9 @@ public partial class SettingsPanel : Control
         };
         backButton.Pressed += Close;
         backRow.AddChild(backButton);
+
+        // Hover scale efekti (GERİ butonu)
+        UITheme.AddHoverScale(backButton);
     }
 
     // Açılıştaki (SettingsSystem'den gelen) değerleri kontrollere yansıt.
@@ -204,7 +217,9 @@ public partial class SettingsPanel : Control
 
     private void Close()
     {
-        GD.Print("SettingsPanel: kapatılıyor");
-        QueueFree();
+        GD.Print("SettingsPanel: kapatılıyor (animasyonla)");
+        // Kapanış animasyonu: backdrop fade out + panel pop-out, sonra QueueFree
+        UITheme.FadeOut(_backdrop, 0.08f);
+        UITheme.PopOut(_panel, 0.1f, () => QueueFree());
     }
 }

@@ -111,6 +111,7 @@ public partial class CountryInfoPanel : Control
                 GameManager.Instance.SetPlayerCountry(_currentCountryId);
         };
         vbox.AddChild(playBtn);
+        UITheme.AddHoverScale(playBtn);
     }
 
     private Label NewLabel(string text, int size, Color? color = null)
@@ -146,8 +147,13 @@ public partial class CountryInfoPanel : Control
         // Bayrak placeholder rengi (ideoloji rengi)
         _flagRect.Color = data.GetFlagColor();
 
-        Show();
+        // Açılış animasyonu: fade in
+        UITheme.FadeIn(this, 0.12f);
     }
 
-    public void HidePanel() => Hide();
+    public void HidePanel()
+    {
+        // Kapanış animasyonu: fade out, bitince gizle
+        UITheme.FadeOut(this, 0.08f, () => Hide());
+    }
 }

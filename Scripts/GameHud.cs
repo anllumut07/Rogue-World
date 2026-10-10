@@ -121,6 +121,7 @@ public partial class GameHud : CanvasLayer
             };
             centerSection.AddChild(b);
             _speedButtons[i] = b;
+            UITheme.AddHoverScale(b, 1.08f);
         }
 
         // --- SAĞ: PP | Stability | War Support ---
@@ -151,6 +152,7 @@ public partial class GameHud : CanvasLayer
         _pauseButton = new Button { FocusMode = Control.FocusModeEnum.None, TooltipText = "Pause/Resume (Space)" };
         _pauseButton.Pressed += () => GM.TogglePause();
         rightSection.AddChild(_pauseButton);
+        UITheme.AddHoverScale(_pauseButton, 1.08f);
 
         // === ALT ÇUBUK ===
         var bottomMargin = new MarginContainer();

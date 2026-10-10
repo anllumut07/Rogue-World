@@ -1,4 +1,5 @@
 using Godot;
+using System;
 
 // Ortak UI Teması (Milestone 2 görsel iyileştirme #1):
 // - Koyu lacivert/gri panel arka planı, ince altın çerçeve
@@ -171,5 +172,68 @@ public static class UITheme
 
         _built = true;
         GD.Print("UITheme: hazır");
+    }
+
+    // --- Animasyon yardımcıları ---
+    // Buton/Control üzerine gelince hafif büyütme (hover scale effect).
+    public static void AddHoverScale(Control control, float targetScale = 1.05f, float duration = 0.08f)
+    {
+        control.MouseEntered += () =>
+        {
+            var t = control.CreateTween();
+            t.TweenProperty(control, "scale", new Vector2(targetScale, targetScale), duration)
+             .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Quad);
+        };
+        control.MouseExited += () =>
+        {
+            var t = control.CreateTween();
+            t.TweenProperty(control, "scale", Vector2.One, duration)
+             .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Quad);
+        };
+    }
+
+    // Panel fade-in/out (modulate alpha). onComplete: kapanışta çağrılır (ör. QueueFree/Hide).
+    public static void FadeIn(Control panel, float duration = 0.12f)
+    {
+        panel.Modulate = new Color(1, 1, 1, 0);
+        panel.Show();
+        var t = panel.CreateTween();
+        t.TweenProperty(panel, "modulate:a", 1f, duration)
+         .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Quad);
+    }
+
+    public static void FadeOut(Control panel, float duration = 0.1f, Action onComplete = null)
+    {
+        var t = panel.CreateTween();
+        t.TweenProperty(panel, "modulate:a", 0f, duration)
+         .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Quad);
+        if (onComplete != null) t.TweenCallback(Callable.From(onComplete));
+    }
+
+    // Panel pop-in: fade + hafif büyüme (0.96 -> 1.0). Container'larla güvenli:
+    // scale, container layout'undan etkilenmez.
+    public static void PopIn(Control panel, float duration = 0.15f)
+    {
+        panel.Modulate = new Color(1, 1, 1, 0f);
+        panel.Scale = new Vector2(0.96f, 0.96f);
+        panel.Show();
+        var t = panel.CreateTween();
+        t.SetParallel(true);
+        t.TweenProperty(panel, "modulate:a", 1f, duration)
+         .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Quad);
+        t.TweenProperty(panel, "scale", Vector2.One, duration)
+         .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Back);
+    }
+
+    // Panel pop-out: fade + hafif küçülme, sonra callback (gizle/QueueFree).
+    public static void PopOut(Control panel, float duration = 0.1f, Action onComplete = null)
+    {
+        var t = panel.CreateTween();
+        t.SetParallel(true);
+        t.TweenProperty(panel, "modulate:a", 0f, duration)
+         .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Quad);
+        t.TweenProperty(panel, "scale", new Vector2(0.97f, 0.97f), duration)
+         .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Quad);
+        t.Chain().TweenCallback(Callable.From(() => onComplete?.Invoke()));
     }
 }

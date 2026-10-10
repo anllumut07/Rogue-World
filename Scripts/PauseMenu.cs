@@ -1,6 +1,7 @@
 using Godot;
 
 // Pause menüsü (Milestone 1.4/1.5): RESUME / SETTINGS / MAIN MENU / QUIT
+// Animasyon: backdrop fade + panel slide+fade (UITheme helpers).
 public partial class PauseMenu : CanvasLayer
 {
     private const string MainMenuScenePath = "res://Scenes/main_menu.tscn";
@@ -8,7 +9,7 @@ public partial class PauseMenu : CanvasLayer
     public static bool IsOpen { get; private set; }
 
     private ColorRect _backdrop;
-    private Control _panel;
+    private PanelContainer _panel;
 
     public override void _Ready()
     {
@@ -16,7 +17,11 @@ public partial class PauseMenu : CanvasLayer
         Layer = 100;
 
         BuildUi();
+        // Başlangıçta gizli; OpenMenu animasyonla gösterecek.
+        _backdrop.Modulate = new Color(0, 0, 0, 0);
+        _panel.Modulate = new Color(1, 1, 1, 0);
         _backdrop.Hide();
+        _panel.Hide();
         IsOpen = false;
     }
 
@@ -49,13 +54,24 @@ public partial class PauseMenu : CanvasLayer
     {
         IsOpen = true;
         _backdrop.Show();
+        _panel.Show();
         GetTree().Paused = true;
+
+        // Açılış animasyonu: backdrop fade + panel pop-in
+        UITheme.FadeIn(_backdrop, 0.1f);
+        UITheme.PopIn(_panel, 0.15f);
     }
 
     private void CloseMenu()
     {
         GetTree().Paused = false;
-        _backdrop.Hide();
+        // Kapanış animasyonu; bitince gizle
+        UITheme.FadeOut(_backdrop, 0.08f);
+        UITheme.PopOut(_panel, 0.1f, () =>
+        {
+            _backdrop.Hide();
+            _panel.Hide();
+        });
         IsOpen = false;
     }
 
@@ -123,17 +139,21 @@ public partial class PauseMenu : CanvasLayer
         var resume = new Button { Text = "RESUME", FocusMode = Control.FocusModeEnum.None };
         resume.Pressed += OnResumePressed;
         vbox.AddChild(resume);
+        UITheme.AddHoverScale(resume);
 
         var settings = new Button { Text = "SETTINGS", FocusMode = Control.FocusModeEnum.None };
         settings.Pressed += OnSettingsPressed;
         vbox.AddChild(settings);
+        UITheme.AddHoverScale(settings);
 
         var mainMenu = new Button { Text = "MAIN MENU", FocusMode = Control.FocusModeEnum.None };
         mainMenu.Pressed += OnMainMenuPressed;
         vbox.AddChild(mainMenu);
+        UITheme.AddHoverScale(mainMenu);
 
         var quit = new Button { Text = "QUIT", FocusMode = Control.FocusModeEnum.None };
         quit.Pressed += OnQuitPressed;
         vbox.AddChild(quit);
+        UITheme.AddHoverScale(quit);
     }
 }

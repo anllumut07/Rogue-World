@@ -37,7 +37,7 @@
 | 1 | Common UI Theme (dark navy/gray, gold border, consistent fonts, button states) | ✅ |
 | 2 | Map: ocean gradient, country palette, thin borders, zoom-line-width, gold selected, hover | ✅ |
 | 3 | Map details: zoom-based labels (hide small), camera lerp, zoom limits | ✅ |
-| 4 | HUD: organized top bar, speed indicator, PP/Stability/WS labels, bottom bar, tooltips | ⬜ |
+| 4 | HUD: organized top bar, speed indicator, PP/Stability/WS labels, bottom bar, tooltips | ✅ |
 | 5 | Animations: Tween fade/slide for panels, button hover scale | ⬜ |
 | 6 | Main menu: slow gradient/map background, stylized title | ⬜ |
 | 7 | Extra effects (day/night/era) — only if performant | ⬜ |

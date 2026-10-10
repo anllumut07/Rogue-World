@@ -12,9 +12,18 @@ public partial class MainMenu : Control
         GetTree().Paused = false;
 
         // Butonları bağla (unique_name_in_owner sahnede işaretli)
-        GetNode<Button>("%StartButton").Pressed += OnStartPressed;
-        GetNode<Button>("%SettingsButton").Pressed += OnSettingsPressed;
-        GetNode<Button>("%QuitButton").Pressed += OnQuitPressed;
+        var startBtn = GetNode<Button>("%StartButton");
+        var settingsBtn = GetNode<Button>("%SettingsButton");
+        var quitBtn = GetNode<Button>("%QuitButton");
+
+        startBtn.Pressed += OnStartPressed;
+        settingsBtn.Pressed += OnSettingsPressed;
+        quitBtn.Pressed += OnQuitPressed;
+
+        // Hover scale efekti
+        UITheme.AddHoverScale(startBtn);
+        UITheme.AddHoverScale(settingsBtn);
+        UITheme.AddHoverScale(quitBtn);
 
         GD.Print("MainMenu: hazır");
     }

@@ -702,6 +702,14 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Dosyalar:**
 - Yeni: `Scripts/IProvinceSource.cs`, `Scripts/ProvinceData.cs`, `Scripts/ProceduralProvinceSource.cs`
 
+### M18.2: Komşuluk Grafı — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/ProceduralProvinceSource.cs` (güncellenmiş): `BuildNeighborGraph()` — iki ilin poligonları ortak kenar paylaşmışsa komşu sayar, `NeighborIds` doldurulur; deterministik, O(kenar) hash haritası.
+
+**Testler:**
+- `dotnet build`: 0 hata, 0 uyarı.
+
 ---
 
 

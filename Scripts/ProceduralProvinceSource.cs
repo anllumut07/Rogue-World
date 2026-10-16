@@ -46,10 +46,71 @@ public class ProceduralProvinceSource : IProvinceSource
             }
         }
 
+        BuildNeighborGraph(_provinces);
+
         _loaded = true;
         GD.Print($"[ProceduralProvinceSource] {_provinces.Count} il üretildi (hedef ~{TargetProvinceCount}, " +
                  $"ülke={countries.Count}, seed={FixedSeed})");
         return _provinces;
+    }
+
+    // İller arası komşuluk grafi: iki ilin poligonları ortak bir kenar paylaşmışsa komşu sayar.
+    // Bölme sonucu kardeş iller kesim hattı üzerinden aynı kenar noktalarına sahiptir (bit eşli),
+    // bu yüzden yuvarlanmış kenar anahtarlarıyla eşleştirme deterministik ve hızlıdır.
+    public void BuildNeighborGraph(List<ProvinceData> provinces)
+    {
+        if (provinces == null) return;
+        var edgeMap = new Dictionary<string, List<int>>();
+        for (int i = 0; i < provinces.Count; i++)
+        {
+            foreach (var ring in provinces[i].Rings)
+            {
+                int n = ring.Length;
+                for (int a = 0; a < n; a++)
+                {
+                    var p1 = ring[a];
+                    var p2 = ring[(a + 1) % n];
+                    string key = EdgeKey(p1, p2);
+                    if (!edgeMap.TryGetValue(key, out var list)) edgeMap[key] = list = new List<int>();
+                    list.Add(i);
+                }
+            }
+        }
+
+        foreach (var kvp in edgeMap)
+        {
+            var owners = kvp.Value;
+            if (owners.Count < 2) continue;
+            // tekilleştir (aynı iki il birden fazla ortak kenar paylaşabilir)
+            var uniq = new HashSet<int>(owners);
+            if (uniq.Count < 2) continue;
+            var arr = new List<int>(uniq);
+            for (int x = 0; x < arr.Count; x++)
+                for (int y = x + 1; y < arr.Count; y++)
+                {
+                    AddNeighbor(provinces[arr[x]], provinces[arr[y]].Id);
+                    AddNeighbor(provinces[arr[y]], provinces[arr[x]].Id);
+                }
+        }
+
+        int totalLinks = 0;
+        foreach (var p in provinces) totalLinks += p.NeighborIds.Count;
+        GD.Print($"[ProceduralProvinceSource] Komşuluk grafi hazır: {provinces.Count} il, {totalLinks / 2} yönsüz bağlantı");
+    }
+
+    private static void AddNeighbor(ProvinceData prov, string neighborId)
+    {
+        if (!prov.NeighborIds.Contains(neighborId)) prov.NeighborIds.Add(neighborId);
+    }
+
+    // Yönsüz kenar anahtarı: iki uç noktayı sıralıyor, float gürültüsünü önlemek için
+    // 0.001 hassasiyetle yuvarlanıyor.
+    private static string EdgeKey(Vector2 a, Vector2 b)
+    {
+        long ax = (long)Math.Round(a.X * 1000), ay = (long)Math.Round(a.Y * 1000);
+        long bx = (long)Math.Round(b.X * 1000), by = (long)Math.Round(b.Y * 1000);
+        if (ax > bx || (ax == bx && ay > by)) (ax, ay, bx, by) = (bx, by, ax, ay);
+        return $"|{ax},{ay}|{bx},{by}|";
     }
 
     public IReadOnlyList<ProvinceData> GetProvincesForCountry(string countryId)

@@ -39,5 +39,9 @@
 - `Scripts/WorldMap.cs`: `IssueMoveOrders` anında varışı kaldırdı, `BuildFullRoute` (BFS zinciri) ile `WaypointIds`'i tam yürütme rotası olarak doldurdu; `_movementPaths`/`ComputeMovementPath` kaldırıldı, `DrawMovementPaths` `ProvinceId`+`WaypointIds`'den çizgi+çember çizer; `DrawArmies` hareket eden orduları mevcut ve bir sonraki il centroid'u arasında interpolasyonla çizer. dotnet build 0/0.
 - Commit: (hazırlanacak).
 
+## M19.5 — ✅ DONE (2026-10-17)
+- `Scripts/ArmySystem.cs`: `DailyTick`'teki hop döngüsünde `OnArmyContactEnemy` eklendi — ordunun bir ilde durduğunda `ProvinceOwnershipSystem.GetProvinceOwner` ile sahip kontrol edilir; sahip oyuncu değilse hareket durdurulur, `WarSystem.IsAtWarWith` true ise WarSystem çatışma çözümüne yönlendirilir, false ise tema loglanır. dotnet build 0/0.
+- Commit: (hazırlanacak).
+
 ## Sonraki adım
-- M19.5: Temas ve savaş (düşmanla karşılaşınca hareket dur, WarSystem çatışması).
+- M19.6–19.8: cephe hattı, deniz/hava, AI birlikleri.

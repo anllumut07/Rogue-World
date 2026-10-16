@@ -793,6 +793,15 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - RMB pan, LMB ülke/il seçimi etkilenmedi (M19.3 davranışı korundu).
 - Not: `godot run`/editör açılmaması kuralıyla adım adım ilerleme ve interpolasyon görseli editörde manuel doğrulanacak.
 
+### M19.5: Temas ve Savaş — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/ArmySystem.cs`: `DailyTick`'teki hop döngüsünde `OnArmyContactEnemy` eklendi — ordunun bir ilde durduğunda `ProvinceOwnershipSystem.GetProvinceOwner` ile sahip kontrol edilir; sahip oyuncu değilse hareket durdurulur (`TargetProvinceId` temizlenir, `WaypointIds` temizlenir, `MovementPathIndex = 0`). `WarSystem.IsAtWarWith(sahip)` true ise "düşman toppedu — WarSystem çatışma çözümü aktif" loglanır; false ise "{ülke} ilinin {il} bölgesinde — tema (savaş ilanı ile çatışma başlatılabilir)" loglanır. Kendi/toplamazsa return false (devam et).
+
+**Testler:**
+- `dotnet build`: 0 hata, 0 uyarı.
+- Not: `godot run`/editör açılmaması kuralıyla tema/cavatış senaryosu editörde manuel doğrulanacak.
+
 ---
 
 

@@ -281,7 +281,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | 19.2 | Seçim: tek tık, **sürükleyerek kutu seçimi**, Shift ile çoklu. Mevcut harita kaydırma ile çakışmaz. | Birden çok birlik seçilebilir, harita kontrolleri bozulmaz | ✅ Bitti (2026-10-17) |
 | 19.3 | **Komut:** sağ tık ile hedefe hareket, Shift ile ara noktalar, yol önizleme okları. Sağ tık harita kaydırmasıyla çakışmayacak biçimde ayırt edilir (kısa tık = komut, sürükleme = kaydırma). | Birlik hedefe yürür, yol çizgisi görünür | ✅ Bitti (2026-10-17) |
 | 19.4 | Hareket hızı (arazi, hava, ikmal), il başına geçiş süresi. | Hareket süresi ile logla doğrulanır | ✅ Bitti (2026-10-17) |
-| 19.5 | Temas ve savaş: düşman ile karşılaşınca mevcut WarSystem savaş çözümü tetiklenir, hareket durur. | Temasta savaş başlar |
+| 19.5 | Temas ve savaş: düşman ile karşılaşınca mevcut WarSystem savaş çözümü tetiklenir, hareket durur. | Temasta savaş başlar | ✅ Bitti (2026-10-17) |
 | 19.6 | Cephe hattı gösterimi, ofansif plan (sürükle-bırak ile saldırı oku). | Plan çizilir, birlikler ilerler |
 | 19.7 | Deniz ve hava birlikleri (filo, uçak) için aynı komut altyapısı (temel). | Filo denizde hareket eder |
 | 19.8 | AI birlikleri aynı sistemi kullanır. | AI orduları illerde hareket eder |

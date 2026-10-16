@@ -418,8 +418,8 @@ public static class ArmySystem
                      $"Manpower={Player.ManpowerPool:N0}");
         }
 
-        // M19.4: Ordular rotada günlük adım adım ilerler (DaysPerProvince kadar günde bir il).
-        foreach (var army in _armies.Where(a => a.IsMoving))
+        // M19.4 + M19.5: Ordular rotada günlük adım adım ilerler; düşman temasında hareket durur.
+        foreach (var army in _armies.Where(a => a.IsMoving).ToList())
         {
             army.DaysRemainingInHop -= 1f;
             if (army.DaysRemainingInHop <= 0f)
@@ -427,6 +427,13 @@ public static class ArmySystem
                 // Mevcut hop tamamlandı → WaypointIds[MovementPathIndex]'ine vardık.
                 army.ProvinceId = army.WaypointIds[army.MovementPathIndex];
                 army.MovementPathIndex++;
+
+                // M19.5: Düşman kontrolündeki bir ile vardıysa hareket durur ve WarSystem çatışması devreye girer.
+                if (OnArmyContactEnemy(army, army.ProvinceId))
+                {
+                    // Hareket durduruldu; bu ordunun rotası bitti.
+                    continue;
+                }
 
                 if (army.MovementPathIndex < army.WaypointIds.Count)
                 {
@@ -443,6 +450,32 @@ public static class ArmySystem
                 }
             }
         }
+    }
+
+    // M19.5: Ordunun belirtilen İL'de düşmanla karşılaşmış mı? Eğerse hareket durur.
+    // Dönüş: true = hareket durduruldu (tema/cavatış), false = devam edilebilir.
+    private static bool OnArmyContactEnemy(Army army, string provinceId)
+    {
+        if (Player == null) return false;
+        string owner = ProvinceOwnershipSystem.GetProvinceOwner(provinceId);
+        if (string.IsNullOrEmpty(owner) || owner == "?") return false;
+        if (owner == Player.Id) return false; // kendi toprak, devam et
+
+        if (WarSystem.IsAtWarWith(owner))
+        {
+            army.TargetProvinceId = "";
+            army.WaypointIds.Clear();
+            army.MovementPathIndex = 0;
+            GD.Print($"[Army] {army.Name} düşman toppedu: {provinceId} ({owner}) — hareket durduruldu, WarSystem çatışma çözümü aktif");
+            return true;
+        }
+
+        // Düşman toprak ama henüz savaş yok → durdur, temas logla
+        army.TargetProvinceId = "";
+        army.WaypointIds.Clear();
+        army.MovementPathIndex = 0;
+        GD.Print($"[Army] {army.Name} {owner} ilinin {provinceId} bölgesinde — tema (savaş ilanı ile çatışma başlatılabilir)");
+        return true;
     }
 
     // ===== Şablon hesaplama =====

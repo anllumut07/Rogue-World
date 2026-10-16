@@ -81,6 +81,7 @@ public static class ArmySystem
         public string Name { get; set; }
         public string GeneralName { get; set; }
         public int GeneralSkill { get; set; } // 1-5
+        public string ProvinceId = ""; // M19.1: ordunun bulunduğu il (harita sayacı konumu)
         public List<string> DivisionIds { get; set; } = new();
     }
 

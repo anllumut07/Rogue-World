@@ -738,6 +738,15 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - `dotnet build`: 0 hata, 0 uyarı.
 - `--save-load-test` A==B testi (SaveLoadTest) il sahipliğiyle birlikte geçer.
 
+### M19.1: Birlik Sayaçları — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/ArmySystem.cs` (güncellenmiş): `Army.ProvinceId` — ordunun bulunduğu il (harita sayacı konumu).
+- `Scripts/WorldMap.cs` (güncellenmiş): `_Draw` içinde `DrawArmies()` — her ordunun Provinz centroid'ında kırmızı çember sayacı.
+
+**Testler:**
+- `dotnet build`: 0 hata, 0 uyarı.
+
 ---
 
 

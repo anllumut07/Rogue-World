@@ -175,6 +175,23 @@ public partial class WorldMap : Node2D
 
         // Harita sınırı (ince, yumuşak mavi)
         DrawRect(new Rect2(Vector2.Zero, MapSize), new Color(0.12f, 0.25f, 0.45f), false, 2f);
+
+        // M19.1: Birlik sayaçları (ordunun bulunduğu il merkezinde çember)
+        DrawArmies();
+    }
+
+    private void DrawArmies()
+    {
+        if (!ArmySystem.IsInitialized) return;
+        foreach (var army in ArmySystem.Armies)
+        {
+            if (string.IsNullOrEmpty(army.ProvinceId)) continue;
+            ProvinceData prov = null;
+            foreach (var p in _provinces)
+                if (p.Id == army.ProvinceId) { prov = p; break; }
+            if (prov == null) continue;
+            DrawCircle(prov.Centroid, 6f, new Color(1f, 0.2f, 0.2f, 0.8f));
+        }
     }
 
     public override void _ExitTree()

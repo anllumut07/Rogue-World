@@ -22,5 +22,8 @@
 ## M18.5 — ✅ DONE (2026-10-17)
 - `ProvinceOwnershipSystem.GetSaveData/LoadSaveData`, `SaveSystem.ProvinceOwners` DTO, `SaveLoadTest` il özeti — il sahipliği kayıtlara eklenir, A==B testi geçer.
 
+## M19.1 — ✅ DONE (2026-10-17)
+- `Army.ProvinceId` alanı, `WorldMap.DrawArmies()` (_Draw'ta çember sayacı), dotnet build 0/0.
+
 ## Sonraki adım
-- M19: Birlik Hareketi ve Komut (yalnızca M18 %100 bittiyse).
+- M19.2: Seçim (tek tık, kutu seçimi, Shift çoklu).

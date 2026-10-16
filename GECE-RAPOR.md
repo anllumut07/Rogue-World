@@ -19,5 +19,8 @@
 ## M18.4 — ✅ DONE (2026-10-17)
 - `WorldMap.FindProvinceAt`: hızlı hit-test (bounding-box önfiltresi + point-in-polygon), FPS log (120 frame'de bir), dotnet build 0/0.
 
+## M18.5 — ✅ DONE (2026-10-17)
+- `ProvinceOwnershipSystem.GetSaveData/LoadSaveData`, `SaveSystem.ProvinceOwners` DTO, `SaveLoadTest` il özeti — il sahipliği kayıtlara eklenir, A==B testi geçer.
+
 ## Sonraki adım
-- M18.5: Save/Load (il sahipliği + A==B testi).
+- M19: Birlik Hareketi ve Komut (yalnızca M18 %100 bittiyse).

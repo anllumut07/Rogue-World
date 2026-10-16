@@ -67,6 +67,7 @@ public static class SaveSystem
         public AiSave Ai { get; set; }
         public TimeTempoSystem.TimeTempoSave TimeTempo { get; set; } // M16: zaman/tempo/ajanda
         public LeaderSave Leaders { get; set; } // M17.2: kurgusal liderler
+        public Dictionary<string, string> ProvinceOwners { get; set; } // M18.5: il sahipliği (provinceId -> countryId)
     }
 
     // ===== Economy DTOs =====
@@ -364,7 +365,8 @@ public static class SaveSystem
             Decisions = DecisionSystem.GetSaveData(),
             Ai = CountryAI.GetSaveData(),
             TimeTempo = TimeTempoSystem.GetSaveData(), // M16
-            Leaders = LeaderSystem.GetSaveData() // M17.2: kurgusal liderler
+            Leaders = LeaderSystem.GetSaveData(), // M17.2: kurgusal liderler
+            ProvinceOwners = ProvinceOwnershipSystem.GetSaveData(), // M18.5: il sahipliği
         };
 
         EnsureSavesDir();
@@ -484,6 +486,7 @@ public static class SaveSystem
             CountryAI.LoadSaveData(save.Ai);
             TimeTempoSystem.LoadSaveData(save.TimeTempo); // M16: ajanda/aylık rapor
             LeaderSystem.LoadSaveData(save.Leaders); // M17.2: kurgusal liderler
+            ProvinceOwnershipSystem.LoadSaveData(save.ProvinceOwners); // M18.5: il sahipliği
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

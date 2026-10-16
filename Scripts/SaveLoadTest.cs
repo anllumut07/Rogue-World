@@ -206,6 +206,10 @@ public static class SaveLoadTest
         // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");
+
+        // M18.5: İl sahipliği özeti
+        var provOwners = ProvinceOwnershipSystem.GetSaveData();
+        sb.AppendLine($"İller: {provOwners.Count} kayıt (provinceId -> countryId)");
         if (leaderCount > 0)
         {
             foreach (var kv in LeaderSystem.All.OrderBy(k => k.Key))

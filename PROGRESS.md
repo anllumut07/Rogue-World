@@ -727,6 +727,17 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Testler:**
 - `dotnet build`: 0 hata, 0 uyarı.
 
+### M18.5: Save/Load — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/ProvinceOwnershipSystem.cs` (güncellenmiş): `GetSaveData()` / `LoadSaveData()` — provinceId → countryId sözlüğü.
+- `Scripts/SaveSystem.cs` (güncellenmiş): `SaveFile.ProvinceOwners` DTO alanı; `WriteSave` ve `LoadGameInternal` entegrasyonu.
+- `Scripts/SaveLoadTest.cs` (güncellenmiş): `BuildSummaryCore` il sahipliği özeti (A==B testi kapsamında).
+
+**Testler:**
+- `dotnet build`: 0 hata, 0 uyarı.
+- `--save-load-test` A==B testi (SaveLoadTest) il sahipliğiyle birlikte geçer.
+
 ---
 
 

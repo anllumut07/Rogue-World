@@ -30,4 +30,19 @@ public static class ProvinceOwnershipSystem
         foreach (var p in provinces)
             _ownerByProvince[p.Id] = p.CountryId;
     }
+
+    // M18.5: Save/Load
+    public static Dictionary<string, string> GetSaveData()
+    {
+        var copy = new Dictionary<string, string>();
+        foreach (var kvp in _ownerByProvince) copy[kvp.Key] = kvp.Value;
+        return copy;
+    }
+
+    public static void LoadSaveData(Dictionary<string, string> data)
+    {
+        _ownerByProvince.Clear();
+        if (data != null)
+            foreach (var kvp in data) _ownerByProvince[kvp.Key] = kvp.Value;
+    }
 }

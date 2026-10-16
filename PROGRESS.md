@@ -710,6 +710,15 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Testler:**
 - `dotnet build`: 0 hata, 0 uyarı.
 
+### M18.3: İl Sahipliği ve Harita Renklendirme — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/ProvinceOwnershipSystem.cs` (yeni): static il sahipliği sözlüğü (provinceId → countryId), `SetProvinceOwner`, `GetProvinceOwner`, `OnOwnerChanged` signal.
+- `Scripts/WorldMap.cs` (güncellenmiş): `SetProvinces` / `DrawProvinces` / `RefreshProvinceColors` / `OnProvinceOwnerChanged`; `_Ready`'de `ProceduralProvinceSource.LoadProvinces()` çağrılır ve iller Polygon2D olarak çizer (rengi = sahip ülkenin rengi); ilhak sonrası `RefreshProvinceColors` haritayı yeniden boyar.
+
+**Testler:**
+- `dotnet build`: 0 hata, 0 uyarı.
+
 ---
 
 

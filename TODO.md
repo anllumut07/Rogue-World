@@ -267,7 +267,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 |-----------|----------|--------------|
 | 18.1 | İl verisi: mevcut ülke poligonlarını prosedürel bölgelere ayıran üretim (IProvinceSource arkasında), ~1000 il hedefi. | İller yüklenir, sayı loglanır | ✅ Bitti — `IProvinceSource` + `ProvinceData` + `ProceduralProvinceSource` yazıldı (~1000 il, sabit seed), `dotnet build` 0 hata / 0 uyarı |
 | 18.2 | Komşuluk grafı (kara bağlantıları, deniz/liman bağlantıları). | Herilin komşu listesi doğru | ✅ Bitti — shared-edge deteksiyonu ile komşuluk grafi, `dotnet build` 0 hata / 0 uyarı | Her ilin komşu listesi doğru |
-| 18.3 | İl sahipliği (ülke → iller), savaşta il el değiştirir, ülke rengi illerden türetilir. | İlhak sonrası harita doğru renklenir |
+| 18.3 | İl sahipliği (ülke → iller), savaşta il el değiştirir, ülke rengi illerden türetilir. | İlhak sonrası harita doğru renklenir | ✅ Bitti — `ProvinceOwnershipSystem` + WorldMap `SetProvinces`/`RefreshProvinceColors`, ilhak sonrası renk güncellenir, `dotnet build` 0 hata / 0 uyarı |
 | 18.4 | Performans: toplu çizim, seçim/hover için hızlı hit-test. Hız 5'te 60 FPS. | FPS ölçümü logda |
 | 18.5 | Kaydet/Yükle: il sahipliği ve il durumu kayıtlara eklenir. | A==B testi geçer |
 

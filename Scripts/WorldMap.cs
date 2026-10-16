@@ -59,6 +59,10 @@ public partial class WorldMap : Node2D
     private readonly List<MapLabel> _oceanLabels = new();
     private readonly List<MapLabel> _seaLabels = new();
 
+    // M18.3: İl bazlı çizim ve sahiplik
+    private List<ProvinceData> _provinces = new();
+    private Dictionary<string, List<Polygon2D>> _provinceNodes = new();
+
     private Country _selected;
     private Country _hovered;
     private Camera2D _camera;
@@ -136,6 +140,12 @@ public partial class WorldMap : Node2D
 
         RefreshOwnershipColors();
         QueueRedraw();
+
+        // M18.3: İlleri yükle ve çiz; sahiplik değişikliklerini dinle
+        var provinceSource = new ProceduralProvinceSource();
+        SetProvinces(provinceSource.LoadProvinces());
+        ProvinceOwnershipSystem.OnOwnerChanged += OnProvinceOwnerChanged;
+
         GD.Print($"WorldMap: hazır — kamera zoom={_camera?.Zoom.X:0.00} pos={_camera?.Position}, viewport={GetViewportRect().Size}");
     }
 
@@ -169,6 +179,7 @@ public partial class WorldMap : Node2D
             GameManager.Instance.PlayerCountryChanged -= OnPlayerCountryChanged;
         if (GameManager.IsAvailable)
             GameManager.Instance.CountryOwnershipChanged -= OnCountryOwnershipChanged;
+        ProvinceOwnershipSystem.OnOwnerChanged -= OnProvinceOwnerChanged;
         if (Instance == this) Instance = null;
     }
 
@@ -853,6 +864,51 @@ public partial class WorldMap : Node2D
     // Görsel #7: Harita efekt katmanı — ülkelerin üstünde, etiketlerin altında.
     // WorldMap._Draw'tan değil, ayrı child node'dan çizilir çünkü _Draw ebeveyn
     // node'un çocuklarından ÖNCE çalışır; biz ülke poligonlarının ÜSTÜNE çizmek istiyoruz.
+    // M18.3: İlleri yükler, her birini Polygon2D olarak çizer (rengi = sahip ülkenin rengi).
+    public void SetProvinces(IReadOnlyList<ProvinceData> provinces)
+    {
+        _provinces = new List<ProvinceData>(provinces);
+        ProvinceOwnershipSystem.InitializeFromProvinces(_provinces);
+        DrawProvinces();
+        RefreshProvinceColors();
+        QueueRedraw();
+        GD.Print($"WorldMap: {_provinces.Count} il çizildi.");
+    }
+
+    private void DrawProvinces()
+    {
+        foreach (var prov in _provinces)
+        {
+            var nodes = new List<Polygon2D>();
+            foreach (var ring in prov.Rings)
+            {
+                var node = new Polygon2D { Polygon = ring, Color = ColorForId(prov.CountryId) };
+                AddChild(node);
+                nodes.Add(node);
+            }
+            _provinceNodes[prov.Id] = nodes;
+        }
+    }
+
+    // İl sahipliği değişince tüm illerin rengini günceller (ilhak sonrası harita yeniden boyanır).
+    public void RefreshProvinceColors()
+    {
+        foreach (var kvp in _provinceNodes)
+        {
+            string owner = ProvinceOwnershipSystem.GetProvinceOwner(kvp.Key);
+            Color c = ColorForId(owner);
+            foreach (var node in kvp.Value)
+                if (GodotObject.IsInstanceValid(node)) node.Color = c;
+        }
+    }
+
+    private void OnProvinceOwnerChanged(string provinceId, string oldCountryId, string newCountryId)
+    {
+        RefreshProvinceColors();
+        QueueRedraw();
+        GD.Print($"[WorldMap] İl sahipliği değişti: {provinceId} {oldCountryId} → {newCountryId}");
+    }
+
     public partial class MapEffects : Node2D
     {
         public override void _Draw()

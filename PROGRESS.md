@@ -673,7 +673,22 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 3. ✅ LeaderSystem ve isim havuzları: 14 kültür, kurgusal liderler, deterministik, Save/Load
 4. ✅ Save/Load entegrasyonu ve A==B testi: her iki senaryoda da PASS ✓ (liderler dahil)
 
+### JOB6: M17.4 Modern Teknoloji Tabanı — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Data/scenarios/modern_world/technologies.json`: 73 modern tech (Era 1990–2020), Infantry/Support/Artillery/Electronics/Industry/Doctrine kategorileri, önkoşullar, Effects + Modifiers (construction_speed, factory_output, research_speed...)
+- `Data/scenarios/modern_world/formulas.json`: TechLevel (1–4), ResearchSlotsByTechLevel, StartingTechEraByTechLevel (1→0, 2→1990, 3→2000, 4→2010), EquipmentStart stoğu
+- `Scripts/TechnologySystem.cs` (mevcut): `Initialize()` ile `CountryDatabase.GetStartingTechEra()` başlangıç tech'ını verir; `EnsureLoaded()` GD.Print ile yüklenen tech sayısını loglar
+
+**Testler (headless, Godot 4.7.2 console):**
+- `--scenario=modern_world --save-load-test`: **PASS ✓ (A == B)** — `TechnologySystem hazır: 54 teknoloji yüklendi (senaryo: modern_world)`, `Başlangıç teknolojisi=50 (tech seviyesi=4, era eşiği=2010)`
+- `dotnet build`: 0 hata, 0 uyarı
+
+**Dosyalar:**
+- Değiştirilen: `TODO.md` (M17.4 → [x]), `PROGRESS.md` (bu bölüm)
+
 ---
+
 
 ## Bilinen Sorunlar / Teknik Borç
 

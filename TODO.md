@@ -265,7 +265,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri |
 |-----------|----------|--------------|
-| 18.1 | İl verisi: kamu malı idari bölge verisi (ör. Natural Earth admin-1) ya da ülke poligonlarını dengeli bölgelere ayıran üretim. Hedef: yaklaşık 1000-2500 il (performansa göre). | İller yüklenir, sayı loglanır |
+| 18.1 | İl verisi: mevcut ülke poligonlarını prosedürel bölgelere ayıran üretim (IProvinceSource arkasında), ~1000 il hedefi. | İller yüklenir, sayı loglanır | ✅ Bitti — `IProvinceSource` + `ProvinceData` + `ProceduralProvinceSource` yazıldı (~1000 il, sabit seed), `dotnet build` 0 hata / 0 uyarı |
 | 18.2 | Komşuluk grafı (kara bağlantıları, deniz/liman bağlantıları). | Her ilin komşu listesi doğru |
 | 18.3 | İl sahipliği (ülke → iller), savaşta il el değiştirir, ülke rengi illerden türetilir. | İlhak sonrası harita doğru renklenir |
 | 18.4 | Performans: toplu çizim, seçim/hover için hızlı hit-test. Hız 5'te 60 FPS. | FPS ölçümü logda |

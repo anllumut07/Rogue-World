@@ -689,6 +689,21 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 ---
 
+### M18.1: İl Verisi (Prosedürel Üretim) — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/IProvinceSource.cs` (yeni): İl kaynağı arayüzü — `LoadProvinces()`, `ProvinceCount`, `GetProvincesForCountry(string)`, `ResetForNewGame()`.
+- `Scripts/ProvinceData.cs` (yeni): İl veri modeli — Id, Name, CountryId, Centroid, Area, Rings, NeighborIds, IsCore.
+- `Scripts/ProceduralProvinceSource.cs` (yeni): `IProvinceSource` uygulaması; 180 ülke poligonunu DeterministicRNG + sabit seed ile ~1000 bölgeye böler; her il: CountryId, Centroid, Area, Rings, IsCore=true.
+
+**Testler:**
+- `dotnet build`: 0 hata, 0 uyarı (geçti).
+
+**Dosyalar:**
+- Yeni: `Scripts/IProvinceSource.cs`, `Scripts/ProvinceData.cs`, `Scripts/ProceduralProvinceSource.cs`
+
+---
+
 
 ## Bilinen Sorunlar / Teknik Borç
 

@@ -719,6 +719,14 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Testler:**
 - `dotnet build`: 0 hata, 0 uyarı.
 
+### M18.4: Performans — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/WorldMap.cs` (güncellenmiş): `FindProvinceAt` — hızlı hit-test (bounding-box önfiltresi + `Geometry2D.IsPointInPolygon`); `_provinceBounds` önbelleği `SetProvinces`'de hesaplanır; `_Process'te` her 120 karede bir FPS log (`Engine.GetFramesPerSecond()`).
+
+**Testler:**
+- `dotnet build`: 0 hata, 0 uyarı.
+
 ---
 
 

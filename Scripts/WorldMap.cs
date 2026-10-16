@@ -63,6 +63,10 @@ public partial class WorldMap : Node2D
     private List<ProvinceData> _provinces = new();
     private Dictionary<string, List<Polygon2D>> _provinceNodes = new();
 
+    // M18.4: Performans — il sınırları için bounding-box önbelleği (hit-test önfiltresi)
+    private Dictionary<string, Rect2> _provinceBounds = new();
+    private int _frameCounter;
+
     private Country _selected;
     private Country _hovered;
     private Camera2D _camera;
@@ -214,6 +218,14 @@ public partial class WorldMap : Node2D
         AnimateSelectedBorder(fDelta);
         UpdateBorderWidthsByZoom();
         AnimateZoom(fDelta);
+
+        // M18.4: FPS ölçümü (her 120 karede bir)
+        _frameCounter++;
+        if (_frameCounter % 120 == 0)
+        {
+            float fps = (float)Engine.GetFramesPerSecond();
+            GD.Print($"[WorldMap] FPS={fps:F1} provinces={_provinces.Count}");
+        }
 
         // Görsel #7: Dönem (era) tonu — yıl bazlı, yumuşak geçiş.
         if (GameManager.IsAvailable)
@@ -869,10 +881,27 @@ public partial class WorldMap : Node2D
     {
         _provinces = new List<ProvinceData>(provinces);
         ProvinceOwnershipSystem.InitializeFromProvinces(_provinces);
+        _provinceBounds.Clear();
+        foreach (var prov in _provinces)
+            _provinceBounds[prov.Id] = ComputeBounds(prov);
         DrawProvinces();
         RefreshProvinceColors();
         QueueRedraw();
         GD.Print($"WorldMap: {_provinces.Count} il çizildi.");
+    }
+
+    private static Rect2 ComputeBounds(ProvinceData prov)
+    {
+        float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+        foreach (var ring in prov.Rings)
+            foreach (var p in ring)
+            {
+                if (p.X < minX) minX = p.X;
+                if (p.Y < minY) minY = p.Y;
+                if (p.X > maxX) maxX = p.X;
+                if (p.Y > maxY) maxY = p.Y;
+            }
+        return new Rect2(minX, minY, maxX - minX, maxY - minY);
     }
 
     private void DrawProvinces()
@@ -907,6 +936,26 @@ public partial class WorldMap : Node2D
         RefreshProvinceColors();
         QueueRedraw();
         GD.Print($"[WorldMap] İl sahipliği değişti: {provinceId} {oldCountryId} → {newCountryId}");
+    }
+
+    // M18.4: Hızlı hit-test — önce bounding-box önfiltresi, sonra nokta-İçinde-poligon testi.
+    public ProvinceData FindProvinceAt(Vector2 worldPos)
+    {
+        ProvinceData best = null;
+        float bestArea = float.MaxValue;
+        foreach (var prov in _provinces)
+        {
+            if (!_provinceBounds.TryGetValue(prov.Id, out var box)) continue;
+            if (!box.HasPoint(worldPos)) continue;
+            foreach (var ring in prov.Rings)
+                if (Geometry2D.IsPointInPolygon(worldPos, ring))
+                {
+                    float area = Mathf.Abs((float)RingArea(ring));
+                    if (area < bestArea) { best = prov; bestArea = area; }
+                    break;
+                }
+        }
+        return best;
     }
 
     public partial class MapEffects : Node2D

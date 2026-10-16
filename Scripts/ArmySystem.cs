@@ -83,6 +83,11 @@ public static class ArmySystem
         public int GeneralSkill { get; set; } // 1-5
         public string ProvinceId = ""; // M19.1: ordunun bulunduğu il (harita sayacı konumu)
         public List<string> DivisionIds { get; set; } = new();
+
+        // M19.3: Hareket komutu — hedef il ve Shift ile eklenen ara noktalar (sıra ile)
+        public string TargetProvinceId = "";
+        public List<string> WaypointIds = new();
+        public bool IsMoving => !string.IsNullOrEmpty(TargetProvinceId);
     }
 
     // Eğitim kuyruğu öğesi

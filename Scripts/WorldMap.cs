@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 
 // Dünya haritası: GeoJSON'dan ülke poligonları çizer, kamera pan/zoom,
@@ -80,6 +81,12 @@ public partial class WorldMap : Node2D
     private const float SelectDragThreshold = 8f; // ekran pikseli: üzeri sürükleme = kutu seçimi
     private bool _lmbPressed;
     private Vector2 _lmbPressScreen;
+
+    // M19.3: Hareket emri rotaları (ordu id → dünya koordinat noktaları, çizim önizlemesi)
+    private Dictionary<string, List<Vector2>> _movementPaths = new();
+
+    // M19.3: hızlı il erişimi (id → ProvinceData)
+    private Dictionary<string, ProvinceData> _provinceById = new();
 
     private Country _selected;
     private Country _hovered;
@@ -195,6 +202,9 @@ public partial class WorldMap : Node2D
 
         // M19.2: Seçim — kutu seçimi çerçevesi + seçili il vurguları
         DrawSelection();
+
+        // M19.3: Hareket emri rotaları (çizgi + hedef/ara nokta çemberleri)
+        DrawMovementPaths();
     }
 
     private void DrawArmies()
@@ -357,9 +367,14 @@ public partial class WorldMap : Node2D
                 else
                 {
                     _lastMousePos = Vector2.Zero;
-                    // M7.5: Hareket yoksa tık say → savaş emri (pan davranışı bozulmaz)
+                    // M7.5 / M19.3: hareket yoksa tık say
                     if (mb.Position.DistanceTo(_rmbPressPos) < 6f)
-                        HandleRightClickOrder(mb.ShiftPressed);
+                    {
+                        var worldPos = _camera.Position + (mb.Position - GetViewportRect().Size / 2f) / _camera.Zoom;
+                        // M19.3: seçili illerde ordu varsa önce hareket emrini dene
+                        if (!IssueMoveOrders(worldPos, mb.ShiftPressed))
+                            HandleRightClickOrder(mb.ShiftPressed); // M7.5 savaş/cephe emri (yoksa sessiz dönüş)
+                    }
                 }
                 GetViewport().SetInputAsHandled();
                 return;
@@ -985,6 +1000,109 @@ public partial class WorldMap : Node2D
         }
     }
 
+    // M19.3: Sağ tık kısa tıklamasıyla seçili illardaki tüm orduları hedef ili hareket ettirir.
+    // shift=true → hedefi ara nokta listesine ekler (waypoint). false ise mevcut yol sıfırlanır.
+    // Dönüş: true = hareket emri verildi (savaş emri devreye girmez), false = yok.
+    private bool IssueMoveOrders(Vector2 worldPos, bool shift)
+    {
+        if (_camera == null) return false;
+        var target = FindProvinceAt(worldPos);
+        if (target == null) return false;
+
+        var armies = ArmySystem.Armies
+            .Where(a => !string.IsNullOrEmpty(a.ProvinceId) && _selectedProvinceIds.Contains(a.ProvinceId))
+            .ToList();
+        if (armies.Count == 0) return false;
+
+        foreach (var army in armies)
+        {
+            string startProvince = army.ProvinceId; // hareket öncesi konum (rota başlangıcı)
+            if (!shift) army.WaypointIds.Clear();
+            army.WaypointIds.Add(target.Id);
+            army.TargetProvinceId = target.Id;
+            army.ProvinceId = target.Id; // anında varış (M19.4 hareket hızıyla yavaşlatılacak)
+            _movementPaths[army.Id] = ComputeMovementPath(startProvince, army.WaypointIds);
+            GD.Print($"[Map] {army.Name} → {target.Name} (rota={_movementPaths[army.Id].Count} nokta)");
+        }
+
+        QueueRedraw();
+        return true;
+    }
+
+    // M19.3: başlangıç ilinden waypoint'ler üzerinden hedefe BFS (komşuluk grafiği) rota noktaları.
+    private List<Vector2> ComputeMovementPath(string startId, IReadOnlyList<string> waypoints)
+    {
+        var points = new List<Vector2>();
+        string from = startId;
+        foreach (var wp in waypoints)
+        {
+            var seg = BfsPath(from, wp);
+            foreach (var pid in seg)
+                if (_provinceById.TryGetValue(pid, out var p)) points.Add(p.Centroid);
+            from = wp;
+        }
+        return points;
+    }
+
+    // M19.3: Komşuluk grafiği üzerinden start → target en kısa yolu (BFS). İD listesi döner.
+    private List<string> BfsPath(string startId, string targetId)
+    {
+        if (startId == targetId) return new List<string> { targetId };
+        if (!_provinceById.ContainsKey(startId) || !_provinceById.ContainsKey(targetId))
+            return new List<string> { targetId };
+
+        var visited = new HashSet<string> { startId };
+        var parent = new Dictionary<string, string>();
+        var queue = new Queue<string>();
+        queue.Enqueue(startId);
+
+        while (queue.Count > 0)
+        {
+            var cur = queue.Dequeue();
+            var prov = _provinceById.GetValueOrDefault(cur);
+            if (prov == null) continue;
+            foreach (var nb in prov.NeighborIds)
+            {
+                if (visited.Contains(nb)) continue;
+                visited.Add(nb);
+                parent[nb] = cur;
+                if (nb == targetId)
+                {
+                    var path = new List<string> { targetId };
+                    var node = cur;
+                    while (node != startId)
+                    {
+                        path.Add(node);
+                        node = parent[node];
+                    }
+                    path.Add(startId);
+                    path.Reverse();
+                    return path;
+                }
+                queue.Enqueue(nb);
+            }
+        }
+        // Ulaşılamıyor → doğrudan hedef
+        return new List<string> { targetId };
+    }
+
+    // M19.3: Orduların hareket emri rotalarını çizer (polyline + ara/hedef nokta çemberleri).
+    private void DrawMovementPaths()
+    {
+        if (!ArmySystem.IsInitialized) return;
+        foreach (var army in ArmySystem.Armies)
+        {
+            if (!_movementPaths.TryGetValue(army.Id, out var pts) || pts.Count < 2) continue;
+            for (int i = 1; i < pts.Count; i++)
+                DrawLine(pts[i - 1], pts[i], new Color(0.2f, 0.7f, 1f, 0.85f), 2f);
+            for (int i = 0; i < pts.Count; i++)
+            {
+                bool isLast = i == pts.Count - 1;
+                DrawCircle(pts[i], 5f, isLast ? new Color(0.2f, 0.9f, 0.4f, 0.9f) : new Color(1f, 0.9f, 0.2f, 0.9f));
+            }
+        }
+    }
+
     private void AnimateSelectedBorder(float delta)
     {
         if (_selected == null || _camera == null) return;
@@ -1024,6 +1142,9 @@ public partial class WorldMap : Node2D
         _provinceBounds.Clear();
         foreach (var prov in _provinces)
             _provinceBounds[prov.Id] = ComputeBounds(prov);
+        _provinceById.Clear();
+        foreach (var prov in _provinces)
+            _provinceById[prov.Id] = prov;
         DrawProvinces();
         RefreshProvinceColors();
         QueueRedraw();

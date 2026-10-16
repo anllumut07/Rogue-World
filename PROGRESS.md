@@ -766,6 +766,24 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 ---
 
+### M19.3: Komut (Sağ Tık Hareket, Shift Ara Nokta, Yol Önizleme) — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/ArmySystem.cs`: `Army.TargetProvinceId`, `Army.WaypointIds` (sıralı ara nokta listesi), `Army.IsMoving` eklendi (Save/Load DTO olarak otomatik dahil, `IncludeFields` ile).
+- `Scripts/WorldMap.cs`:
+  - `_provinceById` (id → ProvinceData) `SetProvinces`'de dolduruldu; `_movementPaths` (army id → dünya koordinat noktaları) eklendi.
+  - RMB kısa tıklaması (`<6px`, sürükleme pan'ından ayrı): seçili illerde ordu varsa `IssueMoveOrders` → her seçili orduya hedef il atanır (`ProvinceId`, `TargetProvinceId`, `WaypointIds`), BFS komşuluk grafiği üzerinden rota hesaplanır (`ComputeMovementPath`/`BfsPath`); shift=true mevcut yolu sıfırlamaz, hedefi ara nokta listesine ekler. shift=false yol sıfırlanır.
+  - Eğer seçili ordu yoksa veya tıklanan nokta il değilse → mevcut `HandleRightClickOrder` (savaş/cephe emri) devreye girer (davranış değişikliği yok).
+  - `_Draw`'da `DrawMovementPaths()`: her ordunun rotası mavi polyline + hedef yeşil / ara nokta sarı çember olarak çizilir.
+  - RMB hareket-komutunun `HandleRightClickOrder`'den önce değerlendirilmesi (seçili ordu varsa hareket emri önceliğindedir).
+
+**Testler:**
+- `dotnet build`: 0 hata, 0 uyarı.
+- RMB pan (sürükle) ve LMB ülke/il seçimi etkilenmedi (ayrı düğme, 6px eşiği korundu).
+- Not: `godot run`/editör açılmaması kuralıyla hareket-komut ve yol önizleme görseli editörde manuel doğrulanacak.
+
+---
+
 
 ## Bilinen Sorunlar / Teknik Borç
 

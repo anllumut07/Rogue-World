@@ -29,5 +29,10 @@
 - `Scripts/WorldMap.cs`: `SelectedProvinceIds` (HashSet), tek tık / Shift ile çoklu il seçimi, fareyle sürükle-kutu (marquee) seçimi; `DrawSelection` kutu çerçevesi + seçili-il vurgusu (_Draw'da), `ProvinceSelectionChanged` string[] sinyali; RMB pan ve mevcut LMB ülke seçimi ile çakışmaz. dotnet build 0/0.
 - Commit: push'ed origin gece-calisma.
 
+## M19.3 — ✅ DONE (2026-10-17)
+- `Scripts/ArmySystem.cs`: `Army.TargetProvinceId`, `Army.WaypointIds` (sıralı ara nokta), `Army.IsMoving` (Save/Load'a otomatik dahil).
+- `Scripts/WorldMap.cs`: `_provinceById` (id → ProvinceData) + `_movementPaths` (army id → rota noktaları); RMB kısa tık (`<6px`, pan'dan ayrı) seçili illardaki tüm orduları hedef ili hareket ettirir (`IssueMoveOrders`); shift=true ara nokta ekler, shift=false yol sıfırlar; BFS komşuluk grafiği üzerinden rota (`ComputeMovementPath`/`BfsPath`); `_Draw`'da `DrawMovementPaths` (mavi polyline + yeşil hedef / sarı ara-nokta çemberi); seçili ordu yoksa veya il yoksa mevcut `HandleRightClickOrder` (savaş/cephe emri) devreye girer — davranış değişikliği yok. dotnet build 0/0.
+- Commit: (hazırlanacak).
+
 ## Sonraki adım
-- M19.3: Komut (sağ tık hareket emri, Shift ara noktalar, yol önizleme).
+- M19.4: Hareket hızı (arazi/ikmal bazlı il başına geçiş süresi), orduların rotada adım adım ilerlemesi.

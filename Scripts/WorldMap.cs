@@ -85,6 +85,34 @@ public partial class WorldMap : Node2D
     // M19.3: hızlı il erişimi (id → ProvinceData)
     private Dictionary<string, ProvinceData> _provinceById = new();
 
+    // M19.6: Cephe hattı ve ofansif plan
+    private sealed class FrontlineSegment
+    {
+        public Vector2 A;
+        public Vector2 B;
+        public Color Color = new Color(1f, 0.35f, 0.2f, 0.85f); // kırmızı-turuncu cephes
+    }
+
+    private sealed class PlanArrow
+    {
+        public string SourceProvinceId = "";
+        public string TargetProvinceId = "";
+        public List<Vector2> Points = new();      // kullanıcının sürüklediği dünya noktaları (görsel)
+        public List<string> ProvincePath = new();  // BFS yürütme yolu (ilk illen çıkarılmış)
+        public float CreatedDay;
+        public Color Color = new Color(0.95f, 0.75f, 0.2f, 0.9f); // ambre plan rengi
+    }
+
+    private readonly List<FrontlineSegment> _frontlines = new();
+    private bool _frontlinesDirty = true;
+    private int _lastActiveWarCount = -1;
+    private PlanArrow _activePlan;           // aktif ofansif plan oku
+    private bool _drawingPlan;               // Ctrl+LMB sürüklemesiyle plan çizimi devam ediyor
+    private Vector2 _planPressScreen;
+    private string _planSourceProvinceId = ""; // planın başlangıç ili (kaynak ordular buradan seçilir)
+    private readonly List<Vector2> _planPoints = new();
+    private const float PlanMinDragPixels = 12f;
+
     private Country _selected;
     private Country _hovered;
     private Camera2D _camera;
@@ -202,6 +230,11 @@ public partial class WorldMap : Node2D
 
         // M19.3: Hareket emri rotaları (çizgi + hedef/ara nokta çemberleri)
         DrawMovementPaths();
+
+        // M19.6: Cephe hatları (düşman sınırları) + ofansif plan okları
+        EnsureFrontlines();
+        DrawFrontlines();
+        DrawPlan();
     }
 
     private void DrawArmies()
@@ -286,6 +319,14 @@ public partial class WorldMap : Node2D
         {
             float fps = (float)Engine.GetFramesPerSecond();
             GD.Print($"[WorldMap] FPS={fps:F1} provinces={_provinces.Count}");
+        }
+
+        // M19.6: Savaş sayısı değişimi → cephe hatlarını yeniden hesapla
+        int activeWarCount = WarSystem.ActiveWars.Count;
+        if (activeWarCount != _lastActiveWarCount)
+        {
+            _lastActiveWarCount = activeWarCount;
+            _frontlinesDirty = true;
         }
 
         // Görsel #7: Dönem (era) tonu — yıl bazlı, yumuşak geçiş.
@@ -379,6 +420,14 @@ public partial class WorldMap : Node2D
                 if (mb.Pressed)
                 {
                     _lastMousePos = mb.Position;
+                    // M19.6: RMB pan başlar → açık olan plan çizimini iptal et
+                    if (_drawingPlan)
+                    {
+                        _drawingPlan = false;
+                        _planPoints.Clear();
+                        _planSourceProvinceId = null;
+                        QueueRedraw();
+                    }
                     _rmbPressPos = mb.Position; // M7.5: tık mı sürükleme mi ayrımı için
                 }
                 else
@@ -439,6 +488,23 @@ public partial class WorldMap : Node2D
 
                 if (lmb.Pressed)
                 {
+                    // M19.6: Ctrl+LMB → ofansif plan çizimi (normal il seçimiyle çakışmaz)
+                    if (Input.IsKeyPressed(Key.Ctrl))
+                    {
+                        _drawingPlan = true;
+                        _planPressScreen = viewportPos;
+                        _planPoints.Clear();
+                        _planSourceProvinceId = null;
+                        var prov = FindProvinceAt(worldPos);
+                        if (prov != null)
+                        {
+                            _planSourceProvinceId = prov.Id;
+                            _planPoints.Add(prov.Centroid);
+                        }
+                        GetViewport().SetInputAsHandled();
+                        return;
+                    }
+
                     // Çift tık → ülke ataması (kutu seçimi ile çakışmaz)
                     if (lmb.DoubleClick)
                     {
@@ -458,6 +524,24 @@ public partial class WorldMap : Node2D
                     _selectStart = worldPos;
                     _selectEnd = worldPos;
                     _selecting = false;
+                    GetViewport().SetInputAsHandled();
+                    return;
+                }
+
+                // M19.6: Ctrl+LMB bırakıldı → ofansif planı finalize et
+                if (_drawingPlan)
+                {
+                    _drawingPlan = false;
+                    if (viewportPos.DistanceTo(_planPressScreen) > PlanMinDragPixels &&
+                        !string.IsNullOrEmpty(_planSourceProvinceId))
+                    {
+                        var endProv = FindProvinceAt(worldPos);
+                        if (endProv != null && endProv.Id != _planSourceProvinceId)
+                            FinalizePlan(_planSourceProvinceId, endProv.Id);
+                    }
+                    _planSourceProvinceId = null;
+                    _planPoints.Clear();
+                    QueueRedraw();
                     GetViewport().SetInputAsHandled();
                     return;
                 }
@@ -512,6 +596,14 @@ public partial class WorldMap : Node2D
                 {
                     _selectEnd = worldPos;
                     if (viewportPos.DistanceTo(_lmbPressScreen) > SelectDragThreshold) _selecting = true;
+                }
+
+                // M19.6: Ctrl+LMB sürüklemesi → plan ok noktalarını takip et
+                if (_drawingPlan && _camera != null)
+                {
+                    if (_planPoints.Count == 0 || _planPoints[_planPoints.Count - 1].DistanceTo(worldPos) > 8f)
+                        _planPoints.Add(worldPos);
+                    QueueRedraw();
                 }
             }
         }
@@ -1041,8 +1133,12 @@ public partial class WorldMap : Node2D
             // Henüz gidilmemiş kalan waypoint'ler + yeni hedef; mevcut konumdan BFS zinciriyle tam rota.
             var remaining = army.WaypointIds.Skip(army.MovementPathIndex).ToList();
             remaining.Add(target.Id);
-            army.WaypointIds = BuildFullRoute(army.ProvinceId, remaining);
-            if (army.WaypointIds.Count == 0) continue; // rota kurulamadı (ulaşılamıyor)
+            var route = BuildFullRoute(army.ProvinceId, remaining); // [..., target], başlangıç hariç
+            if (route.Count == 0) continue; // rota kurulamadı (ulaşılamıyor)
+
+            var fullPath = new List<string> { army.ProvinceId };
+            fullPath.AddRange(route);
+            ApplyRouteToArmy(army, fullPath);
 
             army.TargetProvinceId = target.Id;
             // Anında varış YOK: ProvinceId günlük tick'te adım adım ilerler (M19.4).
@@ -1132,6 +1228,150 @@ public partial class WorldMap : Node2D
                 DrawCircle(pts[i], 5f, isLast ? new Color(0.2f, 0.9f, 0.4f, 0.9f) : new Color(1f, 0.9f, 0.2f, 0.9f));
             }
         }
+    }
+
+    // M19.6: Cephe hattı — farklı-sahipli ve savaşta olan komşu il ikilisi arasında kalın çizgi.
+    // Yeniden hesaplama yalnızca sahiilik/savaş değişikliği olduğunda (_frontlinesDirty).
+    private void EnsureFrontlines()
+    {
+        if (!_frontlinesDirty) return;
+        RebuildFrontlines();
+    }
+
+    private void RebuildFrontlines()
+    {
+        _frontlines.Clear();
+        if (_provinces.Count == 0) { _frontlinesDirty = false; return; }
+
+        var visited = new HashSet<string>();
+        foreach (var prov in _provinces)
+        {
+            string ownerA = ProvinceOwnershipSystem.GetProvinceOwner(prov.Id);
+            if (string.IsNullOrEmpty(ownerA) || ownerA == "?") continue;
+
+            foreach (var nbId in prov.NeighborIds)
+            {
+                // Her komşu çifti bir kez işle (sıralı anahtar)
+                string pairKey = prov.Id.CompareTo(nbId) < 0
+                    ? $"{prov.Id}|{nbId}"
+                    : $"{nbId}|{prov.Id}";
+                if (!visited.Add(pairKey)) continue;
+
+                if (!_provinceById.TryGetValue(nbId, out var nb)) continue;
+                string ownerB = ProvinceOwnershipSystem.GetProvinceOwner(nb.Id);
+                if (string.IsNullOrEmpty(ownerB) || ownerB == "?" || ownerA == ownerB) continue;
+
+                // İki ülke arasındaki herhangi bir savaş durumu cepheyi oluşturur
+                if (!WarSystem.IsAtWarWith(ownerA, ownerB)) continue;
+
+                _frontlines.Add(new FrontlineSegment
+                {
+                    A = prov.Centroid,
+                    B = nb.Centroid,
+                });
+            }
+        }
+
+        _frontlinesDirty = false;
+        GD.Print($"[WorldMap] Cephe hatları yeniden hesaplandı — segment={_frontlines.Count}");
+    }
+
+    private void DrawFrontlines()
+    {
+        foreach (var seg in _frontlines)
+        {
+            DrawLine(seg.A, seg.B, seg.Color, 3f);
+            DrawCircle(seg.A, 2.5f, seg.Color);
+            DrawCircle(seg.B, 2.5f, seg.Color);
+        }
+    }
+
+    // M19.6: Ofansif plan çizimi — kullanıcının Ctrl+LMB sürüklemesiyle çizdiği oku (veya kaydedilmiş planı) çizer.
+    private void DrawPlan()
+    {
+        var plan = _activePlan;
+        List<Vector2> pts = null;
+        Color color = new Color(0.95f, 0.75f, 0.2f, 0.9f);
+
+        if (_drawingPlan && _planPoints.Count > 0)
+        {
+            pts = _planPoints;
+        }
+        else if (plan != null && plan.Points.Count > 0)
+        {
+            pts = plan.Points;
+            color = plan.Color;
+        }
+
+        if (pts == null || pts.Count < 2) return;
+
+        for (int i = 1; i < pts.Count; i++)
+            DrawLine(pts[i - 1], pts[i], color, 2.5f);
+
+        for (int i = 0; i < pts.Count; i++)
+            DrawCircle(pts[i], 4f, i == pts.Count - 1 ? color : new Color(color.R, color.G, color.B, 0.6f));
+
+        // Ok başı (son noktada)
+        var last = pts[^1];
+        var prev = pts[^2];
+        var dir = (last - prev).Normalized();
+        var left = new Vector2(-dir.Y, dir.X);
+        DrawLine(last, last - dir * 14f + left * 7f, color, 2.5f);
+        DrawLine(last, last - dir * 14f - left * 7f, color, 2.5f);
+    }
+
+    // M19.6: Oluşturulan ofansif planı finalize eder ve kaynak illerdeki seçili orduları rota üzerine yükler.
+    private void FinalizePlan(string sourceProvinceId, string targetProvinceId)
+    {
+        var path = BfsPath(sourceProvinceId, targetProvinceId); // [kaynak, ..., hedef]
+        if (path.Count < 2)
+        {
+            GD.Print($"[Map] Ofansif plan iptal: {sourceProvinceId} → {targetProvinceId} arasında rota yok");
+            return;
+        }
+
+        _activePlan = new PlanArrow
+        {
+            SourceProvinceId = sourceProvinceId,
+            TargetProvinceId = targetProvinceId,
+            Points = new List<Vector2>(_planPoints),
+            ProvincePath = new List<string>(path),
+            CreatedDay = GameManager.IsAvailable ? (float)GameManager.Instance.TotalDays : 0f
+        };
+
+        QueueRedraw();
+        GD.Print($"[Map] Ofansif plan kaydedildi: {sourceProvinceId} → {targetProvinceId} ({path.Count} il adım)");
+
+        // Kaynak illerdeki seçili orduları plana bağla
+        ApplyPlanToSelectedArmies(sourceProvinceId, path);
+    }
+
+    private void ApplyPlanToSelectedArmies(string sourceProvinceId, IReadOnlyList<string> provincePath)
+    {
+        if (!ArmySystem.IsInitialized) return;
+        int moved = 0;
+        foreach (var army in ArmySystem.Armies)
+        {
+            if (army.ProvinceId == sourceProvinceId && _selectedProvinceIds.Contains(sourceProvinceId))
+            {
+                ApplyRouteToArmy(army, provincePath);
+                moved++;
+            }
+        }
+
+        if (moved == 0)
+            GD.Print($"[Map] Plan: {sourceProvinceId} bölgesinde seçili ordu bulunamadı (rota kaydedildi; el ile hareket emri verilebilir)");
+    }
+
+    // Rota listesini (ilk il dahil) ordunun yürütme yoluna döküyor (M19.4 hop mantığıyla uyumlu).
+    private void ApplyRouteToArmy(ArmySystem.Army army, IReadOnlyList<string> fullPath)
+    {
+        army.WaypointIds.Clear();
+        for (int i = 1; i < fullPath.Count; i++)
+            army.WaypointIds.Add(fullPath[i]);
+        army.MovementPathIndex = 0;
+        army.TargetProvinceId = fullPath[^1];
+        army.DaysRemainingInHop = army.DaysPerProvince;
     }
 
     private void AnimateSelectedBorder(float delta)

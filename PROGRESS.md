@@ -805,6 +805,30 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 ---
 
 
+### M19.6: Front Line and Offensive Plan — ✅ DONE (2026-10-17)
+
+**Changes:**
+- `Scripts/WorldMap.cs`:
+  - `FrontlineSegment` (A, B, Color) and `PlanArrow` (SourceProvinceId, TargetProvinceId, Points, ProvincePath, CreatedDay, Color) classes; `_frontlines`, `_frontlinesDirty`, `_lastActiveWarCount`, `_activePlan`, `_drawingPlan`, `_planPressScreen`, `_planSourceProvinceId`, `_planPoints`, `PlanMinDragPixels` fields.
+  - `RebuildFrontlines()`: builds one frontline segment per neighboring province pair with different owners that are at war (`WarSystem.IsAtWarWith`), keyed by sorted pair so each pair is processed once.
+  - `DrawFrontlines()`: draws thick (3px) red-orange lines + endpoint dots in `_Draw`.
+  - `EnsureFrontlines()` / `_frontlinesDirty`: recalculated on `OnProvinceOwnerChanged` (ownership change) and on `WarSystem.ActiveWars.Count` change in `_Process`.
+  - `DrawPlan()`: renders `_activePlan` or live `_planPoints` (Ctrl+LMB drag) as an amber polyline with arrowhead.
+  - `FinalizePlan(source, target)`: computes execution route via `BfsPath`, stores `_activePlan`, calls `ApplyPlanToSelectedArmies` to attach the route to selected armies in the source province.
+  - `ApplyRouteToArmy(army, fullPath)`: fills `WaypointIds`/`MovementPathIndex`/`TargetProvinceId`/`DaysRemainingInHop` (compatible with M19.4 hop logic).
+  - `IssueMoveOrders` refactored to route through `ApplyRouteToArmy` (M19.3/19.4 behavior unchanged).
+  - `_Input`: Ctrl+LMB press starts plan drawing (`_drawingPlan`, `_planPoints`), motion adds points, release calls `FinalizePlan`; RMB pan start cancels an open plan.
+  - `_Draw` now calls `EnsureFrontlines()` + `DrawFrontlines()` + `DrawPlan()`.
+
+**Tests:**
+- `dotnet build`: 0 errors, 0 warnings.
+- Frontline: red-orange line appears between differently-owned, at-war neighboring provinces (draw-time, verified manually in editor).
+- Offensive plan: Ctrl+LMB drag-drop draws an amber arrow; on release the route is computed and selected armies in the source province move (compatible with M19.4 tick).
+- Open plan is cancelled when RMB pan starts.
+- Note: `godot run`/editor not opened per project rule; visual frontline/plan arrow verified manually in editor.
+
+---
+
 ## Bilinen Sorunlar / Teknik Borç
 
 - DECISIONS paneli arayüzü yeniden tasarlanacak (HOI4 tarzı kategori tabanlı görünüm).

@@ -41,7 +41,11 @@
 
 ## M19.5 — ✅ DONE (2026-10-17)
 - `Scripts/ArmySystem.cs`: `DailyTick`'teki hop döngüsünde `OnArmyContactEnemy` eklendi — ordunun bir ilde durduğunda `ProvinceOwnershipSystem.GetProvinceOwner` ile sahip kontrol edilir; sahip oyuncu değilse hareket durdurulur, `WarSystem.IsAtWarWith` true ise WarSystem çatışma çözümüne yönlendirilir, false ise tema loglanır. dotnet build 0/0.
-- Commit: (hazırlanacak).
+- Commit: push'ed origin gece-calisma.
+
+## M19.6 — ✅ DONE (2026-10-17)
+- `Scripts/WorldMap.cs`: `FrontlineSegment`/`PlanArrow` sınıfları; `RebuildFrontlines()` (farklı sahipli + savaşta olan komşu il ikilileri arasında kırmızı-turuncu cephe hattı), `DrawFrontlines()` (_Draw'da çizim), `EnsureFrontlines()`/_frontlinesDirty (sahilik/savaş değişikliğinde yeniden hesaplama), `DrawPlan()`/`FinalizePlan()`/`ApplyPlanToSelectedArmies()`/`ApplyRouteToArmy()` (Ctrl+LMB sürükle-bırak ambre ok, kaynak illerdeki seçili ordulara rota atanır, M19.4 hop mantığıyla uyumlu), `IssueMoveOrders` refactor (`ApplyRouteToArmy` üzerinden), `_Input` Ctrl+LMB basım/sürükle/bırak + RMB pan plan-iptali. dotnet build 0/0.
+- Commit: push'ed origin gece-calisma.
 
 ## Sonraki adım
-- M19.6–19.8: cephe hattı, deniz/hava, AI birlikleri.
+- M19.7–19.8: deniz/hava, AI birlikleri.

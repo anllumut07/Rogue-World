@@ -25,5 +25,9 @@
 ## M19.1 — ✅ DONE (2026-10-17)
 - `Army.ProvinceId` alanı, `WorldMap.DrawArmies()` (_Draw'ta çember sayacı), dotnet build 0/0.
 
+## M19.2 — ✅ DONE (2026-10-17)
+- `Scripts/WorldMap.cs`: `SelectedProvinceIds` (HashSet), tek tık / Shift ile çoklu il seçimi, fareyle sürükle-kutu (marquee) seçimi; `DrawSelection` kutu çerçevesi + seçili-il vurgusu (_Draw'da), `ProvinceSelectionChanged` string[] sinyali; RMB pan ve mevcut LMB ülke seçimi ile çakışmaz. dotnet build 0/0.
+- Commit: push'ed origin gece-calisma.
+
 ## Sonraki adım
-- M19.2: Seçim (tek tık, kutu seçimi, Shift çoklu).
+- M19.3: Komut (sağ tık hareket emri, Shift ara noktalar, yol önizleme).

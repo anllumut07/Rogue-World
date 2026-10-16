@@ -278,7 +278,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | Alt Görev | Açıklama | Test Kriteri |
 |-----------|----------|--------------|
 | 19.1 | Haritada birlik sayaçları (NATO tarzı ikonlar, ülke renginde, zoom'a göre boyut). | Orduların konumunda sayaç görünür | ✅ Bitti — `Army.ProvinceId` alanı, `WorldMap.DrawArmies()` (_Draw'ta çember sayacı), `dotnet build` 0/0 |
-| 19.2 | Seçim: tek tık, **sürükleyerek kutu seçimi**, Shift ile çoklu. Mevcut harita kaydırma ile çakışmaz. | Birden çok birlik seçilebilir, harita kontrolleri bozulmaz |
+| 19.2 | Seçim: tek tık, **sürükleyerek kutu seçimi**, Shift ile çoklu. Mevcut harita kaydırma ile çakışmaz. | Birden çok birlik seçilebilir, harita kontrolleri bozulmaz | ✅ Bitti (2026-10-17) |
 | 19.3 | **Komut:** sağ tık ile hedefe hareket, Shift ile ara noktalar, yol önizleme okları. Sağ tık harita kaydırmasıyla çakışmayacak biçimde ayırt edilir (kısa tık = komut, sürükleme = kaydırma). | Birlik hedefe yürür, yol çizgisi görünür |
 | 19.4 | Hareket hızı (arazi, hava, ikmal), il başına geçiş süresi. | Hareket süresi ile logla doğrulanır |
 | 19.5 | Temas ve savaş: düşman ile karşılaşınca mevcut WarSystem savaş çözümü tetiklenir, hareket durur. | Temasta savaş başlar |

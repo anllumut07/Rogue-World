@@ -749,6 +749,23 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 ---
 
+### M19.2: Seçim (Tek Tık, Kutu, Shift Çoklu) — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/WorldMap.cs` (güncellenmiş):
+  - `SelectedProvinceIds` (`IReadOnlySet<string>`) — seçili il ID'leri (bu illardaki ordular seçilmiş sayılır).
+  - Sol tık basımında başlangıç noktası kaydı; bırakılınca 8px eşiğe göre **tek tık** (`FindProvinceAt` + mevcut ülke seçimiyle birlikte) veya **sürükle-kutu (marquee)** seçimi (dikdörtgen içinde merkez noktası olan tüm iller).
+  - Shift tuşu: mevcut seçime ekler; basılı değilse seçimi değiştirir. Boş alana tek tık (Shift olmadan) seçimi temizler.
+  - `DrawSelection()`: `_Draw`'da kutu seçimi çerçevesi (yarı saydam dolgu + beyaz kenar) ve seçili illerin altın vurgusu (`_provinceBounds` üzerinden).
+  - `SelectProvince(id, add)`, `ClearProvinceSelection()`, `ProvinceSelectionChanged(string[])` sinyali.
+  - RMB sürükleme pan ile çakışmaz (farklı düğme); LMB ülke seçimi (`SelectAt`) sürdürülür.
+
+**Testler:**
+- `dotnet build`: 0 hata, 0 uyarı.
+- Not: `godot run`/editör açılmaması kuralıyla görsel kutu-seçim testi editörde yapılacak.
+
+---
+
 
 ## Bilinen Sorunlar / Teknik Borç
 

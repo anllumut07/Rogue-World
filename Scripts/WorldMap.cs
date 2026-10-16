@@ -10,6 +10,9 @@ public partial class WorldMap : Node2D
     [Signal] public delegate void CountrySelectedEventHandler(string countryId, string countryName);
     [Signal] public delegate void CountryDeselectedEventHandler();
 
+    // M19.2: İl/orduluk seçimi değişti (tek tık, kutu, Shift çoklu)
+    [Signal] public delegate void ProvinceSelectionChangedEventHandler(string[] provinceIds);
+
     public static WorldMap Instance { get; private set; }
 
     [Export] public string GeoJsonPath { get; set; } = "res://Data/countries.geo.json";
@@ -66,6 +69,17 @@ public partial class WorldMap : Node2D
     // M18.4: Performans — il sınırları için bounding-box önbelleği (hit-test önfiltresi)
     private Dictionary<string, Rect2> _provinceBounds = new();
     private int _frameCounter;
+
+    // M19.2: Kutu seçimi (marquee) — sol tık sürüklemesiyle bölge seçimi
+    private Vector2 _selectStart;
+    private Vector2 _selectEnd;
+    private bool _selecting;
+
+    // M19.2: Seçim durumu — seçili il ID'leri (bu illardaki ordular seçilmiş sayılır)
+    private readonly HashSet<string> _selectedProvinceIds = new();
+    private const float SelectDragThreshold = 8f; // ekran pikseli: üzeri sürükleme = kutu seçimi
+    private bool _lmbPressed;
+    private Vector2 _lmbPressScreen;
 
     private Country _selected;
     private Country _hovered;
@@ -178,6 +192,9 @@ public partial class WorldMap : Node2D
 
         // M19.1: Birlik sayaçları (ordunun bulunduğu il merkezinde çember)
         DrawArmies();
+
+        // M19.2: Seçim — kutu seçimi çerçevesi + seçili il vurguları
+        DrawSelection();
     }
 
     private void DrawArmies()
@@ -377,10 +394,10 @@ public partial class WorldMap : Node2D
             return;
         }
 
-        // ----- Sol tık seçim / hover -----
+        // ----- Sol tık seçim / kutu seçimi / hover (M19.2) -----
         if (!_dragging)
         {
-            if (e is InputEventMouseButton click && click.Pressed && click.ButtonIndex == MouseButton.Left)
+            if (e is InputEventMouseButton lmb && lmb.ButtonIndex == MouseButton.Left)
             {
                 var hovered = GetViewport().GuiGetHoveredControl();
                 if (HoveredBlocksMap(hovered)) return;
@@ -388,22 +405,68 @@ public partial class WorldMap : Node2D
                 Vector2 viewportPos = GetViewport().GetMousePosition();
                 Vector2 worldPos = _camera.Position + (viewportPos - GetViewportRect().Size / 2f) / _camera.Zoom;
 
-                // Yedek yol: çift tık → o ülke oyuncu ülkesi olur (panel açılmasa bile HUD güncellenir)
-                if (click.DoubleClick)
+                if (lmb.Pressed)
                 {
-                    var c = FindCountryAt(worldPos);
-                    if (c != null && GameManager.IsAvailable)
+                    // Çift tık → ülke ataması (kutu seçimi ile çakışmaz)
+                    if (lmb.DoubleClick)
                     {
-                        GameManager.Instance.SetPlayerCountry(c.Id);
-                        GD.Print($"WorldMap: Double-click → SetPlayerCountry({c.Id})");
+                        var c = FindCountryAt(worldPos);
+                        if (c != null && GameManager.IsAvailable)
+                        {
+                            GameManager.Instance.SetPlayerCountry(c.Id);
+                            GD.Print($"WorldMap: Double-click → SetPlayerCountry({c.Id})");
+                        }
+                        GetViewport().SetInputAsHandled();
+                        return;
                     }
+
+                    // Sol tık basım: başlangıç noktası kaydı. Tek tık mı sürükleme mi, bırakılınca belli olur.
+                    _lmbPressed = true;
+                    _lmbPressScreen = viewportPos;
+                    _selectStart = worldPos;
+                    _selectEnd = worldPos;
+                    _selecting = false;
                     GetViewport().SetInputAsHandled();
                     return;
                 }
 
-                SelectAt(worldPos);
-                GetViewport().SetInputAsHandled();
-                return;
+                // Sol tık bırakıldı: tek tık → il seçimi; sürükle → kutu seçimi
+                if (_lmbPressed)
+                {
+                    _lmbPressed = false;
+                    _selecting = false;
+                    bool shift = lmb.ShiftPressed;
+
+                    if (viewportPos.DistanceTo(_lmbPressScreen) < SelectDragThreshold)
+                    {
+                        // TEK TIK: imlecin altındaki il (var olan ülke seçimiyle birlikte çalışır)
+                        var prov = FindProvinceAt(worldPos);
+                        if (prov != null)
+                        {
+                            if (shift) _selectedProvinceIds.Add(prov.Id);
+                            else { _selectedProvinceIds.Clear(); _selectedProvinceIds.Add(prov.Id); }
+                        }
+                        else if (!shift)
+                        {
+                            _selectedProvinceIds.Clear();
+                        }
+
+                        SelectAt(worldPos); // mevcut ülke seçimi (CountryInfoPanel vb.)
+                    }
+                    else
+                    {
+                        // KUTU SEÇİMİ: dikdörtgenin içinde merkez noktası olan tüm iller
+                        if (!shift) _selectedProvinceIds.Clear();
+                        var rect = Rect2FromPoints(_selectStart, _selectEnd);
+                        foreach (var prov in _provinces)
+                            if (rect.HasPoint(prov.Centroid)) _selectedProvinceIds.Add(prov.Id);
+                    }
+
+                    EmitSignal(SignalName.ProvinceSelectionChanged, ProvinceIdsToArray());
+                    QueueRedraw();
+                    GetViewport().SetInputAsHandled();
+                    return;
+                }
             }
 
             if (e is InputEventMouseMotion mm)
@@ -411,6 +474,13 @@ public partial class WorldMap : Node2D
                 Vector2 viewportPos = GetViewport().GetMousePosition();
                 Vector2 worldPos = _camera.Position + (viewportPos - GetViewportRect().Size / 2f) / _camera.Zoom;
                 UpdateHover(worldPos);
+
+                // M19.2: sol tıkla sürükle → kutu seçimi bitiş noktasını takip et (RMB pan ile çakışmaz)
+                if (_lmbPressed && _camera != null)
+                {
+                    _selectEnd = worldPos;
+                    if (viewportPos.DistanceTo(_lmbPressScreen) > SelectDragThreshold) _selecting = true;
+                }
             }
         }
     }
@@ -861,6 +931,59 @@ public partial class WorldMap : Node2D
 
     // Seçimi tamamen kaldır (panelde X / ESC / boş alan) — Deselected tetiklenir.
     public void ClearSelection() => SetSelected(null);
+
+    // M19.2: Seçili iller (ve üzerindeki ordular). Salt okunur dışa açılır.
+    public IReadOnlySet<string> SelectedProvinceIds => _selectedProvinceIds;
+
+    // Tek tık / kutu sonucu il seçimi. add=true → mevcut seçime ekler, false → değiştirir.
+    public void SelectProvince(string provinceId, bool add = false)
+    {
+        if (!add) _selectedProvinceIds.Clear();
+        if (!string.IsNullOrEmpty(provinceId)) _selectedProvinceIds.Add(provinceId);
+        EmitSignal(SignalName.ProvinceSelectionChanged, ProvinceIdsToArray());
+        QueueRedraw();
+    }
+
+    // Seçimi temizle (UI / ESC / boş-alan işlemlerinden çağrılabilir).
+    public void ClearProvinceSelection()
+    {
+        if (_selectedProvinceIds.Count == 0) return;
+        _selectedProvinceIds.Clear();
+        EmitSignal(SignalName.ProvinceSelectionChanged, ProvinceIdsToArray());
+        QueueRedraw();
+    }
+
+    // HashSet -> string[] (CopyTo: ToArray uzantısı bağımlılığı olmadan çalışır).
+    private string[] ProvinceIdsToArray()
+    {
+        var ids = new string[_selectedProvinceIds.Count];
+        _selectedProvinceIds.CopyTo(ids);
+        return ids;
+    }
+
+    // İki noktadan mondeksele göre eksen-parallel dikdörtgen.
+    private static Rect2 Rect2FromPoints(Vector2 a, Vector2 b) =>
+        new(Mathf.Min(a.X, b.X), Mathf.Min(a.Y, b.Y), Mathf.Abs(b.X - a.X), Mathf.Abs(b.Y - a.Y));
+
+    // M19.2: Kutu seçimi çerçevesi (sürüklemede) + seçili illerin vurguları (_Draw'dan çağrılır).
+    private void DrawSelection()
+    {
+        if (_selecting)
+        {
+            var rect = Rect2FromPoints(_selectStart, _selectEnd);
+            // Yarı saydam dolgu + beyaz kenar çizgisi
+            DrawRect(rect, new Color(1f, 1f, 1f, 0.10f), true);
+            DrawRect(rect, new Color(1f, 1f, 1f, 0.80f), false, 1.5f);
+        }
+
+        // Seçili iller: hafif altın dolgu + net altın kenar
+        foreach (var pid in _selectedProvinceIds)
+        {
+            if (!_provinceBounds.TryGetValue(pid, out var box)) continue;
+            DrawRect(box, new Color(1f, 0.8f, 0.1f, 0.10f), true);
+            DrawRect(box, new Color(1f, 0.85f, 0.2f, 0.90f), false, 1.5f);
+        }
+    }
 
     private void AnimateSelectedBorder(float delta)
     {

@@ -34,5 +34,10 @@
 - `Scripts/WorldMap.cs`: `_provinceById` (id → ProvinceData) + `_movementPaths` (army id → rota noktaları); RMB kısa tık (`<6px`, pan'dan ayrı) seçili illardaki tüm orduları hedef ili hareket ettirir (`IssueMoveOrders`); shift=true ara nokta ekler, shift=false yol sıfırlar; BFS komşuluk grafiği üzerinden rota (`ComputeMovementPath`/`BfsPath`); `_Draw`'da `DrawMovementPaths` (mavi polyline + yeşil hedef / sarı ara-nokta çemberi); seçili ordu yoksa veya il yoksa mevcut `HandleRightClickOrder` (savaş/cephe emri) devreye girer — davranış değişikliği yok. dotnet build 0/0.
 - Commit: (hazırlanacak).
 
+## M19.4 — ✅ DONE (2026-10-17)
+- `Scripts/ArmySystem.cs`: `Army.MovementPathIndex`, `Army.DaysPerProvince` (varsayılan 2 oyun günü/il), `Army.DaysRemainingInHop` eklendi; `DailyTick` seçili/ hareket eden her ordunun `DaysRemainingInHop`'ını günde 1 azaltır, sıfıra ulaştığında `ProvinceId` bir sonraki yoldaki ille güncellenir, son hedefte hareket durur ve loglanır.
+- `Scripts/WorldMap.cs`: `IssueMoveOrders` anında varışı kaldırdı, `BuildFullRoute` (BFS zinciri) ile `WaypointIds`'i tam yürütme rotası olarak doldurdu; `_movementPaths`/`ComputeMovementPath` kaldırıldı, `DrawMovementPaths` `ProvinceId`+`WaypointIds`'den çizgi+çember çizer; `DrawArmies` hareket eden orduları mevcut ve bir sonraki il centroid'u arasında interpolasyonla çizer. dotnet build 0/0.
+- Commit: (hazırlanacak).
+
 ## Sonraki adım
-- M19.4: Hareket hızı (arazi/ikmal bazlı il başına geçiş süresi), orduların rotada adım adım ilerlemesi.
+- M19.5: Temas ve savaş (düşmanla karşılaşınca hareket dur, WarSystem çatışması).

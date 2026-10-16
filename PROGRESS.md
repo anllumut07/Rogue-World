@@ -782,6 +782,17 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - RMB pan (sürükle) ve LMB ülke/il seçimi etkilenmedi (ayrı düğme, 6px eşiği korundu).
 - Not: `godot run`/editör açılmaması kuralıyla hareket-komut ve yol önizleme görseli editörde manuel doğrulanacak.
 
+### M19.4: Hareket Hızı (İl Başına Geçiş Süresi) — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/ArmySystem.cs`: `Army.MovementPathIndex`, `Army.DaysPerProvince` (varsayılan 2 oyun günü/il), `Army.DaysRemainingInHop` eklendi. `DailyTick` hareket eden her ordunun `DaysRemainingInHop`'ını günde 1 azaltır; sıfıra ulaştığında `ProvinceId` bir sonraki yoldaki ille güncellenir, final hedefte hareket durur (`TargetProvinceId` temizlenir) ve loglanır.
+- `Scripts/WorldMap.cs`: `IssueMoveOrders` anında varışı (`ProvinceId = target.Id`) kaldırdı; `BuildFullRoute` (BFS zinciri) ile `WaypointIds` tam yürütme rotası olarak dolduruldu; `_movementPaths` ve `ComputeMovementPath` kaldırıldı; `DrawMovementPaths` `ProvinceId`+`WaypointIds`'den polyline + hedef/ara-nokta çemberi çizer; `DrawArmies` hareket eden orduları mevcut ve bir sonraki il centroid'u arasında `DaysRemainingInHop/DaysPerProvince` oranında interpolasyonla çizer.
+
+**Testler:**
+- `dotnet build`: 0 hata, 0 uyarı.
+- RMB pan, LMB ülke/il seçimi etkilenmedi (M19.3 davranışı korundu).
+- Not: `godot run`/editör açılmaması kuralıyla adım adım ilerleme ve interpolasyon görseli editörde manuel doğrulanacak.
+
 ---
 
 

@@ -82,9 +82,6 @@ public partial class WorldMap : Node2D
     private bool _lmbPressed;
     private Vector2 _lmbPressScreen;
 
-    // M19.3: Hareket emri rotaları (ordu id → dünya koordinat noktaları, çizim önizlemesi)
-    private Dictionary<string, List<Vector2>> _movementPaths = new();
-
     // M19.3: hızlı il erişimi (id → ProvinceData)
     private Dictionary<string, ProvinceData> _provinceById = new();
 
@@ -213,11 +210,31 @@ public partial class WorldMap : Node2D
         foreach (var army in ArmySystem.Armies)
         {
             if (string.IsNullOrEmpty(army.ProvinceId)) continue;
-            ProvinceData prov = null;
-            foreach (var p in _provinces)
-                if (p.Id == army.ProvinceId) { prov = p; break; }
-            if (prov == null) continue;
-            DrawCircle(prov.Centroid, 6f, new Color(1f, 0.2f, 0.2f, 0.8f));
+
+            Vector2 drawPos = Vector2.Zero;
+            bool havePos = false;
+
+            if (army.IsMoving && army.MovementPathIndex < army.WaypointIds.Count)
+            {
+                // M19.4: hareket sırasında mevcut il ve bir sonraki hedef arası interpolasyon.
+                var start = _provinceById.GetValueOrDefault(army.ProvinceId);
+                var next = _provinceById.GetValueOrDefault(army.WaypointIds[army.MovementPathIndex]);
+                if (start != null && next != null)
+                {
+                    float t = 1f - army.DaysRemainingInHop / army.DaysPerProvince; // 0=başlangıç, 1=varış
+                    t = Mathf.Clamp(t, 0f, 1f);
+                    drawPos = start.Centroid.Lerp(next.Centroid, t);
+                    havePos = true;
+                }
+            }
+            else
+            {
+                var prov = _provinceById.GetValueOrDefault(army.ProvinceId);
+                if (prov != null) { drawPos = prov.Centroid; havePos = true; }
+            }
+
+            if (!havePos) continue;
+            DrawCircle(drawPos, 6f, new Color(1f, 0.2f, 0.2f, 0.8f));
         }
     }
 
@@ -1000,8 +1017,8 @@ public partial class WorldMap : Node2D
         }
     }
 
-    // M19.3: Sağ tık kısa tıklamasıyla seçili illardaki tüm orduları hedef ili hareket ettirir.
-    // shift=true → hedefi ara nokta listesine ekler (waypoint). false ise mevcut yol sıfırlanır.
+    // M19.3/19.4: Sağ tık kısa tıklamasıyla seçili illardaki tüm orduları hedef ili hareket ettirir.
+    // shift=true → hedefi mevcut rotanın sonuna ekler (ara nokta). false → yeni rota.
     // Dönüş: true = hareket emri verildi (savaş emri devreye girmez), false = yok.
     private bool IssueMoveOrders(Vector2 worldPos, bool shift)
     {
@@ -1016,32 +1033,40 @@ public partial class WorldMap : Node2D
 
         foreach (var army in armies)
         {
-            string startProvince = army.ProvinceId; // hareket öncesi konum (rota başlangıcı)
-            if (!shift) army.WaypointIds.Clear();
-            army.WaypointIds.Add(target.Id);
+            if (!shift)
+            {
+                army.WaypointIds.Clear();
+                army.MovementPathIndex = 0;
+            }
+            // Henüz gidilmemiş kalan waypoint'ler + yeni hedef; mevcut konumdan BFS zinciriyle tam rota.
+            var remaining = army.WaypointIds.Skip(army.MovementPathIndex).ToList();
+            remaining.Add(target.Id);
+            army.WaypointIds = BuildFullRoute(army.ProvinceId, remaining);
+            if (army.WaypointIds.Count == 0) continue; // rota kurulamadı (ulaşılamıyor)
+
             army.TargetProvinceId = target.Id;
-            army.ProvinceId = target.Id; // anında varış (M19.4 hareket hızıyla yavaşlatılacak)
-            _movementPaths[army.Id] = ComputeMovementPath(startProvince, army.WaypointIds);
-            GD.Print($"[Map] {army.Name} → {target.Name} (rota={_movementPaths[army.Id].Count} nokta)");
+            // Anında varış YOK: ProvinceId günlük tick'te adım adım ilerler (M19.4).
+            army.DaysRemainingInHop = army.DaysPerProvince;
+            GD.Print($"[Map] {army.Name} → {target.Name} (rota={army.WaypointIds.Count} il, hız={army.DaysPerProvince:F1} gün/il)");
         }
 
         QueueRedraw();
         return true;
     }
 
-    // M19.3: başlangıç ilinden waypoint'ler üzerinden hedefe BFS (komşuluk grafiği) rota noktaları.
-    private List<Vector2> ComputeMovementPath(string startId, IReadOnlyList<string> waypoints)
+    // M19.4: mevcut konumdan waypoint'ler üzerinden hedefe BFS zinciriyle tam yürütme rotası.
+    // Döndürülen liste başlangıç ilini içermez, waypoint/hedef illeri sırayla içerir.
+    private List<string> BuildFullRoute(string startId, IReadOnlyList<string> waypoints)
     {
-        var points = new List<Vector2>();
+        var route = new List<string>();
         string from = startId;
         foreach (var wp in waypoints)
         {
-            var seg = BfsPath(from, wp);
-            foreach (var pid in seg)
-                if (_provinceById.TryGetValue(pid, out var p)) points.Add(p.Centroid);
+            var seg = BfsPath(from, wp); // [from, ..., wp]
+            foreach (var pid in seg.Skip(1)) route.Add(pid); // 'from' zaten mevcut konum → atla
             from = wp;
         }
-        return points;
+        return route;
     }
 
     // M19.3: Komşuluk grafiği üzerinden start → target en kısa yolu (BFS). İD listesi döner.
@@ -1086,13 +1111,19 @@ public partial class WorldMap : Node2D
         return new List<string> { targetId };
     }
 
-    // M19.3: Orduların hareket emri rotalarını çizer (polyline + ara/hedef nokta çemberleri).
+    // M19.3/19.4: Orduların hareket emri rotalarını çizer (polyline + ara/hedef nokta çemberleri).
     private void DrawMovementPaths()
     {
         if (!ArmySystem.IsInitialized) return;
         foreach (var army in ArmySystem.Armies)
         {
-            if (!_movementPaths.TryGetValue(army.Id, out var pts) || pts.Count < 2) continue;
+            if (string.IsNullOrEmpty(army.TargetProvinceId) || army.WaypointIds.Count == 0) continue;
+            var pts = new List<Vector2>();
+            var start = _provinceById.GetValueOrDefault(army.ProvinceId);
+            if (start != null) pts.Add(start.Centroid);
+            foreach (var pid in army.WaypointIds)
+                if (_provinceById.TryGetValue(pid, out var p)) pts.Add(p.Centroid);
+            if (pts.Count < 2) continue;
             for (int i = 1; i < pts.Count; i++)
                 DrawLine(pts[i - 1], pts[i], new Color(0.2f, 0.7f, 1f, 0.85f), 2f);
             for (int i = 0; i < pts.Count; i++)

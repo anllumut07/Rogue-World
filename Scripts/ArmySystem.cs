@@ -88,6 +88,11 @@ public static class ArmySystem
         public string TargetProvinceId = "";
         public List<string> WaypointIds = new();
         public bool IsMoving => !string.IsNullOrEmpty(TargetProvinceId);
+
+        // M19.4: Hareket ilerleme durumu (günlük il-geçiş, DailyTick ile ilerletilir)
+        public int MovementPathIndex;          // WaypointIds yürütme yolundaki şu anki hedef indeksi
+        public float DaysPerProvince = 2f;     // bir ilden diğerine geçiş süresi (oyun günü)
+        public float DaysRemainingInHop;       // mevcut hop'ta kalan gün
     }
 
     // Eğitim kuyruğu öğesi
@@ -411,6 +416,32 @@ public static class ArmySystem
             int training = _trainingQueue.Count;
             GD.Print($"[Army] Gün {GM.TotalDays}: Dağıtık={deployed}, Eğitim={training}, Ordu={_armies.Count}, " +
                      $"Manpower={Player.ManpowerPool:N0}");
+        }
+
+        // M19.4: Ordular rotada günlük adım adım ilerler (DaysPerProvince kadar günde bir il).
+        foreach (var army in _armies.Where(a => a.IsMoving))
+        {
+            army.DaysRemainingInHop -= 1f;
+            if (army.DaysRemainingInHop <= 0f)
+            {
+                // Mevcut hop tamamlandı → WaypointIds[MovementPathIndex]'ine vardık.
+                army.ProvinceId = army.WaypointIds[army.MovementPathIndex];
+                army.MovementPathIndex++;
+
+                if (army.MovementPathIndex < army.WaypointIds.Count)
+                {
+                    army.DaysRemainingInHop = army.DaysPerProvince;
+                    GD.Print($"[Army] {army.Name} {army.ProvinceId} iline vardı (rota {army.MovementPathIndex}/{army.WaypointIds.Count})");
+                }
+                else
+                {
+                    // Final hedefe ulaştı.
+                    army.TargetProvinceId = "";
+                    army.WaypointIds.Clear();
+                    army.MovementPathIndex = 0;
+                    GD.Print($"[Army] {army.Name} hedefe ulaştı: {army.ProvinceId}");
+                }
+            }
         }
     }
 

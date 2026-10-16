@@ -1,0 +1,17 @@
+[
+	{ "Id": "infantry_equipment", "Name": "Infantry Equipment", "Category": "Land", "Factory": "Military", "Cost": 2, "Attack": 5, "Defense": 8 },
+	{ "Id": "support_equipment", "Name": "Support Equipment", "Category": "Land", "Factory": "Military", "Cost": 4, "Attack": 2, "Defense": 4 },
+	{ "Id": "motorized", "Name": "Motorized (Trucks)", "Category": "Land", "Factory": "Military", "Cost": 8, "Attack": 4, "Defense": 6 },
+	{ "Id": "light_tank", "Name": "Light Tank", "Category": "Land", "Factory": "Military", "Cost": 15, "Attack": 12, "Defense": 10 },
+	{ "Id": "medium_tank", "Name": "Medium Tank", "Category": "Land", "Factory": "Military", "Cost": 25, "Attack": 22, "Defense": 18 },
+	{ "Id": "heavy_tank", "Name": "Heavy Tank", "Category": "Land", "Factory": "Military", "Cost": 40, "Attack": 34, "Defense": 30 },
+	{ "Id": "fighter", "Name": "Fighter", "Category": "Air", "Factory": "Military", "Cost": 25, "Attack": 18, "Defense": 12 },
+	{ "Id": "cas", "Name": "Close Air Support", "Category": "Air", "Factory": "Military", "Cost": 25, "Attack": 20, "Defense": 8 },
+	{ "Id": "naval_bomber", "Name": "Naval Bomber", "Category": "Air", "Factory": "Military", "Cost": 28, "Attack": 22, "Defense": 6 },
+	{ "Id": "strategic_bomber", "Name": "Strategic Bomber", "Category": "Air", "Factory": "Military", "Cost": 55, "Attack": 30, "Defense": 10 },
+	{ "Id": "destroyer", "Name": "Destroyer", "Category": "Naval", "Factory": "Naval", "Cost": 120, "Attack": 10, "Defense": 14 },
+	{ "Id": "cruiser", "Name": "Cruiser", "Category": "Naval", "Factory": "Naval", "Cost": 480, "Attack": 28, "Defense": 30 },
+	{ "Id": "battleship", "Name": "Battleship", "Category": "Naval", "Factory": "Naval", "Cost": 1500, "Attack": 70, "Defense": 60 },
+	{ "Id": "carrier", "Name": "Carrier", "Category": "Naval", "Factory": "Naval", "Cost": 2000, "Attack": 40, "Defense": 35 },
+	{ "Id": "submarine", "Name": "Submarine", "Category": "Naval", "Factory": "Naval", "Cost": 100, "Attack": 14, "Defense": 4 }
+]

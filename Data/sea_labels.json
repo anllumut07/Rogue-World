@@ -1,0 +1,346 @@
+[
+  {
+    "Name": "Atlantic Ocean",
+    "Lon": -35.0,
+    "Lat": 30.0,
+    "Type": "ocean",
+    "MinZoom": 0.0,
+    "MaxZoom": 0.6
+  },
+  {
+    "Name": "North Atlantic Ocean",
+    "Lon": -40.0,
+    "Lat": 50.0,
+    "Type": "ocean",
+    "MinZoom": 0.0,
+    "MaxZoom": 0.5
+  },
+  {
+    "Name": "South Atlantic Ocean",
+    "Lon": -25.0,
+    "Lat": -35.0,
+    "Type": "ocean",
+    "MinZoom": 0.0,
+    "MaxZoom": 0.5
+  },
+  {
+    "Name": "Pacific Ocean",
+    "Lon": -150.0,
+    "Lat": 10.0,
+    "Type": "ocean",
+    "MinZoom": 0.0,
+    "MaxZoom": 0.6
+  },
+  {
+    "Name": "North Pacific Ocean",
+    "Lon": -160.0,
+    "Lat": 40.0,
+    "Type": "ocean",
+    "MinZoom": 0.0,
+    "MaxZoom": 0.5
+  },
+  {
+    "Name": "South Pacific Ocean",
+    "Lon": -140.0,
+    "Lat": -30.0,
+    "Type": "ocean",
+    "MinZoom": 0.0,
+    "MaxZoom": 0.5
+  },
+  {
+    "Name": "Indian Ocean",
+    "Lon": 75.0,
+    "Lat": -20.0,
+    "Type": "ocean",
+    "MinZoom": 0.0,
+    "MaxZoom": 0.6
+  },
+  {
+    "Name": "Arctic Ocean",
+    "Lon": 0.0,
+    "Lat": 85.0,
+    "Type": "ocean",
+    "MinZoom": 0.0,
+    "MaxZoom": 0.5
+  },
+  {
+    "Name": "Southern Ocean",
+    "Lon": 0.0,
+    "Lat": -60.0,
+    "Type": "ocean",
+    "MinZoom": 0.0,
+    "MaxZoom": 0.5
+  },
+  {
+    "Name": "Mediterranean Sea",
+    "Lon": 18.0,
+    "Lat": 35.0,
+    "Type": "sea",
+    "MinZoom": 0.8,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Black Sea",
+    "Lon": 32.0,
+    "Lat": 43.0,
+    "Type": "sea",
+    "MinZoom": 0.9,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Red Sea",
+    "Lon": 38.0,
+    "Lat": 22.0,
+    "Type": "sea",
+    "MinZoom": 1.0,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Baltic Sea",
+    "Lon": 20.0,
+    "Lat": 58.0,
+    "Type": "sea",
+    "MinZoom": 1.0,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "North Sea",
+    "Lon": 3.0,
+    "Lat": 56.0,
+    "Type": "sea",
+    "MinZoom": 1.0,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Persian Gulf",
+    "Lon": 51.0,
+    "Lat": 27.0,
+    "Type": "sea",
+    "MinZoom": 1.2,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Gulf of Mexico",
+    "Lon": -90.0,
+    "Lat": 25.0,
+    "Type": "sea",
+    "MinZoom": 1.0,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Caribbean Sea",
+    "Lon": -75.0,
+    "Lat": 17.0,
+    "Type": "sea",
+    "MinZoom": 1.0,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "South China Sea",
+    "Lon": 115.0,
+    "Lat": 12.0,
+    "Type": "sea",
+    "MinZoom": 1.0,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Philippine Sea",
+    "Lon": 130.0,
+    "Lat": 20.0,
+    "Type": "sea",
+    "MinZoom": 0.8,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Coral Sea",
+    "Lon": 150.0,
+    "Lat": -18.0,
+    "Type": "sea",
+    "MinZoom": 0.8,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Tasman Sea",
+    "Lon": 160.0,
+    "Lat": -38.0,
+    "Type": "sea",
+    "MinZoom": 0.9,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Bering Sea",
+    "Lon": -175.0,
+    "Lat": 58.0,
+    "Type": "sea",
+    "MinZoom": 0.9,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Sea of Okhotsk",
+    "Lon": 148.0,
+    "Lat": 54.0,
+    "Type": "sea",
+    "MinZoom": 1.0,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Sea of Japan",
+    "Lon": 135.0,
+    "Lat": 42.0,
+    "Type": "sea",
+    "MinZoom": 1.0,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Yellow Sea",
+    "Lon": 124.0,
+    "Lat": 36.0,
+    "Type": "sea",
+    "MinZoom": 1.2,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "East China Sea",
+    "Lon": 126.0,
+    "Lat": 29.0,
+    "Type": "sea",
+    "MinZoom": 1.0,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Gulf of Aden",
+    "Lon": 48.0,
+    "Lat": 13.0,
+    "Type": "sea",
+    "MinZoom": 1.2,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Arabian Sea",
+    "Lon": 65.0,
+    "Lat": 15.0,
+    "Type": "sea",
+    "MinZoom": 0.8,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Bay of Bengal",
+    "Lon": 88.0,
+    "Lat": 15.0,
+    "Type": "sea",
+    "MinZoom": 0.8,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Andaman Sea",
+    "Lon": 95.0,
+    "Lat": 10.0,
+    "Type": "sea",
+    "MinZoom": 1.0,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Gulf of California",
+    "Lon": -111.0,
+    "Lat": 27.0,
+    "Type": "sea",
+    "MinZoom": 1.2,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Hudson Bay",
+    "Lon": -85.0,
+    "Lat": 60.0,
+    "Type": "sea",
+    "MinZoom": 0.9,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Baffin Bay",
+    "Lon": -70.0,
+    "Lat": 73.0,
+    "Type": "sea",
+    "MinZoom": 1.0,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Labrador Sea",
+    "Lon": -55.0,
+    "Lat": 55.0,
+    "Type": "sea",
+    "MinZoom": 1.0,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Norwegian Sea",
+    "Lon": 5.0,
+    "Lat": 68.0,
+    "Type": "sea",
+    "MinZoom": 0.9,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Barents Sea",
+    "Lon": 40.0,
+    "Lat": 75.0,
+    "Type": "sea",
+    "MinZoom": 0.9,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Kara Sea",
+    "Lon": 75.0,
+    "Lat": 75.0,
+    "Type": "sea",
+    "MinZoom": 0.9,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Laptev Sea",
+    "Lon": 120.0,
+    "Lat": 75.0,
+    "Type": "sea",
+    "MinZoom": 0.9,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "East Siberian Sea",
+    "Lon": 155.0,
+    "Lat": 72.0,
+    "Type": "sea",
+    "MinZoom": 0.9,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Chukchi Sea",
+    "Lon": -170.0,
+    "Lat": 70.0,
+    "Type": "sea",
+    "MinZoom": 0.9,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Beaufort Sea",
+    "Lon": -140.0,
+    "Lat": 73.0,
+    "Type": "sea",
+    "MinZoom": 0.9,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Ross Sea",
+    "Lon": 180.0,
+    "Lat": -75.0,
+    "Type": "sea",
+    "MinZoom": 0.8,
+    "MaxZoom": 999.0
+  },
+  {
+    "Name": "Weddell Sea",
+    "Lon": -45.0,
+    "Lat": -73.0,
+    "Type": "sea",
+    "MinZoom": 0.8,
+    "MaxZoom": 999.0
+  }
+]

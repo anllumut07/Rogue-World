@@ -1,0 +1,81 @@
+{
+  "Actions": [
+    {
+      "Id": "meeting",
+      "Name": "Toplantı",
+      "Description": "Bakanlar kurulu veya danışmanlarla stratejik toplantı yapar. Haftalık durumu gözden geçirir, acil kararlar alır.",
+      "DurationDays": 1,
+      "CostPP": 5,
+      "Effects": {
+        "Stability": 1,
+        "WarSupport": 0,
+        "PoliticalPower": -5,
+        "MinisterLoyaltyBonus": 2
+      },
+      "Requirements": {},
+      "Icon": "📋"
+    },
+    {
+      "Id": "rally",
+      "Name": "Miting",
+      "Description": "Halk karşısında miting düzenler. Karizmatik konuşma ile halk desteğini ve meşruiyeti artırır.",
+      "DurationDays": 3,
+      "CostPP": 15,
+      "Effects": {
+        "Stability": 2,
+        "WarSupport": 3,
+        "PoliticalPower": -15,
+        "PopularityBonus": 5
+      },
+      "Requirements": { "MinWarSupport": 20 },
+      "Icon": "🎤"
+    },
+    {
+      "Id": "press",
+      "Name": "Basın Konuşması",
+      "Description": "Medya aracılığıyla halka seslenir. Politik mesajı netleştirir, itibarını yönetir.",
+      "DurationDays": 1,
+      "CostPP": 10,
+      "Effects": {
+        "Stability": 1,
+        "WarSupport": 1,
+        "PoliticalPower": -10,
+        "LegitimacyBonus": 3
+      },
+      "Requirements": {},
+      "Icon": "📺"
+    },
+    {
+      "Id": "summit",
+      "Name": "Zirve",
+      "Description": "Uluslararası zirve organize eder. Müttefiklerle ilişki güçlendirir, yeni anlaşmalar imzalayabilir.",
+      "DurationDays": 7,
+      "CostPP": 50,
+      "Effects": {
+        "Stability": 3,
+        "WarSupport": 2,
+        "PoliticalPower": -50,
+        "RelationBonusAllies": 10,
+        "TensionReduction": -5
+      },
+      "Requirements": { "MinStability": 40, "HasAllies": true },
+      "Icon": "🤝"
+    },
+    {
+      "Id": "training",
+      "Name": "Eğitim",
+      "Description": "Lider ve bakanlar için özel eğitim programı. Yönetim becerilerini geliştirir, uzun vadeli bonuslar sağlar.",
+      "DurationDays": 5,
+      "CostPP": 20,
+      "Effects": {
+        "Stability": 0,
+        "WarSupport": 0,
+        "PoliticalPower": -20,
+        "AdminEfficiencyBonus": 5,
+        "ResearchSpeedBonus": 0.02
+      },
+      "Requirements": {},
+      "Icon": "🎓"
+    }
+  ]
+}

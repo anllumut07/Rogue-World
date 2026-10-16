@@ -1,0 +1,60 @@
+{
+	"Id": "USA",
+	"Name": "United States",
+	"Focuses": [
+		{
+			"Id": "usa_neutrality_act", "Name": "Neutrality Act", "Description": "Formal neutrality legislation reassures the public and stabilizes politics.",
+			"X": 1, "Y": 0, "Cost": 70, "AiPriority": 10,
+			"Prerequisites": [], "MutuallyExclusive": [],
+			"Effects": { "Stability": 10, "PoliticalPower": 25 }
+		},
+		{
+			"Id": "usa_industry_effort", "Name": "Industry Effort", "Description": "Federal programs expand civilian industry.",
+			"X": 0, "Y": 1, "Cost": 70, "AiPriority": 8,
+			"Prerequisites": ["usa_neutrality_act"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2 }
+		},
+		{
+			"Id": "usa_prosperity_program", "Name": "Prosperity Program", "Description": "Recovery spending pulls the nation out of the Depression.",
+			"X": 0, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["usa_industry_effort"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2, "Stability": 5 }
+		},
+		{
+			"Id": "usa_war_plans", "Name": "War Plans", "Description": "Joint Army-Navy planning accelerates doctrine research.",
+			"X": 1, "Y": 1, "Cost": 70, "AiPriority": 5,
+			"Prerequisites": ["usa_neutrality_act"], "MutuallyExclusive": [],
+			"Effects": { "Modifiers": { "research_speed": 0.05 } }
+		},
+		{
+			"Id": "usa_arsenal_democracy", "Name": "Arsenal of Democracy", "Description": "Convert civilian industry to arms production for the free world.",
+			"X": 1, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["usa_war_plans"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 3 }
+		},
+		{
+			"Id": "usa_america_first", "Name": "America First", "Description": "Strict isolationism keeps the country out of foreign wars.",
+			"X": 2, "Y": 1, "Cost": 70, "AiPriority": 3,
+			"Prerequisites": ["usa_neutrality_act"], "MutuallyExclusive": ["usa_intervention"],
+			"Effects": { "Stability": 10, "PoliticalPower": 25 }
+		},
+		{
+			"Id": "usa_intervention", "Name": "Interventionism", "Description": "Prepare the nation to defend democracy abroad.",
+			"X": 3, "Y": 1, "Cost": 70, "AiPriority": 3,
+			"Prerequisites": ["usa_neutrality_act"], "MutuallyExclusive": ["usa_america_first"],
+			"Effects": { "WarSupport": 10, "WorldTension": 1 }
+		},
+		{
+			"Id": "usa_naval_expansion", "Name": "Naval Expansion Act", "Description": "Congress funds new warship construction.",
+			"X": 4, "Y": 1, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["usa_neutrality_act"], "MutuallyExclusive": [],
+			"Effects": { "Dockyards": 2 }
+		},
+		{
+			"Id": "usa_science_budget", "Name": "Science Budget", "Description": "Federal research funding expands university laboratories.",
+			"X": 5, "Y": 1, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["usa_neutrality_act"], "MutuallyExclusive": [],
+			"Effects": { "ResearchSlots": 1 }
+		}
+	]
+}

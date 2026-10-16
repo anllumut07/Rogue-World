@@ -13,6 +13,7 @@ public partial class GameHud : CanvasLayer
     private Label _stateLabel;
     private Button _pauseButton;
     private Button[] _speedButtons;
+    private Button _nextEventBtn; // M16.4: NEXT EVENT butonu
 
     // Alt çubuk
     private Label _selectedLabel;
@@ -42,6 +43,28 @@ public partial class GameHud : CanvasLayer
         GM.SpeedChanged -= OnSpeedChanged;
         GM.PlayerCountryChanged -= OnPlayerCountryChanged;
         GM.PlayerCountryDataChanged -= OnPlayerCountryDataChanged;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (!GameManager.IsAvailable || !GameManager.Instance.HasPlayer) return;
+
+        // M16.3: Aylık rapor bekliyorsa panel otomatik aç (zaten açıksa tekrar açma)
+        if (TimeTempoSystem.IsMonthlyReportPending && !MonthlyReportPanel.IsOpen)
+        {
+            GD.Print("[GameHud] Monthly report pending — opening MonthlyReportPanel");
+            MonthlyReportPanel.OpenUnder(this);
+        }
+
+        // M16.4: NEXT EVENT butonu — bekleyen bildirim varsa göster
+        if (_nextEventBtn != null)
+        {
+            bool hasNotifications = TimeTempoSystem.HasPendingNotifications;
+            if (hasNotifications && !_nextEventBtn.Visible)
+                _nextEventBtn.Show();
+            else if (!hasNotifications && _nextEventBtn.Visible)
+                _nextEventBtn.Hide();
+        }
     }
 
     private void BuildUi()
@@ -75,9 +98,8 @@ public partial class GameHud : CanvasLayer
         leftSection.AddThemeConstantOverride("separation", 8);
         bar.AddChild(leftSection);
 
-        var flagRect = new ColorRect { CustomMinimumSize = new Vector2(28, 18) };
-        flagRect.MouseFilter = Control.MouseFilterEnum.Ignore;
-        leftSection.AddChild(flagRect);
+        var flagBox = new FlagBox { CustomMinimumSize = new Vector2(28, 18) };
+        leftSection.AddChild(flagBox);
 
         _countryLabel = new Label();
         _countryLabel.AddThemeFontSizeOverride("font_size", 20);
@@ -160,6 +182,73 @@ public partial class GameHud : CanvasLayer
         rightSection.AddChild(economyBtn);
         UITheme.AddHoverScale(economyBtn);
 
+        // PRODUCTION butonu
+        var productionBtn = new Button { Text = "PRODUCTION", FocusMode = Control.FocusModeEnum.None, TooltipText = "Production lines, equipment, variant designer" };
+        productionBtn.Pressed += () => ProductionPanel.OpenUnder(this);
+        rightSection.AddChild(productionBtn);
+        UITheme.AddHoverScale(productionBtn);
+
+        // ARMY butonu
+        var armyBtn = new Button { Text = "ARMY", FocusMode = Control.FocusModeEnum.None, TooltipText = "Army panel (divisions, templates, training, wars)" };
+        armyBtn.Pressed += () => ArmyPanel.OpenUnder(this);
+        rightSection.AddChild(armyBtn);
+        UITheme.AddHoverScale(armyBtn);
+
+        // DIPLOMACY butonu (M8)
+        var diplomacyBtn = new Button { Text = "DIPLOMACY", FocusMode = Control.FocusModeEnum.None, TooltipText = "Diplomacy panel (relations, factions, guarantees, peace)" };
+        diplomacyBtn.Pressed += () => DiplomacyPanel.OpenUnder(this);
+        rightSection.AddChild(diplomacyBtn);
+        UITheme.AddHoverScale(diplomacyBtn);
+
+        // FOCUS butonu (M9)
+        var focusBtn = new Button { Text = "FOCUS", FocusMode = Control.FocusModeEnum.None, TooltipText = "National focus tree (country-specific goals)" };
+        focusBtn.Pressed += () => FocusPanel.OpenUnder(this);
+        rightSection.AddChild(focusBtn);
+        UITheme.AddHoverScale(focusBtn);
+
+        // DECISIONS butonu (M10.2)
+        var decisionsBtn = new Button { Text = "DECISIONS", FocusMode = Control.FocusModeEnum.None, TooltipText = "Decisions panel (available decisions, active progress, cooldowns)" };
+        decisionsBtn.Pressed += () =>
+        {
+            GD.Print("[GameHud] DECISIONS butonu basıldı — DecisionPanel.OpenUnder çağrılıyor");
+            DecisionPanel.OpenUnder(this);
+        };
+        rightSection.AddChild(decisionsBtn);
+        UITheme.AddHoverScale(decisionsBtn);
+
+        // LIBRARY butonu (M15.2)
+        var libraryBtn = new Button { Text = "LIBRARY", FocusMode = Control.FocusModeEnum.None, TooltipText = "Country encyclopedia and library" };
+        libraryBtn.Pressed += () => LibraryPanel.OpenUnder(this);
+        rightSection.AddChild(libraryBtn);
+        UITheme.AddHoverScale(libraryBtn);
+
+        // AGENDA butonu (M16): haftalık ajanda — slotlar + aksiyonlar
+        var agendaBtn = new Button { Text = "AGENDA", FocusMode = Control.FocusModeEnum.None, TooltipText = "Weekly agenda — leader's actions (meetings, rallies, summits)" };
+        agendaBtn.Pressed += () =>
+        {
+            GD.Print("[GameHud] AGENDA butonu basıldı — AgendaPanel.OpenUnder çağrılıyor");
+            AgendaPanel.OpenUnder(this);
+        };
+        rightSection.AddChild(agendaBtn);
+        UITheme.AddHoverScale(agendaBtn);
+
+        // NEXT EVENT butonu (M16.4): bekleyen bildirim varsa görünür
+        _nextEventBtn = new Button
+        {
+            Text = "⚑ NEXT EVENT",
+            FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Process next pending notification (auto-pause was triggered)"
+        };
+        _nextEventBtn.Pressed += () =>
+        {
+            GD.Print("[GameHud] NEXT EVENT butonu basıldı");
+            TimeTempoSystem.ProcessNextNotification();
+            _nextEventBtn.Hide();
+        };
+        _nextEventBtn.Hide(); // kuyruk boşken gizli
+        rightSection.AddChild(_nextEventBtn);
+        UITheme.AddHoverScale(_nextEventBtn);
+
         // Pause/Play butonu (en sağda)
         _pauseButton = new Button { FocusMode = Control.FocusModeEnum.None, TooltipText = "Pause/Resume (Space)" };
         _pauseButton.Pressed += () => GM.TogglePause();
@@ -216,15 +305,13 @@ public partial class GameHud : CanvasLayer
         {
             var d = GM.PlayerCountryData;
             _countryLabel.Text = d.Name;
-            // Bayrak rengi (ideoloji rengi)
-            var flagRect = (ColorRect)_countryLabel.GetParent().GetChild(0);
-            if (flagRect is ColorRect cr) cr.Color = d.GetFlagColor();
+            // Bayrak: FlagLibrary (PNG / yedek)
+            var flagBox = _countryLabel.GetParent().GetChild(0) as FlagBox;
+            flagBox?.SetCountry(d.Id);
         }
         else
         {
             _countryLabel.Text = "Rogue World";
-            var flagRect = (ColorRect)_countryLabel.GetParent().GetChild(0);
-            if (flagRect is ColorRect cr) cr.Color = new Color("#8E9AA5");
         }
     }
 

@@ -1,0 +1,272 @@
+[
+	{
+		"Id": "modern_small_arms", "Name": "Modern Small Arms", "Category": "Infantry", "Era": 1990, "Cost": 120,
+		"Description": "Assault rifles with optical sights and grenade launchers for modern infantry.",
+		"Prerequisites": [], "Effects": ["+10% Infantry Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "body_armor", "Name": "Body Armor", "Category": "Infantry", "Era": 1990, "Cost": 130,
+		"Description": "Ballistic vests and composite helmets for front-line troops.",
+		"Prerequisites": ["modern_small_arms"], "Effects": ["+5% Infantry Defense"], "Modifiers": {}
+	},
+	{
+		"Id": "modular_weapon_systems", "Name": "Modular Weapon Systems", "Category": "Infantry", "Era": 2000, "Cost": 170,
+		"Description": "Modular carbines with rail-mounted optics, lasers and suppressors.",
+		"Prerequisites": ["modern_small_arms"], "Effects": ["+10% Infantry Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "night_vision", "Name": "Night Vision & Thermal Sights", "Category": "Infantry", "Era": 2000, "Cost": 180,
+		"Description": "Night vision goggles and thermal imagers at squad level.",
+		"Prerequisites": ["body_armor"], "Effects": ["+10% Infantry Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "advanced_body_armor", "Name": "Advanced Body Armor", "Category": "Infantry", "Era": 2010, "Cost": 220,
+		"Description": "Ceramic composite plates and full-coverage protection systems.",
+		"Prerequisites": ["body_armor", "night_vision"], "Effects": ["+5% Infantry Defense"], "Modifiers": {}
+	},
+	{
+		"Id": "modern_signal_corps", "Name": "Modern Signal Corps", "Category": "Support", "Era": 1990, "Cost": 120,
+		"Description": "Encrypted digital radios and satellite communications at division level.",
+		"Prerequisites": [], "Effects": ["+10% Reinforce Rate", "+10% Planning Speed"], "Modifiers": {}
+	},
+	{
+		"Id": "modern_maintenance", "Name": "Modern Maintenance", "Category": "Support", "Era": 1990, "Cost": 120,
+		"Description": "Standardized spare parts chains and field repair teams.",
+		"Prerequisites": [], "Effects": ["-20% Equipment Loss Rate"], "Modifiers": {}
+	},
+	{
+		"Id": "gps_navigation", "Name": "GPS Navigation", "Category": "Support", "Era": 2000, "Cost": 160,
+		"Description": "Satellite navigation units for every platoon.",
+		"Prerequisites": ["modern_signal_corps"], "Effects": ["+5% Movement Speed", "+10% Planning Speed"], "Modifiers": {}
+	},
+	{
+		"Id": "modern_logistics", "Name": "Modern Logistics", "Category": "Support", "Era": 2000, "Cost": 160,
+		"Description": "Containerized supply chain management and just-in-time delivery.",
+		"Prerequisites": ["modern_maintenance"], "Effects": ["-15% Supply Use"], "Modifiers": {}
+	},
+	{
+		"Id": "networked_battlefield", "Name": "Networked Battlefield", "Category": "Support", "Era": 2010, "Cost": 240,
+		"Description": "Battlefield management systems linking every unit in real time.",
+		"Prerequisites": ["gps_navigation"], "Effects": ["+10% Reinforce Rate"], "Modifiers": {}
+	},
+	{
+		"Id": "modern_towed_artillery", "Name": "Modern Towed Artillery", "Category": "Artillery", "Era": 1990, "Cost": 130,
+		"Description": "155mm howitzers with auxiliary propulsion units.",
+		"Prerequisites": [], "Effects": ["+15% Artillery Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "self_propelled_artillery", "Name": "Self-Propelled Artillery", "Category": "Artillery", "Era": 1990, "Cost": 180,
+		"Description": "Tracked artillery platforms for mobile fire support.",
+		"Prerequisites": ["modern_towed_artillery"], "Effects": ["+10% Artillery Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "anti_tank_missiles", "Name": "Anti-Tank Missiles", "Category": "Artillery", "Era": 1990, "Cost": 150,
+		"Description": "Guided anti-tank missiles with tandem warheads.",
+		"Prerequisites": [], "Effects": ["+20% Piercing"], "Modifiers": {}
+	},
+	{
+		"Id": "modern_anti_air", "Name": "Modern Anti-Air", "Category": "Artillery", "Era": 1990, "Cost": 150,
+		"Description": "MANPADS and short-range air defense guns.",
+		"Prerequisites": [], "Effects": ["+15% Air Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "mlrs", "Name": "Rocket Artillery", "Category": "Artillery", "Era": 2000, "Cost": 200,
+		"Description": "Multiple launch rocket systems for saturation fire.",
+		"Prerequisites": ["self_propelled_artillery"], "Effects": ["+15% Artillery Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "precision_ammunition", "Name": "Precision-Guided Ammunition", "Category": "Artillery", "Era": 2000, "Cost": 210,
+		"Description": "GPS and laser-guided shells for point targets.",
+		"Prerequisites": ["self_propelled_artillery", "gps_navigation"], "Effects": ["+15% Artillery Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "top_attack_missiles", "Name": "Top-Attack Missiles", "Category": "Artillery", "Era": 2010, "Cost": 230,
+		"Description": "Fire-and-forget missiles attacking armor from above.",
+		"Prerequisites": ["anti_tank_missiles"], "Effects": ["+25% Piercing"], "Modifiers": {}
+	},
+	{
+		"Id": "integrated_air_defense", "Name": "Integrated Air & Missile Defense", "Category": "Artillery", "Era": 2010, "Cost": 250,
+		"Description": "Networked long-range SAM systems with missile defense capability.",
+		"Prerequisites": ["modern_anti_air", "networked_battlefield"], "Effects": ["+20% Air Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "mbt_gen3", "Name": "3rd Generation MBT", "Category": "Armor", "Era": 1990, "Cost": 160,
+		"Description": "Main battle tanks with composite armor and 120mm smoothbore guns.",
+		"Prerequisites": [], "Effects": ["Unlocks Gen 3 MBT"], "Modifiers": {}
+	},
+	{
+		"Id": "explosive_reactive_armor", "Name": "Explosive Reactive Armor", "Category": "Armor", "Era": 1990, "Cost": 150,
+		"Description": "ERA blocks defeating shaped-charge warheads.",
+		"Prerequisites": ["mbt_gen3"], "Effects": ["+10% Armor Defense"], "Modifiers": {}
+	},
+	{
+		"Id": "ifv_modern", "Name": "Modern IFV", "Category": "Armor", "Era": 1990, "Cost": 150,
+		"Description": "Infantry fighting vehicles with 25-30mm autocannons.",
+		"Prerequisites": [], "Effects": ["Unlocks Modern IFV"], "Modifiers": {}
+	},
+	{
+		"Id": "mbt_gen4", "Name": "4th Generation MBT", "Category": "Armor", "Era": 2000, "Cost": 220,
+		"Description": "MBTs with thermal imagers, digital fire control and hunter-killer sights.",
+		"Prerequisites": ["mbt_gen3", "night_vision"], "Effects": ["Unlocks Gen 4 MBT", "+10% Armor Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "active_protection_systems", "Name": "Active Protection Systems", "Category": "Armor", "Era": 2010, "Cost": 250,
+		"Description": "Hard-kill APS intercepting incoming rockets and missiles.",
+		"Prerequisites": ["mbt_gen4"], "Effects": ["+15% Armor Defense"], "Modifiers": {}
+	},
+	{
+		"Id": "mbt_gen5_concepts", "Name": "Next-Gen Tank Concepts", "Category": "Armor", "Era": 2020, "Cost": 300,
+		"Description": "Optional crewed tanks with active protection and remote turrets.",
+		"Prerequisites": ["active_protection_systems"], "Effects": ["+20% Armor Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "fighter_gen4", "Name": "4th Generation Fighter", "Category": "Air", "Era": 1990, "Cost": 160,
+		"Description": "Fly-by-wire multirole fighters with radar-guided missiles.",
+		"Prerequisites": [], "Effects": ["Unlocks 4th Gen Fighter"], "Modifiers": {}
+	},
+	{
+		"Id": "aerial_refueling", "Name": "Aerial Refueling", "Category": "Air", "Era": 1990, "Cost": 150,
+		"Description": "Tanker aircraft extending strike range across the theater.",
+		"Prerequisites": ["fighter_gen4"], "Effects": ["+10% Air Superiority"], "Modifiers": {}
+	},
+	{
+		"Id": "stealth_technology", "Name": "Stealth Technology", "Category": "Air", "Era": 2000, "Cost": 260,
+		"Description": "Radar-absorbent materials and shaping for low observability.",
+		"Prerequisites": ["fighter_gen4", "modern_radar"], "Effects": ["Unlocks Stealth Aircraft"], "Modifiers": {}
+	},
+	{
+		"Id": "fighter_gen4_5", "Name": "4.5 Generation Fighter", "Category": "Air", "Era": 2000, "Cost": 210,
+		"Description": "AESA radar, IRST and thrust-vectoring upgrades.",
+		"Prerequisites": ["fighter_gen4"], "Effects": ["+15% Air Superiority"], "Modifiers": {}
+	},
+	{
+		"Id": "uav_reconnaissance", "Name": "Reconnaissance UAV", "Category": "Air", "Era": 2000, "Cost": 170,
+		"Description": "Unmanned aerial vehicles for persistent surveillance.",
+		"Prerequisites": ["modern_signal_corps"], "Effects": ["+10% Planning Speed"], "Modifiers": {}
+	},
+	{
+		"Id": "fighter_gen5", "Name": "5th Generation Fighter", "Category": "Air", "Era": 2010, "Cost": 300,
+		"Description": "Fully stealth fighters with sensor fusion and supercruise.",
+		"Prerequisites": ["stealth_technology", "fighter_gen4_5"], "Effects": ["Unlocks 5th Gen Fighter"], "Modifiers": {}
+	},
+	{
+		"Id": "combat_drones", "Name": "Armed Combat Drones", "Category": "Air", "Era": 2010, "Cost": 220,
+		"Description": "Armed UCAVs for persistent strike and ISR missions.",
+		"Prerequisites": ["uav_reconnaissance"], "Effects": ["+10% Air Superiority"], "Modifiers": {}
+	},
+	{
+		"Id": "drone_swarm_tactics", "Name": "Drone Swarm Tactics", "Category": "Air", "Era": 2020, "Cost": 260,
+		"Description": "Loitering munitions and cheap massed drones overwhelming defenses.",
+		"Prerequisites": ["combat_drones"], "Effects": ["+10% Air Superiority"], "Modifiers": {}
+	},
+	{
+		"Id": "modern_destroyer", "Name": "Guided-Missile Destroyer", "Category": "Naval", "Era": 1990, "Cost": 170,
+		"Description": "Destroyers with vertical launch systems and area air defense.",
+		"Prerequisites": [], "Effects": ["Unlocks Modern Destroyer"], "Modifiers": {}
+	},
+	{
+		"Id": "modern_submarine", "Name": "Modern Attack Submarine", "Category": "Naval", "Era": 1990, "Cost": 180,
+		"Description": "Quiet diesel-electric and nuclear attack submarines.",
+		"Prerequisites": [], "Effects": ["Unlocks Modern Submarine"], "Modifiers": {}
+	},
+	{
+		"Id": "aegis_fleet_air_defense", "Name": "Fleet Air Defense Network", "Category": "Naval", "Era": 2000, "Cost": 210,
+		"Description": "Coordinated multi-ship radar and missile defense networks.",
+		"Prerequisites": ["modern_destroyer"], "Effects": ["+15% Naval Organization"], "Modifiers": {}
+	},
+	{
+		"Id": "carrier_modernization", "Name": "Modern Carrier Operations", "Category": "Naval", "Era": 2000, "Cost": 240,
+		"Description": "Supercarriers with catapult launch and carrier air wings.",
+		"Prerequisites": ["modern_destroyer"], "Effects": ["Unlocks Modern Carrier"], "Modifiers": {}
+	},
+	{
+		"Id": "ballistic_missile_submarine", "Name": "Ballistic Missile Submarine", "Category": "Naval", "Era": 2000, "Cost": 230,
+		"Description": "Nuclear-powered submarines providing strategic deterrence.",
+		"Prerequisites": ["modern_submarine"], "Effects": ["Unlocks SSBN"], "Modifiers": {}
+	},
+	{
+		"Id": "computer_aided_manufacturing", "Name": "Computer-Aided Manufacturing", "Category": "Industry", "Era": 1990, "Cost": 130,
+		"Description": "CNC machines and digital design in defense plants.",
+		"Prerequisites": [], "Effects": ["+10% Factory Output"], "Modifiers": { "factory_output": 0.10 }
+	},
+	{
+		"Id": "lean_production", "Name": "Lean Production", "Category": "Industry", "Era": 1990, "Cost": 140,
+		"Description": "Just-in-time production eliminating waste in factories.",
+		"Prerequisites": ["computer_aided_manufacturing"], "Effects": ["+10% Factory Output"], "Modifiers": { "factory_output": 0.10 }
+	},
+	{
+		"Id": "modular_construction", "Name": "Modular Construction", "Category": "Industry", "Era": 1990, "Cost": 130,
+		"Description": "Prefabricated modules speeding up military construction.",
+		"Prerequisites": [], "Effects": ["+10% Construction Speed"], "Modifiers": { "construction_speed": 0.10 }
+	},
+	{
+		"Id": "industrial_automation", "Name": "Industrial Automation", "Category": "Industry", "Era": 2000, "Cost": 200,
+		"Description": "Robotic assembly lines for high-volume military production.",
+		"Prerequisites": ["lean_production"], "Effects": ["+10% Factory Output"], "Modifiers": { "factory_output": 0.10 }
+	},
+	{
+		"Id": "additive_manufacturing", "Name": "Additive Manufacturing", "Category": "Industry", "Era": 2010, "Cost": 240,
+		"Description": "3D printing of spare parts at depot level.",
+		"Prerequisites": ["industrial_automation"], "Effects": ["+10% Factory Output", "-10% Equipment Loss Rate"], "Modifiers": { "factory_output": 0.10 }
+	},
+	{
+		"Id": "microelectronics", "Name": "Microelectronics", "Category": "Electronics", "Era": 1990, "Cost": 140,
+		"Description": "VLSI chip design for computers and guided weapons.",
+		"Prerequisites": [], "Effects": ["+3% Research Speed"], "Modifiers": { "research_speed": 0.03 }
+	},
+	{
+		"Id": "electronic_warfare", "Name": "Electronic Warfare", "Category": "Electronics", "Era": 1990, "Cost": 160,
+		"Description": "Jammers and countermeasures blinding enemy sensors.",
+		"Prerequisites": ["microelectronics"], "Effects": ["+10% Counter-Intelligence"], "Modifiers": {}
+	},
+	{
+		"Id": "modern_radar", "Name": "Modern Radar Systems", "Category": "Electronics", "Era": 2000, "Cost": 180,
+		"Description": "AESA radar with high-resolution tracking.",
+		"Prerequisites": ["microelectronics"], "Effects": ["+15% Air Detection", "+2% Research Speed"], "Modifiers": { "research_speed": 0.02 }
+	},
+	{
+		"Id": "satellite_reconnaissance", "Name": "Satellite Reconnaissance", "Category": "Electronics", "Era": 2000, "Cost": 200,
+		"Description": "Spy satellite constellations for strategic intelligence.",
+		"Prerequisites": ["microelectronics"], "Effects": ["+5% Intelligence", "+3% Research Speed"], "Modifiers": { "research_speed": 0.03 }
+	},
+	{
+		"Id": "cyber_warfare", "Name": "Cyber Warfare", "Category": "Electronics", "Era": 2000, "Cost": 200,
+		"Description": "Offensive and defensive cyber operations.",
+		"Prerequisites": ["microelectronics", "electronic_warfare"], "Effects": ["+5% Intelligence"], "Modifiers": {}
+	},
+	{
+		"Id": "artificial_intelligence", "Name": "Artificial Intelligence", "Category": "Electronics", "Era": 2010, "Cost": 280,
+		"Description": "AI-assisted analysis, targeting and decision support.",
+		"Prerequisites": ["satellite_reconnaissance", "cyber_warfare"], "Effects": ["+5% Research Speed"], "Modifiers": { "research_speed": 0.05 }
+	},
+	{
+		"Id": "quantum_computing", "Name": "Quantum Computing", "Category": "Electronics", "Era": 2020, "Cost": 320,
+		"Description": "Quantum processors breaking classical limits of cryptanalysis.",
+		"Prerequisites": ["artificial_intelligence"], "Effects": ["+5% Research Speed"], "Modifiers": { "research_speed": 0.05 }
+	},
+	{
+		"Id": "airland_battle", "Name": "AirLand Battle", "Category": "Doctrine", "Era": 1990, "Cost": 150,
+		"Description": "Deep operations integrating air power with ground maneuver.",
+		"Prerequisites": [], "Effects": ["+10% Organization"], "Modifiers": {}
+	},
+	{
+		"Id": "joint_operations", "Name": "Joint Operations", "Category": "Doctrine", "Era": 1990, "Cost": 150,
+		"Description": "Unified command of army, navy and air force components.",
+		"Prerequisites": [], "Effects": ["+5% Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "network_centric_warfare", "Name": "Network-Centric Warfare", "Category": "Doctrine", "Era": 2000, "Cost": 220,
+		"Description": "Information dominance linking sensors to shooters.",
+		"Prerequisites": ["airland_battle", "gps_navigation"], "Effects": ["+10% Organization", "+5% Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "precision_strike_doctrine", "Name": "Precision Strike Doctrine", "Category": "Doctrine", "Era": 2000, "Cost": 210,
+		"Description": "Campaigns built around precision stand-off strikes.",
+		"Prerequisites": ["joint_operations", "precision_ammunition"], "Effects": ["+10% Attack"], "Modifiers": {}
+	},
+	{
+		"Id": "multi_domain_operations", "Name": "Multi-Domain Operations", "Category": "Doctrine", "Era": 2020, "Cost": 300,
+		"Description": "All-domain integration: land, sea, air, space and cyberspace.",
+		"Prerequisites": ["network_centric_warfare", "precision_strike_doctrine", "artificial_intelligence"], "Effects": ["+15% Organization", "+10% Attack"], "Modifiers": {}
+	}
+]

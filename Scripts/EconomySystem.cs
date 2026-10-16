@@ -1,5 +1,7 @@
 using Godot;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Ekonomi sistemi (M4): inşaat kuyruğu, tüketim malları (CG), ekonomi yasaları,
@@ -393,5 +395,65 @@ public static class EconomySystem
             "Chromium" => d.Chromium,
             _ => 0
         };
+    }
+
+    // ===== M12: Save/Load =====
+
+    /// <summary>EconomySystem state'ini DTO olarak döndür (SaveSystem toplar).</summary>
+    public static SaveSystem.EconomySave GetSaveData()
+    {
+        return new SaveSystem.EconomySave
+        {
+            CurrentLaw = (int)_currentLaw,
+            ConvoyCount = _convoyCount,
+            Queue = _constructionQueue.Select(q => new SaveSystem.BuildItemSave
+            {
+                Type = (int)q.Type,
+                PointsNeeded = q.PointsNeeded,
+                PointsDone = q.PointsDone,
+                AssignedFactories = q.AssignedFactories
+            }).ToArray(),
+            Stockpiles = _stockpiles.ToDictionary(kv => kv.Key, kv => kv.Value),
+            TradeDeals = _tradeDeals.Select(d => new SaveSystem.TradeDealSave
+            {
+                Resource = d.Resource,
+                AmountPerDay = d.AmountPerDay,
+                ExporterId = d.ExporterId,
+                ExporterName = d.ExporterName
+            }).ToArray()
+        };
+    }
+
+    /// <summary>EconomySystem state'ini DTO'dan yükle.</summary>
+    public static void LoadSaveData(SaveSystem.EconomySave data)
+    {
+        if (data == null) return;
+        _currentLaw = (EconomyLaw)data.CurrentLaw;
+        _convoyCount = data.ConvoyCount;
+        _constructionQueue.Clear();
+        if (data.Queue != null)
+            foreach (var q in data.Queue)
+                _constructionQueue.Add(new BuildItem
+                {
+                    Type = (BuildType)q.Type,
+                    PointsNeeded = q.PointsNeeded,
+                    PointsDone = q.PointsDone,
+                    AssignedFactories = q.AssignedFactories
+                });
+        _stockpiles.Clear();
+        if (data.Stockpiles != null)
+            foreach (var kv in data.Stockpiles) _stockpiles[kv.Key] = kv.Value;
+        _tradeDeals.Clear();
+        if (data.TradeDeals != null)
+            foreach (var d in data.TradeDeals)
+                _tradeDeals.Add(new TradeDeal
+                {
+                    Resource = d.Resource,
+                    AmountPerDay = d.AmountPerDay,
+                    ExporterId = d.ExporterId,
+                    ExporterName = d.ExporterName
+                });
+        _initialized = true;
+        GD.Print($"EconomySystem: state yüklendi — Yasa={_currentLaw}, Kuyruk={_constructionQueue.Count}, Konvoy={_convoyCount}");
     }
 }

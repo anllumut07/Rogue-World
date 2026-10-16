@@ -1,0 +1,95 @@
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+
+CountryDatabase hazır: 50 ülke verisi yüklendi.
+GameManager: Oyuncu ülkesi = GER (Germany)
+EconomySystem: DEU için hazır — Yasa=EarlyMobilization (CG=25%), Civ=26, Mil=20, Dock=4, Konvoy=20
+TechnologySystem hazır: 73 teknoloji yüklendi.
+TechnologySystem: sıfırlandı — Slot=4, Hız=1.00x
+EquipmentSystem: 15 ekipman tipi yüklendi
+EquipmentSystem: DEU için hazır — Askeri fabrika=20, Tersane=4, hat=0, variant=0, stok=0
+ArmySystem: 17 tabur tipi yüklendi
+[Army] Şablon oluşturuldu: Infantry Division (ID=tpl_1, Tabur=9, ORG=50, HP=170, ATT=122, DEF=168, Spd=3, Manpower=7300)
+ArmySystem: Varsayılan şablon 'Infantry Division' oluşturuldu (ID=tpl_1)
+[Army] Ekipman yetmez (infantry_equipment: stok=0, gerek=24000) → 0 tümen
+[Army] Ordu oluşturuldu: 1st Army (Gen. Giuseppe Manstein, Skill=2)
+ArmySystem: DEU için hazır — Tümen=0, Ordu=1, Şablon=1, Eğitim=0
+WarSystem: DEU için hazır — aktif savaş=0
+DiplomacySystem: DEU için hazır — Faksiyon=3, İlişki=2466, Tension=%15.0
+[Army] Şablon oluşturuldu: Infantry Division (ID=tpl_1, Tabur=9, ORG=50, HP=170, ATT=122, DEF=168, Spd=3, Manpower=7300)
+ArmySystem: Varsayılan şablon 'Infantry Division' oluşturuldu (ID=tpl_1)
+[Army] Ordu oluşturuldu: 1st Army (Gen. Ivan de Gaulle, Skill=1)
+ArmySystem: DEU için hazır — Tümen=40, Ordu=1, Şablon=1, Eğitim=0
+[Equipment] Hat eklendi: Infantry Equipment — 3 fabrika, etkinlik %10 (boş kalan: Mil=17, Dock=4)
+[Equipment] Hat eklendi: Support Equipment — 2 fabrika, etkinlik %10 (boş kalan: Mil=15, Dock=4)
+[Equipment] Hat eklendi: Light Tank — 2 fabrika, etkinlik %10 (boş kalan: Mil=13, Dock=4)
+[Equipment] Hat eklendi: Destroyer — 1 fabrika, etkinlik %10 (boş kalan: Mil=13, Dock=3)
+[Equipment] Variant tasarlandı: Light Tank Mk.1 (temel: Light Tank, modüller: Improved Gun, Extra Armor, maliyet ×1.25, saldırı ×1.20, savunma ×1.25)
+[Equipment] Hat değişti: Light Tank → Light Tank Mk.1 — etkinlik cezası: %50
+[Test] light_tank hattına variant uygulandı: light_tank_v1 (etkinlik cezası %50)
+[Test] Prod test kurulumu tamam — 4 hat (7 mil + 1 naval), 1 variant switch
+[War] SAVAŞ İLANI: Germany → Poland! (maliyet: 50 PP, düşman tümeni: 35, WS: +10 → 50%, STA: 75%)
+[War] OFANSİF EMRİ: Poland üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+GameManager hazır. Başlangıç tarihi: 1 Jan 1936 | Hız: 5 | Ülke: GER | ProdTest: True | WarTest: POL
+UITheme: hazır
+MapViewportFrame: hazır
+WorldMap hazır: 180 ülke, 292 parça çizildi.
+WorldMap: hazır — kamera zoom=0.03 pos=(1080, 560), viewport=(64, 64)
+Game: harita + paneller hazır
+Game: hazır
+[Teşhis] SubViewport=(64, 64), konteyner=(0, 0), (64, 64), Stretch=True, görünür=True
+[Trade] Anlaşma kuruldu: Soviet Union → Oil 2/gün (kalan konvoy: 18, stok: 2/60)
+[Trade] Anlaşma kuruldu: Dutch East Indies → Rubber 2/gün (kalan konvoy: 16, stok: 0/100)
+[Trade] Anlaşma kuruldu: United States → Steel 2/gün (kalan konvoy: 14, stok: 22/660)
+[Trade] Anlaşma kuruldu: United States → Aluminum 2/gün (kalan konvoy: 12, stok: 6/180)
+[Trade] Anlaşma kuruldu: China → Tungsten 2/gün (kalan konvoy: 10, stok: 3/90)
+[Trade] Anlaşma kuruldu: Soviet Union → Chromium 2/gün (kalan konvoy: 8, stok: 2/60)
+[TICK] Gün 1 — 2 Jan 1936
+[TICK] Gün 2 — 3 Jan 1936
+[TICK] Gün 3 — 4 Jan 1936
+[War] Poland bir tümen kaybetti! (kalan: 34, düşman kaybı: 1,000)
+[War] Poland bir tümen kaybetti! (kalan: 33, düşman kaybı: 2,000)
+[War] Poland bir tümen kaybetti! (kalan: 32, düşman kaybı: 3,000)
+[War] Poland bir tümen kaybetti! (kalan: 31, düşman kaybı: 4,000)
+[War] Poland bir tümen kaybetti! (kalan: 30, düşman kaybı: 5,000)
+[War] Poland bir tümen kaybetti! (kalan: 29, düşman kaybı: 6,000)
+[War] Poland bir tümen kaybetti! (kalan: 28, düşman kaybı: 7,000)
+[War] Poland bir tümen kaybetti! (kalan: 27, düşman kaybı: 8,000)
+[TICK] Gün 4 — 5 Jan 1936
+[War] Poland bir tümen kaybetti! (kalan: 26, düşman kaybı: 9,000)
+[War] Poland bir tümen kaybetti! (kalan: 25, düşman kaybı: 10,000)
+[War] Poland bir tümen kaybetti! (kalan: 24, düşman kaybı: 11,000)
+[War] Poland bir tümen kaybetti! (kalan: 23, düşman kaybı: 12,000)
+[War] Poland bir tümen kaybetti! (kalan: 22, düşman kaybı: 13,000)
+[War] Poland bir tümen kaybetti! (kalan: 21, düşman kaybı: 14,000)
+[War] Poland bir tümen kaybetti! (kalan: 20, düşman kaybı: 15,000)
+[War] Poland bir tümen kaybetti! (kalan: 19, düşman kaybı: 16,000)
+[War] Poland bir tümen kaybetti! (kalan: 18, düşman kaybı: 17,000)
+[War] Poland bir tümen kaybetti! (kalan: 17, düşman kaybı: 18,000)
+[War] Poland bir tümen kaybetti! (kalan: 16, düşman kaybı: 19,000)
+[War] Poland bir tümen kaybetti! (kalan: 15, düşman kaybı: 20,000)
+[TICK] Gün 5 — 6 Jan 1936
+[War] Poland bir tümen kaybetti! (kalan: 14, düşman kaybı: 21,000)
+[War] Poland bir tümen kaybetti! (kalan: 13, düşman kaybı: 22,000)
+[War] Poland bir tümen kaybetti! (kalan: 12, düşman kaybı: 23,000)
+[War] Poland bir tümen kaybetti! (kalan: 11, düşman kaybı: 24,000)
+[War] Poland bir tümen kaybetti! (kalan: 10, düşman kaybı: 25,000)
+[War] Poland bir tümen kaybetti! (kalan: 9, düşman kaybı: 26,000)
+[War] Poland bir tümen kaybetti! (kalan: 8, düşman kaybı: 27,000)
+[War] Poland bir tümen kaybetti! (kalan: 7, düşman kaybı: 28,000)
+[War] Poland bir tümen kaybetti! (kalan: 6, düşman kaybı: 29,000)
+[War] Poland bir tümen kaybetti! (kalan: 5, düşman kaybı: 30,000)
+[War] Poland bir tümen kaybetti! (kalan: 4, düşman kaybı: 31,000)
+[War] KAPİTÜLASYON: Poland teslim oldu (İşgal tamamlandı (zafer noktaları kontrol altında))! Topraklar Germany tarafından ilhak edildi — harita güncelleniyor
+WorldMap: sahiplik renkleri güncellendi (ilhak)
+[TICK] Gün 6 — 7 Jan 1936
+[TICK] Gün 7 — 8 Jan 1936
+[TICK] Gün 8 — 9 Jan 1936
+[TICK] Gün 9 — 10 Jan 1936
+[TICK] Gün 10 — 11 Jan 1936
+[Economy] Gün 30: BoşSivil=31, CG=25%, Kuyruk=0, Petrol=120, Çelik=720, Konvoy=8
+[Equipment] Gün 30: hat=4 (Infantry Equipment: 3f %17, Support Equipment: 2f %17, Light Tank Mk.1: 2f %57, Destroyer: 1f %17), stok: infantry_equipment=6031, support_equipment=1330, light_tank=8
+[Army] Gün 30: Dağıtık=40, Eğitim=0, Ordu=1, Manpower=1,088,400
+[Diplomacy] Gün 30: Tension=%14.5, Faksiyon=1, İlişkiler=2466
+[Trade] Anlaşma iptal: Oil (stok yeterli: 122) — konvoylar serbest
+[Trade] Anlaşma iptal: Chromium (stok yeterli: 122) — konvoylar serbest
+[Trade] Anlaşma iptal: Tungsten (stok yeterli: 183) — konvoylar serbest

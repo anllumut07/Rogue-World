@@ -1,11 +1,17 @@
 using Godot;
+using System;
 
 // Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMap, ülke bilgi paneli, HUD.
+// M11: Harita TAM EKRAN (MapViewportFrame FullRect). HUD ve CountryInfoPanel overlay.
 public partial class Game : Control
 {
     private MapViewportFrame _mapFrame;
     private CountryInfoPanel _infoPanel;
+    private CountryMiniCard _miniCard; // M15.1: kilitli oyundaki küçük ülke kartı
     private GameHud _hud;
+    private WorldMap _worldMap; // X/ESC kapatma isteğinde ClearSelection() için
+
+    public const int HudHeight = 64; // HUD yüksekliği (görsel ölçüm) — info panel bundan sonra başlar
 
     public override void _Ready()
     {
@@ -13,8 +19,28 @@ public partial class Game : Control
         _mapFrame.Ready += OnMapFrameReady;
         AddChild(_mapFrame);
 
+        // M12: Ana menüden LOAD seçildiyse — pending slot'u yükle.
+        // PendingLoadSlot: -1=yok, 0=auto-save, 1-10=slot.
+        if (SaveSystem.PendingLoadSlot >= 0)
+        {
+            int slot = SaveSystem.PendingLoadSlot;
+            SaveSystem.PendingLoadSlot = -1; // temizle (tek seferlik)
+            bool ok = slot == 0 ? SaveSystem.LoadAutoSave() : SaveSystem.LoadGame(slot);
+            if (!ok)
+            {
+                GD.PrintErr($"[Game] Ana menüden yükleme başarısız (slot={slot}), yeni oyun gibi devam ediliyor");
+            }
+            else
+            {
+                GD.Print($"[Game] Ana menüden yükleme başarılı (slot={slot}) — oyun pause'lu başlıyor");
+            }
+        }
+
         // İlk 10 günün tick'ini logla (test/doğrulama amaçlı)
         GameManager.Instance.DayChanged += OnDayChangedForDebug;
+
+        // M-Flags: bayrak raporu — PNG bulunan / yedek kullanan ülkeler (bir kez)
+        FlagLibrary.LogReportOnce();
 
         GD.Print("Game: hazır");
     }
@@ -38,16 +64,14 @@ public partial class Game : Control
         var winSize = GetViewportRect().Size;
         subViewport.Size = new Vector2I(System.Math.Max(64, (int)winSize.X), System.Math.Max(64, (int)winSize.Y));
 
-        var worldMap = new WorldMap();
-        subViewport.AddChild(worldMap);
+        _worldMap = new WorldMap();
+        subViewport.AddChild(_worldMap);
         _mapFrame.CenterViewport.AddChild(subViewport);
 
         // DÜZELTME (eski projeden öğrenildi): SubViewportContainer input'u
         // SADECE Stretch=true iken SubViewport'e iletir.
-        // NOT: Stretch=true iken SubViewport boyutunu konteyner otomatik yönetir —
-        // manuel Size setleme engellenir (uyarı üretir).
         var viewportContainer = _mapFrame.CenterViewport;
-        viewportContainer.Stretch = true;
+        // NOT: Stretch, MapViewportFrame._Ready'de true yapılıyor.
 
         // Layout'u scene oturunca bir kez daha uygula (pencere Game'i boyutlandıktan sonra)
         Callable.From(() =>
@@ -57,20 +81,36 @@ public partial class Game : Control
             var containerRect = viewportContainer.GetGlobalRect();
             GD.Print($"[Teşhis] SubViewport={subViewport.Size}, konteyner={containerRect}, " +
                      $"Stretch={viewportContainer.Stretch}, görünür={viewportContainer.IsVisibleInTree()}");
-            worldMap.EnsureCameraCurrent();
+            _worldMap.EnsureCameraCurrent();
         }).CallDeferred();
 
-        // --- Sol panel: ülke bilgi paneli ---
+        // --- Sol panel: ülke bilgi paneli (overlay — HUD altında, genişlik sınırlı) ---
         _infoPanel = new CountryInfoPanel();
-        _mapFrame.LeftStack.AddChild(_infoPanel);
+        AddChild(_infoPanel); // Game köküne overlay olarak ekle (harita üstünde)
 
-        // --- Üst bar: HUD ---
+        // X / ESC: panel kapatma isteği → harita seçimini de kaldır (tek yol: Deselected)
+        _infoPanel.CloseRequested += () =>
+        {
+            GD.Print("[Diag] Game: CloseRequested → WorldMap.ClearSelection()");
+            _worldMap?.ClearSelection();
+        };
+
+        // --- M15.1: Küçük ülke kartı (kilitli oyunda tam panel yerine) ---
+        _miniCard = new CountryMiniCard();
+        AddChild(_miniCard);
+        _miniCard.CloseRequested += () =>
+        {
+            GD.Print("[Diag] Game: MiniCard CloseRequested → WorldMap.ClearSelection()");
+            _worldMap?.ClearSelection();
+        };
+
+        // --- Üst bar: HUD (CanvasLayer overlay) ---
         _hud = new GameHud();
         AddChild(_hud);
 
         // --- Sinyaller ---
-        worldMap.CountrySelected += OnCountrySelected;
-        worldMap.CountryDeselected += OnCountryDeselected;
+        _worldMap.CountrySelected += OnCountrySelected;
+        _worldMap.CountryDeselected += OnCountryDeselected;
 
         // --- Render teşhisi: --mapshot=<yol> ile 30. karede PNG kaydet ve çık ---
         // Kullanım: godot --path . res://Scenes/game.tscn -- --mapshot=C:/g/shot.png
@@ -83,14 +123,29 @@ public partial class Game : Control
 
     private void OnCountrySelected(string countryId, string countryName)
     {
-        _infoPanel.ShowCountry(CountryDatabase.GetOrCreate(countryId, countryName), countryName);
+        var data = CountryDatabase.GetOrCreate(countryId, countryName);
+
+        // M15.1: Oyuncu ülkesi kilitlendiyse tam panel YOK — yalnızca küçük kart
+        // (ad, bayrak, ilişki, savaş durumu). Seçim aşamasında davranış aynı: tam panel.
+        if (GameManager.IsAvailable && GameManager.Instance.IsPlayerCountryLocked)
+        {
+            _infoPanel.HidePanel();
+            _miniCard?.ShowCountry(data, countryName);
+        }
+        else
+        {
+            _miniCard?.HideCard();
+            _infoPanel.ShowCountry(data, countryName);
+        }
         // Alt çubuğa da seçimi yaz
         _hud?.OnCountrySelected(countryName);
     }
 
     private void OnCountryDeselected()
     {
+        GD.Print("[Diag] Game: CountryDeselected → HidePanel");
         _infoPanel.HidePanel();
+        _miniCard?.HideCard();
         _hud?.OnCountryDeselected();
     }
 

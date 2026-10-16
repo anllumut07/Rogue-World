@@ -1,0 +1,60 @@
+{
+	"Id": "ENG",
+	"Name": "United Kingdom",
+	"Focuses": [
+		{
+			"Id": "eng_home_defence", "Name": "Home Defence", "Description": "Strengthen anti-invasion preparations and air raid precautions.",
+			"X": 1, "Y": 0, "Cost": 70, "AiPriority": 10,
+			"Prerequisites": [], "MutuallyExclusive": [],
+			"Effects": { "Stability": 5, "PoliticalPower": 25 }
+		},
+		{
+			"Id": "eng_naval_rearmament", "Name": "Naval Rearmament", "Description": "New naval estimates fund warship construction.",
+			"X": 0, "Y": 1, "Cost": 70, "AiPriority": 6,
+			"Prerequisites": ["eng_home_defence"], "MutuallyExclusive": [],
+			"Effects": { "Dockyards": 2 }
+		},
+		{
+			"Id": "eng_end_naval_treaty", "Name": "End Naval Treaty", "Description": "Abandon treaty tonnage limits and lay down capital ships.",
+			"X": 0, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["eng_naval_rearmament"], "MutuallyExclusive": [],
+			"Effects": { "Dockyards": 1, "Modifiers": { "research_speed": 0.02 } }
+		},
+		{
+			"Id": "eng_shadow_scheme", "Name": "Shadow Scheme", "Description": "Shadow factories prepare aircraft production in secret.",
+			"X": 1, "Y": 1, "Cost": 70, "AiPriority": 4,
+			"Prerequisites": ["eng_home_defence"], "MutuallyExclusive": ["eng_appeasement"],
+			"Effects": { "MilFactories": 2 }
+		},
+		{
+			"Id": "eng_raf_expansion", "Name": "RAF Expansion", "Description": "Grow the Royal Air Force with modern monoplanes.",
+			"X": 1, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["eng_shadow_scheme"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 1, "Modifiers": { "research_speed": 0.02 } }
+		},
+		{
+			"Id": "eng_appeasement", "Name": "Appeasement", "Description": "Buy time with concessions while rearming quietly.",
+			"X": 2, "Y": 1, "Cost": 70, "AiPriority": 4,
+			"Prerequisites": ["eng_home_defence"], "MutuallyExclusive": ["eng_shadow_scheme"],
+			"Effects": { "PoliticalPower": 50, "WorldTension": -2 }
+		},
+		{
+			"Id": "eng_prepare_defense", "Name": "Prepare Defence", "Description": "Home defence preparations accelerate after Munich.",
+			"X": 2, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["eng_appeasement"], "MutuallyExclusive": [],
+			"Effects": { "Stability": 5, "MilFactories": 1 }
+		},
+		{
+			"Id": "eng_imperial_conference", "Name": "Imperial Conference", "Description": "Coordinate defence policy with the Dominions.",
+			"X": 3, "Y": 1, "Cost": 70, "AiPriority": 3,
+			"Prerequisites": ["eng_home_defence"], "MutuallyExclusive": [],
+			"Effects": { "PoliticalPower": 25, "Stability": 5 }
+		},
+		{
+			"Id": "eng_conscription", "Name": "Conscription Act", "Description": "Introduce peacetime conscription — the first in modern British history.",
+			"X": 3, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["eng_imperial_conference"], "MutuallyExclusive": [],
+			"Effects": { "Manpower": 250000, "WarSupport": 5 }
+		}
+	]
+}

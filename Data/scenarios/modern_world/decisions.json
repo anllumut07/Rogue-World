@@ -1,0 +1,139 @@
+[
+	{
+		"Id": "modernization_program",
+		"Name": "Military Modernization Program",
+		"Description": "Retire legacy systems and fund next-generation procurement.",
+		"Country": "ALL",
+		"CostPP": 50,
+		"CostDays": 40,
+		"CooldownDays": 240,
+		"Condition": {
+			"MinStability": 35
+		},
+		"Effects": {
+			"MilFactories": 2,
+			"WarSupport": 5
+		}
+	},
+	{
+		"Id": "infrastructure_investment",
+		"Name": "Infrastructure Investment",
+		"Description": "Highways, ports and broadband expand economic capacity.",
+		"Country": "ALL",
+		"CostPP": 45,
+		"CostDays": 35,
+		"CooldownDays": 240,
+		"Condition": {
+			"MinStability": 30
+		},
+		"Effects": {
+			"CivFactories": 2,
+			"Stability": 3
+		}
+	},
+	{
+		"Id": "strategic_energy_reserve",
+		"Name": "Strategic Energy Reserve",
+		"Description": "Stockpile fuel and critical minerals against supply shocks.",
+		"Country": "ALL",
+		"CostPP": 35,
+		"CostDays": 30,
+		"CooldownDays": 180,
+		"Condition": {},
+		"Effects": {
+			"Oil": 2,
+			"Stability": 2
+		}
+	},
+	{
+		"Id": "recruitment_drive",
+		"Name": "Recruitment Drive",
+		"Description": "A national campaign attracts volunteers to the armed forces.",
+		"Country": "ALL",
+		"CostPP": 30,
+		"CostDays": 20,
+		"CooldownDays": 120,
+		"Condition": {
+			"MinStability": 25
+		},
+		"Effects": {
+			"Manpower": 100000,
+			"WarSupport": 5
+		}
+	},
+	{
+		"Id": "diplomatic_outreach",
+		"Name": "Diplomatic Outreach",
+		"Description": "Send envoys, host talks and fund cultural exchange abroad.",
+		"Country": "ALL",
+		"CostPP": 40,
+		"CostDays": 25,
+		"CooldownDays": 200,
+		"Condition": {
+			"MaxWorldTension": 60
+		},
+		"Effects": {
+			"WorldTension": -3,
+			"PoliticalPower": 20
+		}
+	},
+	{
+		"Id": "defense_industry_incentives",
+		"Name": "Defense Industry Incentives",
+		"Description": "Tax breaks and contracts expand domestic arms production.",
+		"Country": "ALL",
+		"CostPP": 55,
+		"CostDays": 45,
+		"CooldownDays": 300,
+		"Condition": {
+			"MinStability": 30
+		},
+		"Effects": {
+			"MilFactories": 1,
+			"Dockyards": 1
+		}
+	},
+	{
+		"Id": "public_health_campaign",
+		"Name": "Public Health Campaign",
+		"Description": "Nationwide screening and prevention programs improve welfare.",
+		"Country": "ALL",
+		"CostPP": 25,
+		"CostDays": 20,
+		"CooldownDays": 150,
+		"Condition": {},
+		"Effects": {
+			"Stability": 8
+		}
+	},
+	{
+		"Id": "critical_minerals_prospecting",
+		"Name": "Critical Minerals Prospecting",
+		"Description": "Geological surveys map deposits of strategic metals.",
+		"Country": "ALL",
+		"CostPP": 50,
+		"CostDays": 50,
+		"CooldownDays": 365,
+		"Condition": {},
+		"Effects": {
+			"Tungsten": 1,
+			"Chromium": 1,
+			"Aluminum": 1
+		}
+	},
+	{
+		"Id": "naval_expansion",
+		"Name": "Naval Expansion Program",
+		"Description": "Lay down new hulls and expand shipyard capacity.",
+		"Country": "ALL",
+		"CostPP": 60,
+		"CostDays": 50,
+		"CooldownDays": 365,
+		"Condition": {
+			"MinStability": 35
+		},
+		"Effects": {
+			"Dockyards": 2
+		}
+	}
+]

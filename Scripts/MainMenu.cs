@@ -23,19 +23,55 @@ public partial class MainMenu : Control
 
         // Butonları bağla (unique_name_in_owner sahnede işaretli)
         var startBtn = GetNode<Button>("%StartButton");
+        var loadBtn = GetNode<Button>("%LoadButton");
+        var libraryBtn = GetNode<Button>("%LibraryButton");
         var settingsBtn = GetNode<Button>("%SettingsButton");
         var quitBtn = GetNode<Button>("%QuitButton");
 
         startBtn.Pressed += OnStartPressed;
+        loadBtn.Pressed += OnLoadPressed;
+        libraryBtn.Pressed += OnLibraryPressed;
         settingsBtn.Pressed += OnSettingsPressed;
         quitBtn.Pressed += OnQuitPressed;
 
         // Hover scale efekti
         UITheme.AddHoverScale(startBtn);
+        UITheme.AddHoverScale(loadBtn);
+        UITheme.AddHoverScale(libraryBtn);
         UITheme.AddHoverScale(settingsBtn);
         UITheme.AddHoverScale(quitBtn);
 
         GD.Print("MainMenu: hazır (görsel #6 aktif)");
+
+        // Test kancası: --library-test → Kütüphane panelini aç ve seçim simüle et.
+        // Normal oyunda asla çalışmaz (yalnızca headless test argümanıyla).
+        var args = OS.GetCmdlineUserArgs();
+        if (System.Array.IndexOf(args, "--library-test") >= 0)
+        {
+            GD.Print("[Test] --library-test: Kütüphane paneli otomatik açılıyor");
+            CallDeferred(nameof(OpenLibraryForTest));
+        }
+    }
+
+    // Headless test: paneli aç + ilk ülkeyi seçim simülasyonu (buton sinyali atlanmaz,
+    // SelectCountry doğrudan çağrılır — sinyal, veri ve boyut zincirini loglar).
+    private void OpenLibraryForTest()
+    {
+        var panel = LibraryPanel.OpenUnder(this);
+
+        // _Ready'in çalışması için bir frame bekle, sonra 3. butona tıklama simüle et ve çık
+        var tree = GetTree();
+        var timer = new Godot.Timer { WaitTime = 0.2, OneShot = true, Autostart = true };
+        AddChild(timer);
+        timer.Timeout += () =>
+        {
+            if (panel != null)
+            {
+                panel.SimulateClickForTest(2); // 3. ülke (AFG, ARG, AUS -> AUS)
+            }
+            GD.Print("[Test] --library-test: 0.2s sonra çıkış");
+            tree.Quit();
+        };
     }
 
     private void BuildBackground()
@@ -137,8 +173,25 @@ public partial class MainMenu : Control
 
     private void OnStartPressed()
     {
-        GD.Print("MainMenu: Oyun başlatılıyor");
-        GetTree().ChangeSceneToFile("res://Scenes/game.tscn");
+        GD.Print("MainMenu: Senaryo seçim paneli açılıyor");
+        // M17.1: START artık senaryo seçim panelini açar; senaryo seçilince
+        // panel ResetForNewGame + game.tscn akışını kendisi yönetir.
+        ScenarioSelectPanel.OpenUnder(this);
+    }
+
+    // M12: Kayıt yükleme — panel overlay olarak açılır; LOAD seçilince
+    // PendingLoadSlot set edilir ve sahne game.tscn'e değişir.
+    private void OnLoadPressed()
+    {
+        GD.Print("MainMenu: Kayıt yükleme paneli açılıyor");
+        LoadGamePanel.OpenUnder(this, fromMainMenu: true);
+    }
+
+    // M15.2: Kütüphane paneli — ana menüden overlay olarak açılır
+    private void OnLibraryPressed()
+    {
+        GD.Print("MainMenu: Kütüphane açılıyor");
+        LibraryPanel.OpenUnder(this);
     }
 
     private void OnSettingsPressed()

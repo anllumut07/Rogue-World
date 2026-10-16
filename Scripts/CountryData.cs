@@ -34,9 +34,15 @@ public class CountryData
     // Askeri (başlangıç ordusu — Milestone 7'de bölüklere dönüşecek)
     public int StartingDivisions = 10;   // yaklaşık tümen sayısı
 
+    // M17.2: Teknoloji seviyesi (1-4) — kişi başı GSYİH ve savunma bütçesinden türetilir
+    public int TechLevel = 1;
+
     // Savaş durumu (çalışma anında değişir)
     public bool IsAnnexed = false;
     public string OwnerId = "";          // ilhak edildiyse yeni sahibi
+
+    // Veri kaynağı: true = countries_data.json (detaylı), false = deterministik fallback
+    public bool IsDetailed = false;
 
     // --- Türetmiş yardımcılar ---
     public int TotalFactories => CivFactories + MilFactories + Dockyards;

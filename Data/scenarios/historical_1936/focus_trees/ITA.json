@@ -1,0 +1,60 @@
+{
+	"Id": "ITA",
+	"Name": "Italy",
+	"Focuses": [
+		{
+			"Id": "ita_battle_for_grain", "Name": "Battle for Grain", "Description": "Autarky campaign expands agriculture and rural industry.",
+			"X": 1, "Y": 0, "Cost": 70, "AiPriority": 10,
+			"Prerequisites": [], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2 }
+		},
+		{
+			"Id": "ita_army_reform", "Name": "Army Reform", "Description": "Reorganize the Regio Esercito's divisions.",
+			"X": 0, "Y": 1, "Cost": 70, "AiPriority": 6,
+			"Prerequisites": ["ita_battle_for_grain"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 2 }
+		},
+		{
+			"Id": "ita_war_economy", "Name": "War Economy", "Description": "Mobilize industry under state direction.",
+			"X": 0, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["ita_army_reform"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 1, "CivFactories": 1 }
+		},
+		{
+			"Id": "ita_autostrada", "Name": "Autostrada", "Description": "Motorways and public works boost the economy.",
+			"X": 1, "Y": 1, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["ita_battle_for_grain"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 1, "Stability": 5 }
+		},
+		{
+			"Id": "ita_battle_mediterranean", "Name": "Mediterranean Fleet", "Description": "The Mare Nostrum doctrine expands the fleet.",
+			"X": 2, "Y": 0, "Cost": 70, "AiPriority": 8,
+			"Prerequisites": [], "MutuallyExclusive": [],
+			"Effects": { "Dockyards": 2, "PoliticalPower": 25 }
+		},
+		{
+			"Id": "ita_navy_reform", "Name": "Navy Reform", "Description": "Modernize the Regia Marina.",
+			"X": 2, "Y": 1, "Cost": 70, "AiPriority": 4,
+			"Prerequisites": ["ita_battle_mediterranean"], "MutuallyExclusive": [],
+			"Effects": { "Dockyards": 1, "Modifiers": { "research_speed": 0.02 } }
+		},
+		{
+			"Id": "ita_mare_nostro", "Name": "Mare Nostrum", "Description": "Assert dominance over the Mediterranean.",
+			"X": 2, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["ita_navy_reform"], "MutuallyExclusive": [],
+			"Effects": { "Dockyards": 1, "WarSupport": 5 }
+		},
+		{
+			"Id": "ita_air_force", "Name": "Regia Aeronautica", "Description": "Expand the Royal Air Force.",
+			"X": 3, "Y": 1, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["ita_battle_mediterranean"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 1, "Modifiers": { "research_speed": 0.02 } }
+		},
+		{
+			"Id": "ita_pact_of_steel", "Name": "Pact of Steel", "Description": "Bind Italian and German fortunes together.",
+			"X": 3, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["ita_air_force"], "MutuallyExclusive": [],
+			"Effects": { "PoliticalPower": 25, "WorldTension": 1 }
+		}
+	]
+}

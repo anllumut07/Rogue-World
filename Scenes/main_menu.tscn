@@ -58,6 +58,20 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "START GAME"
 
+[node name="LoadButton" type="Button" parent="CenterContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "LOAD GAME"
+
+[node name="LibraryButton" type="Button" parent="CenterContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "LIBRARY"
+
 [node name="SettingsButton" type="Button" parent="CenterContainer/VBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(320, 60)

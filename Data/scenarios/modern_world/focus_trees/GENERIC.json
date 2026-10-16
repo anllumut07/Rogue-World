@@ -1,0 +1,66 @@
+{
+	"Id": "GENERIC",
+	"Name": "National Focus",
+	"Focuses": [
+		{
+			"Id": "mod_political_agenda", "Name": "Set the National Agenda", "Description": "The government lays out its long-term program for the nation.",
+			"X": 2, "Y": 0, "Cost": 70, "AiPriority": 10,
+			"Prerequisites": [], "MutuallyExclusive": [],
+			"Effects": { "PoliticalPower": 50 }
+		},
+		{
+			"Id": "mod_economic_reform", "Name": "Economic Reform", "Description": "Structural reforms open the economy to investment and growth.",
+			"X": 1, "Y": 1, "Cost": 70, "AiPriority": 8,
+			"Prerequisites": ["mod_political_agenda"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2, "Stability": 3 }
+		},
+		{
+			"Id": "mod_defense_modernization", "Name": "Defense Modernization", "Description": "Replace aging equipment and reorganize the armed forces.",
+			"X": 3, "Y": 1, "Cost": 70, "AiPriority": 7,
+			"Prerequisites": ["mod_political_agenda"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 2, "WarSupport": 3 }
+		},
+		{
+			"Id": "mod_research_program", "Name": "Education & R&D Program", "Description": "Universities and research institutes receive national funding.",
+			"X": 2, "Y": 1, "Cost": 70, "AiPriority": 6,
+			"Prerequisites": ["mod_political_agenda"], "MutuallyExclusive": [],
+			"Effects": { "Modifiers": { "research_speed": 0.05 } }
+		},
+		{
+			"Id": "mod_energy_transition", "Name": "Energy Transition", "Description": "Diversify the energy mix to shield the economy from shocks.",
+			"X": 0, "Y": 2, "Cost": 70, "AiPriority": 4,
+			"Prerequisites": ["mod_economic_reform"], "MutuallyExclusive": [],
+			"Effects": { "Oil": 2, "Stability": 3 }
+		},
+		{
+			"Id": "mod_cyber_defense", "Name": "Cyber Defense", "Description": "A national cyber security agency protects critical infrastructure.",
+			"X": 2, "Y": 2, "Cost": 70, "AiPriority": 5,
+			"Prerequisites": ["mod_research_program"], "MutuallyExclusive": [],
+			"Effects": { "Modifiers": { "research_speed": 0.03 }, "Stability": 2 }
+		},
+		{
+			"Id": "mod_public_order", "Name": "Public Order Campaign", "Description": "Community programs and policing restore confidence in the state.",
+			"X": 4, "Y": 2, "Cost": 70, "AiPriority": 5,
+			"Prerequisites": ["mod_defense_modernization"], "MutuallyExclusive": ["mod_foreign_balance"],
+			"Effects": { "Stability": 10, "PoliticalPower": 25 }
+		},
+		{
+			"Id": "mod_green_industry", "Name": "Green Industry", "Description": "Modern plants and efficiency standards attract new investment.",
+			"X": 0, "Y": 3, "Cost": 70, "AiPriority": 3,
+			"Prerequisites": ["mod_energy_transition"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2 }
+		},
+		{
+			"Id": "mod_ai_program", "Name": "National AI Program", "Description": "A state-backed artificial intelligence initiative boosts research and industry.",
+			"X": 2, "Y": 3, "Cost": 70, "AiPriority": 4,
+			"Prerequisites": ["mod_cyber_defense"], "MutuallyExclusive": [],
+			"Effects": { "Modifiers": { "research_speed": 0.05 }, "ResearchSlots": 1 }
+		},
+		{
+			"Id": "mod_foreign_balance", "Name": "Foreign Policy Balance", "Description": "Careful diplomacy keeps rivals talking and partners close.",
+			"X": 5, "Y": 2, "Cost": 70, "AiPriority": 3,
+			"Prerequisites": ["mod_defense_modernization"], "MutuallyExclusive": ["mod_public_order"],
+			"Effects": { "WorldTension": -3, "PoliticalPower": 40 }
+		}
+	]
+}

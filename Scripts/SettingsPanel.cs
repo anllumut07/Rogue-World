@@ -1,4 +1,5 @@
 using Godot;
+using System;
 
 // Ayarlar paneli (Milestone 1.5): master ses, tam ekran, çözünürlük.
 // Overlay olarak açılır: hem MainMenu'den hem PauseMenu'den aynı panel kullanılır,
@@ -8,8 +9,6 @@ using Godot;
 // Animasyon: backdrop fade, panel slide+fade (UITheme helpers).
 public partial class SettingsPanel : Control
 {
-    private static PackedScene _scene;
-
     private HSlider _volumeSlider;
     private Label _volumeValueLabel;
     private CheckBox _fullscreenCheck;
@@ -22,12 +21,47 @@ public partial class SettingsPanel : Control
     public static bool IsOpen { get; private set; }
 
     // Paneli verilen parent'ın altına overlay olarak açar (zaten açıksa dokunmaz).
+    private const string ScenePath = "res://Scenes/settings_panel.tscn";
+
     public static void OpenUnder(Node parent)
     {
         if (IsOpen) return;
 
-        _scene ??= GD.Load<PackedScene>("res://Scenes/settings_panel.tscn");
-        parent.AddChild(_scene.Instantiate<SettingsPanel>());
+        GD.Print($"[SettingsPanel] OpenUnder çağrıldı — parent={parent?.GetType().Name ?? "null"}");
+
+        SettingsPanel panel = null;
+
+        // 1) Sahne dosyası projede var mı?
+        if (ResourceLoader.Exists(ScenePath))
+        {
+            var scene = GD.Load<PackedScene>(ScenePath);
+            if (scene != null)
+            {
+                try
+                {
+                    panel = scene.Instantiate<SettingsPanel>();
+                    GD.Print($"[SettingsPanel] Sahne yüklendi ve instantiate edildi: {ScenePath}");
+                }
+                catch (Exception e)
+                {
+                    GD.PrintErr($"[SettingsPanel] Sahne instantiate hatası ({ScenePath}): {e.Message} — KODDAN oluşturuluyor");
+                }
+            }
+            else
+            {
+                GD.PrintErr($"[SettingsPanel] GD.Load null döndürdü: {ScenePath} — dosya bozuk/parse edilemiyor olabilir. KODDAN oluşturuluyor.");
+            }
+        }
+        else
+        {
+            GD.PrintErr($"[SettingsPanel] Sahne YOK: {ScenePath} (ResourceLoader.Exists=false) — KODDAN oluşturuluyor.");
+        }
+
+        // 2) Yedek yol: koddan oluştur
+        panel ??= new SettingsPanel();
+
+        parent.AddChild(panel);
+        GD.Print($"[SettingsPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
     }
 
     public override void _Ready()

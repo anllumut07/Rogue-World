@@ -1,4 +1,5 @@
 using Godot;
+using System;
 using System.Collections.Generic;
 using System.Text.Json;
 
@@ -64,6 +65,7 @@ public partial class WorldMap : Node2D
     private CanvasLayer _nameLayer;
     private bool _dragging;
     private Vector2 _lastMousePos;
+    private Vector2 _rmbPressPos; // M7.5: RMB basılma noktası (tık vs sürükleme ayrımı)
     private float _goldPulse = 0f;
     private bool _cameraNeedsFit = true; // SubViewport gerçek boyutuna ulaşınca kamerayı oturt
     private static readonly Color OceanColor = new("0A1628");
@@ -128,6 +130,10 @@ public partial class WorldMap : Node2D
         if (GameManager.IsAvailable)
             GameManager.Instance.PlayerCountryChanged += OnPlayerCountryChanged;
 
+        // M7: Toprak değişimi (ilhak/kapitülasyon) sonrası haritayı yeniden boya
+        if (GameManager.IsAvailable)
+            GameManager.Instance.CountryOwnershipChanged += OnCountryOwnershipChanged;
+
         RefreshOwnershipColors();
         QueueRedraw();
         GD.Print($"WorldMap: hazır — kamera zoom={_camera?.Zoom.X:0.00} pos={_camera?.Position}, viewport={GetViewportRect().Size}");
@@ -161,6 +167,8 @@ public partial class WorldMap : Node2D
     {
         if (GameManager.IsAvailable)
             GameManager.Instance.PlayerCountryChanged -= OnPlayerCountryChanged;
+        if (GameManager.IsAvailable)
+            GameManager.Instance.CountryOwnershipChanged -= OnCountryOwnershipChanged;
         if (Instance == this) Instance = null;
     }
 
@@ -169,6 +177,14 @@ public partial class WorldMap : Node2D
     {
         _lastBorderZoom = -1f; // sınır renkleri yeniden hesaplansın
         RefreshOwnershipColors();
+    }
+
+    // M7: Toprak değişti (ilhak/kapitülasyon) → haritayı yeniden boya
+    private void OnCountryOwnershipChanged()
+    {
+        _lastBorderZoom = -1f;
+        RefreshOwnershipColors();
+        GD.Print("WorldMap: sahiplik renkleri güncellendi (ilhak)");
     }
 
     // Bu ülke oyuncunun ülkesi mi? (id'ler harita GeoJSON zincirinden gelir, ham eşleşme)
@@ -276,8 +292,18 @@ public partial class WorldMap : Node2D
             if (mb.ButtonIndex == MouseButton.Right)
             {
                 _dragging = mb.Pressed;
-                if (mb.Pressed) _lastMousePos = mb.Position;
-                else _lastMousePos = Vector2.Zero;
+                if (mb.Pressed)
+                {
+                    _lastMousePos = mb.Position;
+                    _rmbPressPos = mb.Position; // M7.5: tık mı sürükleme mi ayrımı için
+                }
+                else
+                {
+                    _lastMousePos = Vector2.Zero;
+                    // M7.5: Hareket yoksa tık say → savaş emri (pan davranışı bozulmaz)
+                    if (mb.Position.DistanceTo(_rmbPressPos) < 6f)
+                        HandleRightClickOrder(mb.ShiftPressed);
+                }
                 GetViewport().SetInputAsHandled();
                 return;
             }
@@ -322,6 +348,19 @@ public partial class WorldMap : Node2D
                 Vector2 viewportPos = GetViewport().GetMousePosition();
                 Vector2 worldPos = _camera.Position + (viewportPos - GetViewportRect().Size / 2f) / _camera.Zoom;
 
+                // Yedek yol: çift tık → o ülke oyuncu ülkesi olur (panel açılmasa bile HUD güncellenir)
+                if (click.DoubleClick)
+                {
+                    var c = FindCountryAt(worldPos);
+                    if (c != null && GameManager.IsAvailable)
+                    {
+                        GameManager.Instance.SetPlayerCountry(c.Id);
+                        GD.Print($"WorldMap: Double-click → SetPlayerCountry({c.Id})");
+                    }
+                    GetViewport().SetInputAsHandled();
+                    return;
+                }
+
                 SelectAt(worldPos);
                 GetViewport().SetInputAsHandled();
                 return;
@@ -356,6 +395,48 @@ public partial class WorldMap : Node2D
         return false;
     }
 
+    // M7.5: Sağ tık (sürüklemesiz) savaş emri:
+    //   Normal RMB tık → düşman ülkesine OFANSİF EMRİ (aç/kapat)
+    //   Shift+RMB tık  → CEPHE DURUŞU (savunma, aç/kapat)
+    // Pan davranışına dokunmaz: sadece <6px hareketli tıklar buralara gelir.
+    private void HandleRightClickOrder(bool shiftPressed)
+    {
+        if (!GameManager.IsAvailable || !GameManager.Instance.HasPlayer) return;
+        if (HoveredBlocksMap(GetViewport().GuiGetHoveredControl())) return;
+        if (_camera == null) return;
+
+        // Tıklanan dünyada konumu bul
+        Vector2 viewportPos = GetViewport().GetMousePosition();
+        Vector2 worldPos = _camera.Position + (viewportPos - GetViewportRect().Size / 2f) / _camera.Zoom;
+        var country = FindCountryAt(worldPos);
+        if (country == null) return;
+
+        string playerId = GameManager.Instance.PlayerCountryId;
+
+        // Kendi ülkesine emir yok
+        if (country.Id == playerId) return;
+
+        var war = WarSystem.GetWarWith(country.Id);
+        if (war == null)
+        {
+            GD.Print($"[Map] {country.Name}: savaşta değilsiniz — önce DECLARE WAR gerekli " +
+                     $"(CountryInfoPanel, {WarSystem.DeclareWarPPCost} PP)");
+            return;
+        }
+
+        if (shiftPressed)
+        {
+            // Shift+RMB → cephe duruşu
+            WarSystem.ToggleFrontline(country.Id);
+        }
+        else
+        {
+            // RMB → ofansif emri aç/kapat
+            bool offensiveNow = !war.OffensiveActive;
+            WarSystem.SetOffensive(country.Id, offensiveNow);
+        }
+    }
+
     private void HandleKeyboardPan(float delta)
     {
         if (_camera == null) return;
@@ -381,6 +462,19 @@ public partial class WorldMap : Node2D
         foreach (var c in _countries)
         {
             Color target = c.MapColor;
+
+            // M7: İlhaç edilmiş ülke → sahibinin rengiyle boyanır (toprak değişimi)
+            var data = CountryDatabase.Get(c.Id);
+            if (data != null && data.IsAnnexed && !string.IsNullOrEmpty(data.OwnerId))
+            {
+                var owner = CountryDatabase.Get(data.OwnerId);
+                if (owner != null && owner.Id != c.Id)
+                {
+                    // Sahibin harita rengi (palet üretimi) — hafif koyulaştır ki "ilhak" okunsun
+                    target = ColorForId(owner.Id).Darkened(0.12f);
+                }
+            }
+
             if (c == _selected) target = SelectedColor;
             else if (c == _hovered) target = c.MapColor.Lightened(0.25f);
             foreach (var node in c.Nodes) if (GodotObject.IsInstanceValid(node)) node.Color = target;
@@ -501,22 +595,80 @@ public partial class WorldMap : Node2D
         return area / 2.0;
     }
 
-    private void BuildZoomLabels()
+    // M15.5: Deniz/okyanus etiketi veri yapısı (Data/sea_labels.json)
+    private class SeaLabelData
     {
-        AddMapLabel(_oceanLabels, "Atlantic Ocean", new Vector2(900, 650), 0f, 0.6f);
-        AddMapLabel(_oceanLabels, "Pacific Ocean", new Vector2(1600, 650), 0f, 0.6f);
-        AddMapLabel(_oceanLabels, "Indian Ocean", new Vector2(1300, 950), 0f, 0.6f);
-        AddMapLabel(_seaLabels, "Mediterranean Sea", new Vector2(1100, 450), 1.0f, 999f);
-        AddMapLabel(_seaLabels, "Black Sea", new Vector2(1150, 480), 1.0f, 999f);
-        AddMapLabel(_seaLabels, "Red Sea", new Vector2(1250, 750), 1.0f, 999f);
+        public string Name { get; set; }
+        public double Lon { get; set; }
+        public double Lat { get; set; }
+        public string Type { get; set; } // "ocean" | "sea"
+        public float MinZoom { get; set; }
+        public float MaxZoom { get; set; }
     }
 
-    private void AddMapLabel(List<MapLabel> list, string text, Vector2 anchor, float minZoom, float maxZoom)
+    private void BuildZoomLabels()
     {
+        // Data/sea_labels.json'dan yükle (hardcoded yerine veri odaklı)
+        const string path = "res://Data/sea_labels.json";
+        if (!FileAccess.FileExists(path))
+        {
+            GD.PrintErr($"[WorldMap] {path} bulunamadı — deniz etiketleri yüklenemedi");
+            return;
+        }
+
+        try
+        {
+            var options = new JsonSerializerOptions { IncludeFields = true };
+            var labels = JsonSerializer.Deserialize<List<SeaLabelData>>(FileAccess.GetFileAsString(path), options);
+            if (labels == null) return;
+
+            int oceanCount = 0, seaCount = 0;
+            foreach (var d in labels)
+            {
+                // Projeksiyon: lon/lat → dünya koordinatları
+                Vector2 anchor = Project(d.Lon, d.Lat);
+                float minZoom = d.MinZoom > 0 ? d.MinZoom : 0f;
+                float maxZoom = d.MaxZoom > 0 ? d.MaxZoom : 999f;
+
+                // Okyanus/deniz tipine göre stil (aynı AddMapLabel, farklı görünüm)
+                AddMapLabel(
+                    d.Type == "ocean" ? _oceanLabels : _seaLabels,
+                    d.Name,
+                    anchor,
+                    minZoom,
+                    maxZoom,
+                    d.Type == "ocean"
+                );
+
+                if (d.Type == "ocean") oceanCount++; else seaCount++;
+            }
+
+            GD.Print($"WorldMap: {oceanCount} okyanus + {seaCount} deniz etiketi yüklendi (sea_labels.json)");
+        }
+        catch (Exception e)
+        {
+            GD.PrintErr($"[WorldMap] sea_labels.json okunamadı: {e.Message}");
+        }
+    }
+
+    private void AddMapLabel(List<MapLabel> list, string text, Vector2 anchor, float minZoom, float maxZoom, bool isOcean)
+    {
+        // "Harfler hafif aralıklı" görünüm: karakterler arasına ince boşluk (U+2009) ekle.
+        // Okyanuslar biraz daha geniş aralıklı, denizler daha sıkı.
+        string spacing = isOcean ? " " : " "; // thin space / hair space
+        text = string.Join(spacing, text.ToCharArray());
+
         var label = new Label { Text = text, Visible = false };
         label.MouseFilter = Control.MouseFilterEnum.Ignore;
-        label.AddThemeFontSizeOverride("font_size", 16);
-        label.AddThemeColorOverride("font_color", new Color(0.7f, 0.85f, 1f, 0.9f));
+
+        // M15.5: Font — koyu temaya uygun, soluk; ülke etiketlerinden (beyaz 13pt) ayırt edilir
+        label.AddThemeFontSizeOverride("font_size", isOcean ? 18 : 14);
+        label.AddThemeColorOverride("font_color", new Color(0.65f, 0.82f, 1f, isOcean ? 0.85f : 0.75f));
+        // Hafif gölge — harita mavi tonlarında okunur
+        label.AddThemeColorOverride("font_shadow_color", new Color(0f, 0.1f, 0.2f, 0.85f));
+        label.AddThemeConstantOverride("shadow_offset_x", 1);
+        label.AddThemeConstantOverride("shadow_offset_y", 1);
+
         _nameLayer.AddChild(label);
         list.Add(new MapLabel { Node = label, Anchor = anchor, ShowZoomMin = minZoom, ShowZoomMax = maxZoom });
     }
@@ -644,12 +796,20 @@ public partial class WorldMap : Node2D
     {
         if (_selected == c) return;
         var old = _selected; _selected = c;
+
+        // TANI: panel kaybolma teşhisi için seçim değişimlerini logla
+        GD.Print($"[Diag] WorldMap.SetSelected: {(old?.Id ?? "—")} → {(c?.Id ?? "—")}");
+
         if (old != null)
         {
             // Eski ülkenin sınırı normal stile dönsün (zoom'a göre hesaplanacak)
             _lastBorderZoom = -1f;
             foreach (var node in old.Nodes) if (GodotObject.IsInstanceValid(node)) node.Color = old == _hovered ? old.MapColor.Lightened(0.25f) : old.MapColor;
-            EmitSignal(SignalName.CountryDeselected);
+            // DÜZELTME: ülke→ülke geçişinde CountryDeselected emit ETME —
+            // paneli HidePanel()+FadeOut() yarışıyla kendiliğinden kayboluyordu.
+            // Deselected yalnızca seçim TAMAMEN kaldırılınca (boş alan tıklaması) emit et.
+            if (c == null)
+                EmitSignal(SignalName.CountryDeselected);
         }
         if (_selected != null)
         {
@@ -658,6 +818,9 @@ public partial class WorldMap : Node2D
             EmitSignal(SignalName.CountrySelected, _selected.Id, _selected.Name);
         }
     }
+
+    // Seçimi tamamen kaldır (panelde X / ESC / boş alan) — Deselected tetiklenir.
+    public void ClearSelection() => SetSelected(null);
 
     private void AnimateSelectedBorder(float delta)
     {
@@ -674,13 +837,16 @@ public partial class WorldMap : Node2D
         }
     }
 
-    // Gündüz/gece terminatörü gradyanı: kenarlar şeffaf, merkez koyu mavi-yumuşak.
+    // Gündüz/gece terminatörü gradyanı: çok hafif koyu gölge, yumuşak kenarlar.
+    // Alpha ≤ 0.15: harita okunurluğunu bozmaz. Beyaz renk YOK.
     private static Gradient BuildTerminatorGradient()
     {
         var g = new Gradient();
-        g.SetColor(0, new Color(0f, 0f, 0f, 0f));
-        g.AddPoint(0.5f, new Color(0f, 0f, 0.15f, 0.25f)); // gece bandının kalbi: %25 karartma
-        g.SetColor(1, new Color(0f, 0f, 0f, 0f));
+        g.SetColor(0, new Color(0f, 0f, 0f, 0f));              // tam şeffaf kenar
+        g.AddPoint(0.2f, new Color(0f, 0f, 0f, 0.03f));         // yumuşak yükseliş
+        g.AddPoint(0.5f, new Color(0f, 0f, 0f, 0.12f));         // gece kalbi: %12 karartma
+        g.AddPoint(0.8f, new Color(0f, 0f, 0f, 0.03f));         // yumuşak düşüş
+        g.SetColor(1, new Color(0f, 0f, 0f, 0f));               // tam şeffaf kenar
         return g;
     }
 

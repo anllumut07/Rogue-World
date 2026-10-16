@@ -1,0 +1,10 @@
+{
+  "DefaultTemplate": {
+    "Name": "Modern Infantry Division",
+    "BattalionIds": [
+      "infantry", "infantry", "infantry", "infantry", "infantry", "infantry",
+      "artillery", "artillery", "engineer"
+    ]
+  },
+  "StartingDivisions": {}
+}

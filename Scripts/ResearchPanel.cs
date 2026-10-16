@@ -8,8 +8,6 @@ using System.Linq;
 /// </summary>
 public partial class ResearchPanel : Control
 {
-    private static PackedScene _scene;
-
     // UI
     private VBoxContainer _activeBox;     // aktif araştırma satırları
     private VBoxContainer _techBox;       // teknoloji listesi
@@ -23,11 +21,47 @@ public partial class ResearchPanel : Control
 
     public static bool IsOpen { get; private set; }
 
+    private const string ScenePath = "res://Scenes/research_panel.tscn";
+
     public static void OpenUnder(Node parent)
     {
         if (IsOpen) return;
-        _scene ??= GD.Load<PackedScene>("res://Scenes/research_panel.tscn");
-        parent.AddChild(_scene.Instantiate<ResearchPanel>());
+
+        GD.Print($"[ResearchPanel] OpenUnder çağrıldı — parent={parent?.GetType().Name ?? "null"}");
+
+        ResearchPanel panel = null;
+
+        // 1) Sahne dosyası projede var mı?
+        if (ResourceLoader.Exists(ScenePath))
+        {
+            var scene = GD.Load<PackedScene>(ScenePath);
+            if (scene != null)
+            {
+                try
+                {
+                    panel = scene.Instantiate<ResearchPanel>();
+                    GD.Print($"[ResearchPanel] Sahne yüklendi ve instantiate edildi: {ScenePath}");
+                }
+                catch (Exception e)
+                {
+                    GD.PrintErr($"[ResearchPanel] Sahne instantiate hatası ({ScenePath}): {e.Message} — KODDAN oluşturuluyor");
+                }
+            }
+            else
+            {
+                GD.PrintErr($"[ResearchPanel] GD.Load null döndürdü: {ScenePath} — dosya bozuk/parse edilemiyor olabilir. KODDAN oluşturuluyor.");
+            }
+        }
+        else
+        {
+            GD.PrintErr($"[ResearchPanel] Sahne YOK: {ScenePath} (ResourceLoader.Exists=false) — KODDAN oluşturuluyor.");
+        }
+
+        // 2) Yedek yol: koddan oluştur
+        panel ??= new ResearchPanel();
+
+        parent.AddChild(panel);
+        GD.Print($"[ResearchPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
     }
 
     public override void _Ready()
@@ -157,7 +191,8 @@ public partial class ResearchPanel : Control
             FocusMode = Control.FocusModeEnum.None
         };
         _eraFilter.AddItem("All Eras");
-        foreach (int era in new[] { 1936, 1939, 1941, 1943 })
+        // M17.4: era listesi yüklü teknolojilerden dinamik (1936: 1936-1943, modern: 1990-2020)
+        foreach (int era in TechnologySystem.All.Values.Select(t => t.Era).Distinct().OrderBy(e => e))
             _eraFilter.AddItem(era.ToString());
         _eraFilter.ItemSelected += (idx) => RefreshTechList();
         filterRow.AddChild(_eraFilter);

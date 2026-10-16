@@ -1,0 +1,96 @@
+{
+  "Types": [
+    {
+      "Id": "defense_retaliation",
+      "Name": "Defense / Retaliation",
+      "Description": "We were attacked or our ally was attacked. Automatic and free.",
+      "IsAutomatic": true,
+      "RequiresClaim": false,
+      "RequiresDifferentIdeology": false,
+      "MinWorldTension": 0,
+      "BuildDays": 0,
+      "PPCost": 0,
+      "ExposeChance": 0.0,
+      "LegitimacyCostOnUse": 0,
+      "TensionOnUse": 5
+    },
+    {
+      "Id": "territorial_claim",
+      "Name": "Territorial Claim",
+      "Description": "We have a territorial claim on the target country. Requires a claim in territorial_claims.json.",
+      "IsAutomatic": false,
+      "RequiresClaim": true,
+      "RequiresDifferentIdeology": false,
+      "MinWorldTension": 0,
+      "BuildDays": 30,
+      "PPCost": 25,
+      "ExposeChance": 0.0,
+      "LegitimacyCostOnUse": 2,
+      "TensionOnUse": 8
+    },
+    {
+      "Id": "ideological_conflict",
+      "Name": "Ideological Conflict",
+      "Description": "Different ideology and high world tension justify confrontation.",
+      "IsAutomatic": false,
+      "RequiresClaim": false,
+      "RequiresDifferentIdeology": true,
+      "MinWorldTension": 40,
+      "BuildDays": 45,
+      "PPCost": 40,
+      "ExposeChance": 0.05,
+      "LegitimacyCostOnUse": 3,
+      "TensionOnUse": 10
+    },
+    {
+      "Id": "guarantee_protection",
+      "Name": "Guarantee / Protection",
+      "Description": "Target attacked a country we guarantee. Automatic when guarantee triggered.",
+      "IsAutomatic": true,
+      "RequiresClaim": false,
+      "RequiresDifferentIdeology": false,
+      "MinWorldTension": 0,
+      "BuildDays": 0,
+      "PPCost": 0,
+      "ExposeChance": 0.0,
+      "LegitimacyCostOnUse": 1,
+      "TensionOnUse": 5
+    },
+    {
+      "Id": "fabricated_incident",
+      "Name": "Fabricated Incident",
+      "Description": "Provoke the target into a casus belli. Risky: if exposed, legitimacy drops and world tension rises.",
+      "IsAutomatic": false,
+      "RequiresClaim": false,
+      "RequiresDifferentIdeology": false,
+      "MinWorldTension": 0,
+      "BuildDays": 60,
+      "PPCost": 50,
+      "ExposeChance": 0.35,
+      "LegitimacyCostOnUse": 10,
+      "TensionOnUse": 15
+    },
+    {
+      "Id": "historical_event",
+      "Name": "Historical Event",
+      "Description": "Historical events (Barbarossa, Pearl Harbor, etc.) grant immediate justification. No cost, no build time.",
+      "IsAutomatic": true,
+      "RequiresClaim": false,
+      "RequiresDifferentIdeology": false,
+      "MinWorldTension": 0,
+      "BuildDays": 0,
+      "PPCost": 0,
+      "ExposeChance": 0.0,
+      "LegitimacyCostOnUse": 0,
+      "TensionOnUse": 0
+    }
+  ],
+  "WarSupportThreshold": {
+    "Democracy": 40,
+    "Fascism": 10,
+    "Communism": 20,
+    "Neutral": 25
+  },
+  "UltimatumDays": 10,
+  "TruceDays": 90
+}

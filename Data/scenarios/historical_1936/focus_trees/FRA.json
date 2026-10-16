@@ -1,0 +1,60 @@
+{
+	"Id": "FRA",
+	"Name": "France",
+	"Focuses": [
+		{
+			"Id": "fra_national_bloc", "Name": "National Bloc", "Description": "A center-right coalition stabilizes the fractured political scene.",
+			"X": 1, "Y": 0, "Cost": 70, "AiPriority": 10,
+			"Prerequisites": [], "MutuallyExclusive": [],
+			"Effects": { "PoliticalPower": 50 }
+		},
+		{
+			"Id": "fra_economic_development", "Name": "Economic Development", "Description": "National recovery plan modernizes French industry.",
+			"X": 0, "Y": 1, "Cost": 70, "AiPriority": 8,
+			"Prerequisites": ["fra_national_bloc"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2 }
+		},
+		{
+			"Id": "fra_public_works", "Name": "Public Works", "Description": "Major infrastructure spending revitalizes the regions.",
+			"X": 0, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["fra_economic_development"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2 }
+		},
+		{
+			"Id": "fra_maginot_line", "Name": "Maginot Line", "Description": "Fortify the eastern border — the nation sleeps safe.",
+			"X": 1, "Y": 1, "Cost": 70, "AiPriority": 6,
+			"Prerequisites": ["fra_national_bloc"], "MutuallyExclusive": [],
+			"Effects": { "Stability": 10 }
+		},
+		{
+			"Id": "fra_rearmament", "Name": "Rearmament", "Description": "The two-year service law and rearmament program begin.",
+			"X": 2, "Y": 1, "Cost": 70, "AiPriority": 5,
+			"Prerequisites": ["fra_national_bloc"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 2 }
+		},
+		{
+			"Id": "fra_air_force", "Name": "Air Force Expansion", "Description": "Modernize the Armée de l'Air.",
+			"X": 2, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["fra_rearmament"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 1, "Modifiers": { "research_speed": 0.02 } }
+		},
+		{
+			"Id": "fra_conscription", "Name": "Conscription Reform", "Description": "Lengthen service and expand the reserve pool.",
+			"X": 3, "Y": 1, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["fra_national_bloc"], "MutuallyExclusive": [],
+			"Effects": { "Manpower": 200000, "WarSupport": 5 }
+		},
+		{
+			"Id": "fra_navy_program", "Name": "Navy Program", "Description": "Naval construction program for the Marine Nationale.",
+			"X": 4, "Y": 1, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["fra_national_bloc"], "MutuallyExclusive": [],
+			"Effects": { "Dockyards": 1 }
+		},
+		{
+			"Id": "fra_research_institute", "Name": "Research Institute", "Description": "Nationalize and fund the scattered research laboratories.",
+			"X": 4, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["fra_navy_program"], "MutuallyExclusive": [],
+			"Effects": { "ResearchSlots": 1 }
+		}
+	]
+}

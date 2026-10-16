@@ -1,0 +1,66 @@
+{
+	"Id": "GER",
+	"Name": "German Reich",
+	"Focuses": [
+		{
+			"Id": "ger_rhineland", "Name": "Rhineland", "Description": "Remilitarize the Rhineland and restore German prestige in the west.",
+			"X": 2, "Y": 0, "Cost": 70, "AiPriority": 10,
+			"Prerequisites": [], "MutuallyExclusive": [],
+			"Effects": { "PoliticalPower": 25, "Stability": 5, "WorldTension": 2 }
+		},
+		{
+			"Id": "ger_four_year_plan", "Name": "Four Year Plan", "Description": "State-directed industrial mobilization to prepare the economy for war.",
+			"X": 0, "Y": 1, "Cost": 70, "AiPriority": 8,
+			"Prerequisites": ["ger_rhineland"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2 }
+		},
+		{
+			"Id": "ger_autobahn", "Name": "Autobahn", "Description": "National motorway construction program boosts the economy.",
+			"X": 0, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["ger_four_year_plan"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2 }
+		},
+		{
+			"Id": "ger_reichswerke", "Name": "Reichswerke", "Description": "State-owned industrial conglomerate focuses on armament production.",
+			"X": 0, "Y": 3, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["ger_autobahn"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 2 }
+		},
+		{
+			"Id": "ger_army_innovations", "Name": "Army Innovations", "Description": "New doctrine research accelerates military modernization.",
+			"X": 4, "Y": 1, "Cost": 70, "AiPriority": 5,
+			"Prerequisites": ["ger_rhineland"], "MutuallyExclusive": [],
+			"Effects": { "Modifiers": { "research_speed": 0.05 } }
+		},
+		{
+			"Id": "ger_wehrmacht", "Name": "Wehrmacht", "Description": "Expand and reorganize the armed forces.",
+			"X": 4, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["ger_army_innovations"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 1, "WarSupport": 5 }
+		},
+		{
+			"Id": "ger_treaty_ussr", "Name": "Treaty with the USSR", "Description": "Military cooperation with the Soviet Union — exchange officers and technology.",
+			"X": 2, "Y": 1, "Cost": 70, "AiPriority": 3,
+			"Prerequisites": ["ger_rhineland"], "MutuallyExclusive": ["ger_anti_comintern"],
+			"Effects": { "Modifiers": { "research_speed": 0.03 }, "MilFactories": 1 }
+		},
+		{
+			"Id": "ger_molotov_ribbentrop", "Name": "Molotov-Ribbentrop", "Description": "Non-aggression pact with the Soviet Union secures the eastern flank.",
+			"X": 2, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["ger_treaty_ussr"], "MutuallyExclusive": [],
+			"Effects": { "PoliticalPower": 50, "WorldTension": 1, "TriggerEvent": "molotov_ribbentrop" }
+		},
+		{
+			"Id": "ger_anti_comintern", "Name": "Anti-Comintern Pact", "Description": "Align with anti-communist powers against the Soviet Union.",
+			"X": 3, "Y": 1, "Cost": 70, "AiPriority": 3,
+			"Prerequisites": ["ger_rhineland"], "MutuallyExclusive": ["ger_treaty_ussr"],
+			"Effects": { "PoliticalPower": 25, "WorldTension": 2 }
+		},
+		{
+			"Id": "ger_war_mobilization", "Name": "War Mobilization", "Description": "Mobilize the economy and population for the coming war.",
+			"X": 3, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["ger_anti_comintern"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 2, "WarSupport": 10 }
+		}
+	]
+}

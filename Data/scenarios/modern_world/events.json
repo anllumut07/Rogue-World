@@ -1,0 +1,186 @@
+[
+	{
+		"Id": "financial_fluctuation",
+		"Name": "Financial Fluctuation",
+		"Description": "Global markets experience volatility. Domestic investors grow nervous as stock indices swing wildly.",
+		"Trigger": { "Type": "Random", "ChancePerDay": 0.0003, "Country": "" },
+		"Options": [
+			{
+				"Label": "Launch stimulus package",
+				"Effects": { "PoliticalPower": -30, "Stability": 5, "CivFactories": 1 }
+			},
+			{
+				"Label": "Let markets self-correct",
+				"Effects": { "PoliticalPower": 20, "Stability": -5, "WarSupport": -3 }
+			}
+		],
+		"FireOnlyOnce": false,
+		"IsHistorical": false
+	},
+	{
+		"Id": "border_incident",
+		"Name": "Border Incident",
+		"Description": "A patrol clash occurs on the frontier. Both sides claim the other crossed the line.",
+		"Trigger": { "Type": "Random", "ChancePerDay": 0.0005, "Country": "" },
+		"Options": [
+			{
+				"Label": "Escalate — deploy reinforcements",
+				"Effects": { "WarSupport": 10, "WorldTension": 3, "PoliticalPower": -10 }
+			},
+			{
+				"Label": "Diplomatic protest and de-escalation",
+				"Effects": { "WorldTension": -1, "PoliticalPower": -5 }
+			},
+			{
+				"Label": "Stand down and investigate",
+				"Effects": { "Stability": -3, "WarSupport": -5 }
+			}
+		],
+		"FireOnlyOnce": true,
+		"IsHistorical": false
+	},
+	{
+		"Id": "summit_invitation",
+		"Name": "Regional Summit Invitation",
+		"Description": "Major regional powers invite your government to a multilateral summit on security and trade.",
+		"Trigger": { "Type": "Random", "ChancePerDay": 0.0004, "Country": "" },
+		"Options": [
+			{
+				"Label": "Attend and engage constructively",
+				"Effects": { "PoliticalPower": 25, "WorldTension": -2, "Stability": 2 }
+			},
+			{
+				"Label": "Decline — focus on domestic priorities",
+				"Effects": { "PoliticalPower": -10, "WorldTension": 1 }
+			}
+		],
+		"FireOnlyOnce": true,
+		"IsHistorical": false
+	},
+	{
+		"Id": "cyber_attack",
+		"Name": "Major Cyber Attack",
+		"Description": "State and private-sector networks suffer a coordinated intrusion. Sensitive data may have been exfiltrated.",
+		"Trigger": { "Type": "Random", "ChancePerDay": 0.0005, "Country": "" },
+		"Options": [
+			{
+				"Label": "Invest heavily in cyber defense",
+				"Effects": { "PoliticalPower": -40, "Modifiers": { "research_speed": 0.03 }, "Stability": 2 }
+			},
+			{
+				"Label": "Attribute the attack and retaliate covertly",
+				"Effects": { "PoliticalPower": -10, "WarSupport": 5, "WorldTension": 2 }
+			}
+		],
+		"FireOnlyOnce": true,
+		"IsHistorical": false
+	},
+	{
+		"Id": "public_protests",
+		"Name": "Mass Public Protests",
+		"Description": "Rising living costs trigger large demonstrations in major cities. Protesters demand government action.",
+		"Trigger": { "Type": "Random", "ChancePerDay": 0.0004, "Country": "" },
+		"Options": [
+			{
+				"Label": "Concede and announce relief measures",
+				"Effects": { "PoliticalPower": -30, "Stability": 10, "WarSupport": -3 }
+			},
+			{
+				"Label": "Crack down on demonstrations",
+				"Effects": { "Stability": -10, "PoliticalPower": 15, "WarSupport": 3 }
+			}
+		],
+		"FireOnlyOnce": false,
+		"IsHistorical": false
+	},
+	{
+		"Id": "energy_crisis",
+		"Name": "Energy Supply Crisis",
+		"Description": "A disruption in global energy markets drives prices up and threatens industrial output.",
+		"Trigger": { "Type": "Random", "ChancePerDay": 0.0003, "Country": "" },
+		"Options": [
+			{
+				"Label": "Draw from strategic reserves",
+				"Effects": { "PoliticalPower": -20, "Stability": -3, "Oil": 1 }
+			},
+			{
+				"Label": "Impose energy rationing",
+				"Effects": { "PoliticalPower": 10, "Stability": -8, "WarSupport": 5 }
+			}
+		],
+		"FireOnlyOnce": true,
+		"IsHistorical": false
+	},
+	{
+		"Id": "trade_deal_opportunity",
+		"Name": "Trade Deal Opportunity",
+		"Description": "A bloc of trading partners offers a comprehensive agreement covering goods, services and digital trade.",
+		"Trigger": { "Type": "Random", "ChancePerDay": 0.0004, "Country": "" },
+		"Options": [
+			{
+				"Label": "Sign the agreement",
+				"Effects": { "CivFactories": 2, "WorldTension": -1, "PoliticalPower": 15 }
+			},
+			{
+				"Label": "Protect domestic producers with conditions",
+				"Effects": { "CivFactories": 1, "Stability": 3, "PoliticalPower": -5 }
+			}
+		],
+		"FireOnlyOnce": true,
+		"IsHistorical": false
+	},
+	{
+		"Id": "natural_disaster",
+		"Name": "Major Natural Disaster",
+		"Description": "A severe earthquake, flood or storm strikes a populated region. Emergency services are overwhelmed.",
+		"Trigger": { "Type": "Random", "ChancePerDay": 0.0002, "Country": "" },
+		"Options": [
+			{
+				"Label": "Mobilize federal resources for relief",
+				"Effects": { "PoliticalPower": -25, "Stability": 5, "Manpower": -50000 }
+			},
+			{
+				"Label": "Leave response to local authorities",
+				"Effects": { "Stability": -8, "PoliticalPower": 10 }
+			}
+		],
+		"FireOnlyOnce": true,
+		"IsHistorical": false
+	},
+	{
+		"Id": "diplomatic_scandal",
+		"Name": "Diplomatic Scandal",
+		"Description": "Leaked communications reveal controversial remarks by senior officials about a key ally.",
+		"Trigger": { "Type": "Random", "ChancePerDay": 0.0003, "Country": "" },
+		"Options": [
+			{
+				"Label": "Apologize and reaffirm the partnership",
+				"Effects": { "PoliticalPower": -15, "WorldTension": -2, "Stability": 2 }
+			},
+			{
+				"Label": "Deny the reports and counter-accuse",
+				"Effects": { "Stability": -5, "WorldTension": 2, "PoliticalPower": 10 }
+			}
+		],
+		"FireOnlyOnce": true,
+		"IsHistorical": false
+	},
+	{
+		"Id": "alliance_request",
+		"Name": "Alliance Request",
+		"Description": "A smaller nation requests formal security guarantees against a larger neighbor.",
+		"Trigger": { "Type": "Random", "ChancePerDay": 0.0002, "Country": "" },
+		"Options": [
+			{
+				"Label": "Extend a guarantee and deepen ties",
+				"Effects": { "PoliticalPower": -40, "WorldTension": 1, "Manpower": 20000 }
+			},
+			{
+				"Label": "Offer economic aid instead",
+				"Effects": { "PoliticalPower": 10, "WorldTension": -1, "CivFactories": 1 }
+			}
+		],
+		"FireOnlyOnce": true,
+		"IsHistorical": false
+	}
+]

@@ -193,21 +193,25 @@ public static class UITheme
     }
 
     // Panel fade-in/out (modulate alpha). onComplete: kapanışta çağrılır (ör. QueueFree/Hide).
-    public static void FadeIn(Control panel, float duration = 0.12f)
+    // Tween döndürür: çağıran isterse sonraki fade öncesi Kill() ederek yarışmayı önler
+    // (Godot'ta CreateTween öncekini öldürmez — paralel FadeOut+FadeIn paneli gizli bırakır).
+    public static Tween FadeIn(Control panel, float duration = 0.12f)
     {
         panel.Modulate = new Color(1, 1, 1, 0);
         panel.Show();
         var t = panel.CreateTween();
         t.TweenProperty(panel, "modulate:a", 1f, duration)
          .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Quad);
+        return t;
     }
 
-    public static void FadeOut(Control panel, float duration = 0.1f, Action onComplete = null)
+    public static Tween FadeOut(Control panel, float duration = 0.1f, Action onComplete = null)
     {
         var t = panel.CreateTween();
         t.TweenProperty(panel, "modulate:a", 0f, duration)
          .SetEase(Tween.EaseType.Out).SetTrans(Tween.TransitionType.Quad);
         if (onComplete != null) t.TweenCallback(Callable.From(onComplete));
+        return t;
     }
 
     // Panel pop-in: fade + hafif büyüme (0.96 -> 1.0). Container'larla güvenli:

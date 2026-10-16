@@ -8,8 +8,6 @@ using System.Linq;
 /// </summary>
 public partial class EconomyPanel : Control
 {
-    private static PackedScene _scene;
-
     // UI referansları
     private VBoxContainer _queueBox;
     private VBoxContainer _tradeBox; // ticaret anlaşmaları listesi
@@ -23,11 +21,47 @@ public partial class EconomyPanel : Control
 
     public static bool IsOpen { get; private set; }
 
+    private const string ScenePath = "res://Scenes/economy_panel.tscn";
+
     public static void OpenUnder(Node parent)
     {
         if (IsOpen) return;
-        _scene ??= GD.Load<PackedScene>("res://Scenes/economy_panel.tscn");
-        parent.AddChild(_scene.Instantiate<EconomyPanel>());
+
+        GD.Print($"[EconomyPanel] OpenUnder çağrıldı — parent={parent?.GetType().Name ?? "null"}");
+
+        EconomyPanel panel = null;
+
+        // 1) Sahne dosyası projede var mı?
+        if (ResourceLoader.Exists(ScenePath))
+        {
+            var scene = GD.Load<PackedScene>(ScenePath);
+            if (scene != null)
+            {
+                try
+                {
+                    panel = scene.Instantiate<EconomyPanel>();
+                    GD.Print($"[EconomyPanel] Sahne yüklendi ve instantiate edildi: {ScenePath}");
+                }
+                catch (Exception e)
+                {
+                    GD.PrintErr($"[EconomyPanel] Sahne instantiate hatası ({ScenePath}): {e.Message} — KODDAN oluşturuluyor");
+                }
+            }
+            else
+            {
+                GD.PrintErr($"[EconomyPanel] GD.Load null döndürdü: {ScenePath} — dosya bozuk/parse edilemiyor olabilir. KODDAN oluşturuluyor.");
+            }
+        }
+        else
+        {
+            GD.PrintErr($"[EconomyPanel] Sahne YOK: {ScenePath} (ResourceLoader.Exists=false) — KODDAN oluşturuluyor.");
+        }
+
+        // 2) Yedek yol: koddan oluştur
+        panel ??= new EconomyPanel();
+
+        parent.AddChild(panel);
+        GD.Print($"[EconomyPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
     }
 
     public override void _Ready()

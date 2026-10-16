@@ -1,16 +1,19 @@
 using Godot;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 
 /// <summary>
-/// Teknoloji sistemi (M5): JSON'dan teknoloji ağacını yükler, araştırma slotlarını
-/// yönetir, günlük araştırma ilerlemesini işler, tamamlanan teknolojilerin
+/// Teknoloji sistemi (M5): JSON'dan teknoloji ağacını yükler (aktif senaryonun technologies.json),
+/// araştırma slotlarını yönetir, günlük araştırma ilerlemesini işler, tamamlanan teknolojilerin
 /// modifikatörlerini (construction_speed, factory_output, research_speed...) uygular.
 /// Statik sınıf; GameManager günlük tick'inde çağrılır.
 /// </summary>
 public static class TechnologySystem
 {
-    private const string Path = "res://Data/technologies.json";
+    // M17.1: yol aktif senaryodan; senaryo değişince ResetForScenario cache'i temizler
+    private static string CurrentPath => ScenarioSystem.ActiveTechnologiesPath;
 
     // Teknoloji tanımı (JSON'dan yüklenir)
     public class Technology
@@ -56,23 +59,41 @@ public static class TechnologySystem
         if (_loaded) return;
         _loaded = true;
 
-        if (!FileAccess.FileExists(Path))
+        if (!FileAccess.FileExists(CurrentPath))
         {
-            GD.PrintErr($"HATA: {Path} bulunamadı!");
+            GD.PrintErr($"HATA: {CurrentPath} bulunamadı!");
             return;
         }
 
         try
         {
-            var list = JsonSerializer.Deserialize<List<Technology>>(FileAccess.GetFileAsString(Path));
+            var options = new JsonSerializerOptions { IncludeFields = true };
+            var list = JsonSerializer.Deserialize<List<Technology>>(FileAccess.GetFileAsString(CurrentPath), options);
             foreach (var t in list)
                 if (t?.Id != null) _all[t.Id] = t;
-            GD.Print($"TechnologySystem hazır: {_all.Count} teknoloji yüklendi.");
+            GD.Print($"TechnologySystem hazır: {_all.Count} teknoloji yüklendi (senaryo: {ScenarioSystem.ActiveId})");
         }
         catch (System.Exception e)
         {
-            GD.PrintErr($"HATA: {Path} okunamadı: {e.Message}");
+            GD.PrintErr($"HATA: {CurrentPath} okunamadı: {e.Message}");
         }
+    }
+
+    // M17.1: Senaryo değişince cache'i temizle
+    public static void ResetForScenario()
+    {
+        _all.Clear();
+        _researched.Clear();
+        _active.Clear();
+        _modifiers.Clear();
+        _loaded = false;
+        _initialized = false;
+    }
+
+    // M17.1: Senaryo verisi yükle (ülke gerekmez) — LogLoadCountsForAll için
+    public static void LoadScenarioData()
+    {
+        EnsureLoaded();
     }
 
     // Oyuncu ülkesi seçilince sıfırla (GameManager.SetPlayerCountry)
@@ -82,9 +103,27 @@ public static class TechnologySystem
         _researched.Clear();
         _active.Clear();
         _modifiers.Clear();
+
+        // M17.4: Başlangıç teknolojileri — teknoloji seviyesine göre (modern senaryo).
+        // Era <= eşiğe sahip tüm teknolojiler araştırılmış sayılır; modifikatörleri toplanır.
+        // 1936 senaryosunda eşik 0 → davranış değişmez.
+        int startEra = CountryDatabase.GetStartingTechEra(Player);
+        int granted = 0;
+        if (startEra > 0)
+        {
+            foreach (var t in _all.Values)
+            {
+                if (t.Era > startEra) continue;
+                _researched.Add(t.Id);
+                foreach (var kv in t.Modifiers)
+                    _modifiers[kv.Key] = _modifiers.GetValueOrDefault(kv.Key) + kv.Value;
+                granted++;
+            }
+        }
+
         _initialized = true;
         GD.Print($"TechnologySystem: sıfırlandı — Slot={Player?.ResearchSlots ?? 0}, " +
-                 $"Hız={ResearchSpeedMult:F2}x");
+                 $"Hız={ResearchSpeedMult:F2}x, Başlangıç teknolojisi={granted} (tech seviyesi={Player?.TechLevel ?? 1}, era eşiği={startEra})");
     }
 
     // ===== Günlük tick =====
@@ -193,6 +232,14 @@ public static class TechnologySystem
     // Toplanmış modifikatör (ör. "construction_speed" → 0.10 + 0.10 = 0.20)
     public static float GetModifier(string key) => _modifiers.GetValueOrDefault(key);
 
+    // M9: Odak sisteminden kalıcı modifikatör ekle (toplanır — örn. research_speed
+    // odaklara özel araştırma bonusu verir). TechnologySystem oyuncuya özeldir;
+    // yalnızca oyuncunun odak efektleri buraya yazar.
+    public static void AddModifier(string key, float value)
+    {
+        _modifiers[key] = _modifiers.GetValueOrDefault(key) + value;
+    }
+
     // Kategori listesi (UI filtresi için; JSON'daki benzersiz kategoriler)
     public static List<string> GetCategories()
     {
@@ -200,5 +247,40 @@ public static class TechnologySystem
         var set = new SortedSet<string>();
         foreach (var t in _all.Values) set.Add(t.Category);
         return new List<string>(set);
+    }
+
+    // ===== M12: Save/Load =====
+
+    public static SaveSystem.TechnologySave GetSaveData()
+    {
+        return new SaveSystem.TechnologySave
+        {
+            Researched = _researched.ToArray(),
+            Active = _active.Select(a => new SaveSystem.ActiveResearchSave
+            {
+                TechId = a.Tech.Id,
+                ProgressDays = a.ProgressDays
+            }).ToArray(),
+            Modifiers = new Dictionary<string, float>(_modifiers)
+        };
+    }
+
+    public static void LoadSaveData(SaveSystem.TechnologySave data)
+    {
+        if (data == null) return;
+        EnsureLoaded();
+        _researched.Clear();
+        if (data.Researched != null)
+            foreach (var id in data.Researched) _researched.Add(id);
+        _active.Clear();
+        if (data.Active != null)
+            foreach (var a in data.Active)
+                if (_all.TryGetValue(a.TechId, out var tech))
+                    _active.Add(new ActiveResearch { Tech = tech, ProgressDays = a.ProgressDays });
+        _modifiers.Clear();
+        if (data.Modifiers != null)
+            foreach (var kv in data.Modifiers) _modifiers[kv.Key] = kv.Value;
+        _initialized = true;
+        GD.Print($"TechnologySystem: state yüklendi — Researched={_researched.Count}, Active={_active.Count}, Modifiers={_modifiers.Count}");
     }
 }

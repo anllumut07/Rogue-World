@@ -1,0 +1,24 @@
+{
+  "GameSpeeds": [
+    { "Level": 0, "Name": "PAUSED", "DaysPerSecond": 0.0, "Description": "Pause" },
+    { "Level": 1, "Name": "1x", "DaysPerSecond": 0.5, "Description": "Half a day per second — yonetim temposu" },
+    { "Level": 2, "Name": "2x", "DaysPerSecond": 0.6, "Description": "0.6 days per second" },
+    { "Level": 3, "Name": "3x", "DaysPerSecond": 0.75, "Description": "0.75 days per second" },
+    { "Level": 4, "Name": "4x", "DaysPerSecond": 0.9, "Description": "0.9 days per second" },
+    { "Level": 5, "Name": "5x", "DaysPerSecond": 1.0, "Description": "1 day per second — eski 1x hizi" }
+  ],
+  "Agenda": {
+    "SlotsPerWeek": 6,
+    "MaxConcurrentActions": 3,
+    "ActionsFile": "res://Data/agenda_actions.json"
+  },
+  "MonthlyReport": {
+    "AutoPause": true,
+    "ShowOnDay": 1
+  },
+  "AutoPause": {
+    "OnEvent": true,
+    "OnWarDeclaration": true,
+    "OnCapitulation": true
+  }
+}

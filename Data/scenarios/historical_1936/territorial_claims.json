@@ -1,0 +1,10 @@
+[
+  { "Owner": "DEU", "Target": "AUT", "Region": "Austria", "Note": "Anschluss claim" },
+  { "Owner": "DEU", "Target": "CZE", "Region": "Sudetenland", "Note": "Sudeten German claim" },
+  { "Owner": "DEU", "Target": "POL", "Region": "Danzig Corridor", "Note": "Danzig and Polish Corridor claim" },
+  { "Owner": "JPN", "Target": "CHN", "Region": "Manchuria", "Note": "Manchurian incident claim" },
+  { "Owner": "ITA", "Target": "ETH", "Region": "Ethiopia", "Note": "Italian East Africa claim" },
+  { "Owner": "ITA", "Target": "ALB", "Region": "Albania", "Note": "Albanian protectorate claim" },
+  { "Owner": "RUS", "Target": "FIN", "Region": "Karelia", "Note": "Karelian isthmus claim" },
+  { "Owner": "RUS", "Target": "POL", "Region": "Eastern Poland", "Note": "Curzon Line claim" }
+]

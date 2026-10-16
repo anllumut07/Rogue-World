@@ -1,0 +1,166 @@
+[
+  {
+    "Id": "rearmament_program",
+    "Name": "Rearmament Program",
+    "Description": "Invest in military production. Factories shift toward arms manufacturing.",
+    "Country": "ALL",
+    "CostPP": 50,
+    "CostDays": 30,
+    "CooldownDays": 180,
+    "Condition": {
+      "MinStability": 40
+    },
+    "Effects": {
+      "MilFactories": 2,
+      "WarSupport": 5
+    }
+  },
+  {
+    "Id": "economic_stimulus",
+    "Name": "Economic Stimulus",
+    "Description": "Inject resources into the civilian economy. Stability and production rise.",
+    "Country": "ALL",
+    "CostPP": 40,
+    "CostDays": 30,
+    "CooldownDays": 180,
+    "Condition": {
+      "MinStability": 30
+    },
+    "Effects": {
+      "CivFactories": 2,
+      "Stability": 5
+    }
+  },
+  {
+    "Id": "propaganda_campaign",
+    "Name": "Propaganda Campaign",
+    "Description": "State media pushes the government's message. War support climbs.",
+    "Country": "ALL",
+    "CostPP": 25,
+    "CostDays": 20,
+    "CooldownDays": 120,
+    "Condition": {
+      "MinStability": 25
+    },
+    "Effects": {
+      "WarSupport": 10,
+      "Stability": 3
+    }
+  },
+  {
+    "Id": "war_bonds",
+    "Name": "War Bonds Campaign",
+    "Description": "Citizens lend money to the state for the war effort.",
+    "Country": "ALL",
+    "CostPP": 35,
+    "CostDays": 25,
+    "CooldownDays": 150,
+    "Condition": {
+      "MinWarSupport": 30
+    },
+    "Effects": {
+      "PoliticalPower": 60,
+      "CivFactories": 1
+    }
+  },
+  {
+    "Id": "industrial_investment",
+    "Name": "Industrial Investment",
+    "Description": "Direct massive funds toward heavy industry.",
+    "Country": "ALL",
+    "CostPP": 60,
+    "CostDays": 45,
+    "CooldownDays": 200,
+    "Condition": {
+      "MinStability": 35,
+      "MinPP": 60
+    },
+    "Effects": {
+      "CivFactories": 3,
+      "Steel": 1
+    }
+  },
+  {
+    "Id": "conscription_reform",
+    "Name": "Conscription Reform",
+    "Description": "Expand the draft pool. Manpower reserves grow, but the people grumble.",
+    "Country": "ALL",
+    "CostPP": 45,
+    "CostDays": 30,
+    "CooldownDays": 240,
+    "Condition": {
+      "MinWarSupport": 20
+    },
+    "Effects": {
+      "Manpower": 250000,
+      "Stability": -5
+    }
+  },
+  {
+    "Id": "research_initiative",
+    "Name": "Research Initiative",
+    "Description": "Fund scientific research across all fields.",
+    "Country": "ALL",
+    "CostPP": 30,
+    "CostDays": 25,
+    "CooldownDays": 180,
+    "Condition": {},
+    "Effects": {
+      "ResearchSlots": 1,
+      "PoliticalPower": -10
+    }
+  },
+  {
+    "Id": "ger_reoccupy_rhineland",
+    "Name": "Reoccupy the Rhineland",
+    "Description": "March troops into the demilitarized Rhineland zone.",
+    "Country": "GER",
+    "CostPP": 75,
+    "CostDays": 30,
+    "CooldownDays": 0,
+    "Condition": {
+      "MaxWorldTension": 30
+    },
+    "Effects": {
+      "Stability": 10,
+      "WarSupport": 5,
+      "WorldTension": 10,
+      "PoliticalPower": 50
+    }
+  },
+  {
+    "Id": "usa_neutrality_act",
+    "Name": "Neutrality Act",
+    "Description": "Reaffirm America's isolation from foreign wars.",
+    "Country": "USA",
+    "CostPP": 40,
+    "CostDays": 20,
+    "CooldownDays": 0,
+    "EffectNote": "Reduces war support but stabilizes politics",
+    "Condition": {
+      "MaxWarSupport": 40
+    },
+    "Effects": {
+      "Stability": 10,
+      "WarSupport": -15,
+      "PoliticalPower": 40
+    }
+  },
+  {
+    "Id": "sov_five_year_plan",
+    "Name": "Intensify Five Year Plan",
+    "Description": "Drive industrial output at the expense of consumer goods.",
+    "Country": "SOV",
+    "CostPP": 50,
+    "CostDays": 45,
+    "CooldownDays": 240,
+    "Condition": {
+      "MinStability": 30
+    },
+    "Effects": {
+      "CivFactories": 2,
+      "MilFactories": 2,
+      "Stability": -10
+    }
+  }
+]

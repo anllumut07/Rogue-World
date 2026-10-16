@@ -1,6 +1,6 @@
 using Godot;
 
-// Pause menüsü (Milestone 1.4/1.5): RESUME / SETTINGS / MAIN MENU / QUIT
+// Pause menüsü (Milestone 1.4/1.5): RESUME / LOAD GAME / SETTINGS / MAIN MENU / QUIT
 // Animasyon: backdrop fade + panel slide+fade (UITheme helpers).
 public partial class PauseMenu : CanvasLayer
 {
@@ -36,8 +36,20 @@ public partial class PauseMenu : CanvasLayer
     {
         if (e is InputEventKey key && key.Pressed && !key.Echo && key.Keycode == Key.Escape)
         {
-            // Ayarlar paneli açıksa ESC'i panele bırak (panel kendini kapatır).
-            if (SettingsPanel.IsOpen) return;
+            // Herhangi bir overlay paneli açıksa ESC'i panele bırak.
+            if (SettingsPanel.IsOpen
+                || CountryInfoPanel.IsOpen
+                || CountryMiniCard.IsOpen
+                || LibraryPanel.IsOpen
+                || DecisionPanel.IsOpen
+                || FocusPanel.IsOpen
+                || ResearchPanel.IsOpen
+                || EconomyPanel.IsOpen
+                || ProductionPanel.IsOpen
+                || ArmyPanel.IsOpen
+                || DiplomacyPanel.IsOpen
+                || LoadGamePanel.IsOpen
+                || EventPopup.IsOpen) return;
 
             GetViewport().SetInputAsHandled();
             ToggleMenu();
@@ -86,6 +98,14 @@ public partial class PauseMenu : CanvasLayer
         // Panel PauseMenu'nün çocuğu olarak eklenir; ProcessMode.Always miras aldığı
         // için ağaç paused olsa bile panel canlı çalışır.
         SettingsPanel.OpenUnder(this);
+    }
+
+    // M15.3: Kayıt/Yükleme paneli — SAVE + LOAD + DELETE (aynı bileşen ana menüde de).
+    // Yükleme başarılı olursa afterLoad ile pause menü de kapanır (oyun Speed=0 pause'lu başlar).
+    private void OnLoadGamePressed()
+    {
+        GD.Print("PauseMenu: Kayıt/Yükleme paneli açılıyor");
+        LoadGamePanel.OpenUnder(this, fromMainMenu: false, afterLoad: CloseMenu);
     }
 
     private void OnMainMenuPressed()
@@ -140,6 +160,11 @@ public partial class PauseMenu : CanvasLayer
         resume.Pressed += OnResumePressed;
         vbox.AddChild(resume);
         UITheme.AddHoverScale(resume);
+
+        var loadGame = new Button { Text = "SAVE / LOAD GAME", FocusMode = Control.FocusModeEnum.None };
+        loadGame.Pressed += OnLoadGamePressed;
+        vbox.AddChild(loadGame);
+        UITheme.AddHoverScale(loadGame);
 
         var settings = new Button { Text = "SETTINGS", FocusMode = Control.FocusModeEnum.None };
         settings.Pressed += OnSettingsPressed;

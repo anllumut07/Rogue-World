@@ -1,0 +1,14 @@
+{
+  "JustificationStartChance": 0.015,
+  "MaxAiCountriesAtWarPercent": 10,
+  "TargetSelection": {
+    "OnlyNeighbors": true,
+    "OnlyWithClaims": true,
+    "OnlyIdeologicalEnemies": true,
+    "OnlyFactionCalls": true
+  },
+  "NeighborDetection": {
+    "Method": "GeoJsonAdjacency",
+    "CacheFile": "res://Data/neighbors.json"
+  }
+}

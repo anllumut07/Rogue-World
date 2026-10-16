@@ -1,0 +1,54 @@
+{
+	"Id": "GENERIC",
+	"Name": "National Focus",
+	"Focuses": [
+		{
+			"Id": "gen_political_effort", "Name": "Political Effort", "Description": "Consolidate the government's control over the state.",
+			"X": 2, "Y": 0, "Cost": 70, "AiPriority": 10,
+			"Prerequisites": [], "MutuallyExclusive": [],
+			"Effects": { "PoliticalPower": 50 }
+		},
+		{
+			"Id": "gen_industrial_effort", "Name": "Industrial Effort", "Description": "State investment expands civilian industry.",
+			"X": 1, "Y": 1, "Cost": 70, "AiPriority": 8,
+			"Prerequisites": ["gen_political_effort"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2 }
+		},
+		{
+			"Id": "gen_industrial_expansion", "Name": "Industrial Expansion", "Description": "A second wave of industrial growth.",
+			"X": 1, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["gen_industrial_effort"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2 }
+		},
+		{
+			"Id": "gen_research_initiative", "Name": "Research Initiative", "Description": "National research drive speeds up all studies.",
+			"X": 2, "Y": 1, "Cost": 70, "AiPriority": 5,
+			"Prerequisites": ["gen_political_effort"], "MutuallyExclusive": [],
+			"Effects": { "Modifiers": { "research_speed": 0.05 } }
+		},
+		{
+			"Id": "gen_research_expansion", "Name": "Research Expansion", "Description": "Open additional research institutes.",
+			"X": 2, "Y": 2, "Cost": 70, "AiPriority": 4,
+			"Prerequisites": ["gen_research_initiative"], "MutuallyExclusive": [],
+			"Effects": { "ResearchSlots": 1 }
+		},
+		{
+			"Id": "gen_military_buildup", "Name": "Military Buildup", "Description": "Expand arms production for the armed forces.",
+			"X": 3, "Y": 1, "Cost": 70, "AiPriority": 6,
+			"Prerequisites": ["gen_political_effort"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 2 }
+		},
+		{
+			"Id": "gen_stability_program", "Name": "Stability Program", "Description": "Internal focus: reform and reassure the population.",
+			"X": 4, "Y": 1, "Cost": 70, "AiPriority": 3,
+			"Prerequisites": ["gen_political_effort"], "MutuallyExclusive": ["gen_interventionism"],
+			"Effects": { "Stability": 10, "PoliticalPower": 25 }
+		},
+		{
+			"Id": "gen_interventionism", "Name": "Interventionism", "Description": "Foreign focus: prepare the nation for war abroad.",
+			"X": 5, "Y": 1, "Cost": 70, "AiPriority": 3,
+			"Prerequisites": ["gen_political_effort"], "MutuallyExclusive": ["gen_stability_program"],
+			"Effects": { "WarSupport": 10, "Manpower": 100000, "WorldTension": 2 }
+		}
+	]
+}

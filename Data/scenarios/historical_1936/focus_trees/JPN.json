@@ -1,0 +1,66 @@
+{
+	"Id": "JPN",
+	"Name": "Japan",
+	"Focuses": [
+		{
+			"Id": "jpn_national_mobilization", "Name": "National Mobilization", "Description": "The Mobilization Law puts the economy on a war footing.",
+			"X": 1, "Y": 0, "Cost": 70, "AiPriority": 10,
+			"Prerequisites": [], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2, "PoliticalPower": 25 }
+		},
+		{
+			"Id": "jpn_army_expansion", "Name": "Army Expansion", "Description": "Expand the Imperial Army's standing divisions.",
+			"X": 0, "Y": 1, "Cost": 70, "AiPriority": 6,
+			"Prerequisites": ["jpn_national_mobilization"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 2, "WarSupport": 5 }
+		},
+		{
+			"Id": "jpn_war_economy", "Name": "War Economy", "Description": "Heavy industry shifts toward Manchurian development.",
+			"X": 0, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["jpn_army_expansion"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2, "Steel": 2 }
+		},
+		{
+			"Id": "jpn_kodoha", "Name": "Kodoha Faction", "Description": "The Strike North faction — expand against the Soviet Union.",
+			"X": 1, "Y": 1, "Cost": 70, "AiPriority": 3,
+			"Prerequisites": ["jpn_national_mobilization"], "MutuallyExclusive": ["jpn_toseiha"],
+			"Effects": { "WarSupport": 10 }
+		},
+		{
+			"Id": "jpn_strike_north", "Name": "Strike North", "Description": "Prepare the Army for war with the Soviet Union.",
+			"X": 1, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["jpn_kodoha"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 1, "Manpower": 150000, "WorldTension": 3 }
+		},
+		{
+			"Id": "jpn_toseiha", "Name": "Toseiha Faction", "Description": "The Control faction — consolidate before striking south.",
+			"X": 2, "Y": 1, "Cost": 70, "AiPriority": 3,
+			"Prerequisites": ["jpn_national_mobilization"], "MutuallyExclusive": ["jpn_kodoha"],
+			"Effects": { "PoliticalPower": 25, "WarSupport": 5 }
+		},
+		{
+			"Id": "jpn_strike_south", "Name": "Strike South", "Description": "Prepare the Navy for war against the colonial powers.",
+			"X": 2, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["jpn_toseiha"], "MutuallyExclusive": [],
+			"Effects": { "Dockyards": 1, "MilFactories": 1, "WorldTension": 3 }
+		},
+		{
+			"Id": "jpn_naval_expansion", "Name": "Naval Expansion", "Description": "The Fleet faction wins funding for new carriers and battleships.",
+			"X": 3, "Y": 1, "Cost": 70, "AiPriority": 5,
+			"Prerequisites": ["jpn_national_mobilization"], "MutuallyExclusive": [],
+			"Effects": { "Dockyards": 2 }
+		},
+		{
+			"Id": "jpn_yamato", "Name": "Yamato Program", "Description": "Lay down the largest battleships ever built.",
+			"X": 3, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["jpn_naval_expansion"], "MutuallyExclusive": [],
+			"Effects": { "Dockyards": 1, "Modifiers": { "research_speed": 0.03 } }
+		},
+		{
+			"Id": "jpn_zero_program", "Name": "Zero Program", "Description": "Carrier fighter development program.",
+			"X": 4, "Y": 1, "Cost": 70, "AiPriority": 4,
+			"Prerequisites": ["jpn_national_mobilization"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 1, "Modifiers": { "research_speed": 0.02 } }
+		}
+	]
+}

@@ -1,0 +1,62 @@
+{
+  "Factions": [
+    {
+      "Id": "axis",
+      "Name": "Axis",
+      "Leader": "GER",
+      "Members": ["GER", "ITA", "JPN"],
+      "Ideology": "Fascism",
+      "Color": "#8B5A2B"
+    },
+    {
+      "Id": "allies",
+      "Name": "Allies",
+      "Leader": "ENG",
+      "Members": ["ENG", "FRA", "POL", "CAN", "AST", "NZL", "SAF"],
+      "Ideology": "Democracy",
+      "Color": "#4A7FB5"
+    },
+    {
+      "Id": "comintern",
+      "Name": "Comintern",
+      "Leader": "SOV",
+      "Members": ["SOV", "MNG", "TAN"],
+      "Ideology": "Communism",
+      "Color": "#B03A2E"
+    }
+  ],
+  "Relations": [
+    { "From": "GER", "To": "ENG", "Value": -100, "Opinion": -100 },
+    { "From": "GER", "To": "FRA", "Value": -100, "Opinion": -100 },
+    { "From": "GER", "To": "SOV", "Value": -80, "Opinion": -80 },
+    { "From": "GER", "To": "USA", "Value": -60, "Opinion": -60 },
+    { "From": "ENG", "To": "GER", "Value": -100, "Opinion": -100 },
+    { "From": "ENG", "To": "ITA", "Value": -80, "Opinion": -80 },
+    { "From": "ENG", "To": "JPN", "Value": -60, "Opinion": -60 },
+    { "From": "FRA", "To": "GER", "Value": -100, "Opinion": -100 },
+    { "From": "FRA", "To": "ITA", "Value": -80, "Opinion": -80 },
+    { "From": "SOV", "To": "GER", "Value": -80, "Opinion": -80 },
+    { "From": "SOV", "To": "JPN", "Value": -60, "Opinion": -60 },
+    { "From": "USA", "To": "GER", "Value": -60, "Opinion": -60 },
+    { "From": "USA", "To": "JPN", "Value": -60, "Opinion": -60 },
+    { "From": "ITA", "To": "ENG", "Value": -80, "Opinion": -80 },
+    { "From": "ITA", "To": "FRA", "Value": -80, "Opinion": -80 },
+    { "From": "JPN", "To": "USA", "Value": -60, "Opinion": -60 },
+    { "From": "JPN", "To": "ENG", "Value": -60, "Opinion": -60 },
+    { "From": "JPN", "To": "SOV", "Value": -60, "Opinion": -60 },
+    { "From": "POL", "To": "GER", "Value": -80, "Opinion": -80 },
+    { "From": "POL", "To": "SOV", "Value": -60, "Opinion": -60 }
+  ],
+  "WorldTension": 15,
+  "Guarantees": [
+    { "Guarantor": "ENG", "Target": "POL" },
+    { "Guarantor": "FRA", "Target": "POL" },
+    { "Guarantor": "ENG", "Target": "ROM" },
+    { "Guarantor": "FRA", "Target": "ROM" },
+    { "Guarantor": "ENG", "Target": "GRE" },
+    { "Guarantor": "FRA", "Target": "GRE" }
+  ],
+  "NonAggressionPacts": [],
+  "MilitaryAccess": [],
+  "NavalAccess": []
+}

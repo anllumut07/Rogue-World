@@ -1,0 +1,106 @@
+{
+  "Description": "Modern senaryo: gerçek dünya girdilerinden oyun değerlerine türetme formülleri. Tüm katsayılar ayarlanabilir.",
+  "CivFactories": {
+    "Formula": "CivFactories = GdpBillionUsd / GdpPerCivFactory, min=MinCiv, max=MaxCiv",
+    "GdpPerCivFactory": 12,
+    "MinCiv": 2,
+    "MaxCiv": 150
+  },
+  "MilFactories": {
+    "Formula": "MilFactories = (GdpBillionUsd * DefenseBudgetPercentGdp/100) / GdpPerMilFactory, min=MinMil, max=MaxMil",
+    "GdpPerMilFactory": 6,
+    "MinMil": 1,
+    "MaxMil": 80
+  },
+  "Dockyards": {
+    "Formula": "Dockyards = GdpBillionUsd / GdpPerDockyard, min=MinDock, max=MaxDock",
+    "GdpPerDockyard": 60,
+    "MinDock": 0,
+    "MaxDock": 30
+  },
+  "ManpowerPool": {
+    "Formula": "ManpowerPool = PopulationMillions * 1000000 * ManpowerPercent/100",
+    "ManpowerPercent": 1.0
+  },
+  "StartingDivisions": {
+    "Formula": "StartingDivisions = ActiveMilitaryThousands * 1000 / TroopsPerDivision, min=MinDivisions",
+    "TroopsPerDivision": 15000,
+    "MinDivisions": 1,
+    "MaxDivisions": 120
+  },
+  "ResourceUnits": {
+    "none": 0,
+    "low": 3,
+    "medium": 8,
+    "high": 20
+  },
+  "Politics": {
+    "StartingPP": 30,
+    "StabilityByRegime": {
+      "democracy": 65,
+      "republic": 60,
+      "monarchy": 60,
+      "authoritarian": 55,
+      "hybrid": 50,
+      "one_party": 50
+    },
+    "WarSupportBase": 15,
+    "WarSupportNuclearBonus": 5,
+    "WarSupportByRegime": {
+      "democracy": -5,
+      "republic": 0,
+      "monarchy": 0,
+      "authoritarian": 5,
+      "hybrid": 0,
+      "one_party": 10
+    }
+  },
+  "ResearchSlots": {
+    "Formula": "M17.4: ResearchSlots = ResearchSlotsByTechLevel[techLevel] (boşsa GDP eşikleri kullanılır)",
+    "HighGdpThreshold": 2000,
+    "MediumGdpThreshold": 200,
+    "HighSlots": 4,
+    "MediumSlots": 3,
+    "LowSlots": 2
+  },
+  "TechnologyLevel": {
+    "Formula": "M17.4: TechScore = (GdpBillionUsd/PopulationMillions) * GdpPerCapitaWeight + DefenseBudgetPercentGdp * DefenseBudgetWeight; seviye 1-4 eşiklerden",
+    "GdpPerCapitaWeight": 1.0,
+    "DefenseBudgetWeight": 2.0,
+    "Level4Threshold": 35,
+    "Level3Threshold": 15,
+    "Level2Threshold": 5,
+    "ResearchSlotsByTechLevel": {
+      "1": 2,
+      "2": 3,
+      "3": 4,
+      "4": 5
+    },
+    "StartingTechEraByTechLevel": {
+      "1": 0,
+      "2": 1990,
+      "3": 2000,
+      "4": 2010
+    }
+  },
+  "EquipmentStart": {
+    "Formula": "M17.4: Stok = SablonEkipman * TumenSayisi * BaseStockPerDivision * StockPerDivisionByTechLevel[techLevel]",
+    "BaseStockPerDivision": 1.0,
+    "StockPerDivisionByTechLevel": {
+      "1": 0.4,
+      "2": 0.7,
+      "3": 1.0,
+      "4": 1.3
+    }
+  },
+  "Defaults": {
+    "ActiveMilitaryThousands": 50,
+    "DefenseBudgetPercentGdp": 2.0,
+    "OilClass": "none",
+    "SteelClass": "low",
+    "AluminumClass": "none",
+    "ChromiumClass": "none",
+    "TungstenClass": "none",
+    "RubberClass": "none"
+  }
+}

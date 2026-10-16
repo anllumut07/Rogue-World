@@ -1,0 +1,60 @@
+{
+	"Id": "SOV",
+	"Name": "Soviet Union",
+	"Focuses": [
+		{
+			"Id": "sov_five_year_plan", "Name": "Five Year Plan", "Description": "Central planning drives rapid industrialization.",
+			"X": 1, "Y": 0, "Cost": 70, "AiPriority": 10,
+			"Prerequisites": [], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 3 }
+		},
+		{
+			"Id": "sov_kolkhoz", "Name": "Kolkhoz Reform", "Description": "Collectivized agriculture raises resource output.",
+			"X": 0, "Y": 1, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["sov_five_year_plan"], "MutuallyExclusive": [],
+			"Effects": { "Steel": 2, "Stability": 3 }
+		},
+		{
+			"Id": "sov_third_five_year", "Name": "Third Five Year Plan", "Description": "The next wave of industrial expansion.",
+			"X": 1, "Y": 1, "Cost": 70, "AiPriority": 8,
+			"Prerequisites": ["sov_five_year_plan"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2 }
+		},
+		{
+			"Id": "sov_great_purge", "Name": "Great Purge", "Description": "Eliminate opposition within the party — absolute power at a cost.",
+			"X": 2, "Y": 0, "Cost": 70, "AiPriority": 6,
+			"Prerequisites": [], "MutuallyExclusive": ["sov_red_army_reform"],
+			"Effects": { "PoliticalPower": 50, "Stability": -10, "WorldTension": 1 }
+		},
+		{
+			"Id": "sov_red_army_reform", "Name": "Red Army Reform", "Description": "Keep experienced commanders and modernize doctrine instead.",
+			"X": 3, "Y": 0, "Cost": 70, "AiPriority": 3,
+			"Prerequisites": [], "MutuallyExclusive": ["sov_great_purge"],
+			"Effects": { "Modifiers": { "research_speed": 0.05 }, "WarSupport": 5 }
+		},
+		{
+			"Id": "sov_collectivist_propaganda", "Name": "Mass Propaganda", "Description": "Collectivist propaganda restores faith in the revolution after the Purge.",
+			"X": 2, "Y": 1, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["sov_great_purge"], "MutuallyExclusive": [],
+			"Effects": { "Stability": 10 }
+		},
+		{
+			"Id": "sov_armor_program", "Name": "Armor Program", "Description": "Tank design bureaus accelerate development.",
+			"X": 4, "Y": 1, "Cost": 70, "AiPriority": 5,
+			"Prerequisites": ["sov_five_year_plan"], "MutuallyExclusive": [],
+			"Effects": { "MilFactories": 1, "Modifiers": { "research_speed": 0.03 } }
+		},
+		{
+			"Id": "sov_siberian_industry", "Name": "Siberian Industry", "Description": "Develop industry beyond the Urals, safe from any invader.",
+			"X": 5, "Y": 1, "Cost": 70, "AiPriority": 6,
+			"Prerequisites": ["sov_five_year_plan"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 1, "Steel": 2 }
+		},
+		{
+			"Id": "sov_move_industry_east", "Name": "Move Industry East", "Description": "Relocate key factories deep into the interior.",
+			"X": 5, "Y": 2, "Cost": 70, "AiPriority": 0,
+			"Prerequisites": ["sov_siberian_industry"], "MutuallyExclusive": [],
+			"Effects": { "CivFactories": 2, "Stability": 5 }
+		}
+	]
+}

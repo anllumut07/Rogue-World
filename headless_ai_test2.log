@@ -1,0 +1,1731 @@
+﻿Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+
+CountryDatabase hazır: 50 ülke verisi yüklendi.
+GameManager: Oyuncu ülkesi = GER (Germany)
+EconomySystem: DEU için hazır — Yasa=EarlyMobilization (CG=25%), Civ=26, Mil=20, Dock=4, Konvoy=20
+TechnologySystem hazır: 73 teknoloji yüklendi.
+TechnologySystem: sıfırlandı — Slot=4, Hız=1.00x
+EquipmentSystem: 15 ekipman tipi yüklendi
+EquipmentSystem: DEU için hazır — Askeri fabrika=20, Tersane=4, hat=0, variant=0, stok=0
+ArmySystem: 17 tabur tipi yüklendi
+[Army] Şablon oluşturuldu: Infantry Division (ID=tpl_1, Tabur=9, ORG=50, HP=170, ATT=122, DEF=168, Spd=3, Manpower=7300)
+ArmySystem: Varsayılan şablon 'Infantry Division' oluşturuldu (ID=tpl_1)
+[Army] Ekipman yetmez (infantry_equipment: stok=0, gerek=24000) → 0 tümen
+[Army] Ordu oluşturuldu: 1st Army (Gen. Friedrich de Gaulle, Skill=5)
+ArmySystem: DEU için hazır — Tümen=0, Ordu=1, Şablon=1, Eğitim=0
+WarSystem: DEU için hazır — aktif savaş=0
+DiplomacySystem: DEU için hazır — Faksiyon=3, İlişki=2466, Tension=%15.0
+FocusSystem hazır: 8 ağaç, 73 odak (GER=10, USA=9, SOV=9, ENG=9, FRA=9, JPN=10, ITA=9, GENERIC=8)
+FocusSystem: Germany (GER) için hazır — ağaç: GER "German Reich", 10 odak
+EventSystem: 11 olay yüklendi
+EventSystem: Germany (DEU) için hazır
+DecisionSystem: 10 karar yüklendi
+DecisionSystem: Germany (DEU) için hazır
+CountryAI hazır: 49 AI ülke (oyuncu: GER — AI tarafından yönetilmez)
+GameManager hazır. Başlangıç tarihi: 1 Jan 1936 | Hız: 5 | Ülke: GER | ProdTest: False | WarTest: —
+UITheme: hazır
+MainMenu: hazır (görsel #6 aktif)
+[Trade] Anlaşma kuruldu: Soviet Union → Oil 2/gün (kalan konvoy: 18, stok: 2/60)
+[Trade] Anlaşma kuruldu: Dutch East Indies → Rubber 2/gün (kalan konvoy: 16, stok: 0/100)
+[Trade] Anlaşma kuruldu: United States → Steel 2/gün (kalan konvoy: 14, stok: 22/660)
+[Trade] Anlaşma kuruldu: United States → Aluminum 2/gün (kalan konvoy: 12, stok: 6/180)
+[Trade] Anlaşma kuruldu: China → Tungsten 2/gün (kalan konvoy: 10, stok: 3/90)
+[Trade] Anlaşma kuruldu: Soviet Union → Chromium 2/gün (kalan konvoy: 8, stok: 2/60)
+[Decision] Kullanılabilir karar sayısı: 7 (GER)
+[AI] GBR inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Home Defence (GBR, 70 gün) — +25 PP, +5% Stability
+[Focus][AI] United Kingdom odak SEÇTİ: Home Defence (skor 26.6)
+[AI] GBR tümen yetiştiriyor (40 gün, manpower: 935,470)
+[AI] RUS inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Five Year Plan (RUS, 70 gün) — +3 Civilian Factories
+[Focus][AI] Soviet Union odak SEÇTİ: Five Year Plan (skor 28.6)
+[AI] RUS tümen yetiştiriyor (40 gün, manpower: 3,396,700)
+[AI] USA inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Neutrality Act (USA, 70 gün) — +25 PP, +10% Stability
+[Focus][AI] United States odak SEÇTİ: Neutrality Act (skor 26.6)
+[AI] USA tümen yetiştiriyor (40 gün, manpower: 2,556,280)
+[AI] FRA inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: National Bloc (FRA, 70 gün) — +50 PP
+[Focus][AI] France odak SEÇTİ: National Bloc (skor 18.6)
+[AI] FRA tümen yetiştiriyor (40 gün, manpower: 835,420)
+[AI] ITA inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Battle for Grain (ITA, 70 gün) — +2 Civilian Factories
+[Focus][AI] Italy odak SEÇTİ: Battle for Grain (skor 28.6)
+[AI] ITA tümen yetiştiriyor (40 gün, manpower: 855,430)
+[AI] JPN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: National Mobilization (JPN, 70 gün) — +25 PP, +2 Civilian Factories
+[Focus][AI] Japan odak SEÇTİ: National Mobilization (skor 38.6)
+[AI] JPN tümen yetiştiriyor (40 gün, manpower: 1,455,730)
+[AI] POL inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Political Effort (POL, 70 gün) — +50 PP
+[Focus][AI] Poland odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (TUR, 70 gün) — +50 PP
+[Focus][AI] Turkey odak SEÇTİ: Political Effort (skor 18.6)
+[AI] CHN inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Political Effort (CHN, 70 gün) — +50 PP
+[Focus][AI] China odak SEÇTİ: Political Effort (skor 18.6)
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 9,599,800)
+[AI] ESP inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Political Effort (ESP, 70 gün) — +50 PP
+[Focus][AI] Spain odak SEÇTİ: Political Effort (skor 18.6)
+[AI] ESP tümen yetiştiriyor (40 gün, manpower: 495,250)
+[Focus] Odak BAŞLADI: Political Effort (SWE, 70 gün) — +50 PP
+[Focus][AI] Sweden odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (NOR, 70 gün) — +50 PP
+[Focus][AI] Norway odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (FIN, 70 gün) — +50 PP
+[Focus][AI] Finland odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (DNK, 70 gün) — +50 PP
+[Focus][AI] Denmark odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (NLD, 70 gün) — +50 PP
+[Focus][AI] Netherlands odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (BEL, 70 gün) — +50 PP
+[Focus][AI] Belgium odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (CHE, 70 gün) — +50 PP
+[Focus][AI] Switzerland odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (AUT, 70 gün) — +50 PP
+[Focus][AI] Austria odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (CZE, 70 gün) — +50 PP
+[Focus][AI] Czechoslovakia odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (HUN, 70 gün) — +50 PP
+[Focus][AI] Hungary odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (ROU, 70 gün) — +50 PP
+[Focus][AI] Romania odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (BGR, 70 gün) — +50 PP
+[Focus][AI] Bulgaria odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (GRC, 70 gün) — +50 PP
+[Focus][AI] Greece odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (SRB, 70 gün) — +50 PP
+[Focus][AI] Yugoslavia odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (CAN, 70 gün) — +50 PP
+[Focus][AI] Canada odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (MEX, 70 gün) — +50 PP
+[Focus][AI] Mexico odak SEÇTİ: Political Effort (skor 18.6)
+[AI] BRA inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Political Effort (BRA, 70 gün) — +50 PP
+[Focus][AI] Brazil odak SEÇTİ: Political Effort (skor 18.6)
+[AI] BRA tümen yetiştiriyor (40 gün, manpower: 736,110)
+[Focus] Odak BAŞLADI: Political Effort (ARG, 70 gün) — +50 PP
+[Focus][AI] Argentina odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (AUS, 70 gün) — +50 PP
+[Focus][AI] Australia odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (NZL, 70 gün) — +50 PP
+[Focus][AI] New Zealand odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (ZAF, 70 gün) — +50 PP
+[Focus][AI] South Africa odak SEÇTİ: Political Effort (skor 18.6)
+[AI] IND inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Political Effort (IND, 70 gün) — +50 PP
+[Focus][AI] British Raj odak SEÇTİ: Political Effort (skor 18.6)
+[AI] IND tümen yetiştiriyor (40 gün, manpower: 6,808,600)
+[AI] IDN inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Political Effort (IDN, 70 gün) — +50 PP
+[Focus][AI] Dutch East Indies odak SEÇTİ: Political Effort (skor 18.6)
+[AI] IDN tümen yetiştiriyor (40 gün, manpower: 1,197,400)
+[Focus] Odak BAŞLADI: Political Effort (IRN, 70 gün) — +50 PP
+[Focus][AI] Iran odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (IRQ, 70 gün) — +50 PP
+[Focus][AI] Iraq odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (EGY, 70 gün) — +50 PP
+[Focus][AI] Egypt odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (SAU, 70 gün) — +50 PP
+[Focus][AI] Saudi Arabia odak SEÇTİ: Political Effort (skor 18.6)
+[AI] KOR inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Political Effort (KOR, 70 gün) — +50 PP
+[Focus][AI] Korea odak SEÇTİ: Political Effort (skor 18.6)
+[AI] KOR tümen yetiştiriyor (40 gün, manpower: 435,880)
+[Focus] Odak BAŞLADI: Political Effort (PRK, 70 gün) — +50 PP
+[Focus][AI] North Korea odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (THA, 70 gün) — +50 PP
+[Focus][AI] Siam odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (PHL, 70 gün) — +50 PP
+[Focus][AI] Philippines odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (AFG, 70 gün) — +50 PP
+[Focus][AI] Afghanistan odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (ETH, 70 gün) — +50 PP
+[Focus][AI] Ethiopia odak SEÇTİ: Political Effort (skor 18.6)
+[AI] UKR inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Political Effort (UKR, 70 gün) — +50 PP
+[Focus][AI] Ukraine odak SEÇTİ: Political Effort (skor 18.6)
+[AI] UKR tümen yetiştiriyor (40 gün, manpower: 596,500)
+[Focus] Odak BAŞLADI: Political Effort (MNG, 70 gün) — +50 PP
+[Focus][AI] Mongolia odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (PER, 70 gün) — +50 PP
+[Focus][AI] Iran odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (CHL, 70 gün) — +50 PP
+[Focus][AI] Chile odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (VEN, 70 gün) — +50 PP
+[Focus][AI] Venezuela odak SEÇTİ: Political Effort (skor 18.6)
+[Focus] Odak BAŞLADI: Political Effort (COL, 70 gün) — +50 PP
+[Focus][AI] Colombia odak SEÇTİ: Political Effort (skor 18.6)
+[War] AI SAVAŞ İLANI: Ethiopia → New Zealand (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: New Zealand üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] ETH SAVAŞ İLAN ETTİ: New Zealand (NZL) maliyet=50 PP, güç=10/5, PP=0, WS=40%
+[War] AI SAVAŞ İLANI: Ukraine → Colombia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Colombia üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] UKR SAVAŞ İLAN ETTİ: Colombia (COL) maliyet=50 PP, güç=20/6, PP=0, WS=30%
+[War][AI] NZL 1 tümen kaybetti (kalan: 2)
+[War][AI] COL 1 tümen kaybetti (kalan: 4)
+[War] AI SAVAŞ İLANI: United Kingdom → Iraq (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Iraq üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] GBR SAVAŞ İLAN ETTİ: Iraq (IRQ) maliyet=50 PP, güç=50/6, PP=2, WS=30%
+[War] AI SAVAŞ İLANI: Soviet Union → Brazil (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Brazil üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] RUS SAVAŞ İLAN ETTİ: Brazil (BRA) maliyet=50 PP, güç=105/19, PP=2, WS=40%
+[War] AI SAVAŞ İLANI: United States → Korea (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Korea üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] USA SAVAŞ İLAN ETTİ: Korea (KOR) maliyet=50 PP, güç=68/16, PP=2, WS=20%
+[War] AI SAVAŞ İLANI: France → Yugoslavia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Yugoslavia üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] FRA SAVAŞ İLAN ETTİ: Yugoslavia (SRB) maliyet=50 PP, güç=53/19, PP=2, WS=25%
+[War] AI SAVAŞ İLANI: Italy → Yugoslavia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] ITA SAVAŞ İLAN ETTİ: Yugoslavia (SRB) maliyet=50 PP, güç=42/19, PP=2, WS=45%
+[War] AI SAVAŞ İLANI: Japan → Italy (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Italy üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] JPN SAVAŞ İLAN ETTİ: Italy (ITA) maliyet=50 PP, güç=68/42, PP=2, WS=55%
+[War] AI SAVAŞ İLANI: Poland → Ukraine (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Ukraine üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] POL SAVAŞ İLAN ETTİ: Ukraine (UKR) maliyet=50 PP, güç=42/20, PP=2, WS=30%
+[War] AI SAVAŞ İLANI: Turkey → Denmark (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Denmark üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] TUR SAVAŞ İLAN ETTİ: Denmark (DNK) maliyet=50 PP, güç=23/7, PP=2, WS=30%
+[Diplomacy] Faksiyon oluşturuldu: China Faction (CHN_Faction) lider: CHN
+[AI] CHN faksiyon KURDU: CHN_Faction (İdeoloji: Neutral)
+[War] AI SAVAŞ İLANI: Spain → Australia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Australia üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] ESP SAVAŞ İLAN ETTİ: Australia (AUS) maliyet=50 PP, güç=31/9, PP=2, WS=35%
+[War][AI] NZL 1 tümen kaybetti (kalan: 1)
+[War][AI] COL 1 tümen kaybetti (kalan: 3)
+[War][AI] IRQ 1 tümen kaybetti (kalan: 4)
+[War][AI] BRA 1 tümen kaybetti (kalan: 13)
+[War][AI] KOR 1 tümen kaybetti (kalan: 11)
+[War][AI] SRB 1 tümen kaybetti (kalan: 15)
+[War][AI] ITA OFANSİF emri verdi (güç 42 vs 18)
+[War][AI] SRB 1 tümen kaybetti (kalan: 14)
+[War][AI] ITA 1 tümen kaybetti (kalan: 29)
+[War][AI] UKR 1 tümen kaybetti (kalan: 14)
+[War][AI] DNK 1 tümen kaybetti (kalan: 3)
+[War][AI] AUS 1 tümen kaybetti (kalan: 5)
+[War] AI SAVAŞ İLANI: Sweden → Hungary (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] SWE SAVAŞ İLAN ETTİ: Hungary (HUN) maliyet=50 PP, güç=14/13, PP=4, WS=20%
+[War] AI SAVAŞ İLANI: Finland → Iran (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Iran üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] FIN SAVAŞ İLAN ETTİ: Peru (PER) maliyet=50 PP, güç=12/6, PP=4, WS=25%
+[War] AI SAVAŞ İLANI: Belgium → Greece (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] BEL SAVAŞ İLAN ETTİ: Greece (GRC) maliyet=50 PP, güç=14/12, PP=4, WS=20%
+[War] AI SAVAŞ İLANI: Czechoslovakia → Brazil (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] CZE SAVAŞ İLAN ETTİ: Brazil (BRA) maliyet=50 PP, güç=21/18, PP=4, WS=25%
+[War] AI SAVAŞ İLANI: Hungary → Australia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] HUN SAVAŞ İLAN ETTİ: Australia (AUS) maliyet=50 PP, güç=13/8, PP=4, WS=25%
+[War][AI] NZL 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: New Zealand (NZL) → Ethiopia (ETH) ilhaç edildi. Kazanan: +2 sivil, +0 askeri, +0 tersane
+[War][AI] COL 1 tümen kaybetti (kalan: 2)
+[War][AI] IRQ 1 tümen kaybetti (kalan: 3)
+[War][AI] BRA 1 tümen kaybetti (kalan: 12)
+[War][AI] KOR 1 tümen kaybetti (kalan: 10)
+[War][AI] SRB 1 tümen kaybetti (kalan: 13)
+[War][AI] SRB 1 tümen kaybetti (kalan: 12)
+[War][AI] ITA 1 tümen kaybetti (kalan: 28)
+[War][AI] UKR 1 tümen kaybetti (kalan: 13)
+[War][AI] DNK 1 tümen kaybetti (kalan: 2)
+[War][AI] AUS 1 tümen kaybetti (kalan: 4)
+[War][AI] PER 1 tümen kaybetti (kalan: 4)
+[War][AI] CZE OFANSİF emri verdi (güç 21 vs 17)
+[War][AI] BRA 1 tümen kaybetti (kalan: 11)
+[War][AI] HUN OFANSİF emri verdi (güç 13 vs 7)
+[War][AI] AUS 1 tümen kaybetti (kalan: 3)
+[War] AI SAVAŞ İLANI: Romania → Denmark (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] ROU SAVAŞ İLAN ETTİ: Denmark (DNK) maliyet=50 PP, güç=19/5, PP=6, WS=25%
+[War] AI SAVAŞ İLANI: Bulgaria → Mongolia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Mongolia üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] BGR SAVAŞ İLAN ETTİ: Mongolia (MNG) maliyet=50 PP, güç=12/2, PP=6, WS=20%
+[War] AI SAVAŞ İLANI: Greece → Netherlands (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] GRC SAVAŞ İLAN ETTİ: Netherlands (NLD) maliyet=50 PP, güç=12/13, PP=6, WS=20%
+[War] AI SAVAŞ İLANI: Yugoslavia → Mongolia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] SRB SAVAŞ İLAN ETTİ: Mongolia (MNG) maliyet=50 PP, güç=15/2, PP=6, WS=25%
+[War] AI SAVAŞ İLANI: Mexico → Chile (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Chile üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] MEX SAVAŞ İLAN ETTİ: Chile (CHL) maliyet=50 PP, güç=15/7, PP=6, WS=20%
+[War] AI SAVAŞ İLANI: Brazil → Norway (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Norway üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] BRA SAVAŞ İLAN ETTİ: Norway (NOR) maliyet=50 PP, güç=16/9, PP=6, WS=20%
+[War] AI SAVAŞ İLANI: Argentina → South Africa (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: South Africa üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] ARG SAVAŞ İLAN ETTİ: South Africa (ZAF) maliyet=50 PP, güç=13/8, PP=6, WS=20%
+[War][AI] COL 1 tümen kaybetti (kalan: 1)
+[War][AI] IRQ 1 tümen kaybetti (kalan: 2)
+[War][AI] BRA 1 tümen kaybetti (kalan: 10)
+[War][AI] KOR 1 tümen kaybetti (kalan: 9)
+[War][AI] SRB 1 tümen kaybetti (kalan: 11)
+[War][AI] SRB 1 tümen kaybetti (kalan: 10)
+[War][AI] ITA 1 tümen kaybetti (kalan: 27)
+[War][AI] UKR 1 tümen kaybetti (kalan: 12)
+[War][AI] DNK 1 tümen kaybetti (kalan: 1)
+[War][AI] AUS 1 tümen kaybetti (kalan: 2)
+[War][AI] PER 1 tümen kaybetti (kalan: 3)
+[War][AI] BRA 1 tümen kaybetti (kalan: 9)
+[War][AI] AUS 1 tümen kaybetti (kalan: 1)
+[War][AI] ROU OFANSİF emri verdi (güç 19 vs 4)
+[War][AI] DNK 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Denmark (DNK) → Romania (ROU) ilhaç edildi. Kazanan: +3 sivil, +0 askeri, +0 tersane
+[War][AI] MNG 1 tümen kaybetti (kalan: 1)
+[War][AI] KAPİTÜLASYON: Greece (GRC) → Netherlands (NLD) ilhaç edildi. Kazanan: +2 sivil, +0 askeri, +0 tersane
+[War][AI] SRB OFANSİF emri verdi (güç 13 vs 1)
+[War][AI] MNG 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Mongolia (MNG) → Yugoslavia (SRB) ilhaç edildi. Kazanan: +0 sivil, +0 askeri, +0 tersane
+[War][AI] CHL 1 tümen kaybetti (kalan: 4)
+[War][AI] NOR 1 tümen kaybetti (kalan: 5)
+[War][AI] ZAF 1 tümen kaybetti (kalan: 5)
+[War] AI SAVAŞ İLANI: Iran → Switzerland (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] IRN SAVAŞ İLAN ETTİ: Switzerland (CHE) maliyet=50 PP, güç=11/11, PP=8, WS=20%
+[War] AI SAVAŞ İLANI: British Raj → Ukraine (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] IND SAVAŞ İLAN ETTİ: Ukraine (UKR) maliyet=50 PP, güç=27/17, PP=8, WS=20%
+[War][AI] COL 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Colombia (COL) → Ukraine (UKR) ilhaç edildi. Kazanan: +1 sivil, +0 askeri, +0 tersane
+[War][AI] IRQ 1 tümen kaybetti (kalan: 1)
+[War][AI] BRA 1 tümen kaybetti (kalan: 8)
+[War][AI] KOR 1 tümen kaybetti (kalan: 8)
+[War][AI] SRB 1 tümen kaybetti (kalan: 9)
+[War][AI] SRB 1 tümen kaybetti (kalan: 8)
+[War][AI] ITA 1 tümen kaybetti (kalan: 26)
+[War][AI] UKR 1 tümen kaybetti (kalan: 11)
+[War][AI] DNK 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Denmark (DNK) → Turkey (TUR) ilhaç edildi. Kazanan: +3 sivil, +0 askeri, +0 tersane
+[War][AI] AUS 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Australia (AUS) → Spain (ESP) ilhaç edildi. Kazanan: +4 sivil, +0 askeri, +1 tersane
+[War][AI] PER 1 tümen kaybetti (kalan: 2)
+[War][AI] BEL OFANSİF emri verdi (güç 14 vs 2)
+[War][AI] GRC 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Greece (GRC) → Belgium (BEL) ilhaç edildi. Kazanan: +2 sivil, +0 askeri, +0 tersane
+[War][AI] BRA 1 tümen kaybetti (kalan: 7)
+[War][AI] AUS 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Australia (AUS) → Hungary (HUN) ilhaç edildi. Kazanan: +4 sivil, +0 askeri, +1 tersane
+[War][AI] MNG 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Mongolia (MNG) → Bulgaria (BGR) ilhaç edildi. Kazanan: +0 sivil, +0 askeri, +0 tersane
+[War][AI] CHL 1 tümen kaybetti (kalan: 3)
+[War][AI] NOR 1 tümen kaybetti (kalan: 4)
+[War][AI] ZAF 1 tümen kaybetti (kalan: 4)
+[War][AI] KAPİTÜLASYON: Iran (IRN) → Switzerland (CHE) ilhaç edildi. Kazanan: +2 sivil, +0 askeri, +0 tersane
+[War][AI] IND OFANSİF emri verdi (güç 27 vs 17)
+[War][AI] UKR 1 tümen kaybetti (kalan: 10)
+[Decision] Kullanılabilir karar sayısı: 8 (GER)
+[War][AI] IRQ 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Iraq (IRQ) → United Kingdom (GBR) ilhaç edildi. Kazanan: +1 sivil, +0 askeri, +0 tersane
+[War][AI] BRA 1 tümen kaybetti (kalan: 6)
+[War][AI] KOR 1 tümen kaybetti (kalan: 7)
+[War][AI] SRB 1 tümen kaybetti (kalan: 7)
+[War][AI] SRB 1 tümen kaybetti (kalan: 6)
+[War][AI] ITA 1 tümen kaybetti (kalan: 25)
+[War][AI] UKR 1 tümen kaybetti (kalan: 9)
+[War][AI] PER 1 tümen kaybetti (kalan: 1)
+[War][AI] BRA 1 tümen kaybetti (kalan: 5)
+[War][AI] CHL 1 tümen kaybetti (kalan: 2)
+[War][AI] NOR 1 tümen kaybetti (kalan: 3)
+[War][AI] ZAF 1 tümen kaybetti (kalan: 3)
+[War][AI] UKR 1 tümen kaybetti (kalan: 8)
+[War][AI] BRA 1 tümen kaybetti (kalan: 4)
+[War][AI] KOR 1 tümen kaybetti (kalan: 6)
+[War][AI] SRB 1 tümen kaybetti (kalan: 5)
+[War][AI] SRB 1 tümen kaybetti (kalan: 4)
+[War][AI] ITA 1 tümen kaybetti (kalan: 24)
+[War][AI] UKR 1 tümen kaybetti (kalan: 7)
+[War][AI] PER 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Iran (PER) → Finland (FIN) ilhaç edildi. Kazanan: +2 sivil, +0 askeri, +0 tersane
+[War][AI] BRA 1 tümen kaybetti (kalan: 3)
+[War][AI] CHL 1 tümen kaybetti (kalan: 1)
+[War][AI] NOR 1 tümen kaybetti (kalan: 2)
+[War][AI] ZAF 1 tümen kaybetti (kalan: 2)
+[War][AI] UKR 1 tümen kaybetti (kalan: 6)
+[War][AI] BRA 1 tümen kaybetti (kalan: 2)
+[War][AI] KOR 1 tümen kaybetti (kalan: 5)
+[War][AI] SRB 1 tümen kaybetti (kalan: 3)
+[War][AI] SRB 1 tümen kaybetti (kalan: 2)
+[War][AI] ITA 1 tümen kaybetti (kalan: 23)
+[War][AI] UKR 1 tümen kaybetti (kalan: 5)
+[War][AI] BRA 1 tümen kaybetti (kalan: 1)
+[War][AI] CHL 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Chile (CHL) → Mexico (MEX) ilhaç edildi. Kazanan: +2 sivil, +0 askeri, +0 tersane
+[War][AI] NOR 1 tümen kaybetti (kalan: 1)
+[War][AI] ZAF 1 tümen kaybetti (kalan: 1)
+[War][AI] UKR 1 tümen kaybetti (kalan: 4)
+[Diplomacy] Garanti: CAN → NOR (maliyet 25 PP)
+[AI] CAN garanti verdi: Norway (NOR)
+[War][AI] BRA 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Brazil (BRA) → Soviet Union (RUS) ilhaç edildi. Kazanan: +6 sivil, +1 askeri, +1 tersane
+[War][AI] KOR 1 tümen kaybetti (kalan: 4)
+[War][AI] SRB 1 tümen kaybetti (kalan: 1)
+[War][AI] SRB 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Yugoslavia (SRB) → Italy (ITA) ilhaç edildi. Kazanan: +3 sivil, +1 askeri, +0 tersane
+[War][AI] ITA 1 tümen kaybetti (kalan: 22)
+[War][AI] UKR 1 tümen kaybetti (kalan: 3)
+[War][AI] BRA 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Brazil (BRA) → Czechoslovakia (CZE) ilhaç edildi. Kazanan: +6 sivil, +1 askeri, +1 tersane
+[War][AI] NOR 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Norway (NOR) → Brazil (BRA) ilhaç edildi. Kazanan: +3 sivil, +0 askeri, +1 tersane
+[War][AI] ZAF 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: South Africa (ZAF) → Argentina (ARG) ilhaç edildi. Kazanan: +3 sivil, +0 askeri, +0 tersane
+[War][AI] UKR 1 tümen kaybetti (kalan: 2)
+[War][AI] KOR 1 tümen kaybetti (kalan: 3)
+[War][AI] SRB 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Yugoslavia (SRB) → France (FRA) ilhaç edildi. Kazanan: +3 sivil, +1 askeri, +0 tersane
+[War][AI] ITA 1 tümen kaybetti (kalan: 21)
+[War][AI] UKR 1 tümen kaybetti (kalan: 1)
+[War][AI] UKR 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Ukraine (UKR) → British Raj (IND) ilhaç edildi. Kazanan: +5 sivil, +2 askeri, +1 tersane
+[War][AI] KOR 1 tümen kaybetti (kalan: 2)
+[War][AI] ITA 1 tümen kaybetti (kalan: 20)
+[War][AI] UKR 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Ukraine (UKR) → Poland (POL) ilhaç edildi. Kazanan: +5 sivil, +2 askeri, +1 tersane
+[War][AI] KOR 1 tümen kaybetti (kalan: 1)
+[War][AI] ITA 1 tümen kaybetti (kalan: 19)
+[War][AI] KOR 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Korea (KOR) → United States (USA) ilhaç edildi. Kazanan: +4 sivil, +1 askeri, +1 tersane
+[War][AI] ITA 1 tümen kaybetti (kalan: 18)
+[War][AI] ITA 1 tümen kaybetti (kalan: 17)
+[War][AI] ITA 1 tümen kaybetti (kalan: 16)
+[War][AI] ITA 1 tümen kaybetti (kalan: 15)
+[War][AI] ITA 1 tümen kaybetti (kalan: 14)
+[War][AI] ITA 1 tümen kaybetti (kalan: 13)
+[War][AI] ITA 1 tümen kaybetti (kalan: 12)
+[Economy] Gün 30: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=120, Çelik=720, Konvoy=8
+[Equipment] Gün 30: hat=0 (hat yok), stok: stok boş
+[Army] Gün 30: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,380,400
+[War][AI] ITA 1 tümen kaybetti (kalan: 11)
+[War][AI] Gün 30 — JPN vs ITA: ilerleme %10, JPN tümeni=50, ITA tümeni=11
+[War][AI] Gün 30 — SWE vs HUN: ilerleme %0, SWE tümeni=10, HUN tümeni=10
+[Diplomacy] Gün 30: Tension=%14.8, Faksiyon=1, İlişkiler=2466
+[Trade] Anlaşma iptal: Oil (stok yeterli: 122) — konvoylar serbest
+[Trade] Anlaşma iptal: Chromium (stok yeterli: 122) — konvoylar serbest
+[War][AI] ITA 1 tümen kaybetti (kalan: 10)
+[War][AI] ITA 1 tümen kaybetti (kalan: 9)
+[War][AI] ITA 1 tümen kaybetti (kalan: 8)
+[War][AI] ITA 1 tümen kaybetti (kalan: 7)
+[War][AI] ITA 1 tümen kaybetti (kalan: 6)
+[War][AI] ITA 1 tümen kaybetti (kalan: 5)
+[War] AI SAVAŞ İLANI: Poland → France (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] POL SAVAŞ İLAN ETTİ: France (FRA) maliyet=50 PP, güç=45/54, PP=2, WS=40%
+[War] AI SAVAŞ İLANI: Turkey → Italy (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] TUR SAVAŞ İLAN ETTİ: Italy (ITA) maliyet=50 PP, güç=24/19, PP=2, WS=40%
+[War] AI SAVAŞ İLANI: China → Italy (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] CHN SAVAŞ İLAN ETTİ: Italy (ITA) maliyet=50 PP, güç=130/19, PP=2, WS=50%
+[War] AI SAVAŞ İLANI: Spain → Netherlands (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Netherlands üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] ESP SAVAŞ İLAN ETTİ: Netherlands (NLD) maliyet=50 PP, güç=33/14, PP=2, WS=45%
+[War] AI SAVAŞ İLANI: United Kingdom → Venezuela (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Venezuela üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] GBR SAVAŞ İLAN ETTİ: Venezuela (VEN) maliyet=50 PP, güç=50/5, PP=2, WS=40%
+[War] AI SAVAŞ İLANI: Soviet Union → Poland (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Poland üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] RUS SAVAŞ İLAN ETTİ: Poland (POL) maliyet=50 PP, güç=107/45, PP=2, WS=50%
+[War] AI SAVAŞ İLANI: United States → Italy (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] USA SAVAŞ İLAN ETTİ: Italy (ITA) maliyet=50 PP, güç=70/19, PP=2, WS=30%
+[War] AI SAVAŞ İLANI: France → British Raj (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: British Raj üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] FRA SAVAŞ İLAN ETTİ: British Raj (IND) maliyet=50 PP, güç=54/30, PP=2, WS=35%
+[War] AI SAVAŞ İLANI: Japan → Ethiopia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Ethiopia üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] JPN SAVAŞ İLAN ETTİ: Ethiopia (ETH) maliyet=50 PP, güç=68/11, PP=2, WS=65%
+[Trade] Anlaşma iptal: Tungsten (stok yeterli: 183) — konvoylar serbest
+[War][AI] ITA 1 tümen kaybetti (kalan: 4)
+[War][AI] KAPİTÜLASYON: Poland (POL) → France (FRA) ilhaç edildi. Kazanan: +10 sivil, +3 askeri, +1 tersane
+[War][AI] TUR OFANSİF emri verdi (güç 24 vs 18)
+[War][AI] ITA 1 tümen kaybetti (kalan: 3)
+[War][AI] CHN OFANSİF emri verdi (güç 130 vs 17)
+[War][AI] ITA 1 tümen kaybetti (kalan: 2)
+[War][AI] NLD 1 tümen kaybetti (kalan: 7)
+[War][AI] VEN 1 tümen kaybetti (kalan: 3)
+[War][AI] POL 1 tümen kaybetti (kalan: 34)
+[War][AI] USA OFANSİF emri verdi (güç 70 vs 16)
+[War][AI] ITA 1 tümen kaybetti (kalan: 1)
+[War][AI] IND 1 tümen kaybetti (kalan: 19)
+[War][AI] ETH 1 tümen kaybetti (kalan: 9)
+[War] AI SAVAŞ İLANI: Hungary → Netherlands (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] HUN SAVAŞ İLAN ETTİ: Netherlands (NLD) maliyet=50 PP, güç=14/13, PP=4, WS=35%
+[War] AI SAVAŞ İLANI: Sweden → Siam (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Siam üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] SWE SAVAŞ İLAN ETTİ: Siam (THA) maliyet=50 PP, güç=14/10, PP=4, WS=30%
+[War] AI SAVAŞ İLANI: Finland → Siam (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] FIN SAVAŞ İLAN ETTİ: Siam (THA) maliyet=50 PP, güç=13/10, PP=4, WS=35%
+[War] AI SAVAŞ İLANI: Belgium → North Korea (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: North Korea üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] BEL SAVAŞ İLAN ETTİ: North Korea (PRK) maliyet=50 PP, güç=15/10, PP=4, WS=30%
+[War] AI SAVAŞ İLANI: Czechoslovakia → Ethiopia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] CZE SAVAŞ İLAN ETTİ: Ethiopia (ETH) maliyet=50 PP, güç=24/10, PP=4, WS=35%
+[War][AI] ITA 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Italy (ITA) → Japan (JPN) ilhaç edildi. Kazanan: +11 sivil, +5 askeri, +4 tersane
+[War][AI] ITA 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Italy (ITA) → Turkey (TUR) ilhaç edildi. Kazanan: +11 sivil, +5 askeri, +4 tersane
+[War][AI] ITA 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Italy (ITA) → China (CHN) ilhaç edildi. Kazanan: +11 sivil, +5 askeri, +4 tersane
+[War][AI] NLD 1 tümen kaybetti (kalan: 6)
+[War][AI] VEN 1 tümen kaybetti (kalan: 2)
+[War][AI] POL 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Poland (POL) → Soviet Union (RUS) ilhaç edildi. Kazanan: +10 sivil, +3 askeri, +1 tersane
+[War][AI] ITA 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Italy (ITA) → United States (USA) ilhaç edildi. Kazanan: +11 sivil, +5 askeri, +4 tersane
+[War][AI] IND 1 tümen kaybetti (kalan: 18)
+[War][AI] ETH 1 tümen kaybetti (kalan: 8)
+[War][AI] THA 1 tümen kaybetti (kalan: 7)
+[War][AI] FIN OFANSİF emri verdi (güç 13 vs 9)
+[War][AI] THA 1 tümen kaybetti (kalan: 6)
+[War][AI] PRK 1 tümen kaybetti (kalan: 7)
+[War][AI] CZE OFANSİF emri verdi (güç 24 vs 9)
+[War][AI] ETH 1 tümen kaybetti (kalan: 7)
+[War] AI SAVAŞ İLANI: Romania → Czechoslovakia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] ROU SAVAŞ İLAN ETTİ: Czechoslovakia (CZE) maliyet=50 PP, güç=20/24, PP=6, WS=35%
+[War] AI SAVAŞ İLANI: Bulgaria → Finland (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] BGR SAVAŞ İLAN ETTİ: Finland (FIN) maliyet=50 PP, güç=12/13, PP=6, WS=30%
+[War] AI SAVAŞ İLANI: Mexico → Sweden (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] MEX SAVAŞ İLAN ETTİ: Sweden (SWE) maliyet=50 PP, güç=16/14, PP=6, WS=30%
+[War] AI SAVAŞ İLANI: Argentina → Canada (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] ARG SAVAŞ İLAN ETTİ: Canada (CAN) maliyet=50 PP, güç=14/15, PP=6, WS=30%
+[War][AI] NLD 1 tümen kaybetti (kalan: 5)
+[War][AI] VEN 1 tümen kaybetti (kalan: 1)
+[War][AI] IND 1 tümen kaybetti (kalan: 17)
+[War][AI] ETH 1 tümen kaybetti (kalan: 6)
+[War][AI] HUN OFANSİF emri verdi (güç 14 vs 11)
+[War][AI] NLD 1 tümen kaybetti (kalan: 4)
+[War][AI] THA 1 tümen kaybetti (kalan: 5)
+[War][AI] THA 1 tümen kaybetti (kalan: 4)
+[War][AI] PRK 1 tümen kaybetti (kalan: 6)
+[War][AI] ETH 1 tümen kaybetti (kalan: 5)
+[War][AI] KAPİTÜLASYON: Romania (ROU) → Czechoslovakia (CZE) ilhaç edildi. Kazanan: +5 sivil, +1 askeri, +0 tersane
+[War][AI] KAPİTÜLASYON: Bulgaria (BGR) → Finland (FIN) ilhaç edildi. Kazanan: +2 sivil, +0 askeri, +0 tersane
+[War][AI] KAPİTÜLASYON: Argentina (ARG) → Canada (CAN) ilhaç edildi. Kazanan: +5 sivil, +0 askeri, +0 tersane
+[War] AI SAVAŞ İLANI: British Raj → Sweden (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Sweden üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] IND SAVAŞ İLAN ETTİ: Sweden (SWE) maliyet=50 PP, güç=27/14, PP=8, WS=30%
+[War][AI] NLD 1 tümen kaybetti (kalan: 3)
+[War][AI] VEN 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Venezuela (VEN) → United Kingdom (GBR) ilhaç edildi. Kazanan: +1 sivil, +0 askeri, +0 tersane
+[War][AI] IND 1 tümen kaybetti (kalan: 16)
+[War][AI] ETH 1 tümen kaybetti (kalan: 4)
+[War][AI] NLD 1 tümen kaybetti (kalan: 2)
+[War][AI] THA 1 tümen kaybetti (kalan: 3)
+[War][AI] THA 1 tümen kaybetti (kalan: 2)
+[War][AI] PRK 1 tümen kaybetti (kalan: 5)
+[War][AI] ETH 1 tümen kaybetti (kalan: 3)
+[War][AI] SWE 1 tümen kaybetti (kalan: 9)
+[War][AI] IND OFANSİF emri verdi (güç 26 vs 13)
+[War][AI] SWE 1 tümen kaybetti (kalan: 8)
+[War][AI] NLD 1 tümen kaybetti (kalan: 1)
+[War][AI] IND 1 tümen kaybetti (kalan: 15)
+[War][AI] ETH 1 tümen kaybetti (kalan: 2)
+[War][AI] NLD 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Netherlands (NLD) → Hungary (HUN) ilhaç edildi. Kazanan: +7 sivil, +1 askeri, +1 tersane
+[War][AI] THA 1 tümen kaybetti (kalan: 1)
+[War][AI] THA 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Siam (THA) → Finland (FIN) ilhaç edildi. Kazanan: +2 sivil, +0 askeri, +0 tersane
+[War][AI] PRK 1 tümen kaybetti (kalan: 4)
+[War][AI] ETH 1 tümen kaybetti (kalan: 1)
+[War][AI] SWE 1 tümen kaybetti (kalan: 7)
+[War][AI] SWE 1 tümen kaybetti (kalan: 6)
+[AI] ESP: tümen eğitimi tamamlandı → 26 tümen
+[AI] CHN: tümen eğitimi tamamlandı → 121 tümen
+[AI] JPN: tümen eğitimi tamamlandı → 51 tümen
+[AI] FRA: tümen eğitimi tamamlandı → 41 tümen
+[AI] USA: tümen eğitimi tamamlandı → 25 tümen
+[AI] RUS: tümen eğitimi tamamlandı → 81 tümen
+[AI] GBR: tümen eğitimi tamamlandı → 31 tümen
+[AI] GBR tümen yetiştiriyor (40 gün, manpower: 949,270)
+[AI] RUS tümen yetiştiriyor (40 gün, manpower: 3,459,700)
+[AI] USA tümen yetiştiriyor (40 gün, manpower: 2,602,480)
+[AI] FRA tümen yetiştiriyor (40 gün, manpower: 847,220)
+[AI] JPN tümen yetiştiriyor (40 gün, manpower: 1,479,930)
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 9,786,800)
+[AI] ESP tümen yetiştiriyor (40 gün, manpower: 500,250)
+[War][AI] SWE CEPHE duruşu aldı (savunma, güç 10 vs 17)
+[War][AI] SWE 1 tümen kaybetti (kalan: 5)
+[War][AI] KAPİTÜLASYON: Sweden (SWE) → Hungary (HUN) ilhaç edildi. Kazanan: +5 sivil, +1 askeri, +1 tersane
+[War][AI] NLD 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Netherlands (NLD) → Spain (ESP) ilhaç edildi. Kazanan: +7 sivil, +1 askeri, +1 tersane
+[War][AI] IND 1 tümen kaybetti (kalan: 14)
+[War][AI] ETH 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Ethiopia (ETH) → Japan (JPN) ilhaç edildi. Kazanan: +1 sivil, +0 askeri, +0 tersane
+[War][AI] THA 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Siam (THA) → Sweden (SWE) ilhaç edildi. Kazanan: +2 sivil, +0 askeri, +0 tersane
+[War][AI] PRK 1 tümen kaybetti (kalan: 3)
+[War][AI] ETH 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Ethiopia (ETH) → Czechoslovakia (CZE) ilhaç edildi. Kazanan: +1 sivil, +0 askeri, +0 tersane
+[War][AI] SWE 1 tümen kaybetti (kalan: 4)
+[War][AI] SWE 1 tümen kaybetti (kalan: 3)
+[AI] HUN tümen yetiştiriyor (40 gün, manpower: 180,822)
+[War][AI] IND 1 tümen kaybetti (kalan: 13)
+[War][AI] PRK 1 tümen kaybetti (kalan: 2)
+[War][AI] SWE 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Sweden (SWE) → Mexico (MEX) ilhaç edildi. Kazanan: +6 sivil, +1 askeri, +1 tersane
+[War][AI] SWE 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Sweden (SWE) → British Raj (IND) ilhaç edildi. Kazanan: +6 sivil, +1 askeri, +1 tersane
+[War][AI] IND 1 tümen kaybetti (kalan: 12)
+[War][AI] PRK 1 tümen kaybetti (kalan: 1)
+[AI] IDN: tümen eğitimi tamamlandı → 9 tümen
+[AI] IND: tümen eğitimi tamamlandı → 13 tümen
+[AI] IND tümen yetiştiriyor (40 gün, manpower: 6,939,600)
+[AI] IDN tümen yetiştiriyor (40 gün, manpower: 1,216,400)
+[War][AI] IND 1 tümen kaybetti (kalan: 12)
+[War][AI] PRK 1 tümen kaybetti (kalan: 1)
+[Trade] Anlaşma iptal: Aluminum (stok yeterli: 366) — konvoylar serbest
+[War][AI] IND 1 tümen kaybetti (kalan: 11)
+[War][AI] PRK 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: North Korea (PRK) → Belgium (BEL) ilhaç edildi. Kazanan: +2 sivil, +1 askeri, +0 tersane
+[War][AI] IND 1 tümen kaybetti (kalan: 10)
+[War][AI] IND 1 tümen kaybetti (kalan: 9)
+[War][AI] IND 1 tümen kaybetti (kalan: 8)
+[War][AI] IND 1 tümen kaybetti (kalan: 7)
+[War][AI] IND 1 tümen kaybetti (kalan: 6)
+[War][AI] IND 1 tümen kaybetti (kalan: 5)
+[War][AI] IND 1 tümen kaybetti (kalan: 4)
+[War][AI] IND 1 tümen kaybetti (kalan: 3)
+[War][AI] IND 1 tümen kaybetti (kalan: 2)
+[Trade] Anlaşma iptal: Steel (stok yeterli: 1342) — konvoylar serbest
+[War][AI] IND 1 tümen kaybetti (kalan: 1)
+[War][AI] IND 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: British Raj (IND) → France (FRA) ilhaç edildi. Kazanan: +13 sivil, +3 askeri, +2 tersane
+[Economy] Gün 60: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=180, Çelik=1430, Konvoy=18
+[Equipment] Gün 60: hat=0 (hat yok), stok: stok boş
+[Army] Gün 60: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,400,800
+[Diplomacy] Gün 60: Tension=%14.7, Faksiyon=1, İlişkiler=2466
+[War] AI SAVAŞ İLANI: United Kingdom → Saudi Arabia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Saudi Arabia üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] GBR SAVAŞ İLAN ETTİ: Saudi Arabia (SAU) maliyet=50 PP, güç=51/4, PP=2, WS=50%
+[War] AI SAVAŞ İLANI: Soviet Union → Czechoslovakia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Czechoslovakia üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] RUS SAVAŞ İLAN ETTİ: Czechoslovakia (CZE) maliyet=50 PP, güç=113/26, PP=2, WS=60%
+[War] AI SAVAŞ İLANI: United States → Spain (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Spain üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] USA SAVAŞ İLAN ETTİ: Spain (ESP) maliyet=50 PP, güç=78/37, PP=2, WS=40%
+[War] AI SAVAŞ İLANI: France → Turkey (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Turkey üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] FRA SAVAŞ İLAN ETTİ: Turkey (TUR) maliyet=50 PP, güç=66/30, PP=2, WS=45%
+[War] AI SAVAŞ İLANI: Japan → Finland (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Finland üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] JPN SAVAŞ İLAN ETTİ: Finland (FIN) maliyet=50 PP, güç=76/14, PP=2, WS=75%
+[War] AI SAVAŞ İLANI: Turkey → Czechoslovakia (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] TUR SAVAŞ İLAN ETTİ: Czechoslovakia (CZE) maliyet=50 PP, güç=30/26, PP=2, WS=50%
+[War] AI SAVAŞ İLANI: China → France (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: France üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] CHN SAVAŞ İLAN ETTİ: France (FRA) maliyet=50 PP, güç=137/66, PP=2, WS=60%
+[War] AI SAVAŞ İLANI: Spain → Switzerland (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Switzerland üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] ESP SAVAŞ İLAN ETTİ: Switzerland (CHE) maliyet=50 PP, güç=37/11, PP=2, WS=55%
+[War][AI] SAU 1 tümen kaybetti (kalan: 3)
+[War][AI] CZE 1 tümen kaybetti (kalan: 15)
+[War][AI] ESP 1 tümen kaybetti (kalan: 25)
+[War][AI] TUR 1 tümen kaybetti (kalan: 19)
+[War][AI] FIN 1 tümen kaybetti (kalan: 9)
+[War][AI] FRA 1 tümen kaybetti (kalan: 40)
+[War][AI] CHE 1 tümen kaybetti (kalan: 7)
+[Diplomacy] Garanti: BEL → PHL (maliyet 25 PP)
+[AI] BEL garanti verdi: Philippines (PHL)
+[War] AI SAVAŞ İLANI: Czechoslovakia → Hungary (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Hungary üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] CZE SAVAŞ İLAN ETTİ: Hungary (HUN) maliyet=50 PP, güç=25/20, PP=4, WS=45%
+[War] AI SAVAŞ İLANI: Hungary → Finland (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] HUN SAVAŞ İLAN ETTİ: Finland (FIN) maliyet=50 PP, güç=20/13, PP=4, WS=45%
+[War][AI] SAU 1 tümen kaybetti (kalan: 2)
+[War][AI] CZE 1 tümen kaybetti (kalan: 14)
+[War][AI] ESP 1 tümen kaybetti (kalan: 24)
+[War][AI] TUR 1 tümen kaybetti (kalan: 18)
+[War][AI] FIN 1 tümen kaybetti (kalan: 8)
+[War][AI] FRA 1 tümen kaybetti (kalan: 39)
+[War][AI] CHE 1 tümen kaybetti (kalan: 6)
+[War][AI] HUN 1 tümen kaybetti (kalan: 9)
+[War][AI] HUN OFANSİF emri verdi (güç 19 vs 12)
+[War][AI] FIN 1 tümen kaybetti (kalan: 7)
+[War] AI SAVAŞ İLANI: Mexico → Canada (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] MEX SAVAŞ İLAN ETTİ: Canada (CAN) maliyet=50 PP, güç=19/18, PP=6, WS=40%
+[War][AI] SAU 1 tümen kaybetti (kalan: 1)
+[War][AI] CZE 1 tümen kaybetti (kalan: 13)
+[War][AI] ESP 1 tümen kaybetti (kalan: 23)
+[War][AI] TUR 1 tümen kaybetti (kalan: 17)
+[War][AI] FIN 1 tümen kaybetti (kalan: 6)
+[War][AI] FRA 1 tümen kaybetti (kalan: 38)
+[War][AI] CHE 1 tümen kaybetti (kalan: 5)
+[War][AI] HUN 1 tümen kaybetti (kalan: 8)
+[War][AI] FIN 1 tümen kaybetti (kalan: 5)
+[War][AI] SAU 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Saudi Arabia (SAU) → United Kingdom (GBR) ilhaç edildi. Kazanan: +1 sivil, +0 askeri, +0 tersane
+[War][AI] CZE 1 tümen kaybetti (kalan: 12)
+[War][AI] ESP 1 tümen kaybetti (kalan: 22)
+[War][AI] TUR 1 tümen kaybetti (kalan: 16)
+[War][AI] FIN 1 tümen kaybetti (kalan: 4)
+[War][AI] FRA 1 tümen kaybetti (kalan: 37)
+[War][AI] CHE 1 tümen kaybetti (kalan: 4)
+[War][AI] HUN 1 tümen kaybetti (kalan: 7)
+[War][AI] FIN 1 tümen kaybetti (kalan: 3)
+[War][AI] CZE 1 tümen kaybetti (kalan: 11)
+[War][AI] ESP 1 tümen kaybetti (kalan: 21)
+[War][AI] TUR 1 tümen kaybetti (kalan: 15)
+[War][AI] FIN 1 tümen kaybetti (kalan: 2)
+[War][AI] FRA 1 tümen kaybetti (kalan: 36)
+[War][AI] CHE 1 tümen kaybetti (kalan: 3)
+[War][AI] HUN 1 tümen kaybetti (kalan: 6)
+[War][AI] FIN 1 tümen kaybetti (kalan: 1)
+[AI] TUR tümen yetiştiriyor (40 gün, manpower: 346,220)
+[War][AI] CZE 1 tümen kaybetti (kalan: 10)
+[War][AI] ESP 1 tümen kaybetti (kalan: 20)
+[War][AI] TUR 1 tümen kaybetti (kalan: 14)
+[War][AI] FIN 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Finland (FIN) → Japan (JPN) ilhaç edildi. Kazanan: +6 sivil, +0 askeri, +0 tersane
+[War][AI] FRA 1 tümen kaybetti (kalan: 35)
+[War][AI] CHE 1 tümen kaybetti (kalan: 2)
+[War][AI] HUN 1 tümen kaybetti (kalan: 5)
+[War][AI] FIN 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Finland (FIN) → Hungary (HUN) ilhaç edildi. Kazanan: +6 sivil, +0 askeri, +0 tersane
+[AI] CZE tümen yetiştiriyor (40 gün, manpower: 212,035)
+[War][AI] CZE 1 tümen kaybetti (kalan: 9)
+[War][AI] ESP 1 tümen kaybetti (kalan: 19)
+[War][AI] TUR 1 tümen kaybetti (kalan: 13)
+[War][AI] TUR OFANSİF emri verdi (güç 23 vs 19)
+[War][AI] CZE 1 tümen kaybetti (kalan: 8)
+[War][AI] FRA 1 tümen kaybetti (kalan: 34)
+[War][AI] CHE 1 tümen kaybetti (kalan: 1)
+[War][AI] HUN 1 tümen kaybetti (kalan: 4)
+[War][AI] CZE 1 tümen kaybetti (kalan: 7)
+[War][AI] ESP 1 tümen kaybetti (kalan: 18)
+[War][AI] TUR 1 tümen kaybetti (kalan: 12)
+[War][AI] CZE 1 tümen kaybetti (kalan: 6)
+[War][AI] FRA 1 tümen kaybetti (kalan: 33)
+[War][AI] CHE 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Switzerland (CHE) → Spain (ESP) ilhaç edildi. Kazanan: +5 sivil, +0 askeri, +0 tersane
+[War][AI] CZE 1 tümen kaybetti (kalan: 5)
+[War][AI] ESP 1 tümen kaybetti (kalan: 17)
+[War][AI] TUR 1 tümen kaybetti (kalan: 11)
+[War][AI] CZE 1 tümen kaybetti (kalan: 4)
+[War][AI] FRA 1 tümen kaybetti (kalan: 32)
+[War][AI] CZE 1 tümen kaybetti (kalan: 3)
+[War][AI] ESP 1 tümen kaybetti (kalan: 16)
+[War][AI] TUR 1 tümen kaybetti (kalan: 10)
+[War][AI] CZE 1 tümen kaybetti (kalan: 2)
+[War][AI] FRA 1 tümen kaybetti (kalan: 31)
+[War][AI] CZE CEPHE duruşu aldı (savunma, güç 12 vs 16)
+[War][AI] CZE 1 tümen kaybetti (kalan: 1)
+[AI] CHN built Military Factory (Civ=31, Mil=14, Dock=6)
+[AI] JPN built Civilian Factory (Civ=44, Mil=20, Dock=18)
+[AI] FRA built Military Factory (Civ=56, Mil=14, Dock=7)
+[AI] USA built Civilian Factory (Civ=126, Mil=18, Dock=17)
+[AI] RUS built Civilian Factory (Civ=57, Mil=29, Dock=12)
+[AI] GBR built Civilian Factory (Civ=39, Mil=10, Dock=15)
+[Focus] Home Defence: PP 22.0 → 47.0 (+25)
+[Focus] Home Defence: Stabilite %55 → %60 (+5)
+[Focus][AI] ✔ GBR odak tamamlandı: Home Defence — +25 PP, +5% Stability
+[Focus] Five Year Plan: Sivil fabrika 57 → 60 (+3)
+[Focus][AI] ✔ RUS odak tamamlandı: Five Year Plan — +3 Civilian Factories
+[Focus] Neutrality Act: PP 22.0 → 47.0 (+25)
+[Focus] Neutrality Act: Stabilite %65 → %75 (+10)
+[Focus][AI] ✔ USA odak tamamlandı: Neutrality Act — +25 PP, +10% Stability
+[Focus] National Bloc: PP 22.0 → 72.0 (+50)
+[Focus][AI] ✔ FRA odak tamamlandı: National Bloc — +50 PP
+[Focus] Battle for Grain: Sivil fabrika 23 → 25 (+2)
+[Focus][AI] ✔ ITA odak tamamlandı: Battle for Grain — +2 Civilian Factories
+[Focus] National Mobilization: PP 22.0 → 47.0 (+25)
+[Focus] National Mobilization: Sivil fabrika 44 → 46 (+2)
+[Focus][AI] ✔ JPN odak tamamlandı: National Mobilization — +25 PP, +2 Civilian Factories
+[Focus] Political Effort: PP 2.0 → 52.0 (+50)
+[Focus][AI] ✔ POL odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 22.0 → 72.0 (+50)
+[Focus][AI] ✔ TUR odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 22.0 → 72.0 (+50)
+[Focus][AI] ✔ CHN odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 22.0 → 72.0 (+50)
+[Focus][AI] ✔ ESP odak tamamlandı: Political Effort — +50 PP
+[AI] GBR inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Imperial Conference (GBR, 70 gün) — +25 PP, +5% Stability
+[Focus][AI] United Kingdom odak SEÇTİ: Imperial Conference (skor 19.6)
+[AI] RUS inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Armor Program (RUS, 70 gün) — +1 Military Factories, +3% Research Speed
+[Focus][AI] Soviet Union odak SEÇTİ: Armor Program (skor 35.6)
+[AI] USA inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Science Budget (USA, 70 gün) — +1 Research Slot
+[Focus][AI] United States odak SEÇTİ: Science Budget (skor 28.6)
+[AI] FRA inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Maginot Line (FRA, 70 gün) — +10% Stability
+[Focus][AI] France odak SEÇTİ: Maginot Line (skor 32.6)
+[War] AI SAVAŞ İLANI: France → Hungary (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Hungary üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] FRA SAVAŞ İLAN ETTİ: Hungary (HUN) maliyet=50 PP, güç=56/16, PP=22, WS=55%
+[AI] JPN inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Zero Program (JPN, 70 gün) — +1 Military Factories, +2% Research Speed
+[Focus][AI] Japan odak SEÇTİ: Zero Program (skor 40.6)
+[Focus] Odak BAŞLADI: Industrial Effort (TUR, 70 gün) — +2 Civilian Factories
+[Focus][AI] Turkey odak SEÇTİ: Industrial Effort (skor 26.6)
+[War] AI SAVAŞ İLANI: Turkey → Canada (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] TUR SAVAŞ İLAN ETTİ: Canada (CAN) maliyet=50 PP, güç=20/18, PP=22, WS=60%
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Stability Program (CHN, 70 gün) — +25 PP, +10% Stability
+[Focus][AI] China odak SEÇTİ: Stability Program (skor 39.6)
+[War] AI SAVAŞ İLANI: China → Belgium (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Belgium üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] CHN SAVAŞ İLAN ETTİ: Belgium (BEL) maliyet=50 PP, güç=138/16, PP=22, WS=70%
+[Focus] Odak BAŞLADI: Stability Program (ESP, 70 gün) — +25 PP, +10% Stability
+[Focus][AI] Spain odak SEÇTİ: Stability Program (skor 39.6)
+[War] AI SAVAŞ İLANI: Spain → Philippines (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Philippines üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] ESP SAVAŞ İLAN ETTİ: Philippines (PHL) maliyet=50 PP, güç=28/9, PP=22, WS=65%
+[War][AI] CZE 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Czechoslovakia (CZE) → Soviet Union (RUS) ilhaç edildi. Kazanan: +12 sivil, +3 askeri, +0 tersane
+[War][AI] ESP 1 tümen kaybetti (kalan: 15)
+[War][AI] TUR 1 tümen kaybetti (kalan: 9)
+[War][AI] CZE 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Czechoslovakia (CZE) → Turkey (TUR) ilhaç edildi. Kazanan: +12 sivil, +3 askeri, +0 tersane
+[War][AI] FRA 1 tümen kaybetti (kalan: 30)
+[War][AI] CZE CEPHE duruşu aldı (savunma, güç 10 vs 16)
+[War][AI] CZE 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Czechoslovakia (CZE) → Hungary (HUN) ilhaç edildi. Kazanan: +12 sivil, +3 askeri, +0 tersane
+[War][AI] FRA OFANSİF emri verdi (güç 55 vs 21)
+[War][AI] HUN 1 tümen kaybetti (kalan: 3)
+[War][AI] TUR OFANSİF emri verdi (güç 24 vs 18)
+[War][AI] CAN 1 tümen kaybetti (kalan: 8)
+[War][AI] BEL 1 tümen kaybetti (kalan: 9)
+[War][AI] PHL 1 tümen kaybetti (kalan: 6)
+[Focus] Political Effort: PP 12.0 → 62.0 (+50)
+[Focus][AI] ✔ SWE odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 66.0 → 116.0 (+50)
+[Focus][AI] ✔ NOR odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 62.0 → 112.0 (+50)
+[Focus][AI] ✔ FIN odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 56.0 → 106.0 (+50)
+[Focus][AI] ✔ DNK odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 110.0 → 160.0 (+50)
+[Focus][AI] ✔ NLD odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 24.0 → 74.0 (+50)
+[Focus][AI] ✔ BEL odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 166.0 → 216.0 (+50)
+[Focus][AI] ✔ CHE odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 174.0 → 224.0 (+50)
+[Focus][AI] ✔ AUT odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 22.0 → 72.0 (+50)
+[Focus][AI] ✔ CZE odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 24.0 → 74.0 (+50)
+[Focus][AI] ✔ HUN odak tamamlandı: Political Effort — +50 PP
+[Focus] Odak BAŞLADI: Industrial Effort (BEL, 70 gün) — +2 Civilian Factories
+[Focus][AI] Belgium odak SEÇTİ: Industrial Effort (skor 36.6)
+[Focus] Odak BAŞLADI: Industrial Effort (AUT, 70 gün) — +2 Civilian Factories
+[Focus][AI] Austria odak SEÇTİ: Industrial Effort (skor 36.6)
+[Focus] Odak BAŞLADI: Industrial Effort (HUN, 70 gün) — +2 Civilian Factories
+[Focus][AI] Hungary odak SEÇTİ: Industrial Effort (skor 26.6)
+[War][AI] ESP 1 tümen kaybetti (kalan: 14)
+[War][AI] TUR 1 tümen kaybetti (kalan: 8)
+[War][AI] FRA 1 tümen kaybetti (kalan: 29)
+[War][AI] HUN 1 tümen kaybetti (kalan: 2)
+[War][AI] CAN 1 tümen kaybetti (kalan: 7)
+[War][AI] BEL 1 tümen kaybetti (kalan: 8)
+[War][AI] PHL 1 tümen kaybetti (kalan: 5)
+[Focus] Political Effort: PP 6.0 → 56.0 (+50)
+[Focus][AI] ✔ ROU odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 6.0 → 56.0 (+50)
+[Focus][AI] ✔ BGR odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 6.0 → 56.0 (+50)
+[Focus][AI] ✔ GRC odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 16.0 → 66.0 (+50)
+[Focus][AI] ✔ SRB odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 126.0 → 176.0 (+50)
+[Focus][AI] ✔ CAN odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 26.0 → 76.0 (+50)
+[Focus][AI] ✔ MEX odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 16.0 → 66.0 (+50)
+[Focus][AI] ✔ BRA odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 6.0 → 56.0 (+50)
+[Focus][AI] ✔ ARG odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 58.0 → 108.0 (+50)
+[Focus][AI] ✔ AUS odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 54.0 → 104.0 (+50)
+[Focus][AI] ✔ NZL odak tamamlandı: Political Effort — +50 PP
+[Focus] Odak BAŞLADI: Industrial Effort (CAN, 70 gün) — +2 Civilian Factories
+[Focus][AI] Canada odak SEÇTİ: Industrial Effort (skor 26.6)
+[Focus] Odak BAŞLADI: Industrial Effort (MEX, 70 gün) — +2 Civilian Factories
+[Focus][AI] Mexico odak SEÇTİ: Industrial Effort (skor 36.6)
+[War] AI SAVAŞ İLANI: Mexico → Philippines (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] MEX SAVAŞ İLAN ETTİ: Philippines (PHL) maliyet=50 PP, güç=19/7, PP=26, WS=50%
+[War][AI] ESP 1 tümen kaybetti (kalan: 13)
+[War][AI] TUR 1 tümen kaybetti (kalan: 7)
+[War][AI] FRA 1 tümen kaybetti (kalan: 28)
+[War][AI] HUN 1 tümen kaybetti (kalan: 1)
+[War][AI] CAN 1 tümen kaybetti (kalan: 6)
+[War][AI] BEL 1 tümen kaybetti (kalan: 7)
+[War][AI] PHL 1 tümen kaybetti (kalan: 4)
+[War][AI] MEX OFANSİF emri verdi (güç 19 vs 6)
+[War][AI] PHL 1 tümen kaybetti (kalan: 3)
+[Focus] Political Effort: PP 66.0 → 116.0 (+50)
+[Focus][AI] ✔ ZAF odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 42.0 → 92.0 (+50)
+[Focus][AI] ✔ IND odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 178.0 → 228.0 (+50)
+[Focus][AI] ✔ IDN odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 8.0 → 58.0 (+50)
+[Focus][AI] ✔ IRN odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 60.0 → 110.0 (+50)
+[Focus][AI] ✔ IRQ odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 178.0 → 228.0 (+50)
+[Focus][AI] ✔ EGY odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 158.0 → 208.0 (+50)
+[Focus][AI] ✔ SAU odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 74.0 → 124.0 (+50)
+[Focus][AI] ✔ KOR odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 120.0 → 170.0 (+50)
+[Focus][AI] ✔ PRK odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 110.0 → 160.0 (+50)
+[Focus][AI] ✔ THA odak tamamlandı: Political Effort — +50 PP
+[Focus] Odak BAŞLADI: Industrial Effort (IDN, 70 gün) — +2 Civilian Factories
+[Focus][AI] Dutch East Indies odak SEÇTİ: Industrial Effort (skor 36.6)
+[Focus] Odak BAŞLADI: Industrial Effort (EGY, 70 gün) — +2 Civilian Factories
+[Focus][AI] Egypt odak SEÇTİ: Industrial Effort (skor 36.6)
+[War][AI] ESP 1 tümen kaybetti (kalan: 12)
+[War][AI] TUR 1 tümen kaybetti (kalan: 6)
+[War][AI] FRA 1 tümen kaybetti (kalan: 27)
+[War][AI] MEX OFANSİF emri verdi (güç 19 vs 15)
+[War][AI] CAN 1 tümen kaybetti (kalan: 5)
+[War][AI] HUN 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Hungary (HUN) → France (FRA) ilhaç edildi. Kazanan: +20 sivil, +3 askeri, +1 tersane
+[War][AI] CAN 1 tümen kaybetti (kalan: 4)
+[War][AI] BEL 1 tümen kaybetti (kalan: 6)
+[War][AI] PHL 1 tümen kaybetti (kalan: 2)
+[War][AI] PHL 1 tümen kaybetti (kalan: 1)
+[Focus] Political Effort: PP 180.0 → 230.0 (+50)
+[Focus][AI] ✔ PHL odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 180.0 → 230.0 (+50)
+[Focus][AI] ✔ AFG odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 62.0 → 112.0 (+50)
+[Focus][AI] ✔ ETH odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 18.0 → 68.0 (+50)
+[Focus][AI] ✔ UKR odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 56.0 → 106.0 (+50)
+[Focus][AI] ✔ MNG odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 58.0 → 108.0 (+50)
+[Focus][AI] ✔ PER odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 64.0 → 114.0 (+50)
+[Focus][AI] ✔ CHL odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 108.0 → 158.0 (+50)
+[Focus][AI] ✔ VEN odak tamamlandı: Political Effort — +50 PP
+[Focus] Political Effort: PP 58.0 → 108.0 (+50)
+[Focus][AI] ✔ COL odak tamamlandı: Political Effort — +50 PP
+[Focus] Odak BAŞLADI: Industrial Effort (PHL, 70 gün) — +2 Civilian Factories
+[Focus][AI] Philippines odak SEÇTİ: Industrial Effort (skor 36.6)
+[Focus] Odak BAŞLADI: Industrial Effort (AFG, 70 gün) — +2 Civilian Factories
+[Focus][AI] Afghanistan odak SEÇTİ: Industrial Effort (skor 36.6)
+[Focus] Odak BAŞLADI: Industrial Effort (PER, 70 gün) — +2 Civilian Factories
+[Focus][AI] Iran odak SEÇTİ: Industrial Effort (skor 36.6)
+[War][AI] ESP 1 tümen kaybetti (kalan: 11)
+[War][AI] TUR 1 tümen kaybetti (kalan: 5)
+[War][AI] FRA 1 tümen kaybetti (kalan: 26)
+[War][AI] CAN 1 tümen kaybetti (kalan: 3)
+[War][AI] CAN 1 tümen kaybetti (kalan: 2)
+[War][AI] BEL 1 tümen kaybetti (kalan: 5)
+[War][AI] PHL 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Philippines (PHL) → Spain (ESP) ilhaç edildi. Kazanan: +2 sivil, +0 askeri, +0 tersane
+[War][AI] PHL 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Philippines (PHL) → Mexico (MEX) ilhaç edildi. Kazanan: +2 sivil, +0 askeri, +0 tersane
+[War] AI SAVAŞ İLANI: United Kingdom → Mexico (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Mexico üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] GBR SAVAŞ İLAN ETTİ: Mexico (MEX) maliyet=50 PP, güç=52/20, PP=7, WS=60%
+[War] AI SAVAŞ İLANI: United States → Germany (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Germany üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] USA SAVAŞ İLAN ETTİ: Germany (DEU) maliyet=50 PP, güç=78/56, PP=7, WS=50%
+[War] AI SAVAŞ İLANI: Japan → United Kingdom (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: United Kingdom üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] JPN SAVAŞ İLAN ETTİ: United Kingdom (GBR) maliyet=50 PP, güç=79/52, PP=7, WS=85%
+[War][AI] ESP 1 tümen kaybetti (kalan: 10)
+[War][AI] TUR 1 tümen kaybetti (kalan: 4)
+[War][AI] FRA 1 tümen kaybetti (kalan: 25)
+[War][AI] CAN 1 tümen kaybetti (kalan: 1)
+[War][AI] CAN 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Canada (CAN) → Turkey (TUR) ilhaç edildi. Kazanan: +10 sivil, +1 askeri, +2 tersane
+[War][AI] BEL 1 tümen kaybetti (kalan: 4)
+[War][AI] MEX 1 tümen kaybetti (kalan: 12)
+[War][AI] DEU 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Germany (DEU) → United States (USA) ilhaç edildi. Kazanan: +13 sivil, +10 askeri, +2 tersane
+[War][AI] GBR 1 tümen kaybetti (kalan: 30)
+[War][AI] ESP 1 tümen kaybetti (kalan: 9)
+[War][AI] TUR 1 tümen kaybetti (kalan: 3)
+[War][AI] FRA 1 tümen kaybetti (kalan: 24)
+[War][AI] CAN 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Canada (CAN) → Mexico (MEX) ilhaç edildi. Kazanan: +10 sivil, +1 askeri, +2 tersane
+[War][AI] BEL 1 tümen kaybetti (kalan: 3)
+[War][AI] MEX 1 tümen kaybetti (kalan: 11)
+[War][AI] GBR 1 tümen kaybetti (kalan: 29)
+[War][AI] ESP 1 tümen kaybetti (kalan: 8)
+[War][AI] TUR 1 tümen kaybetti (kalan: 2)
+[War][AI] FRA 1 tümen kaybetti (kalan: 23)
+[War][AI] BEL 1 tümen kaybetti (kalan: 2)
+[War][AI] MEX 1 tümen kaybetti (kalan: 10)
+[War][AI] GBR 1 tümen kaybetti (kalan: 28)
+[War][AI] ESP 1 tümen kaybetti (kalan: 7)
+[War][AI] TUR 1 tümen kaybetti (kalan: 1)
+[War][AI] FRA 1 tümen kaybetti (kalan: 22)
+[War][AI] BEL 1 tümen kaybetti (kalan: 1)
+[War][AI] MEX 1 tümen kaybetti (kalan: 9)
+[War][AI] GBR 1 tümen kaybetti (kalan: 27)
+[War][AI] ESP 1 tümen kaybetti (kalan: 6)
+[War][AI] TUR 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Turkey (TUR) → France (FRA) ilhaç edildi. Kazanan: +21 sivil, +5 askeri, +3 tersane
+[War][AI] FRA 1 tümen kaybetti (kalan: 21)
+[War][AI] BEL 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Belgium (BEL) → China (CHN) ilhaç edildi. Kazanan: +7 sivil, +1 askeri, +0 tersane
+[War][AI] MEX 1 tümen kaybetti (kalan: 8)
+[War][AI] GBR 1 tümen kaybetti (kalan: 26)
+[AI] ESP: tümen eğitimi tamamlandı → 7 tümen
+[AI] CHN: tümen eğitimi tamamlandı → 122 tümen
+[AI] JPN: tümen eğitimi tamamlandı → 52 tümen
+[AI] FRA: tümen eğitimi tamamlandı → 22 tümen
+[AI] USA: tümen eğitimi tamamlandı → 26 tümen
+[AI] RUS: tümen eğitimi tamamlandı → 82 tümen
+[AI] GBR: tümen eğitimi tamamlandı → 27 tümen
+[AI] GBR tümen yetiştiriyor (40 gün, manpower: 963,070)
+[AI] RUS tümen yetiştiriyor (40 gün, manpower: 3,522,700)
+[AI] USA tümen yetiştiriyor (40 gün, manpower: 2,648,680)
+[AI] FRA tümen yetiştiriyor (40 gün, manpower: 859,020)
+[AI] JPN tümen yetiştiriyor (40 gün, manpower: 1,504,130)
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 9,973,800)
+[AI] ESP tümen yetiştiriyor (40 gün, manpower: 505,250)
+[War][AI] ESP 1 tümen kaybetti (kalan: 6)
+[War][AI] FRA 1 tümen kaybetti (kalan: 21)
+[War][AI] MEX 1 tümen kaybetti (kalan: 7)
+[War][AI] GBR 1 tümen kaybetti (kalan: 26)
+[AI] ESP built Military Factory (Civ=30, Mil=6, Dock=5)
+[War][AI] ESP 1 tümen kaybetti (kalan: 5)
+[War][AI] FRA 1 tümen kaybetti (kalan: 20)
+[War][AI] MEX 1 tümen kaybetti (kalan: 6)
+[War][AI] GBR 1 tümen kaybetti (kalan: 25)
+[AI] MEX: tümen eğitimi tamamlandı → 7 tümen
+[AI] MEX tümen yetiştiriyor (40 gün, manpower: 359,940)
+[War][AI] ESP 1 tümen kaybetti (kalan: 4)
+[War][AI] FRA 1 tümen kaybetti (kalan: 19)
+[War][AI] MEX 1 tümen kaybetti (kalan: 6)
+[War][AI] GBR 1 tümen kaybetti (kalan: 24)
+[AI] IDN: tümen eğitimi tamamlandı → 10 tümen
+[AI] IDN tümen yetiştiriyor (40 gün, manpower: 1,235,400)
+[War][AI] ESP 1 tümen kaybetti (kalan: 3)
+[War][AI] FRA 1 tümen kaybetti (kalan: 18)
+[War][AI] MEX 1 tümen kaybetti (kalan: 5)
+[War][AI] GBR 1 tümen kaybetti (kalan: 23)
+[War][AI] ESP 1 tümen kaybetti (kalan: 2)
+[War][AI] FRA 1 tümen kaybetti (kalan: 17)
+[War][AI] MEX 1 tümen kaybetti (kalan: 4)
+[War][AI] GBR 1 tümen kaybetti (kalan: 22)
+[War] AI SAVAŞ İLANI: Soviet Union → Spain (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] RUS SAVAŞ İLAN ETTİ: Spain (ESP) maliyet=50 PP, güç=120/15, PP=2, WS=70%
+[War] AI SAVAŞ İLANI: France → Afghanistan (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Afghanistan üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] FRA SAVAŞ İLAN ETTİ: Afghanistan (AFG) maliyet=50 PP, güç=60/7, PP=2, WS=65%
+[War] AI SAVAŞ İLANI: China → Soviet Union (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] CHN SAVAŞ İLAN ETTİ: Soviet Union (RUS) maliyet=50 PP, güç=141/120, PP=2, WS=80%
+[AI] ESP inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[War][AI] ESP 1 tümen kaybetti (kalan: 1)
+[War][AI] FRA 1 tümen kaybetti (kalan: 16)
+[War][AI] MEX 1 tümen kaybetti (kalan: 3)
+[War][AI] GBR 1 tümen kaybetti (kalan: 21)
+[War][AI] RUS OFANSİF emri verdi (güç 120 vs 14)
+[War][AI] ESP 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Spain (ESP) → Soviet Union (RUS) ilhaç edildi. Kazanan: +15 sivil, +3 askeri, +2 tersane
+[War][AI] AFG 1 tümen kaybetti (kalan: 6)
+[War][AI] ESP 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Spain (ESP) → United States (USA) ilhaç edildi. Kazanan: +15 sivil, +3 askeri, +2 tersane
+[War][AI] FRA 1 tümen kaybetti (kalan: 15)
+[War][AI] MEX 1 tümen kaybetti (kalan: 2)
+[War][AI] GBR 1 tümen kaybetti (kalan: 20)
+[War][AI] AFG 1 tümen kaybetti (kalan: 5)
+[War][AI] FRA 1 tümen kaybetti (kalan: 14)
+[War][AI] MEX 1 tümen kaybetti (kalan: 1)
+[War][AI] GBR 1 tümen kaybetti (kalan: 19)
+[War][AI] AFG 1 tümen kaybetti (kalan: 4)
+[Economy] Gün 90: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=240, Çelik=2090, Konvoy=18
+[Equipment] Gün 90: hat=0 (hat yok), stok: stok boş
+[Army] Gün 90: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,421,200
+[War][AI] FRA 1 tümen kaybetti (kalan: 13)
+[War][AI] MEX 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Mexico (MEX) → United Kingdom (GBR) ilhaç edildi. Kazanan: +14 sivil, +1 askeri, +2 tersane
+[War][AI] GBR 1 tümen kaybetti (kalan: 18)
+[War][AI] AFG 1 tümen kaybetti (kalan: 3)
+[War][AI] Gün 90 — CHN vs FRA: ilerleme %17, CHN tümeni=122, FRA tümeni=13
+[War][AI] Gün 90 — GBR vs MEX: ilerleme %100, GBR tümeni=18, MEX tümeni=0
+[War][AI] Gün 90 — JPN vs GBR: ilerleme %7, JPN tümeni=52, GBR tümeni=18
+[War][AI] Gün 90 — FRA vs AFG: ilerleme %3, FRA tümeni=13, AFG tümeni=3
+[War][AI] Gün 90 — CHN vs RUS: ilerleme %0, CHN tümeni=122, RUS tümeni=82
+[Diplomacy] Gün 90: Tension=%14.7, Faksiyon=1, İlişkiler=2466
+[War][AI] FRA 1 tümen kaybetti (kalan: 12)
+[War][AI] GBR 1 tümen kaybetti (kalan: 17)
+[War][AI] AFG 1 tümen kaybetti (kalan: 2)
+[War][AI] FRA 1 tümen kaybetti (kalan: 11)
+[War][AI] GBR 1 tümen kaybetti (kalan: 16)
+[War][AI] AFG 1 tümen kaybetti (kalan: 1)
+[War][AI] FRA 1 tümen kaybetti (kalan: 10)
+[War][AI] GBR 1 tümen kaybetti (kalan: 15)
+[War][AI] AFG 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Afghanistan (AFG) → France (FRA) ilhaç edildi. Kazanan: +0 sivil, +0 askeri, +0 tersane
+[War][AI] FRA 1 tümen kaybetti (kalan: 9)
+[War][AI] GBR 1 tümen kaybetti (kalan: 14)
+[War][AI] FRA 1 tümen kaybetti (kalan: 8)
+[War][AI] GBR 1 tümen kaybetti (kalan: 13)
+[War][AI] FRA 1 tümen kaybetti (kalan: 7)
+[War][AI] GBR 1 tümen kaybetti (kalan: 12)
+[War][AI] FRA 1 tümen kaybetti (kalan: 6)
+[War][AI] GBR 1 tümen kaybetti (kalan: 11)
+[War][AI] FRA 1 tümen kaybetti (kalan: 5)
+[War][AI] GBR 1 tümen kaybetti (kalan: 10)
+[War][AI] FRA 1 tümen kaybetti (kalan: 4)
+[War][AI] GBR 1 tümen kaybetti (kalan: 9)
+[War][AI] FRA 1 tümen kaybetti (kalan: 3)
+[War][AI] GBR 1 tümen kaybetti (kalan: 8)
+[Trade] Anlaşma iptal: Rubber (stok yeterli: 200) — konvoylar serbest
+[War][AI] FRA 1 tümen kaybetti (kalan: 2)
+[War][AI] GBR 1 tümen kaybetti (kalan: 7)
+[War] AI SAVAŞ İLANI: United States → Japan (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] USA SAVAŞ İLAN ETTİ: Japan (JPN) maliyet=50 PP, güç=94/80, PP=7, WS=60%
+[War] AI SAVAŞ İLANI: Japan → Dutch East Indies (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Dutch East Indies üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] JPN SAVAŞ İLAN ETTİ: Dutch East Indies (IDN) maliyet=50 PP, güç=80/13, PP=7, WS=95%
+[War][AI] FRA 1 tümen kaybetti (kalan: 1)
+[War][AI] GBR 1 tümen kaybetti (kalan: 6)
+[War][AI] IDN 1 tümen kaybetti (kalan: 9)
+[War][AI] FRA 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: France (FRA) → China (CHN) ilhaç edildi. Kazanan: +48 sivil, +11 askeri, +5 tersane
+[War][AI] GBR 1 tümen kaybetti (kalan: 5)
+[War][AI] CHN OFANSİF emri verdi (güç 163 vs 127)
+[War][AI] RUS 1 tümen kaybetti (kalan: 81)
+[War][AI] IDN 1 tümen kaybetti (kalan: 8)
+[War][AI] GBR 1 tümen kaybetti (kalan: 4)
+[War][AI] RUS 1 tümen kaybetti (kalan: 80)
+[War][AI] IDN 1 tümen kaybetti (kalan: 7)
+[War][AI] GBR 1 tümen kaybetti (kalan: 3)
+[War][AI] RUS 1 tümen kaybetti (kalan: 79)
+[War][AI] IDN 1 tümen kaybetti (kalan: 6)
+[War][AI] GBR 1 tümen kaybetti (kalan: 2)
+[War][AI] RUS 1 tümen kaybetti (kalan: 78)
+[War][AI] IDN 1 tümen kaybetti (kalan: 5)
+[War][AI] GBR 1 tümen kaybetti (kalan: 1)
+[War][AI] RUS 1 tümen kaybetti (kalan: 77)
+[War][AI] IDN 1 tümen kaybetti (kalan: 4)
+[War][AI] GBR 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: United Kingdom (GBR) → Japan (JPN) ilhaç edildi. Kazanan: +26 sivil, +5 askeri, +8 tersane
+[War][AI] RUS 1 tümen kaybetti (kalan: 76)
+[War][AI] IDN 1 tümen kaybetti (kalan: 3)
+[War][AI] RUS 1 tümen kaybetti (kalan: 75)
+[War][AI] IDN 1 tümen kaybetti (kalan: 2)
+[War][AI] RUS 1 tümen kaybetti (kalan: 74)
+[War][AI] IDN 1 tümen kaybetti (kalan: 1)
+[War][AI] RUS 1 tümen kaybetti (kalan: 73)
+[War][AI] IDN 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Dutch East Indies (IDN) → Japan (JPN) ilhaç edildi. Kazanan: +3 sivil, +0 askeri, +1 tersane
+[War] AI SAVAŞ İLANI: Soviet Union → Japan (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Japan üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] RUS SAVAŞ İLAN ETTİ: Japan (JPN) maliyet=50 PP, güç=118/94, PP=2, WS=80%
+[War] AI SAVAŞ İLANI: China → United States (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: United States üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] CHN SAVAŞ İLAN ETTİ: United States (USA) maliyet=50 PP, güç=163/94, PP=2, WS=90%
+[War][AI] RUS 1 tümen kaybetti (kalan: 72)
+[War][AI] RUS OFANSİF emri verdi (güç 117 vs 94)
+[War][AI] JPN 1 tümen kaybetti (kalan: 51)
+[War][AI] USA 1 tümen kaybetti (kalan: 25)
+[War][AI] RUS 1 tümen kaybetti (kalan: 71)
+[War][AI] JPN 1 tümen kaybetti (kalan: 50)
+[War][AI] USA 1 tümen kaybetti (kalan: 24)
+[War][AI] RUS 1 tümen kaybetti (kalan: 70)
+[War][AI] JPN 1 tümen kaybetti (kalan: 49)
+[War][AI] USA 1 tümen kaybetti (kalan: 23)
+[War][AI] RUS 1 tümen kaybetti (kalan: 69)
+[War][AI] JPN 1 tümen kaybetti (kalan: 48)
+[War][AI] USA 1 tümen kaybetti (kalan: 22)
+[War][AI] RUS 1 tümen kaybetti (kalan: 68)
+[War][AI] JPN 1 tümen kaybetti (kalan: 47)
+[War][AI] USA 1 tümen kaybetti (kalan: 21)
+[War][AI] RUS 1 tümen kaybetti (kalan: 67)
+[War][AI] JPN 1 tümen kaybetti (kalan: 46)
+[War][AI] USA 1 tümen kaybetti (kalan: 20)
+[War][AI] RUS 1 tümen kaybetti (kalan: 66)
+[War][AI] JPN 1 tümen kaybetti (kalan: 45)
+[War][AI] USA 1 tümen kaybetti (kalan: 19)
+[War][AI] RUS 1 tümen kaybetti (kalan: 65)
+[War][AI] JPN 1 tümen kaybetti (kalan: 44)
+[War][AI] USA 1 tümen kaybetti (kalan: 18)
+[Economy] Gün 120: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=300, Çelik=2750, Konvoy=20
+[Equipment] Gün 120: hat=0 (hat yok), stok: stok boş
+[Army] Gün 120: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,441,600
+[War][AI] RUS 1 tümen kaybetti (kalan: 64)
+[War][AI] JPN 1 tümen kaybetti (kalan: 43)
+[War][AI] USA 1 tümen kaybetti (kalan: 17)
+[War][AI] Gün 120 — CHN vs RUS: ilerleme %9, CHN tümeni=122, RUS tümeni=64
+[War][AI] Gün 120 — USA vs JPN: ilerleme %1, USA tümeni=17, JPN tümeni=43
+[War][AI] Gün 120 — RUS vs JPN: ilerleme %4, RUS tümeni=64, JPN tümeni=43
+[War][AI] Gün 120 — CHN vs USA: ilerleme %5, CHN tümeni=122, USA tümeni=17
+[Diplomacy] Gün 120: Tension=%14.7, Faksiyon=1, İlişkiler=2466
+[War][AI] RUS 1 tümen kaybetti (kalan: 63)
+[War][AI] JPN 1 tümen kaybetti (kalan: 42)
+[War][AI] USA 1 tümen kaybetti (kalan: 16)
+[AI] CHN: tümen eğitimi tamamlandı → 123 tümen
+[AI] JPN: tümen eğitimi tamamlandı → 43 tümen
+[AI] USA: tümen eğitimi tamamlandı → 17 tümen
+[AI] RUS: tümen eğitimi tamamlandı → 64 tümen
+[AI] RUS tümen yetiştiriyor (40 gün, manpower: 3,585,700)
+[AI] USA tümen yetiştiriyor (40 gün, manpower: 2,694,880)
+[AI] JPN tümen yetiştiriyor (40 gün, manpower: 1,528,330)
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 10,160,800)
+[War][AI] RUS 1 tümen kaybetti (kalan: 63)
+[War][AI] JPN 1 tümen kaybetti (kalan: 42)
+[War][AI] USA 1 tümen kaybetti (kalan: 16)
+[War][AI] RUS 1 tümen kaybetti (kalan: 62)
+[War][AI] JPN 1 tümen kaybetti (kalan: 41)
+[War][AI] USA 1 tümen kaybetti (kalan: 15)
+[War][AI] RUS 1 tümen kaybetti (kalan: 61)
+[War][AI] JPN 1 tümen kaybetti (kalan: 40)
+[War][AI] USA 1 tümen kaybetti (kalan: 14)
+[War][AI] RUS 1 tümen kaybetti (kalan: 60)
+[War][AI] JPN 1 tümen kaybetti (kalan: 39)
+[War][AI] USA 1 tümen kaybetti (kalan: 13)
+[War][AI] RUS 1 tümen kaybetti (kalan: 59)
+[War][AI] JPN 1 tümen kaybetti (kalan: 38)
+[War][AI] USA 1 tümen kaybetti (kalan: 12)
+[War] AI SAVAŞ İLANI: United States → Egypt (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Egypt üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] USA SAVAŞ İLAN ETTİ: Egypt (EGY) maliyet=50 PP, güç=80/9, PP=7, WS=70%
+[War] AI SAVAŞ İLANI: Japan → Austria (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[War] OFANSİF EMRİ: Austria üzerine taarruz başladı (hasar tam, ilerleme hızlı)
+[AI] JPN SAVAŞ İLAN ETTİ: Austria (AUT) maliyet=50 PP, güç=80/9, PP=7, WS=100%
+[War][AI] RUS 1 tümen kaybetti (kalan: 58)
+[War][AI] JPN 1 tümen kaybetti (kalan: 37)
+[War][AI] USA 1 tümen kaybetti (kalan: 11)
+[War][AI] EGY 1 tümen kaybetti (kalan: 7)
+[War][AI] AUT 1 tümen kaybetti (kalan: 5)
+[War][AI] RUS 1 tümen kaybetti (kalan: 57)
+[War][AI] JPN 1 tümen kaybetti (kalan: 36)
+[War][AI] USA 1 tümen kaybetti (kalan: 10)
+[War][AI] EGY 1 tümen kaybetti (kalan: 6)
+[War][AI] AUT 1 tümen kaybetti (kalan: 4)
+[War][AI] RUS 1 tümen kaybetti (kalan: 56)
+[War][AI] JPN 1 tümen kaybetti (kalan: 35)
+[War][AI] USA 1 tümen kaybetti (kalan: 9)
+[War][AI] EGY 1 tümen kaybetti (kalan: 5)
+[War][AI] AUT 1 tümen kaybetti (kalan: 3)
+[War][AI] RUS 1 tümen kaybetti (kalan: 55)
+[War][AI] JPN 1 tümen kaybetti (kalan: 34)
+[War][AI] USA 1 tümen kaybetti (kalan: 8)
+[War][AI] EGY 1 tümen kaybetti (kalan: 4)
+[War][AI] AUT 1 tümen kaybetti (kalan: 2)
+[War][AI] RUS 1 tümen kaybetti (kalan: 54)
+[War][AI] JPN 1 tümen kaybetti (kalan: 33)
+[War][AI] USA 1 tümen kaybetti (kalan: 7)
+[War][AI] EGY 1 tümen kaybetti (kalan: 3)
+[War][AI] AUT 1 tümen kaybetti (kalan: 1)
+[War][AI] RUS 1 tümen kaybetti (kalan: 53)
+[War][AI] JPN 1 tümen kaybetti (kalan: 32)
+[War][AI] USA 1 tümen kaybetti (kalan: 6)
+[War][AI] EGY 1 tümen kaybetti (kalan: 2)
+[War][AI] AUT 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Austria (AUT) → Japan (JPN) ilhaç edildi. Kazanan: +4 sivil, +0 askeri, +0 tersane
+[War][AI] RUS 1 tümen kaybetti (kalan: 52)
+[War][AI] JPN 1 tümen kaybetti (kalan: 31)
+[War][AI] USA 1 tümen kaybetti (kalan: 5)
+[War][AI] EGY 1 tümen kaybetti (kalan: 1)
+[War][AI] RUS 1 tümen kaybetti (kalan: 51)
+[War][AI] JPN 1 tümen kaybetti (kalan: 30)
+[War][AI] USA 1 tümen kaybetti (kalan: 4)
+[War][AI] EGY 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Egypt (EGY) → United States (USA) ilhaç edildi. Kazanan: +2 sivil, +0 askeri, +0 tersane
+[War][AI] RUS 1 tümen kaybetti (kalan: 50)
+[War][AI] JPN 1 tümen kaybetti (kalan: 29)
+[War][AI] USA 1 tümen kaybetti (kalan: 3)
+[War][AI] RUS 1 tümen kaybetti (kalan: 49)
+[War][AI] JPN 1 tümen kaybetti (kalan: 28)
+[War][AI] USA 1 tümen kaybetti (kalan: 2)
+[Diplomacy] Faksiyon oluşturuldu: Soviet Union Faction (RUS_Faction) lider: RUS
+[AI] RUS faksiyon KURDU: RUS_Faction (İdeoloji: Communism)
+[War] AI SAVAŞ İLANI: China → Japan (çatışma çözümü M11'e kadar yok, diplomatik durum)
+[AI] CHN SAVAŞ İLAN ETTİ: Japan (JPN) maliyet=50 PP, güç=164/71, PP=2, WS=100%
+[War][AI] RUS 1 tümen kaybetti (kalan: 48)
+[War][AI] JPN 1 tümen kaybetti (kalan: 27)
+[War][AI] USA 1 tümen kaybetti (kalan: 1)
+[War][AI] CHN OFANSİF emri verdi (güç 164 vs 70)
+[War][AI] JPN 1 tümen kaybetti (kalan: 26)
+[War][AI] RUS 1 tümen kaybetti (kalan: 47)
+[War][AI] JPN 1 tümen kaybetti (kalan: 25)
+[War][AI] JPN 1 tümen kaybetti (kalan: 24)
+[War][AI] USA 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: United States (USA) → China (CHN) ilhaç edildi. Kazanan: +78 sivil, +15 askeri, +10 tersane
+[War][AI] JPN 1 tümen kaybetti (kalan: 23)
+[War][AI] RUS 1 tümen kaybetti (kalan: 46)
+[War][AI] JPN 1 tümen kaybetti (kalan: 22)
+[War][AI] KAPİTÜLASYON: United States (USA) → Japan (JPN) ilhaç edildi. Kazanan: +78 sivil, +15 askeri, +10 tersane
+[War][AI] JPN 1 tümen kaybetti (kalan: 21)
+[War][AI] RUS 1 tümen kaybetti (kalan: 45)
+[War][AI] JPN 1 tümen kaybetti (kalan: 20)
+[AI] RUS completed research: Electronics #1
+[War][AI] RUS 1 tümen kaybetti (kalan: 44)
+[War][AI] JPN 1 tümen kaybetti (kalan: 19)
+[AI] CHN built Civilian Factory (Civ=165, Mil=41, Dock=21)
+[AI] JPN built Military Factory (Civ=157, Mil=41, Dock=37)
+[AI] RUS built Civilian Factory (Civ=88, Mil=35, Dock=14)
+[Focus] Imperial Conference: PP 69.0 → 94.0 (+25)
+[Focus] Imperial Conference: Stabilite %55 → %60 (+5)
+[Focus][AI] ✔ GBR odak tamamlandı: Imperial Conference — +25 PP, +5% Stability
+[Focus] Armor Program: Askeri fabrika 35 → 36 (+1)
+[Focus] Armor Program: AI ülkesi — modifikatör oyuncu sistemine uygulanmadı (M11'de AI ekonomisi)
+[Focus][AI] ✔ RUS odak tamamlandı: Armor Program — +1 Military Factories, +3% Research Speed
+[Focus] Science Budget: Araştırma slotu 4 → 5
+[Focus][AI] ✔ USA odak tamamlandı: Science Budget — +1 Research Slot
+[Focus] Maginot Line: Stabilite %25 → %35 (+10)
+[Focus][AI] ✔ FRA odak tamamlandı: Maginot Line — +10% Stability
+[Focus] Zero Program: Askeri fabrika 41 → 42 (+1)
+[Focus] Zero Program: AI ülkesi — modifikatör oyuncu sistemine uygulanmadı (M11'de AI ekonomisi)
+[Focus][AI] ✔ JPN odak tamamlandı: Zero Program — +1 Military Factories, +2% Research Speed
+[Focus] Industrial Effort: Sivil fabrika 42 → 44 (+2)
+[Focus][AI] ✔ TUR odak tamamlandı: Industrial Effort — +2 Civilian Factories
+[Focus] Stability Program: PP 12.0 → 37.0 (+25)
+[Focus] Stability Program: Stabilite %10 → %20 (+10)
+[Focus][AI] ✔ CHN odak tamamlandı: Stability Program — +25 PP, +10% Stability
+[Focus] Stability Program: PP 52.0 → 77.0 (+25)
+[Focus] Stability Program: Stabilite %15 → %25 (+10)
+[Focus][AI] ✔ ESP odak tamamlandı: Stability Program — +25 PP, +10% Stability
+[AI] JPN inşaat başlattı: Military Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Army Expansion (JPN, 70 gün) — +5% War Support, +2 Military Factories
+[Focus][AI] Japan odak SEÇTİ: Army Expansion (skor 39.6)
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Industrial Effort (CHN, 70 gün) — +2 Civilian Factories
+[Focus][AI] China odak SEÇTİ: Industrial Effort (skor 26.6)
+[AI] RUS inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Kolkhoz Reform (RUS, 70 gün) — +3% Stability, +2 Steel
+[Focus][AI] Soviet Union odak SEÇTİ: Kolkhoz Reform (skor 32.6)
+[War][AI] RUS 1 tümen kaybetti (kalan: 43)
+[War][AI] JPN 1 tümen kaybetti (kalan: 18)
+[Focus] Industrial Effort: Sivil fabrika 14 → 16 (+2)
+[Focus][AI] ✔ BEL odak tamamlandı: Industrial Effort — +2 Civilian Factories
+[Focus] Industrial Effort: Sivil fabrika 8 → 10 (+2)
+[Focus][AI] ✔ AUT odak tamamlandı: Industrial Effort — +2 Civilian Factories
+[Focus] Industrial Effort: Sivil fabrika 41 → 43 (+2)
+[Focus][AI] ✔ HUN odak tamamlandı: Industrial Effort — +2 Civilian Factories
+[War][AI] RUS 1 tümen kaybetti (kalan: 42)
+[War][AI] JPN 1 tümen kaybetti (kalan: 17)
+[Focus] Industrial Effort: Sivil fabrika 20 → 22 (+2)
+[Focus][AI] ✔ CAN odak tamamlandı: Industrial Effort — +2 Civilian Factories
+[Focus] Industrial Effort: Sivil fabrika 28 → 30 (+2)
+[Focus][AI] ✔ MEX odak tamamlandı: Industrial Effort — +2 Civilian Factories
+[War][AI] RUS 1 tümen kaybetti (kalan: 41)
+[War][AI] JPN 1 tümen kaybetti (kalan: 16)
+[Focus] Industrial Effort: Sivil fabrika 6 → 8 (+2)
+[Focus][AI] ✔ IDN odak tamamlandı: Industrial Effort — +2 Civilian Factories
+[Focus] Industrial Effort: Sivil fabrika 4 → 6 (+2)
+[Focus][AI] ✔ EGY odak tamamlandı: Industrial Effort — +2 Civilian Factories
+[War][AI] RUS 1 tümen kaybetti (kalan: 40)
+[War][AI] JPN 1 tümen kaybetti (kalan: 15)
+[Focus] Industrial Effort: Sivil fabrika 4 → 6 (+2)
+[Focus][AI] ✔ PHL odak tamamlandı: Industrial Effort — +2 Civilian Factories
+[Focus] Industrial Effort: Sivil fabrika 1 → 3 (+2)
+[Focus][AI] ✔ AFG odak tamamlandı: Industrial Effort — +2 Civilian Factories
+[Focus] Industrial Effort: Sivil fabrika 4 → 6 (+2)
+[Focus][AI] ✔ PER odak tamamlandı: Industrial Effort — +2 Civilian Factories
+[Focus] Odak BAŞLADI: Industrial Expansion (PER, 70 gün) — +2 Civilian Factories
+[Focus][AI] Iran odak SEÇTİ: Industrial Expansion (skor 28.6)
+[War][AI] RUS 1 tümen kaybetti (kalan: 39)
+[War][AI] JPN 1 tümen kaybetti (kalan: 14)
+[War][AI] RUS 1 tümen kaybetti (kalan: 38)
+[War][AI] JPN 1 tümen kaybetti (kalan: 13)
+[War][AI] RUS 1 tümen kaybetti (kalan: 37)
+[War][AI] JPN 1 tümen kaybetti (kalan: 12)
+[War][AI] RUS 1 tümen kaybetti (kalan: 36)
+[War][AI] JPN 1 tümen kaybetti (kalan: 11)
+[Economy] Gün 150: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=360, Çelik=3410, Konvoy=20
+[Equipment] Gün 150: hat=0 (hat yok), stok: stok boş
+[Army] Gün 150: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,462,000
+[War][AI] RUS 1 tümen kaybetti (kalan: 35)
+[War][AI] JPN 1 tümen kaybetti (kalan: 10)
+[War][AI] Gün 150 — CHN vs RUS: ilerleme %25, CHN tümeni=123, RUS tümeni=35
+[War][AI] Gün 150 — RUS vs JPN: ilerleme %13, RUS tümeni=35, JPN tümeni=10
+[War][AI] Gün 150 — CHN vs JPN: ilerleme %8, CHN tümeni=123, JPN tümeni=10
+[Diplomacy] Gün 150: Tension=%14.7, Faksiyon=1, İlişkiler=2466
+[War][AI] RUS 1 tümen kaybetti (kalan: 34)
+[War][AI] JPN 1 tümen kaybetti (kalan: 9)
+[War][AI] RUS 1 tümen kaybetti (kalan: 33)
+[War][AI] JPN 1 tümen kaybetti (kalan: 8)
+[War][AI] RUS 1 tümen kaybetti (kalan: 32)
+[War][AI] JPN 1 tümen kaybetti (kalan: 7)
+[War][AI] RUS 1 tümen kaybetti (kalan: 31)
+[War][AI] JPN 1 tümen kaybetti (kalan: 6)
+[War][AI] RUS 1 tümen kaybetti (kalan: 30)
+[War][AI] JPN 1 tümen kaybetti (kalan: 5)
+[War][AI] RUS 1 tümen kaybetti (kalan: 29)
+[War][AI] JPN 1 tümen kaybetti (kalan: 4)
+[War][AI] RUS 1 tümen kaybetti (kalan: 28)
+[War][AI] JPN 1 tümen kaybetti (kalan: 3)
+[War][AI] RUS 1 tümen kaybetti (kalan: 27)
+[War][AI] JPN 1 tümen kaybetti (kalan: 2)
+[War][AI] RUS 1 tümen kaybetti (kalan: 26)
+[War][AI] JPN 1 tümen kaybetti (kalan: 1)
+[War][AI] RUS 1 tümen kaybetti (kalan: 25)
+[War][AI] JPN 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Japan (JPN) → China (CHN) ilhaç edildi. Kazanan: +78 sivil, +21 askeri, +18 tersane
+[War][AI] RUS 1 tümen kaybetti (kalan: 24)
+[War][AI] KAPİTÜLASYON: Japan (JPN) → Soviet Union (RUS) ilhaç edildi. Kazanan: +78 sivil, +21 askeri, +18 tersane
+[AI] CHN: tümen eğitimi tamamlandı → 124 tümen
+[AI] RUS: tümen eğitimi tamamlandı → 25 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 10,347,800)
+[AI] RUS tümen yetiştiriyor (40 gün, manpower: 3,648,700)
+[War][AI] RUS 1 tümen kaybetti (kalan: 24)
+[War][AI] RUS 1 tümen kaybetti (kalan: 23)
+[War][AI] RUS 1 tümen kaybetti (kalan: 22)
+[War][AI] RUS 1 tümen kaybetti (kalan: 21)
+[War][AI] RUS 1 tümen kaybetti (kalan: 20)
+[War][AI] RUS 1 tümen kaybetti (kalan: 19)
+[War][AI] RUS 1 tümen kaybetti (kalan: 18)
+[War][AI] RUS 1 tümen kaybetti (kalan: 17)
+[War][AI] RUS 1 tümen kaybetti (kalan: 16)
+[War][AI] RUS 1 tümen kaybetti (kalan: 15)
+[War][AI] RUS 1 tümen kaybetti (kalan: 14)
+[War][AI] RUS 1 tümen kaybetti (kalan: 13)
+[War][AI] RUS 1 tümen kaybetti (kalan: 12)
+[War][AI] RUS 1 tümen kaybetti (kalan: 11)
+[War][AI] RUS 1 tümen kaybetti (kalan: 10)
+[War][AI] RUS 1 tümen kaybetti (kalan: 9)
+[War][AI] RUS 1 tümen kaybetti (kalan: 8)
+[War][AI] RUS 1 tümen kaybetti (kalan: 7)
+[Economy] Gün 180: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=420, Çelik=4070, Konvoy=20
+[Equipment] Gün 180: hat=0 (hat yok), stok: stok boş
+[Army] Gün 180: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,482,400
+[War][AI] RUS 1 tümen kaybetti (kalan: 6)
+[War][AI] Gün 180 — CHN vs RUS: ilerleme %43, CHN tümeni=124, RUS tümeni=6
+[Diplomacy] Gün 180: Tension=%14.7, Faksiyon=1, İlişkiler=2466
+[War][AI] RUS 1 tümen kaybetti (kalan: 5)
+[War][AI] RUS 1 tümen kaybetti (kalan: 4)
+[War][AI] RUS 1 tümen kaybetti (kalan: 3)
+[War][AI] RUS 1 tümen kaybetti (kalan: 2)
+[War][AI] RUS 1 tümen kaybetti (kalan: 1)
+[War][AI] RUS 1 tümen kaybetti (kalan: 0)
+[War][AI] KAPİTÜLASYON: Soviet Union (RUS) → China (CHN) ilhaç edildi. Kazanan: +83 sivil, +28 askeri, +16 tersane
+[Event] Tetiklendi: Spanish Civil War (spanish_civil_war) — kuyruğa eklendi
+[Event] ATEŞLENİYOR: Spanish Civil War (spanish_civil_war) — 2 seçenek
+[Event][Test] Auto-choose: ilk seçenek uygulanıyor (popup açılmadan) — Support the Nationalists (Condor Legion)
+[Event] PP 451.0 (+25)
+[Event] War Support %45 (+5)
+[Event] Askeri fabrika 21 (+1)
+[Diplomacy] World Tension: %17.4 (değişim: +3)
+[Event] Seçim: Spanish Civil War → Support the Nationalists (Condor Legion)
+[AI] CHN: tümen eğitimi tamamlandı → 125 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 10,534,800)
+[Economy] Gün 210: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=480, Çelik=4730, Konvoy=20
+[Equipment] Gün 210: hat=0 (hat yok), stok: stok boş
+[Army] Gün 210: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,502,800
+[Diplomacy] Gün 210: Tension=%17.2, Faksiyon=1, İlişkiler=2466
+[AI] CHN built Civilian Factory (Civ=327, Mil=90, Dock=55)
+[Focus] Kolkhoz Reform: Stabilite %35 → %38 (+3)
+[Focus] Kolkhoz Reform: Çelik üretimi 20 → 22 (+2)
+[Focus][AI] ✔ RUS odak tamamlandı: Kolkhoz Reform — +3% Stability, +2 Steel
+[Focus] Army Expansion: War Support %100 → %100 (+5)
+[Focus] Army Expansion: Askeri fabrika 42 → 44 (+2)
+[Focus][AI] ✔ JPN odak tamamlandı: Army Expansion — +5% War Support, +2 Military Factories
+[Focus] Industrial Effort: Sivil fabrika 327 → 329 (+2)
+[Focus][AI] ✔ CHN odak tamamlandı: Industrial Effort — +2 Civilian Factories
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Research Initiative (CHN, 70 gün) — +5% Research Speed
+[Focus][AI] China odak SEÇTİ: Research Initiative (skor 21.6)
+[Focus] Industrial Expansion: Sivil fabrika 6 → 8 (+2)
+[Focus][AI] ✔ PER odak tamamlandı: Industrial Expansion — +2 Civilian Factories
+[Focus] Odak BAŞLADI: Research Initiative (PER, 70 gün) — +5% Research Speed
+[Focus][AI] Iran odak SEÇTİ: Research Initiative (skor 21.6)
+[Economy] Gün 240: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=540, Çelik=5390, Konvoy=20
+[Equipment] Gün 240: hat=0 (hat yok), stok: stok boş
+[Army] Gün 240: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,523,200
+[Diplomacy] Gün 240: Tension=%16.6, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 126 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 10,721,800)
+[Economy] Gün 270: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=600, Çelik=6050, Konvoy=20
+[Equipment] Gün 270: hat=0 (hat yok), stok: stok boş
+[Army] Gün 270: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,543,600
+[Diplomacy] Gün 270: Tension=%16.0, Faksiyon=1, İlişkiler=2466
+[AI] CHN completed research: Infantry #1
+[AI] CHN built Civilian Factory (Civ=330, Mil=90, Dock=55)
+[AI] CHN: tümen eğitimi tamamlandı → 127 tümen
+[Focus] Research Initiative: AI ülkesi — modifikatör oyuncu sistemine uygulanmadı (M11'de AI ekonomisi)
+[Focus][AI] ✔ CHN odak tamamlandı: Research Initiative — +5% Research Speed
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Research Expansion (CHN, 70 gün) — +1 Research Slot
+[Focus][AI] China odak SEÇTİ: Research Expansion (skor 32.6)
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 10,908,800)
+[Focus] Research Initiative: AI ülkesi — modifikatör oyuncu sistemine uygulanmadı (M11'de AI ekonomisi)
+[Focus][AI] ✔ PER odak tamamlandı: Research Initiative — +5% Research Speed
+[Focus] Odak BAŞLADI: Research Expansion (PER, 70 gün) — +1 Research Slot
+[Focus][AI] Iran odak SEÇTİ: Research Expansion (skor 32.6)
+[Economy] Gün 300: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=660, Çelik=6710, Konvoy=20
+[Equipment] Gün 300: hat=0 (hat yok), stok: stok boş
+[Army] Gün 300: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,564,000
+[Diplomacy] Gün 300: Tension=%15.4, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 128 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 11,095,800)
+[Economy] Gün 330: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=720, Çelik=7370, Konvoy=20
+[Equipment] Gün 330: hat=0 (hat yok), stok: stok boş
+[Army] Gün 330: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,584,400
+[Diplomacy] Gün 330: Tension=%14.8, Faksiyon=1, İlişkiler=2466
+[AI] CHN built Civilian Factory (Civ=331, Mil=90, Dock=55)
+[Focus] Research Expansion: Araştırma slotu 2 → 3
+[Focus][AI] ✔ CHN odak tamamlandı: Research Expansion — +1 Research Slot
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Industrial Expansion (CHN, 70 gün) — +2 Civilian Factories
+[Focus][AI] China odak SEÇTİ: Industrial Expansion (skor 18.6)
+[Focus] Research Expansion: Araştırma slotu 3 → 4
+[Focus][AI] ✔ PER odak tamamlandı: Research Expansion — +1 Research Slot
+[Focus] Odak BAŞLADI: Stability Program (PER, 70 gün) — +25 PP, +10% Stability
+[Focus][AI] Iran odak SEÇTİ: Stability Program (skor 19.6)
+[Economy] Gün 360: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=780, Çelik=8030, Konvoy=20
+[Equipment] Gün 360: hat=0 (hat yok), stok: stok boş
+[Army] Gün 360: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,604,800
+[Diplomacy] Gün 360: Tension=%14.2, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 129 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 11,282,800)
+[Economy] Gün 390: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=840, Çelik=8690, Konvoy=20
+[Equipment] Gün 390: hat=0 (hat yok), stok: stok boş
+[Army] Gün 390: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,625,200
+[Diplomacy] Gün 390: Tension=%13.6, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 130 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 11,469,800)
+[Economy] Gün 420: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=900, Çelik=9350, Konvoy=20
+[Equipment] Gün 420: hat=0 (hat yok), stok: stok boş
+[Army] Gün 420: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,645,600
+[Diplomacy] Gün 420: Tension=%13.0, Faksiyon=1, İlişkiler=2466
+[AI] CHN built Civilian Factory (Civ=332, Mil=90, Dock=55)
+[Focus] Industrial Expansion: Sivil fabrika 332 → 334 (+2)
+[Focus][AI] ✔ CHN odak tamamlandı: Industrial Expansion — +2 Civilian Factories
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus] Odak BAŞLADI: Military Buildup (CHN, 70 gün) — +2 Military Factories
+[Focus][AI] China odak SEÇTİ: Military Buildup (skor 18.6)
+[Focus] Stability Program: PP 108.0 → 133.0 (+25)
+[Focus] Stability Program: Stabilite %55 → %65 (+10)
+[Focus][AI] ✔ PER odak tamamlandı: Stability Program — +25 PP, +10% Stability
+[Focus] Odak BAŞLADI: Military Buildup (PER, 70 gün) — +2 Military Factories
+[Focus][AI] Iran odak SEÇTİ: Military Buildup (skor 18.6)
+[AI] CHN: tümen eğitimi tamamlandı → 131 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 11,656,800)
+[Economy] Gün 450: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=960, Çelik=10010, Konvoy=20
+[Equipment] Gün 450: hat=0 (hat yok), stok: stok boş
+[Army] Gün 450: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,666,000
+[Diplomacy] Gün 450: Tension=%12.4, Faksiyon=1, İlişkiler=2466
+[Economy] Gün 480: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=1020, Çelik=10670, Konvoy=20
+[Equipment] Gün 480: hat=0 (hat yok), stok: stok boş
+[Army] Gün 480: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,686,400
+[Diplomacy] Gün 480: Tension=%11.8, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 132 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 11,843,800)
+[AI] CHN built Civilian Factory (Civ=335, Mil=90, Dock=55)
+[AI] CHN completed research: Artillery #2
+[Focus] Military Buildup: Askeri fabrika 90 → 92 (+2)
+[Focus][AI] ✔ CHN odak tamamlandı: Military Buildup — +2 Military Factories
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Focus][AI] CHN: seçilebilir odak kalmadı
+[Focus] Military Buildup: Askeri fabrika 1 → 3 (+2)
+[Focus][AI] ✔ PER odak tamamlandı: Military Buildup — +2 Military Factories
+[Focus][AI] PER: seçilebilir odak kalmadı
+[Economy] Gün 510: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=1080, Çelik=11330, Konvoy=20
+[Equipment] Gün 510: hat=0 (hat yok), stok: stok boş
+[Army] Gün 510: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,706,800
+[Diplomacy] Gün 510: Tension=%11.2, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 133 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 12,030,800)
+[AI] PER built Military Factory (Civ=3, Mil=2, Dock=1)
+[Economy] Gün 540: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=1140, Çelik=11990, Konvoy=20
+[Equipment] Gün 540: hat=0 (hat yok), stok: stok boş
+[Army] Gün 540: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,727,200
+[Diplomacy] Gün 540: Tension=%10.6, Faksiyon=1, İlişkiler=2466
+[AI] CHN built Civilian Factory (Civ=336, Mil=92, Dock=55)
+[AI] CHN: tümen eğitimi tamamlandı → 134 tümen
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 12,217,800)
+[Economy] Gün 570: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=1200, Çelik=12650, Konvoy=20
+[Equipment] Gün 570: hat=0 (hat yok), stok: stok boş
+[Army] Gün 570: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,747,600
+[Diplomacy] Gün 570: Tension=%10.0, Faksiyon=1, İlişkiler=2466
+[Economy] Gün 600: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=1260, Çelik=13310, Konvoy=20
+[Equipment] Gün 600: hat=0 (hat yok), stok: stok boş
+[Army] Gün 600: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,768,000
+[Diplomacy] Gün 600: Tension=%9.4, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 135 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 12,404,800)
+[Economy] Gün 630: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=1320, Çelik=13970, Konvoy=20
+[Equipment] Gün 630: hat=0 (hat yok), stok: stok boş
+[Army] Gün 630: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,788,400
+[Diplomacy] Gün 630: Tension=%8.8, Faksiyon=1, İlişkiler=2466
+[AI] CHN built Civilian Factory (Civ=337, Mil=92, Dock=55)
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[AI] CHN: tümen eğitimi tamamlandı → 136 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 12,591,800)
+[Economy] Gün 660: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=1380, Çelik=14630, Konvoy=20
+[Equipment] Gün 660: hat=0 (hat yok), stok: stok boş
+[Army] Gün 660: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,808,800
+[Diplomacy] Gün 660: Tension=%8.2, Faksiyon=1, İlişkiler=2466
+[AI] CHN completed research: Artillery #3
+[AI] CHN: tümen eğitimi tamamlandı → 137 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 12,778,800)
+[Economy] Gün 690: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=1440, Çelik=15290, Konvoy=20
+[Equipment] Gün 690: hat=0 (hat yok), stok: stok boş
+[Army] Gün 690: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,829,200
+[Diplomacy] Gün 690: Tension=%7.6, Faksiyon=1, İlişkiler=2466
+[AI] CHN built Civilian Factory (Civ=338, Mil=92, Dock=55)
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Economy] Gün 720: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=1500, Çelik=15950, Konvoy=20
+[Equipment] Gün 720: hat=0 (hat yok), stok: stok boş
+[Army] Gün 720: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,849,600
+[Diplomacy] Gün 720: Tension=%7.0, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 138 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 12,965,800)
+[Economy] Gün 750: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=1560, Çelik=16610, Konvoy=20
+[Equipment] Gün 750: hat=0 (hat yok), stok: stok boş
+[Army] Gün 750: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,870,000
+[Diplomacy] Gün 750: Tension=%6.4, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 139 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 13,152,800)
+[AI] CHN built Civilian Factory (Civ=339, Mil=92, Dock=55)
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Economy] Gün 780: BoşSivil=20, CG=25%, Kuyruk=0, Petrol=1620, Çelik=17270, Konvoy=20
+[Equipment] Gün 780: hat=0 (hat yok), stok: stok boş
+[Army] Gün 780: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,890,400
+[Diplomacy] Gün 780: Tension=%5.8, Faksiyon=1, İlişkiler=2466
+[Event] Tetiklendi: The Anschluss (anschluss) — kuyruğa eklendi
+[Event] ATEŞLENİYOR: The Anschluss (anschluss) — 2 seçenek
+[Event][Test] Auto-choose: ilk seçenek uygulanıyor (popup açılmadan) — Proclaim the Anschluss
+[Event] PP 1,707.0 (+50)
+[Event] Stabilite %85 (+5)
+[Event] War Support %55 (+10)
+[Event] Sivil fabrika 28 (+2)
+[Event] Askeri fabrika 22 (+1)
+[Diplomacy] World Tension: %10.4 (değişim: +5)
+[Event] Seçim: The Anschluss → Proclaim the Anschluss
+[AI] CHN: tümen eğitimi tamamlandı → 140 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 13,339,800)
+[Economy] Gün 810: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=1680, Çelik=17930, Konvoy=20
+[Equipment] Gün 810: hat=0 (hat yok), stok: stok boş
+[Army] Gün 810: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,910,800
+[Diplomacy] Gün 810: Tension=%10.2, Faksiyon=1, İlişkiler=2466
+[Economy] Gün 840: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=1740, Çelik=18590, Konvoy=20
+[Equipment] Gün 840: hat=0 (hat yok), stok: stok boş
+[Army] Gün 840: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,931,200
+[Diplomacy] Gün 840: Tension=%9.6, Faksiyon=1, İlişkiler=2466
+[AI] CHN built Civilian Factory (Civ=340, Mil=92, Dock=55)
+[AI] CHN: tümen eğitimi tamamlandı → 141 tümen
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 13,526,800)
+[AI] CHN completed research: Infantry #4
+[Economy] Gün 870: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=1800, Çelik=19250, Konvoy=20
+[Equipment] Gün 870: hat=0 (hat yok), stok: stok boş
+[Army] Gün 870: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,951,600
+[Diplomacy] Gün 870: Tension=%9.0, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 142 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 13,713,800)
+[Economy] Gün 900: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=1860, Çelik=19910, Konvoy=20
+[Equipment] Gün 900: hat=0 (hat yok), stok: stok boş
+[Army] Gün 900: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,972,000
+[Diplomacy] Gün 900: Tension=%8.4, Faksiyon=1, İlişkiler=2466
+[AI] CHN built Civilian Factory (Civ=341, Mil=92, Dock=55)
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[AI] CHN: tümen eğitimi tamamlandı → 143 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 13,900,800)
+[Economy] Gün 930: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=1920, Çelik=20570, Konvoy=20
+[Equipment] Gün 930: hat=0 (hat yok), stok: stok boş
+[Army] Gün 930: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=1,992,400
+[Diplomacy] Gün 930: Tension=%7.8, Faksiyon=1, İlişkiler=2466
+[AI] PER araştırma ilerlemesi: 5 tech (sanayi bonusu: +1 sivil fabrika → 4)
+[Economy] Gün 960: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=1980, Çelik=21230, Konvoy=20
+[Equipment] Gün 960: hat=0 (hat yok), stok: stok boş
+[Army] Gün 960: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,012,800
+[Diplomacy] Gün 960: Tension=%7.2, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 144 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 14,087,800)
+[AI] CHN built Civilian Factory (Civ=342, Mil=92, Dock=55)
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Economy] Gün 990: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2040, Çelik=21890, Konvoy=20
+[Equipment] Gün 990: hat=0 (hat yok), stok: stok boş
+[Army] Gün 990: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,033,200
+[Diplomacy] Gün 990: Tension=%6.6, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 145 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 14,274,800)
+[Event] Tetiklendi: Munich Agreement (munich_agreement) — kuyruğa eklendi
+[Event] ATEŞLENİYOR: Munich Agreement (munich_agreement) — 2 seçenek
+[Event][Test] Auto-choose: ilk seçenek uygulanıyor (popup açılmadan) — Accept the agreement (Appeasement)
+[Event] PP 2,186.0 (+75)
+[Event] Stabilite %95 (+10)
+[Diplomacy] World Tension: %-8.7 (değişim: -15)
+[Event] Seçim: Munich Agreement → Accept the agreement (Appeasement)
+[AI] PER built Military Factory (Civ=4, Mil=3, Dock=1)
+[Economy] Gün 1020: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2100, Çelik=22550, Konvoy=20
+[Equipment] Gün 1020: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1020: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,053,600
+[Diplomacy] Gün 1020: Tension=%-8.7, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 146 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 14,461,800)
+[Economy] Gün 1050: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2160, Çelik=23210, Konvoy=20
+[Equipment] Gün 1050: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1050: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,074,000
+[Diplomacy] Gün 1050: Tension=%-8.7, Faksiyon=1, İlişkiler=2466
+[AI] CHN built Civilian Factory (Civ=343, Mil=92, Dock=55)
+[AI] CHN araştırma ilerlemesi: 5 tech (sanayi bonusu: +1 sivil fabrika → 344)
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Economy] Gün 1080: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2220, Çelik=23870, Konvoy=20
+[Equipment] Gün 1080: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1080: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,094,400
+[Diplomacy] Gün 1080: Tension=%-8.7, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 147 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 14,648,800)
+[Economy] Gün 1110: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2280, Çelik=24530, Konvoy=20
+[Equipment] Gün 1110: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1110: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,114,800
+[Diplomacy] Gün 1110: Tension=%-8.7, Faksiyon=1, İlişkiler=2466
+[AI] CHN built Civilian Factory (Civ=345, Mil=92, Dock=55)
+[AI] CHN: tümen eğitimi tamamlandı → 148 tümen
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 14,835,800)
+[Economy] Gün 1140: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2340, Çelik=25190, Konvoy=20
+[Equipment] Gün 1140: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1140: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,135,200
+[Diplomacy] Gün 1140: Tension=%-8.7, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 149 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 15,022,800)
+[Economy] Gün 1170: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2400, Çelik=25850, Konvoy=20
+[Equipment] Gün 1170: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1170: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,155,600
+[Diplomacy] Gün 1170: Tension=%-8.7, Faksiyon=1, İlişkiler=2466
+[AI] CHN built Civilian Factory (Civ=346, Mil=92, Dock=55)
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Economy] Gün 1200: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2460, Çelik=26510, Konvoy=20
+[Equipment] Gün 1200: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1200: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,176,000
+[Diplomacy] Gün 1200: Tension=%-8.7, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 150 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 15,209,800)
+[Economy] Gün 1230: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2520, Çelik=27170, Konvoy=20
+[Equipment] Gün 1230: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1230: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,196,400
+[Diplomacy] Gün 1230: Tension=%-8.7, Faksiyon=1, İlişkiler=2466
+[AI] CHN completed research: Infantry #6
+[AI] CHN: tümen eğitimi tamamlandı → 151 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 15,396,800)
+[Economy] Gün 1260: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2580, Çelik=27830, Konvoy=20
+[Equipment] Gün 1260: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1260: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,216,800
+[Diplomacy] Gün 1260: Tension=%-8.7, Faksiyon=1, İlişkiler=2466
+[AI] CHN built Civilian Factory (Civ=347, Mil=92, Dock=55)
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[AI] CHN: tümen eğitimi tamamlandı → 152 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 15,583,800)
+[Economy] Gün 1290: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2640, Çelik=28490, Konvoy=20
+[Equipment] Gün 1290: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1290: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,237,200
+[Diplomacy] Gün 1290: Tension=%-8.7, Faksiyon=1, İlişkiler=2466
+[Economy] Gün 1320: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2700, Çelik=29150, Konvoy=20
+[Equipment] Gün 1320: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1320: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,257,600
+[Diplomacy] Gün 1320: Tension=%-8.7, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 153 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 15,770,800)
+[Event] Tetiklendi: Molotov-Ribbentrop Pact (molotov_ribbentrop) — kuyruğa eklendi
+[Event] ATEŞLENİYOR: Molotov-Ribbentrop Pact (molotov_ribbentrop) — 2 seçenek
+[Event][Test] Auto-choose: ilk seçenek uygulanıyor (popup açılmadan) — Sign the pact
+[Event] PP 2,940.0 (+100)
+[Diplomacy] World Tension: %-18.7 (değişim: -10)
+[War] War goal: POL için savaş ilanı maliyeti -%50
+[Event] War goal PP indirimi: POL için %50
+[Event] Seçim: Molotov-Ribbentrop Pact → Sign the pact
+[AI] CHN built Civilian Factory (Civ=348, Mil=92, Dock=55)
+[AI] CHN inşaat başlattı: Civilian Factory (70 gün @15 fabrika)
+[Economy] Gün 1350: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2760, Çelik=29810, Konvoy=20
+[Equipment] Gün 1350: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1350: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,278,000
+[Diplomacy] Gün 1350: Tension=%-18.7, Faksiyon=1, İlişkiler=2466
+[AI] CHN: tümen eğitimi tamamlandı → 154 tümen
+[AI] CHN tümen yetiştiriyor (40 gün, manpower: 15,957,800)
+[AI] PER built Military Factory (Civ=4, Mil=4, Dock=1)
+[Economy] Gün 1380: BoşSivil=21, CG=25%, Kuyruk=0, Petrol=2820, Çelik=30470, Konvoy=20
+[Equipment] Gün 1380: hat=0 (hat yok), stok: stok boş
+[Army] Gün 1380: Dağıtık=0, Eğitim=0, Ordu=1, Manpower=2,298,400
+[Diplomacy] Gün 1380: Tension=%-18.7, Faksiyon=1, İlişkiler=2466

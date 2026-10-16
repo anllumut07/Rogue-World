@@ -1,0 +1,18 @@
+{
+  "DefaultTemplate": {
+    "Name": "Infantry Division",
+    "BattalionIds": [
+      "infantry", "infantry", "infantry", "infantry", "infantry", "infantry",
+      "artillery", "artillery", "engineer"
+    ]
+  },
+  "StartingDivisions": {
+    "DEU": 40, "GBR": 30, "RUS": 80, "USA": 24, "FRA": 40, "ITA": 30, "JPN": 50,
+    "POL": 35, "TUR": 20, "CHN": 120, "ESP": 25, "SWE": 10, "NOR": 6, "FIN": 10,
+    "DNK": 4, "NLD": 8, "BEL": 10, "CHE": 8, "AUT": 6, "CZE": 16, "HUN": 10,
+    "ROU": 16, "BGR": 10, "GRC": 10, "SRB": 16, "CAN": 8, "MEX": 12, "BRA": 14,
+    "ARG": 10, "AUS": 6, "NZL": 3, "ZAF": 6, "IND": 20, "IDN": 8, "IRN": 10,
+    "IRQ": 5, "EGY": 5, "SAU": 4, "KOR": 12, "PRK": 8, "THA": 8, "PHL": 6,
+    "AFG": 5, "ETH": 10, "UKR": 15, "MNG": 2, "PER": 5, "CHL": 5, "VEN": 4, "COL": 5
+  }
+}

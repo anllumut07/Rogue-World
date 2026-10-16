@@ -1,0 +1,41 @@
+[
+  {
+    "Id": "modern_world",
+    "Name": "Modern World",
+    "Description": "A simulation of the modern world starting from 2026. Real-world inputs (population, GDP, military) drive country stats through adjustable formulas. Fictional leaders, no historical events or focus trees (no Anschluss or Barbarossa triggers).",
+    "StartDate": "2026-10-15",
+    "Placeholder": true,
+    "CountriesPath": "res://Data/scenarios/modern_world/countries.json",
+    "FocusTreesDir": "res://Data/scenarios/modern_world/focus_trees",
+    "EventsPath": "res://Data/scenarios/modern_world/events.json",
+    "DecisionsPath": "res://Data/scenarios/modern_world/decisions.json",
+    "TechnologiesPath": "res://Data/scenarios/modern_world/technologies.json",
+    "LibraryDir": "res://Data/scenarios/modern_world/library",
+    "CasusBelliPath": "res://Data/scenarios/modern_world/casus_belli.json",
+    "TerritorialClaimsPath": "res://Data/scenarios/modern_world/territorial_claims.json",
+    "DiplomacyStartPath": "res://Data/scenarios/modern_world/diplomacy_start.json",
+    "ArmyStartPath": "res://Data/scenarios/modern_world/army_start.json",
+    "EquipmentStartPath": "res://Data/scenarios/modern_world/equipment_start.json",
+    "LeadersPath": "res://Data/scenarios/modern_world/leaders.json",
+    "FormulasPath": "res://Data/scenarios/modern_world/formulas.json"
+  },
+  {
+    "Id": "historical_1936",
+    "Name": "Historical 1936",
+    "Description": "The classic 1936 historical scenario with detailed focus trees, events, decisions, and territorial claims for major powers (Germany, USA, USSR, UK, France, Japan, Italy) plus a generic tree. Experience the road to World War II.",
+    "StartDate": "1936-01-01",
+    "Placeholder": false,
+    "CountriesPath": "res://Data/scenarios/historical_1936/countries_data.json",
+    "FocusTreesDir": "res://Data/scenarios/historical_1936/focus_trees",
+    "EventsPath": "res://Data/scenarios/historical_1936/events.json",
+    "DecisionsPath": "res://Data/scenarios/historical_1936/decisions.json",
+    "TechnologiesPath": "res://Data/scenarios/historical_1936/technologies.json",
+    "LibraryDir": "res://Data/scenarios/historical_1936/library",
+    "CasusBelliPath": "res://Data/scenarios/historical_1936/casus_belli.json",
+    "TerritorialClaimsPath": "res://Data/scenarios/historical_1936/territorial_claims.json",
+    "DiplomacyStartPath": "res://Data/scenarios/historical_1936/diplomacy_start.json",
+    "ArmyStartPath": "res://Data/scenarios/historical_1936/army_start.json",
+    "EquipmentStartPath": "res://Data/scenarios/historical_1936/equipment_start.json",
+    "LeadersPath": "res://Data/scenarios/historical_1936/leaders.json"
+  }
+]

@@ -1,0 +1,351 @@
+[
+  {
+    "Id": "anschluss",
+    "Name": "The Anschluss",
+    "Description": "Germany announces the annexation of Austria, violating the Treaty of Versailles. The international community condemns but does not act.",
+    "Trigger": {
+      "Type": "Date",
+      "Date": "1938-03-12",
+      "Country": "GER"
+    },
+    "Options": [
+      {
+        "Label": "Proclaim the Anschluss",
+        "Effects": {
+          "PoliticalPower": 50,
+          "Stability": 5,
+          "WarSupport": 10,
+          "WorldTension": 5,
+          "CivFactories": 2,
+          "MilFactories": 1
+        }
+      },
+      {
+        "Label": "Delay the annexation",
+        "Effects": {
+          "PoliticalPower": -25,
+          "Stability": -5,
+          "WarSupport": -10
+        }
+      }
+    ],
+    "FireOnlyOnce": true,
+    "IsHistorical": true
+  },
+  {
+    "Id": "munich_agreement",
+    "Name": "Munich Agreement",
+    "Description": "Hitler demands the Sudetenland. Britain and France agree to cede it to avoid war — \"peace for our time.\"",
+    "Trigger": {
+      "Type": "Date",
+      "Date": "1938-09-30",
+      "Country": "GER"
+    },
+    "Options": [
+      {
+        "Label": "Accept the agreement (Appeasement)",
+        "Effects": {
+          "PoliticalPower": 75,
+          "Stability": 10,
+          "WorldTension": -15
+        }
+      },
+      {
+        "Label": "Reject and prepare for war",
+        "Effects": {
+          "PoliticalPower": -50,
+          "WarSupport": 15,
+          "WorldTension": 25
+        }
+      }
+    ],
+    "FireOnlyOnce": true,
+    "IsHistorical": true
+  },
+  {
+    "Id": "molotov_ribbentrop",
+    "Name": "Molotov-Ribbentrop Pact",
+    "Description": "Germany and the Soviet Union sign a non-aggression pact with secret protocols dividing Eastern Europe.",
+    "Trigger": {
+      "Type": "Date",
+      "Date": "1939-08-23",
+      "Country": "GER"
+    },
+    "Options": [
+      {
+        "Label": "Sign the pact",
+        "Effects": {
+          "PoliticalPower": 100,
+          "WorldTension": -10,
+          "WarGoalCostReduction": {
+            "Target": "POL",
+            "ReductionPercent": 50
+          }
+        }
+      },
+      {
+        "Label": "Refuse — prepare for two-front war",
+        "Effects": {
+          "PoliticalPower": -75,
+          "WarSupport": 10,
+          "WorldTension": 15
+        }
+      }
+    ],
+    "FireOnlyOnce": true,
+    "IsHistorical": true
+  },
+  {
+    "Id": "winter_war",
+    "Name": "Winter War",
+    "Description": "The Soviet Union invades Finland. Despite overwhelming numbers, the Red Army struggles against determined Finnish resistance.",
+    "Trigger": {
+      "Type": "Date",
+      "Date": "1939-11-30",
+      "Country": "SOV"
+    },
+    "Options": [
+      {
+        "Label": "Continue the offensive",
+        "Effects": {
+          "PoliticalPower": -25,
+          "Stability": -10,
+          "WarSupport": 5,
+          "Manpower": -50000
+        }
+      },
+      {
+        "Label": "Accept peace terms",
+        "Effects": {
+          "PoliticalPower": 25,
+          "Stability": 5,
+          "WarSupport": -5
+        }
+      }
+    ],
+    "FireOnlyOnce": true,
+    "IsHistorical": true
+  },
+  {
+    "Id": "fall_of_france",
+    "Name": "Fall of France",
+    "Description": "The German blitzkrieg shatters Allied lines. France faces collapse — will it fight on or seek armistice?",
+    "Trigger": {
+      "Type": "Date",
+      "Date": "1940-06-22",
+      "Country": "FRA"
+    },
+    "Options": [
+      {
+        "Label": "Request armistice (Vichy)",
+        "Effects": {
+          "PoliticalPower": 100,
+          "Stability": -20,
+          "WarSupport": -30
+        }
+      },
+      {
+        "Label": "Fight on from the colonies",
+        "Effects": {
+          "PoliticalPower": -50,
+          "Stability": 10,
+          "WarSupport": 20,
+          "Manpower": 100000
+        }
+      }
+    ],
+    "FireOnlyOnce": true,
+    "IsHistorical": true
+  },
+  {
+    "Id": "barbarossa",
+    "Name": "Operation Barbarossa",
+    "Description": "Germany launches the largest invasion in history against the Soviet Union. The fate of the war in the East hangs in the balance.",
+    "Trigger": {
+      "Type": "Date",
+      "Date": "1941-06-22",
+      "Country": "GER"
+    },
+    "Options": [
+      {
+        "Label": "Launch the invasion",
+        "Effects": {
+          "PoliticalPower": 150,
+          "WarSupport": 15,
+          "WorldTension": 20,
+          "DeclareWar": "SOV",
+          "WarGoalCostReduction": {
+            "Target": "SOV",
+            "ReductionPercent": 100
+          }
+        }
+      },
+      {
+        "Label": "Postpone — consolidate in West first",
+        "Effects": {
+          "PoliticalPower": -100,
+          "Stability": -10,
+          "WarSupport": -15
+        }
+      }
+    ],
+    "FireOnlyOnce": true,
+    "IsHistorical": true
+  },
+  {
+    "Id": "pearl_harbor",
+    "Name": "Pearl Harbor",
+    "Description": "Japan launches a surprise attack on the US Pacific Fleet. America enters the war.",
+    "Trigger": {
+      "Type": "Date",
+      "Date": "1941-12-07",
+      "Country": "JPN"
+    },
+    "Options": [
+      {
+        "Label": "Declare war on the Allies",
+        "Effects": {
+          "PoliticalPower": 200,
+          "WarSupport": 25,
+          "WorldTension": 30,
+          "DeclareWar": "USA"
+        }
+      },
+      {
+        "Label": "Limit to defensive operations",
+        "Effects": {
+          "PoliticalPower": -100,
+          "Stability": -15,
+          "WarSupport": -20
+        }
+      }
+    ],
+    "FireOnlyOnce": true,
+    "IsHistorical": true
+  },
+  {
+    "Id": "d_day",
+    "Name": "D-Day — Normandy Landings",
+    "Description": "Allied forces storm the beaches of Normandy. The liberation of Western Europe begins.",
+    "Trigger": {
+      "Type": "Date",
+      "Date": "1944-06-06",
+      "Country": "USA"
+    },
+    "Options": [
+      {
+        "Label": "Execute Operation Overlord",
+        "Effects": {
+          "PoliticalPower": 250,
+          "WarSupport": 20,
+          "Stability": 10,
+          "Manpower": 200000
+        }
+      },
+      {
+        "Label": "Delay — prioritize Italy/Southern France",
+        "Effects": {
+          "PoliticalPower": -50,
+          "WarSupport": -10,
+          "WorldTension": -5
+        }
+      }
+    ],
+    "FireOnlyOnce": true,
+    "IsHistorical": true
+  },
+  {
+    "Id": "german_economic_miracle",
+    "Name": "German Economic Miracle",
+    "Description": "Through autarky policies and rearmament, Germany's economy roars. But for how long?",
+    "Trigger": {
+      "Type": "FocusCompleted",
+      "FocusId": "ger_four_year_plan",
+      "Country": "GER"
+    },
+    "Options": [
+      {
+        "Label": "Full rearmament priority",
+        "Effects": {
+          "PoliticalPower": 50,
+          "MilFactories": 3,
+          "Oil": 2,
+          "Steel": 3
+        }
+      },
+      {
+        "Label": "Balanced approach",
+        "Effects": {
+          "PoliticalPower": 25,
+          "CivFactories": 2,
+          "MilFactories": 1,
+          "Stability": 5
+        }
+      }
+    ],
+    "FireOnlyOnce": true,
+    "IsHistorical": true
+  },
+  {
+    "Id": "usa_new_deal",
+    "Name": "The New Deal Continues",
+    "Description": "Roosevelt's economic reforms continue to reshape America. Industrial capacity grows but isolationism persists.",
+    "Trigger": {
+      "Type": "Date",
+      "Date": "1937-01-01",
+      "Country": "USA"
+    },
+    "Options": [
+      {
+        "Label": "Expand civilian industry",
+        "Effects": {
+          "PoliticalPower": 50,
+          "CivFactories": 4,
+          "Stability": 10,
+          "ResearchSlots": 1
+        }
+      },
+      {
+        "Label": "Begin military preparedness",
+        "Effects": {
+          "PoliticalPower": 25,
+          "MilFactories": 2,
+          "Dockyards": 2,
+          "WarSupport": 5
+        }
+      }
+    ],
+    "FireOnlyOnce": true,
+    "IsHistorical": true
+  },
+  {
+    "Id": "spanish_civil_war",
+    "Name": "Spanish Civil War",
+    "Description": "Nationalist forces rebel against the Republic. Germany and Italy intervene; the USSR supports the Republic.",
+    "Trigger": {
+      "Type": "Date",
+      "Date": "1936-07-17",
+      "Country": "GER"
+    },
+    "Options": [
+      {
+        "Label": "Support the Nationalists (Condor Legion)",
+        "Effects": {
+          "PoliticalPower": 25,
+          "WarSupport": 5,
+          "WorldTension": 3,
+          "MilFactories": 1
+        }
+      },
+      {
+        "Label": "Stay neutral",
+        "Effects": {
+          "PoliticalPower": -10,
+          "Stability": 5
+        }
+      }
+    ],
+    "FireOnlyOnce": true,
+    "IsHistorical": true
+  }
+]

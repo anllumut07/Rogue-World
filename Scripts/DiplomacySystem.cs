@@ -1,0 +1,850 @@
+using Godot;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+
+/// <summary>
+/// Diplomasi sistemi (M8): ilişkiler (-100..+100), görüşler, faksiyonlar,
+/// diplomatik aksiyonlar (savaş ilanı, garantı, erişim, barış konferansı),
+/// world tension. Statik sınıf; GameManager günlük tick'inde çağrılır.
+/// </summary>
+public static class DiplomacySystem
+{
+    // ===== Veri modelleri =====
+
+    public class Faction
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+        public string LeaderId { get; set; }
+        public List<string> MemberIds { get; set; } = new();
+        public string Ideology { get; set; }
+        public string Color { get; set; }
+        public string Type { get; set; } = "DefensePact"; // DefensePact | PoliticalEconomic — M17.2
+
+        public bool IsMember(string countryId) => MemberIds.Contains(countryId);
+        public int MemberCount => MemberIds.Count;
+        public bool IsDefensePact => string.Equals(Type, "DefensePact", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public class Relation
+    {
+        public string FromId { get; set; }
+        public string ToId { get; set; }
+        public int Value { get; set; }        // -100..+100 (ilişki)
+        public int Opinion { get; set; }      // -100..+100 (görüş, asimetrik olabilir)
+
+        public string Key => $"{FromId}->{ToId}";
+    }
+
+    public class Guarantee
+    {
+        public string GuarantorId { get; set; }
+        public string TargetId { get; set; }
+    }
+
+    public class DiplomaticAction
+    {
+        public enum Type
+        {
+            DeclareWar,
+            GuaranteeIndependence,
+            MilitaryAccess,
+            NavalAccess,
+            NonAggressionPact,
+            CallToArms,
+            JoinFaction,
+            CreateFaction,
+            LeaveFaction,
+            PeaceConference
+        }
+
+        public Type ActionType { get; set; }
+        public string InitiatorId { get; set; }
+        public string TargetId { get; set; }
+        public int PPCost { get; set; }
+        public int DaysToComplete { get; set; }
+        public int DaysRemaining { get; set; }
+        public bool IsPlayerAction { get; set; }
+    }
+
+    public class PeaceDeal
+    {
+        public string WinnerId { get; set; }
+        public string LoserId { get; set; }
+        public enum Term { Annex, Puppet, Liberate, Demilitarize, WarReparations, TransferState }
+        public List<(Term, string)> Terms { get; set; } = new(); // stateId for TransferState
+    }
+
+    // ===== Sabitler =====
+    private const int MaxRelation = 100;
+    private const int MinRelation = -100;
+    private const double BaseGuaranteeCost = 25;
+    private const double BaseAccessCost = 10;
+    private const double BaseFactionCost = 50;
+    private const double ImproveRelationCost = 10; // PP/gün
+    private const float TensionDecayPerDay = 0.02f; // günde -0.02%
+
+    // ===== Durum =====
+    private static bool _initialized;
+    private static readonly Dictionary<string, Faction> _factions = new();
+    private static readonly Dictionary<string, Relation> _relations = new();
+    private static readonly List<Guarantee> _guarantees = new();
+    private static readonly List<string> _nonAggressionPacts = new(); // "A-B" (sıralı)
+    private static readonly List<string> _militaryAccess = new();     // "A->B"
+    private static readonly List<string> _navalAccess = new();        // "A->B"
+    private static readonly List<DiplomaticAction> _pendingActions = new();
+    private static float _worldTension = 0f;
+
+    private static GameManager GM => GameManager.Instance;
+    private static CountryData Player => GM?.PlayerCountryData;
+
+    // ===== Senaryo başlangıç verisi önbelleği =====
+    private static bool _startLoaded;
+    private static bool _startLoadLogged;
+
+    // ===== Yükleme =====
+
+    public static void Initialize(CountryData data)
+    {
+        _factions.Clear();
+        _relations.Clear();
+        _guarantees.Clear();
+        _nonAggressionPacts.Clear();
+        _militaryAccess.Clear();
+        _navalAccess.Clear();
+        _pendingActions.Clear();
+        _worldTension = 0f;
+
+        if (data == null)
+        {
+            _initialized = false;
+            return;
+        }
+
+        EnsureStartLoaded();
+
+        // Eksik ülkeler için deterministik varsayılan ilişkiler
+        InitializeDefaultRelations();
+
+        _initialized = true;
+        GD.Print($"DiplomacySystem: {data.Id} için hazır — Faksiyon={_factions.Count}, " +
+                 $"İlişki={_relations.Count}, Tension=%{_worldTension:F1}");
+    }
+
+    // M17.2: Senaryo başlangıç verisi (diplomacy_start.json) — senaryo değişince yeniden okunur
+    public static void ResetForScenario()
+    {
+        _startLoaded = false;
+        _startLoadLogged = false;
+    }
+
+    // M17.2: Test/debug için senaryo verisini yükle ve logla (ülke gerekmez)
+    public static void LoadScenarioData()
+    {
+        EnsureStartLoaded();
+        if (!_startLoadLogged)
+        {
+            _startLoadLogged = true;
+            // M17.2: blok türü dağılımı (DefensePact / PoliticalEconomic)
+            int defense = 0, political = 0;
+            foreach (var f in _factions.Values)
+            {
+                if (f.IsDefensePact) defense++;
+                else political++;
+            }
+            GD.Print($"DiplomacySystem: senaryo başlangıç verisi yüklendi (senaryo: {ScenarioSystem.ActiveId}) — Faksiyon={_factions.Count} (DefensePact={defense}, PoliticalEconomic={political}), İlişki={_relations.Count}, Garanti={_guarantees.Count}, Tension=%{_worldTension:F1}");
+        }
+    }
+
+    private static void EnsureStartLoaded()
+    {
+        if (_startLoaded) return;
+        _startLoaded = true;
+
+        // Senaryo dosyasının içeriği tam olarak bunlar — önceki senaryo/oyundan kalma yok
+        _factions.Clear();
+        _relations.Clear();
+        _guarantees.Clear();
+        _nonAggressionPacts.Clear();
+        _militaryAccess.Clear();
+        _navalAccess.Clear();
+        _worldTension = 0f;
+
+        string path = ScenarioSystem.ActiveDiplomacyStartPath;
+        if (!FileAccess.FileExists(path))
+        {
+            GD.PrintErr($"DiplomacySystem: {path} bulunamadı!");
+            return;
+        }
+
+        try
+        {
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var json = FileAccess.GetFileAsString(path);
+            using var doc = JsonDocument.Parse(json);
+
+            // Factions
+            if (doc.RootElement.TryGetProperty("Factions", out var facs))
+            {
+                foreach (var f in facs.EnumerateArray())
+                {
+                    var faction = new Faction
+                    {
+                        Id = f.GetProperty("Id").GetString(),
+                        Name = f.GetProperty("Name").GetString(),
+                        LeaderId = f.GetProperty("Leader").GetString(),
+                        Ideology = f.GetProperty("Ideology").GetString(),
+                        Color = f.GetProperty("Color").GetString(),
+                        Type = f.TryGetProperty("Type", out var typeProp) ? typeProp.GetString() : "DefensePact"
+                    };
+                    if (f.TryGetProperty("Members", out var members))
+                        foreach (var m in members.EnumerateArray())
+                            faction.MemberIds.Add(m.GetString());
+                    _factions[faction.Id] = faction;
+                }
+            }
+
+            // Relations
+            if (doc.RootElement.TryGetProperty("Relations", out var rels))
+            {
+                foreach (var r in rels.EnumerateArray())
+                {
+                    var rel = new Relation
+                    {
+                        FromId = r.GetProperty("From").GetString(),
+                        ToId = r.GetProperty("To").GetString(),
+                        Value = r.GetProperty("Value").GetInt32(),
+                        Opinion = r.GetProperty("Opinion").GetInt32()
+                    };
+                    _relations[rel.Key] = rel;
+                }
+            }
+
+            // World Tension
+            if (doc.RootElement.TryGetProperty("WorldTension", out var tension))
+                _worldTension = tension.GetSingle();
+
+            // Guarantees (tek hatalı kayıt kalanı durdurmasın)
+            if (doc.RootElement.TryGetProperty("Guarantees", out var guars))
+            {
+                foreach (var g in guars.EnumerateArray())
+                {
+                    if (!g.TryGetProperty("Guarantor", out var guarantor) ||
+                        !g.TryGetProperty("Target", out var target)) continue;
+                    _guarantees.Add(new Guarantee
+                    {
+                        GuarantorId = guarantor.GetString(),
+                        TargetId = target.GetString()
+                    });
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            GD.PrintErr($"DiplomacySystem: diplomacy_start.json okunamadı: {e.Message}");
+        }
+    }
+
+    // Dosyada olmayan tüm ülke çiftleri için ideoloji/zararlı komşu/uzaklık tabanlı varsayılan
+    private static void InitializeDefaultRelations()
+    {
+        var all = CountryDatabase.All().ToList();
+        foreach (var a in all)
+        {
+            foreach (var b in all)
+            {
+                if (a.Id == b.Id) continue;
+                string key = $"{a.Id}->{b.Id}";
+                if (_relations.ContainsKey(key)) continue;
+
+                int value = CalculateBaseRelation(a, b);
+                _relations[key] = new Relation { FromId = a.Id, ToId = b.Id, Value = value, Opinion = value };
+            }
+        }
+    }
+
+    private static int CalculateBaseRelation(CountryData a, CountryData b)
+    {
+        int rel = 0;
+        // Aynı ideoloji: +30
+        if (a.Ideology == b.Ideology) rel += 30;
+        // Farklı ideoloji: -20
+        else if (IsOpposingIdeology(a.Ideology, b.Ideology)) rel -= 20;
+
+        // Aynı faksiyon: +50
+        var factionA = GetFactionOf(a.Id);
+        var factionB = GetFactionOf(b.Id);
+        if (factionA != null && factionA == factionB) rel += 50;
+
+        // Savaşta: -100
+        if (WarSystem.IsAtWarWith(a.Id, b.Id) || WarSystem.IsAtWarWith(b.Id, a.Id)) rel = -100;
+
+        // Garanti veren: +20
+        if (HasGuarantee(b.Id, a.Id)) rel += 20;
+
+        return Math.Clamp(rel, MinRelation, MaxRelation);
+    }
+
+    private static bool IsOpposingIdeology(string a, string b)
+    {
+        var opposing = new HashSet<(string, string)>
+        {
+            ("Fascism", "Democracy"), ("Democracy", "Fascism"),
+            ("Fascism", "Communism"), ("Communism", "Fascism"),
+            ("Democracy", "Communism"), ("Communism", "Democracy")
+        };
+        return opposing.Contains((a, b));
+    }
+
+    // ===== Günlük tick =====
+
+    public static void DailyTick()
+    {
+        if (!_initialized || Player == null) return;
+
+        // 1) Bekleyen diplomatik aksiyonları ilerlet
+        for (int i = _pendingActions.Count - 1; i >= 0; i--)
+        {
+            var action = _pendingActions[i];
+            action.DaysRemaining--;
+            if (action.DaysRemaining <= 0)
+                CompleteAction(action);
+        }
+
+        // 2) World Tension azalma (barış zamanında)
+        if (_worldTension > 0 && WarSystem.ActiveWars.Count == 0)
+        {
+            _worldTension = Math.Max(0, _worldTension - TensionDecayPerDay);
+        }
+
+        // 3) İlişkiler: savaşta olanlar -1/gün, barışta olanlar +1/gün (normalize)
+        NormalizeRelations();
+
+        // Ayda bir özet
+        if (GM.TotalDays > 0 && GM.TotalDays % 30 == 0)
+        {
+            int playerFaction = GetFactionOf(GM.PlayerCountryId) != null ? 1 : 0;
+            GD.Print($"[Diplomacy] Gün {GM.TotalDays}: Tension=%{_worldTension:F1}, " +
+                     $"Faksiyon={playerFaction}, İlişkiler={_relations.Count}");
+        }
+    }
+
+    private static void NormalizeRelations()
+    {
+        foreach (var kv in _relations)
+        {
+            var rel = kv.Value;
+            // Savaşta olanlar -1/gün
+            if (WarSystem.IsAtWarWith(rel.FromId, rel.ToId))
+            {
+                rel.Value = Math.Max(MinRelation, rel.Value - 1);
+                rel.Opinion = Math.Max(MinRelation, rel.Opinion - 1);
+            }
+            // Barışta ve pozitifse +0.5/gün, negatifse +1/gün (normalize)
+            else
+            {
+                // Bilinmeyen ülke id'leri (veri dosyasında olmayan) — null koruması
+                var a = CountryDatabase.Get(rel.FromId);
+                var b = CountryDatabase.Get(rel.ToId);
+                if (a == null || b == null) continue;
+
+                int target = CalculateBaseRelation(a, b);
+                if (rel.Value < target) rel.Value = Math.Min(target, rel.Value + 1);
+                else if (rel.Value > target) rel.Value = Math.Max(target, rel.Value - 1);
+            }
+        }
+    }
+
+    // ===== Aksiyonlar (UI'dan çağrılır) =====
+
+    // İlişki geliştir (PP/gün)
+    public static bool ImproveRelations(string targetId)
+    {
+        if (!CanDoDiplomacy(targetId, out var target)) return false;
+        if (Player.PoliticalPower < ImproveRelationCost) return false;
+
+        Player.PoliticalPower -= ImproveRelationCost;
+        ModifyRelation(GM.PlayerCountryId, targetId, +5);
+        GD.Print($"[Diplomacy] İlişki geliştirme: {GM.PlayerCountryId} → {targetId} (+5, maliyet {ImproveRelationCost} PP)");
+        return true;
+    }
+
+    // Garanti ver (M8.4)
+    public static bool GuaranteeIndependence(string targetId)
+    {
+        if (!CanDoDiplomacy(targetId, out var target)) return false;
+        if (HasGuarantee(GM.PlayerCountryId, targetId)) return false;
+
+        double cost = BaseGuaranteeCost * (1 + Math.Max(0, -GetRelation(GM.PlayerCountryId, targetId)) / 100f);
+        if (Player.PoliticalPower < cost) return false;
+
+        Player.PoliticalPower -= (int)cost;
+        _guarantees.Add(new Guarantee { GuarantorId = GM.PlayerCountryId, TargetId = targetId });
+        ModifyRelation(GM.PlayerCountryId, targetId, +10);
+        IncreaseTension(2);
+        GD.Print($"[Diplomacy] Garanti: {GM.PlayerCountryId} → {target.Id} (maliyet {cost:F0} PP, tension +2)");
+        return true;
+    }
+
+    // --- AI / Genel diploması yardımcıları (M11.3) ---
+
+    /// <summary>Genel garanti: herhangi bir ülke herhangi bir ülkeyi garanti edebilir.</summary>
+    public static bool AddGuarantee(string guarantorId, string targetId)
+    {
+        var guarantor = CountryDatabase.Get(guarantorId);
+        var target = CountryDatabase.Get(targetId);
+        if (guarantor == null || target == null || guarantor.IsAnnexed || target.IsAnnexed)
+            return false;
+        if (guarantorId == targetId) return false;
+        if (HasGuarantee(guarantorId, targetId)) return false;
+
+        double cost = BaseGuaranteeCost * (1 + Math.Max(0, -GetRelation(guarantorId, targetId)) / 100f);
+        if (guarantor.PoliticalPower < cost) return false;
+
+        guarantor.PoliticalPower -= (int)cost;
+        _guarantees.Add(new Guarantee { GuarantorId = guarantorId, TargetId = targetId });
+        ModifyRelation(guarantorId, targetId, +10);
+        GD.Print($"[Diplomacy] Garanti: {guarantorId} → {targetId} (maliyet {cost:F0} PP)");
+        return true;
+    }
+
+    /// <summary>Faksiyon oluştur: lider belirtilen ülke olur.</summary>
+    public static bool CreateFaction(string factionId, string name, string leaderId, string ideology)
+    {
+        if (_factions.ContainsKey(factionId)) return false;
+        var leader = CountryDatabase.Get(leaderId);
+        if (leader == null || leader.IsAnnexed) return false;
+        if (GetFactionOf(leaderId) != null) return false;
+
+        double cost = BaseFactionCost;
+        if (leader.PoliticalPower < cost) return false;
+
+        leader.PoliticalPower -= (int)cost;
+        var faction = new Faction
+        {
+            Id = factionId,
+            Name = name,
+            LeaderId = leaderId,
+            MemberIds = new List<string> { leaderId },
+            Ideology = ideology,
+            Color = GetIdeologyColor(ideology)
+        };
+        _factions[factionId] = faction;
+        GD.Print($"[Diplomacy] Faksiyon oluşturuldu: {name} ({factionId}) lider: {leaderId}");
+        return true;
+    }
+
+    /// <summary>Faksiyona katılma: ülke belirtilen faksiyona katılır.</summary>
+    public static bool RequestJoinFaction(string factionId, string countryId)
+    {
+        if (!_factions.TryGetValue(factionId, out var faction)) return false;
+        if (GetFactionOf(countryId) != null) return false;
+        var country = CountryDatabase.Get(countryId);
+        if (country == null || country.IsAnnexed) return false;
+
+        double cost = BaseFactionCost;
+        if (country.PoliticalPower < cost) return false;
+
+        // Liderin onayı: görüş +50 gerekir
+        int opinion = GetOpinion(faction.LeaderId, countryId);
+        if (opinion < 50)
+        {
+            GD.Print($"[Diplomacy] Faksiyon reddetti: {faction.Name} (görüş {opinion} < 50)");
+            return false;
+        }
+
+        country.PoliticalPower -= (int)cost;
+        faction.MemberIds.Add(countryId);
+        ModifyRelation(countryId, faction.LeaderId, +20);
+        GD.Print($"[Diplomacy] Faksiyona katıldı: {countryId} → {faction.Name}");
+        return true;
+    }
+
+    /// <summary>Belirli bir ülkenin savaştığı düşmanları döndürür.</summary>
+    public static List<string> GetEnemiesAtWar(string countryId)
+    {
+        return WarSystem.GetEnemiesAtWar(countryId);
+    }
+
+    // Garanti çek
+    public static void RevokeGuarantee(string targetId)
+    {
+        var g = _guarantees.Find(x => x.GuarantorId == GM.PlayerCountryId && x.TargetId == targetId);
+        if (g != null)
+        {
+            _guarantees.Remove(g);
+            ModifyRelation(GM.PlayerCountryId, targetId, -10);
+            GD.Print($"[Diplomacy] Garanti geri çekildi: {GM.PlayerCountryId} → {targetId}");
+        }
+    }
+
+    // Askeri erişim (M8.4)
+    public static bool RequestMilitaryAccess(string targetId)
+    {
+        if (!CanDoDiplomacy(targetId, out _)) return false;
+        if (HasMilitaryAccess(GM.PlayerCountryId, targetId)) return false;
+
+        double cost = BaseAccessCost * (1 + Math.Max(0, -GetRelation(GM.PlayerCountryId, targetId)) / 100f);
+        if (Player.PoliticalPower < cost) return false;
+
+        Player.PoliticalPower -= (int)cost;
+        _militaryAccess.Add($"{GM.PlayerCountryId}->{targetId}");
+        ModifyRelation(GM.PlayerCountryId, targetId, +5);
+        GD.Print($"[Diplomacy] Askeri erişim: {GM.PlayerCountryId} → {targetId} (maliyet {cost:F0} PP)");
+        return true;
+    }
+
+    // Deniz erişimi (M8.4)
+    public static bool RequestNavalAccess(string targetId)
+    {
+        if (!CanDoDiplomacy(targetId, out _)) return false;
+        if (HasNavalAccess(GM.PlayerCountryId, targetId)) return false;
+
+        double cost = BaseAccessCost * (1 + Math.Max(0, -GetRelation(GM.PlayerCountryId, targetId)) / 100f);
+        if (Player.PoliticalPower < cost) return false;
+
+        Player.PoliticalPower -= (int)cost;
+        _navalAccess.Add($"{GM.PlayerCountryId}->{targetId}");
+        ModifyRelation(GM.PlayerCountryId, targetId, +5);
+        GD.Print($"[Diplomacy] Deniz erişimi: {GM.PlayerCountryId} → {targetId} (maliyet {cost:F0} PP)");
+        return true;
+    }
+
+    // Savaş ilanı (WarSystem.DeclareWar ile entegre - burası ekstra: garantili ülkelere çağrı)
+    public static bool DeclareWar(string targetId)
+    {
+        if (!CanDoDiplomacy(targetId, out var target)) return false;
+        if (WarSystem.IsAtWarWith(targetId)) return false;
+
+        // PP maliyeti — war goal indirimi DAHİL (M17A düzeltmesi: önce taban 50 kontrolü
+        // yanlıştı; Barbarossa -100% gibi indirimlerde ucuz ilan engelleniyordu)
+        int ppCost = WarSystem.CalculateWarGoalCost(targetId);
+        if (Player.PoliticalPower < ppCost) return false;
+
+        // ÖNCE: Oyuncu hedefe savaş ilan eder (bu savaşı çözer; casus belli
+        // kontrolü WarSystem.DeclareWar içinde yapılır)
+        bool warDeclared = WarSystem.DeclareWar(targetId);
+        if (!warDeclared) return false;
+
+        // SONRA: Garanti tetiklemesi — garantörler OYUNCUYA savaş açar (Defender=garantör)
+        var guarantors = _guarantees.Where(g => g.TargetId == targetId).Select(g => g.GuarantorId).ToList();
+        foreach (var gId in guarantors)
+        {
+            if (gId != GM.PlayerCountryId && !WarSystem.IsAtWarWith(gId, targetId))
+            {
+                // Garantör oyuncuya savaş açar (gerekçesi NotifyWarDeclared'da otomatik verildi)
+                WarSystem.DeclareWarOnPlayer(gId);
+                GD.Print($"[Diplomacy] Garanti tetiklendi: {gId} → {GM.PlayerCountryId} savaşa girdi");
+            }
+        }
+
+        // Faksiyon çağrısı (Call to Arms - M8.3): YALNIZCA DefensePact faksiyonları (NATO vb.) savaş çağrısı yapar.
+        // M17.2: PoliticalEconomic bloklar (AB, BRICS, ŞİÖ) üye saldırıldığında çağrı YAPMAZ.
+        // M17A: Yeni savaş ilanı değil — JoinWarByFactionCall casus belli kontrolü atlar.
+        var myFaction = GetFactionOf(GM.PlayerCountryId);
+        if (myFaction != null && myFaction.IsDefensePact)
+        {
+            foreach (var memberId in myFaction.MemberIds)
+            {
+                if (memberId != GM.PlayerCountryId && !WarSystem.IsAtWarWith(memberId, targetId))
+                {
+                    WarSystem.JoinWarByFactionCall(memberId, targetId);
+                    GD.Print($"[Diplomacy] Faksiyon çağrısı (DefensePact): {memberId} → {targetId} savaşa girdi");
+                }
+            }
+        }
+
+        return true;
+    }
+
+    // Faksiyon oluştur (M8.2)
+    public static bool CreateFaction(string name, string ideology)
+    {
+        if (GetFactionOf(GM.PlayerCountryId) != null) return false;
+        if (Player.PoliticalPower < BaseFactionCost) return false;
+
+        Player.PoliticalPower -= BaseFactionCost;
+        string id = name.ToLower().Replace(" ", "_");
+        var faction = new Faction
+        {
+            Id = id,
+            Name = name,
+            LeaderId = GM.PlayerCountryId,
+            MemberIds = new List<string> { GM.PlayerCountryId },
+            Ideology = ideology,
+            Color = GetIdeologyColor(ideology)
+        };
+        _factions[id] = faction;
+        GD.Print($"[Diplomacy] Faksiyon oluşturuldu: {name} ({id}) lider: {GM.PlayerCountryId}");
+        return true;
+    }
+
+    // Faksiyona katılma isteği
+    public static bool RequestJoinFaction(string factionId)
+    {
+        if (!_factions.TryGetValue(factionId, out var faction)) return false;
+        if (GetFactionOf(GM.PlayerCountryId) != null) return false;
+        if (Player.PoliticalPower < BaseFactionCost) return false;
+
+        // Liderin onayı: görüş +50 gerekir
+        int opinion = GetOpinion(faction.LeaderId, GM.PlayerCountryId);
+        if (opinion < 50)
+        {
+            GD.Print($"[Diplomacy] Faksiyon reddetti: {faction.Name} (görüş {opinion} < 50)");
+            return false;
+        }
+
+        Player.PoliticalPower -= BaseFactionCost;
+        faction.MemberIds.Add(GM.PlayerCountryId);
+        ModifyRelation(GM.PlayerCountryId, faction.LeaderId, +20);
+        GD.Print($"[Diplomacy] Faksiyona katıldı: {GM.PlayerCountryId} → {faction.Name}");
+        return true;
+    }
+
+    // Faksiyondan ayrılma
+    public static void LeaveFaction()
+    {
+        var faction = GetFactionOf(GM.PlayerCountryId);
+        if (faction == null) return;
+
+        faction.MemberIds.Remove(GM.PlayerCountryId);
+        ModifyRelation(GM.PlayerCountryId, faction.LeaderId, -30);
+        GD.Print($"[Diplomacy] Faksiyondan ayrıldı: {GM.PlayerCountryId} ← {faction.Name}");
+    }
+
+    // Barış konferansı (M8.3 basit)
+    public static PeaceDeal ProposePeace(string winnerId, string loserId)
+    {
+        var deal = new PeaceDeal
+        {
+            WinnerId = winnerId,
+            LoserId = loserId
+        };
+
+        // Basit mantık: ilhak (annex) veya puppet
+        var loser = CountryDatabase.Get(loserId);
+        if (loser != null && (loser.CivFactories + loser.MilFactories + loser.Dockyards) <= 5)
+        {
+            deal.Terms.Add((PeaceDeal.Term.Annex, ""));
+        }
+        else
+        {
+            deal.Terms.Add((PeaceDeal.Term.Puppet, ""));
+        }
+
+        GD.Print($"[Diplomacy] Barış teklifi: {winnerId} → {loserId} ({deal.Terms[0].Item1})");
+        return deal;
+    }
+
+    public static void ApplyPeaceDeal(PeaceDeal deal)
+    {
+        var loser = CountryDatabase.Get(deal.LoserId);
+        var winner = CountryDatabase.Get(deal.WinnerId);
+        if (loser == null || winner == null) return;
+
+        foreach (var term in deal.Terms)
+        {
+            switch (term.Item1)
+            {
+                case PeaceDeal.Term.Annex:
+                    loser.IsAnnexed = true;
+                    loser.OwnerId = deal.WinnerId;
+                    winner.CivFactories += loser.CivFactories;
+                    winner.MilFactories += loser.MilFactories;
+                    winner.Dockyards += loser.Dockyards;
+                    loser.CivFactories = loser.MilFactories = loser.Dockyards = 0;
+                    IncreaseTension(-20);
+                    GD.Print($"[Diplomacy] Barış: {deal.LoserId} ilhak edildi → {deal.WinnerId}");
+                    break;
+                case PeaceDeal.Term.Puppet:
+                    loser.IsAnnexed = true;
+                    loser.OwnerId = deal.WinnerId;
+                    // Puppet: fabrikalar kalır ama kontrol sahibinde
+                    IncreaseTension(-10);
+                    GD.Print($"[Diplomacy] Barış: {deal.LoserId} puppet yapıldı → {deal.WinnerId}");
+                    break;
+            }
+        }
+
+        // Savaş bitir
+        var war = WarSystem.GetWarWith(deal.LoserId);
+        if (war != null)
+        {
+            war.IsEnded = true;
+            // M17A: Barış antlaşması — ateşkes başlat
+            CasusBelliSystem.NotifyWarEnded(deal.WinnerId, deal.LoserId);
+        }
+
+        if (GameManager.IsAvailable)
+        {
+            GameManager.Instance.EmitSignal(GameManager.SignalName.CountryOwnershipChanged);
+            GameManager.Instance.EmitSignal(GameManager.SignalName.PlayerCountryDataChanged);
+        }
+    }
+
+    // Beyaz barış (M8.3): hiçbir taraf kazanmaz, savaş statüko ile biter
+    public static bool WhitePeace(string enemyId)
+    {
+        var war = WarSystem.GetWarWith(enemyId);
+        if (war == null) return false;
+
+        war.IsEnded = true;
+        war.EndReason = "White peace (statüko)";
+        // M17A: Beyaz barış — ateşkes başlat
+        CasusBelliSystem.NotifyWarEnded(GM.PlayerCountryId, enemyId);
+        IncreaseTension(-5);
+        ModifyRelation(GM.PlayerCountryId, enemyId, +15); // barış ilişkileri yumuşatır
+
+        GD.Print($"[Diplomacy] BEYAZ BARIŞ: {GM.PlayerCountryId} ↔ {enemyId} — savaş statüko ile bitti, tension -5");
+        return true;
+    }
+
+    // ===== Yardımcı metodlar =====
+
+    private static bool CanDoDiplomacy(string targetId, out CountryData target)
+    {
+        target = CountryDatabase.Get(targetId);
+        if (!_initialized || Player == null || target == null) return false;
+        if (targetId == GM.PlayerCountryId) return false;
+        if (target.IsAnnexed) return false;
+        return true;
+    }
+
+    public static void ModifyRelation(string fromId, string toId, int delta)
+    {
+        string key = $"{fromId}->{toId}";
+        if (_relations.TryGetValue(key, out var rel))
+        {
+            rel.Value = Math.Clamp(rel.Value + delta, MinRelation, MaxRelation);
+            rel.Opinion = Math.Clamp(rel.Opinion + delta, MinRelation, MaxRelation);
+        }
+        else
+        {
+            _relations[key] = new Relation { FromId = fromId, ToId = toId, Value = delta, Opinion = delta };
+        }
+    }
+
+    public static int GetRelation(string fromId, string toId)
+    {
+        string key = $"{fromId}->{toId}";
+        return _relations.TryGetValue(key, out var r) ? r.Value : 0;
+    }
+
+    public static int GetOpinion(string fromId, string toId)
+    {
+        string key = $"{fromId}->{toId}";
+        return _relations.TryGetValue(key, out var r) ? r.Opinion : 0;
+    }
+
+    public static bool HasGuarantee(string guarantorId, string targetId) =>
+        _guarantees.Any(g => g.GuarantorId == guarantorId && g.TargetId == targetId);
+
+    public static bool HasMilitaryAccess(string fromId, string toId) =>
+        _militaryAccess.Contains($"{fromId}->{toId}");
+
+    public static bool HasNavalAccess(string fromId, string toId) =>
+        _navalAccess.Contains($"{fromId}->{toId}");
+
+    public static bool HasNonAggressionPact(string a, string b)
+    {
+        var pair = a.CompareTo(b) < 0 ? $"{a}-{b}" : $"{b}-{a}";
+        return _nonAggressionPacts.Contains(pair);
+    }
+
+    public static Faction GetFactionOf(string countryId)
+    {
+        return _factions.Values.FirstOrDefault(f => f.IsMember(countryId));
+    }
+
+    public static Faction GetFactionById(string id) => _factions.GetValueOrDefault(id);
+
+    private static string GetIdeologyColor(string ideology) => ideology switch
+    {
+        "Fascism" => "#8B5A2B",
+        "Democracy" => "#4A7FB5",
+        "Communism" => "#B03A2E",
+        _ => "#8E9AA5"
+    };
+
+    // World Tension
+    public static float WorldTension => _worldTension;
+
+    public static void IncreaseTension(float amount)
+    {
+        _worldTension = Math.Clamp(_worldTension + amount, 0, 100);
+        GD.Print($"[Diplomacy] World Tension: %{_worldTension:F1} (değişim: {amount:+#;-#;0})");
+    }
+
+    // Bekleyen aksiyonu tamamla
+    private static void CompleteAction(DiplomaticAction action)
+    {
+        _pendingActions.Remove(action);
+        GD.Print($"[Diplomacy] Aksiyon tamamlandı: {action.ActionType} ({action.InitiatorId} → {action.TargetId})");
+    }
+
+    // ===== Getters (UI için) =====
+
+    public static bool IsInitialized => _initialized;
+    public static IReadOnlyDictionary<string, Faction> Factions => _factions;
+    public static IReadOnlyDictionary<string, Relation> Relations => _relations;
+    public static IReadOnlyList<Guarantee> Guarantees => _guarantees;
+    public static IReadOnlyList<string> MilitaryAccessList => _militaryAccess;
+    public static IReadOnlyList<string> NavalAccessList => _navalAccess;
+    public static IReadOnlyList<DiplomaticAction> PendingActions => _pendingActions;
+
+    public static Relation GetRelationData(string fromId, string toId)
+    {
+        _relations.TryGetValue($"{fromId}->{toId}", out var r);
+        return r;
+    }
+
+    public static List<Guarantee> GetGuaranteesBy(string countryId) =>
+        _guarantees.Where(g => g.GuarantorId == countryId).ToList();
+
+    public static List<string> GetGuaranteesFor(string countryId) =>
+        _guarantees.Where(g => g.TargetId == countryId).Select(g => g.GuarantorId).ToList();
+
+    // ===== M12: Save/Load =====
+
+    public static SaveSystem.DiplomacySave GetSaveData()
+    {
+        return new SaveSystem.DiplomacySave
+        {
+            WorldTension = _worldTension,
+            Factions = _factions.Values.ToArray(),
+            Relations = _relations.Values.ToArray(),
+            Guarantees = _guarantees.ToArray(),
+            NonAggressionPacts = _nonAggressionPacts.ToArray(),
+            MilitaryAccess = _militaryAccess.ToArray(),
+            NavalAccess = _navalAccess.ToArray()
+        };
+    }
+
+    public static void LoadSaveData(SaveSystem.DiplomacySave data)
+    {
+        if (data == null) return;
+        _factions.Clear();
+        if (data.Factions != null)
+            foreach (var f in data.Factions) _factions[f.Id] = f;
+        _relations.Clear();
+        if (data.Relations != null)
+            foreach (var r in data.Relations) _relations[r.Key] = r;
+        _guarantees.Clear();
+        if (data.Guarantees != null)
+            foreach (var g in data.Guarantees) _guarantees.Add(g);
+        _nonAggressionPacts.Clear();
+        if (data.NonAggressionPacts != null)
+            foreach (var p in data.NonAggressionPacts) _nonAggressionPacts.Add(p);
+        _militaryAccess.Clear();
+        if (data.MilitaryAccess != null)
+            foreach (var a in data.MilitaryAccess) _militaryAccess.Add(a);
+        _navalAccess.Clear();
+        if (data.NavalAccess != null)
+            foreach (var a in data.NavalAccess) _navalAccess.Add(a);
+        _worldTension = data.WorldTension;
+        _initialized = true;
+        GD.Print($"DiplomacySystem: state yüklendi — Faksiyon={_factions.Count}, İlişki={_relations.Count}, Tension={_worldTension:F1}");
+    }
+}

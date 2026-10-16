@@ -1,0 +1,239 @@
+using Godot;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+/// <summary>
+/// M12 Doğrulama Testi: Kaydet/Yükle determinizm kontrolü.
+/// --save-load-test arg'ıyla çalışır; normal oyunda ASLA çağrılmaz.
+/// Akış: 100 gün → kaydet → 50 gün → özet A → yükle → 50 gün → özet B → A==B ?
+/// </summary>
+public static class SaveLoadTest
+{
+    private const ulong TestSeed = 0x20240101DEADC0DEUL; // Sabit test tohumu
+    private const int DaysPhase1 = 100; // Kaydetmeden önce
+    private const int DaysPhase2 = 50;  // Kaydettikten / yükledikten sonra
+
+    public static void Run()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M12 SAVE/LOAD DOĞRULAMA TESTİ BAŞLADI");
+        GD.Print("=========================================");
+
+        // Önceki test dosyası varsa temizle
+        SaveSystem.DeleteTestFile();
+
+        // 1) Deterministik RNG
+        DeterministicRNG.InitializeForNewGame(TestSeed);
+        GD.Print($"[Test] RNG tohum sabitlendi: {TestSeed:X}");
+
+        // 2) Oyuncu ülkesini seç (senaryoya göre: 1936=GER, modern=DEU — M17.4 iki senaryo testi)
+        var gm = GameManager.Instance;
+        string testCountry = ScenarioSystem.ActiveId switch
+        {
+            "modern_world" => "DEU",
+            _ => "GER"
+        };
+        gm.SetPlayerCountry(testCountry);
+        GD.Print($"[Test] Oyuncu ülke: {gm.PlayerCountryId} ({gm.PlayerCountryData?.Name ?? "?"}) — senaryo: {ScenarioSystem.ActiveId}");
+
+        // 3) Test modları: event auto-choose (popup bloklamasın), focus auto-pick (zengin state)
+        EventSystem.EnableAutoChooseTest();
+        FocusSystem.EnableAutoPickTest();
+        GD.Print("[Test] Event auto-choose + Focus auto-pick etkin");
+
+        // 4) 100 gün ilerlet
+        GD.Print($"[Test] Faz 1: {DaysPhase1} gün ilerletiliyor...");
+        gm.AdvanceDaysForTest(DaysPhase1);
+        GD.Print($"[Test] Faz 1 tamam — Tarih={gm.CurrentDate:yyyy-MM-dd}, Gün={gm.TotalDays}");
+
+        // 5) Kaydet
+        GD.Print("[Test] Kayıt yazılıyor (test_save.json)...");
+        SaveSystem.SaveTestFile();
+
+        // 6) 50 gün daha ilerlet (oynanış A)
+        GD.Print($"[Test] Faz 2A: {DaysPhase2} gün ilerletiliyor...");
+        gm.AdvanceDaysForTest(DaysPhase2);
+        string summaryA = BuildSummaryCore(); // label'sız çekirdek özet
+        GD.Print($"[Test] ÖZET A:\n=== ÖZET [A (kaydet sonrası)] ===\n{summaryA}");
+
+        // 7) Kaydı yükle
+        GD.Print("[Test] Kayıt yükleniyor...");
+        bool loaded = SaveSystem.LoadTestFile();
+        if (!loaded)
+        {
+            GD.PrintErr("[Test] YÜKLEME BAŞARISIZ — test iptal");
+            return;
+        }
+        GD.Print($"[Test] Yükleme başarılı — Tarih={gm.CurrentDate:yyyy-MM-dd}, Gün={gm.TotalDays}");
+
+        // 8) AYNI 50 günü tekrar ilerlet (oynanış B)
+        GD.Print($"[Test] Faz 2B: {DaysPhase2} gün tekrar ilerletiliyor...");
+        gm.AdvanceDaysForTest(DaysPhase2);
+        string summaryB = BuildSummaryCore(); // label'sız çekirdek özet
+        GD.Print($"[Test] ÖZET B:\n=== ÖZET [B (yükle sonrası)] ===\n{summaryB}");
+
+        // 9) Karşılaştır (label'sız çekirdek)
+        bool pass = summaryA == summaryB;
+        GD.Print("=========================================");
+        if (pass)
+        {
+            GD.Print("  SONUÇ: PASS ✓  (A == B)");
+            GD.Print("=========================================");
+            SaveSystem.DeleteTestFile();
+        }
+        else
+        {
+            GD.PrintErr("  SONUÇ: FAIL ✗  (A != B)");
+            GD.Print("=========================================");
+            // Farkı bul
+            FindDiff(summaryA, summaryB);
+            // test_save.json'i bırak (inceleme için)
+        }
+    }
+
+    private static string BuildSummaryCore()
+    {
+        var sb = new StringBuilder();
+        var gm = GameManager.Instance;
+        string playerId = gm.PlayerCountryId;
+
+        sb.AppendLine($"Tarih: {gm.CurrentDate:d MMM yyyy} | Gün: {gm.TotalDays} | RNG: {DeterministicRNG.GetState():X} | Tension: {DiplomacySystem.WorldTension:F1} | Hız: {gm.Speed}");
+
+        // --- Ülkeler ---
+        sb.AppendLine("Ülkeler (id | civ mil dock | PP | Tümen):");
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c == null) continue;
+            string id = c.Id;
+            int civ = c.CivFactories;
+            int mil = c.MilFactories;
+            int dock = c.Dockyards;
+            double pp = c.PoliticalPower;
+            int divs = (id == playerId)
+                ? ArmySystem.Divisions.Count
+                : CountryAI.GetDivisions(id);
+
+            sb.AppendLine($"  {id} | {civ,2} {mil,2} {dock,2} | {pp,7:F1} | {divs}");
+        }
+
+        // --- Savaşlar ---
+        var wars = WarSystem.ActiveWars.Where(w => !w.IsEnded).ToList();
+        sb.AppendLine($"Savaşlar ({wars.Count}):");
+        foreach (var w in wars)
+        {
+            sb.AppendLine($"  {w.Id}: {w.AttackerId}->{w.DefenderId} ({w.DefenderName}) prog={w.WarProgress:F1}% kayıp P:{w.PlayerCasualties}/E:{w.EnemyCasualties} off={w.OffensiveActive} front={w.FrontlineStance}");
+        }
+        if (wars.Count == 0) sb.AppendLine("  (yok)");
+
+        // --- Odaklar ---
+        sb.AppendLine("Odaklar (ülke: tamamlanmış, aktif@gün):");
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c == null) continue;
+            var fst = FocusSystem.GetOrCreateState(c.Id);
+            if (fst == null) continue;
+            string activeInfo = fst.Active != null ? $"{fst.Active.Id}@{fst.ActiveDays}" : "—";
+            sb.AppendLine($"  {c.Id}: tam={fst.Completed.Count}, aktif={activeInfo}, aiEx={fst.AiExhausted}");
+        }
+
+        // --- Ekonomi ---
+        var eq = EconomySystem.CurrentLaw;
+        int queueCount = EconomySystem.ConstructionQueue.Count;
+        int convoy = EconomySystem.ConvoyCount;
+        sb.AppendLine($"Ekonomi: yasa={(int)eq}, kuyruk={queueCount}, konvoy={convoy}");
+        if (queueCount > 0)
+        {
+            foreach (var q in EconomySystem.ConstructionQueue)
+                sb.AppendLine($"  {q.DisplayName}: {q.PointsDone}/{q.PointsNeeded} ({q.ProgressPercent:F0}%) fab={q.AssignedFactories}");
+        }
+
+        // --- Teknoloji ---
+        int techRes = TechnologySystem.ResearchedIds.Count;
+        int techActive = TechnologySystem.ActiveResearchList.Count;
+        var playerC = gm.PlayerCountryData;
+        sb.AppendLine($"Teknoloji: tam={techRes}, aktif={techActive}, slot={playerC?.ResearchSlots ?? 0}, techSeviye={playerC?.TechLevel ?? 1}");
+        if (techActive > 0)
+        {
+            foreach (var a in TechnologySystem.ActiveResearchList)
+                sb.AppendLine($"  {a.Tech.Id}: {a.ProgressDays:F1}/{a.Tech.Cost} ({a.ProgressPercent:F0}%)");
+        }
+
+        // --- Ekipman ---
+        int equipLines = EquipmentSystem.Lines.Count;
+        long totalStock = EquipmentSystem.Stocks.Values.Sum();
+        sb.AppendLine($"Ekipman: hat={equipLines}, stok={totalStock}");
+        if (equipLines > 0)
+        {
+            foreach (var l in EquipmentSystem.Lines)
+                sb.AppendLine($"  {EquipmentSystem.GetDisplayName(l.EquipmentId, l.VariantId)}: {l.AssignedFactories}f %{l.Efficiency*100:F0} prod={l.TotalProduced:F0}");
+        }
+
+        // --- Ordu ---
+        int playerDivs = ArmySystem.Divisions.Count;
+        int playerTpls = ArmySystem.Templates.Count;
+        int playerArmys = ArmySystem.Armies.Count;
+        int training = ArmySystem.TrainingQueue.Count;
+        sb.AppendLine($"Ordu (oyuncu): tümen={playerDivs}, şablon={playerTpls}, ordu={playerArmys}, eğitim={training}");
+
+        // --- Diplomasi ---
+        int factions = DiplomacySystem.Factions.Count;
+        int relations = DiplomacySystem.Relations.Count;
+        int guarantees = DiplomacySystem.Guarantees.Count;
+        sb.AppendLine($"Diplomasi: faksiyon={factions}, ilişki={relations}, garanti={guarantees}");
+
+        // --- M17A: Casus Belli ---
+        int activeJustifications = CasusBelliSystem.Justifications.Count(j => !j.IsConsumed && j.BuildDaysLeft == 0 && j.UltimatumDaysLeft == 0);
+        int buildingJustifications = CasusBelliSystem.Justifications.Count(j => !j.IsConsumed && j.BuildDaysLeft > 0);
+        int activeTruces = CasusBelliSystem.Truces.Count;
+        float playerLegitimacy = CasusBelliSystem.GetLegitimacy(playerId);
+        sb.AppendLine($"CasusBelli: aktif_gerekçe={activeJustifications}, inşaat={buildingJustifications}, ateşkes={activeTruces}, oyuncu_meşruiyet={playerLegitimacy:F1}");
+
+        // --- AI ---
+        int aiCountries = 0;
+        int aiTotalDivs = 0;
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c != null && CountryAI.IsAiCountry(c.Id))
+            {
+                aiCountries++;
+                aiTotalDivs += CountryAI.GetDivisions(c.Id);
+            }
+        }
+        sb.AppendLine($"AI: ülke={aiCountries}, toplam_tümen={aiTotalDivs}");
+
+        // --- M17.2: Liderler ---
+        int leaderCount = LeaderSystem.LoadedCount;
+        sb.AppendLine($"Liderler: {leaderCount} ülke");
+        if (leaderCount > 0)
+        {
+            foreach (var kv in LeaderSystem.All.OrderBy(k => k.Key))
+            {
+                var l = kv.Value;
+                sb.AppendLine($"  {l.CountryId}: {l.FirstName} {l.LastName} ({l.Age}yr, {l.Party}, {l.Ideology}, Dip={l.Diplomacy}, Adm={l.Administration}, Cha={l.Charisma}, Mil={l.Military}, Int={l.Intelligence}, Eco={l.Economy}, traits={string.Join(",", l.Traits)})");
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    private static void FindDiff(string a, string b)
+    {
+        var linesA = a.Split('\n');
+        var linesB = b.Split('\n');
+        int max = Math.Max(linesA.Length, linesB.Length);
+        for (int i = 0; i < max; i++)
+        {
+            string la = i < linesA.Length ? linesA[i] : "(EOF)";
+            string lb = i < linesB.Length ? linesB[i] : "(EOF)";
+            if (la != lb)
+            {
+                GD.PrintErr($"[Diff] Satır {i+1}:");
+                GD.PrintErr($"  A: {la}");
+                GD.PrintErr($"  B: {lb}");
+                break; // İlk fark
+            }
+        }
+    }
+}

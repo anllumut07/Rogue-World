@@ -1,0 +1,402 @@
+[
+  {
+    "Id": "AFG",
+    "Name": "Afghanistan",
+    "Capital": "Kabul",
+    "Region": "Southern Asia",
+    "Languages": "Dari (Persian), Pashto",
+    "Intro": "Landlocked and mountainous, Afghanistan sits at the crossroads of Central and Southern Asia. The Hindu Kush range runs across the country, with high passes linking north and south. Dari and Pashto are the main languages."
+  },
+  {
+    "Id": "ARG",
+    "Name": "Argentina",
+    "Capital": "Buenos Aires",
+    "Region": "South America",
+    "Languages": "Spanish",
+    "Intro": "Argentina stretches from the subtropical northeast down to the cold tip of Patagonia. The Andes form its long western border with Chile. Spanish is the official language, and European immigrant heritage has strongly shaped its culture."
+  },
+  {
+    "Id": "AUS",
+    "Name": "Australia",
+    "Capital": "Canberra",
+    "Region": "Oceania",
+    "Languages": "English",
+    "Intro": "Australia is a continent-sized country between the Indian and Pacific Oceans. Most of the population lives along the eastern and southeastern coasts, while the arid interior remains sparsely settled. English is the dominant language."
+  },
+  {
+    "Id": "AUT",
+    "Name": "Austria",
+    "Capital": "Vienna",
+    "Region": "Central Europe",
+    "Languages": "German",
+    "Intro": "Austria is an Alpine country in Central Europe, with the Danube flowing through its eastern lowlands. German is the official language. Vienna has long been a center of music and diplomacy in Europe."
+  },
+  {
+    "Id": "BEL",
+    "Name": "Belgium",
+    "Capital": "Brussels",
+    "Region": "Western Europe",
+    "Languages": "Dutch, French, German",
+    "Intro": "Belgium is a small, densely populated country on the North Sea at the crossroads of Western Europe. Its location between larger neighbors made it a historic corridor of trade and industry. Dutch, French and German are official languages."
+  },
+  {
+    "Id": "BGR",
+    "Name": "Bulgaria",
+    "Capital": "Sofia",
+    "Region": "Southeastern Europe",
+    "Languages": "Bulgarian",
+    "Intro": "Bulgaria lies on the Balkan peninsula with a coastline on the Black Sea. The Danube forms much of its northern border, and the Balkan Mountains cross the interior. Bulgarian is the main language and Orthodox Christianity is deeply rooted."
+  },
+  {
+    "Id": "BRA",
+    "Name": "Brazil",
+    "Capital": "Rio de Janeiro",
+    "Region": "South America",
+    "Languages": "Portuguese",
+    "Intro": "Brazil is the largest country in South America, spanning the Amazon basin and thousands of kilometers of Atlantic coastline. Portuguese sets it apart from its Spanish-speaking neighbors. The Amazon rainforest dominates the north."
+  },
+  {
+    "Id": "CAN",
+    "Name": "Canada",
+    "Capital": "Ottawa",
+    "Region": "North America",
+    "Languages": "English, French",
+    "Intro": "Canada is the second-largest country in the world, stretching from the Atlantic to the Pacific and into the Arctic. English and French are its official languages. Vast forests, prairie grasslands and arctic tundra define its landscape."
+  },
+  {
+    "Id": "CHE",
+    "Name": "Switzerland",
+    "Capital": "Bern",
+    "Region": "Central Europe",
+    "Languages": "German, French, Italian, Romansh",
+    "Intro": "Switzerland sits at the heart of Europe, surrounded by the Alps. Four national languages — German, French, Italian and Romansh — reflect its position between major cultures. Its mountain passes have linked northern and southern Europe for centuries."
+  },
+  {
+    "Id": "CHL",
+    "Name": "Chile",
+    "Capital": "Santiago",
+    "Region": "South America",
+    "Languages": "Spanish",
+    "Intro": "Chile is a long, narrow country along the Pacific coast of South America. The Atacama Desert lies to the north and Patagonia to the far south. Spanish is the official language."
+  },
+  {
+    "Id": "CHN",
+    "Name": "China",
+    "Capital": "Nanjing",
+    "Region": "East Asia",
+    "Languages": "Standard Chinese (Mandarin)",
+    "Intro": "China spans from northern deserts to the Tibetan plateau and fertile eastern river valleys. Mandarin Chinese is the official language, and its written tradition reaches back thousands of years. The Yangtze and Yellow Rivers anchor its agriculture and population."
+  },
+  {
+    "Id": "COL",
+    "Name": "Colombia",
+    "Capital": "Bogota",
+    "Region": "South America",
+    "Languages": "Spanish",
+    "Intro": "Colombia is the only South American country with coasts on both the Pacific and the Caribbean. The Andes split into three ranges across its territory. Spanish is the official language, and coffee is central to highland culture."
+  },
+  {
+    "Id": "CZE",
+    "Name": "Czechoslovakia",
+    "Capital": "Prague",
+    "Region": "Central Europe",
+    "Languages": "Czech, Slovak",
+    "Intro": "Czechoslovakia combines the historic lands of Bohemia and Moravia with Slovakia in the east. Czech and Slovak are the main languages. The Bohemian plateau has long been one of Central Europe's industrial heartlands."
+  },
+  {
+    "Id": "DEU",
+    "Name": "Germany",
+    "Capital": "Berlin",
+    "Region": "Central Europe",
+    "Languages": "German",
+    "Intro": "Germany lies in Central Europe between the North Sea and the Alps. German is the official language. Its river networks — the Rhine, Elbe and Danube — have made it a historic heartland of European trade and industry."
+  },
+  {
+    "Id": "DNK",
+    "Name": "Denmark",
+    "Capital": "Copenhagen",
+    "Region": "Northern Europe",
+    "Languages": "Danish",
+    "Intro": "Denmark occupies the Jutland peninsula and surrounding islands in northern Europe. Danish is the language. The narrow straits between Denmark and Sweden have long controlled access between the North Sea and the Baltic."
+  },
+  {
+    "Id": "EGY",
+    "Name": "Egypt",
+    "Capital": "Cairo",
+    "Region": "North Africa",
+    "Languages": "Arabic",
+    "Intro": "Egypt is centered on the Nile valley and delta amid the Sahara. The Nile's floods made farming possible in the desert, and nearly all settlement hugs the river. Arabic is the official language."
+  },
+  {
+    "Id": "ESP",
+    "Name": "Spain",
+    "Capital": "Madrid",
+    "Region": "Southwestern Europe",
+    "Languages": "Spanish",
+    "Intro": "Spain occupies most of the Iberian Peninsula, with long coastlines on both the Mediterranean and the Atlantic. Spanish is the main language; Catalan, Galician and Basque are also spoken. It was historically one of Europe's great maritime powers."
+  },
+  {
+    "Id": "ETH",
+    "Name": "Ethiopia",
+    "Capital": "Addis Ababa",
+    "Region": "Eastern Africa",
+    "Languages": "Amharic",
+    "Intro": "Ethiopia is a highland country in the Horn of Africa. Amharic is the language of the capital and administration. It hosts many peoples and languages, and coffee is believed to have originated in its highlands."
+  },
+  {
+    "Id": "FIN",
+    "Name": "Finland",
+    "Capital": "Helsinki",
+    "Region": "Northern Europe",
+    "Languages": "Finnish, Swedish",
+    "Intro": "Finland lies between Sweden and Russia in northern Europe, with forests and tens of thousands of lakes covering most of the land. Finnish and Swedish are the official languages. Winters are long and cold."
+  },
+  {
+    "Id": "FRA",
+    "Name": "France",
+    "Capital": "Paris",
+    "Region": "Western Europe",
+    "Languages": "French",
+    "Intro": "France reaches from the Atlantic across to the Alps and the Mediterranean. French is the official language. It has long been a center of European arts, philosophy and science, with Paris on the Seine as its capital."
+  },
+  {
+    "Id": "GBR",
+    "Name": "United Kingdom",
+    "Capital": "London",
+    "Region": "Western Europe",
+    "Languages": "English",
+    "Intro": "The United Kingdom is an island country off the northwestern coast of Europe. English is the main language. London sits on the Thames, and for centuries the Royal Navy tied the islands to trade routes across the world."
+  },
+  {
+    "Id": "GRC",
+    "Name": "Greece",
+    "Capital": "Athens",
+    "Region": "Southeastern Europe",
+    "Languages": "Greek",
+    "Intro": "Greece occupies the southern tip of the Balkan peninsula and hundreds of Mediterranean islands. Greek is the official language. Its mainland is mountainous, and the sea has always shaped Greek life."
+  },
+  {
+    "Id": "HUN",
+    "Name": "Hungary",
+    "Capital": "Budapest",
+    "Region": "Central Europe",
+    "Languages": "Hungarian",
+    "Intro": "Hungary lies on the Danube in Central Europe, with Budapest formed from towns on both banks. Hungarian is the official language, unrelated to those of most of its neighbors. The Great Plain spreads across the east."
+  },
+  {
+    "Id": "IDN",
+    "Name": "Dutch East Indies",
+    "Capital": "Batavia",
+    "Region": "Southeast Asia",
+    "Languages": "Malay/Indonesian, Dutch (administration)",
+    "Intro": "The Dutch East Indies is a vast archipelago of thousands of islands along the equator between Asia and Australia. Malay-based languages spread across the islands, with Dutch used in colonial administration. The islands were the historic source of the spice trade."
+  },
+  {
+    "Id": "IND",
+    "Name": "British Raj",
+    "Capital": "Delhi",
+    "Region": "Southern Asia",
+    "Languages": "Hindi, Urdu, English (administration)",
+    "Intro": "The British Raj spans the Indian subcontinent from the Himalayas to the Indian Ocean. Hindi, Urdu and English are widely used alongside hundreds of regional languages. The monsoon and the great river plains anchor its agriculture."
+  },
+  {
+    "Id": "IRN",
+    "Name": "Iran",
+    "Capital": "Tehran",
+    "Region": "Western Asia",
+    "Languages": "Persian (Farsi)",
+    "Intro": "Iran stands between the Caspian Sea and the Persian Gulf. Persian (Farsi) is the official language. High mountain ranges enclose arid plateaus, and its urban tradition reaches back thousands of years."
+  },
+  {
+    "Id": "IRQ",
+    "Name": "Iraq",
+    "Capital": "Baghdad",
+    "Region": "Western Asia",
+    "Languages": "Arabic",
+    "Intro": "Iraq lies between the Tigris and Euphrates rivers. Arabic is the official language. This historic land of Mesopotamia was one of the earliest cradles of urban civilization."
+  },
+  {
+    "Id": "ITA",
+    "Name": "Italy",
+    "Capital": "Rome",
+    "Region": "Southern Europe",
+    "Languages": "Italian",
+    "Intro": "Italy is a peninsula stretching into the Mediterranean, with the Alps guarding its north. Italian is the official language. Rome on the Tiber remains the historic heart of the state."
+  },
+  {
+    "Id": "JPN",
+    "Name": "Japan",
+    "Capital": "Tokyo",
+    "Region": "East Asia",
+    "Languages": "Japanese",
+    "Intro": "Japan is an island country off the eastern coast of Asia. Japanese is the language. Mountainous islands leave limited farmland, and the surrounding seas have shaped both its isolation and its seafaring tradition."
+  },
+  {
+    "Id": "KOR",
+    "Name": "Korea",
+    "Capital": "Seoul",
+    "Region": "East Asia",
+    "Languages": "Korean",
+    "Intro": "Korea is a peninsula on the mainland of East Asia between China and Japan. Korean is the language. The interior is mountainous, and winters in the north are harsh."
+  },
+  {
+    "Id": "MEX",
+    "Name": "Mexico",
+    "Capital": "Mexico City",
+    "Region": "North America",
+    "Languages": "Spanish",
+    "Intro": "Mexico links North America to Central America. Spanish is the main language. A high central plateau carries most of the population, and Aztec and Maya heritage remains strong."
+  },
+  {
+    "Id": "MNG",
+    "Name": "Mongolia",
+    "Capital": "Ulaanbaatar",
+    "Region": "Eastern Asia",
+    "Languages": "Mongolian",
+    "Intro": "Mongolia is a vast landlocked country between Siberia and China. Mongolian is the official language. Steppe grasslands and the Gobi Desert define its landscape, and nomadic herding remains central to its culture."
+  },
+  {
+    "Id": "NLD",
+    "Name": "Netherlands",
+    "Capital": "Amsterdam",
+    "Region": "Western Europe",
+    "Languages": "Dutch",
+    "Intro": "The Netherlands is a low-lying country on the North Sea, with much of its land reclaimed from water by dikes and canals. Dutch is the official language. Its merchant fleet historically carried trade across the world."
+  },
+  {
+    "Id": "NOR",
+    "Name": "Norway",
+    "Capital": "Oslo",
+    "Region": "Northern Europe",
+    "Languages": "Norwegian",
+    "Intro": "Norway occupies the western side of the Scandinavian peninsula. Norwegian is the language. Deep fjords cut its coastline, and mountains and long winters shape life inland."
+  },
+  {
+    "Id": "NZL",
+    "Name": "New Zealand",
+    "Capital": "Wellington",
+    "Region": "Oceania",
+    "Languages": "English, Maori",
+    "Intro": "New Zealand is an island country in the southwestern Pacific. English and Maori are its official languages. A mountain chain divides the two main islands."
+  },
+  {
+    "Id": "PER",
+    "Name": "Peru",
+    "Capital": "Lima",
+    "Region": "South America",
+    "Languages": "Spanish",
+    "Intro": "Peru combines an arid Pacific coast, the high Andes and Amazon rainforest. Spanish is the official language, spoken alongside Quechua and Aymara traditions. Lima sits on the desert coast."
+  },
+  {
+    "Id": "PHL",
+    "Name": "Philippines",
+    "Capital": "Manila",
+    "Region": "Southeast Asia",
+    "Languages": "Filipino (Tagalog), English",
+    "Intro": "The Philippines is an archipelago of thousands of islands in the western Pacific. Filipino (based on Tagalog) and English are the official languages. A strong Spanish colonial heritage remains in names and religion."
+  },
+  {
+    "Id": "POL",
+    "Name": "Poland",
+    "Capital": "Warsaw",
+    "Region": "Central Europe",
+    "Languages": "Polish",
+    "Intro": "Poland lies on the North European Plain, with the Vistula flowing through its capital Warsaw to the Baltic. Polish is the official language. Its flat terrain has made it a historic corridor between East and West."
+  },
+  {
+    "Id": "PRK",
+    "Name": "North Korea",
+    "Capital": "Pyongyang",
+    "Region": "East Asia",
+    "Languages": "Korean",
+    "Intro": "North Korea occupies the northern half of the Korean peninsula. Korean is the language. The interior is mountainous and winters are harsh, with the Yalu river bordering China."
+  },
+  {
+    "Id": "ROU",
+    "Name": "Romania",
+    "Capital": "Bucharest",
+    "Region": "Southeastern Europe",
+    "Languages": "Romanian",
+    "Intro": "Romania lies on the Danube with a short Black Sea coast. Romanian is the official language. The Carpathian Mountains curve through its center, and the plains beyond are historic grain lands."
+  },
+  {
+    "Id": "RUS",
+    "Name": "Soviet Union",
+    "Capital": "Moscow",
+    "Region": "Eastern Europe & Northern Asia",
+    "Languages": "Russian",
+    "Intro": "The Soviet Union is the largest country in the world, spanning eastern Europe and northern Asia. Russian is the official language. Vast forests, steppes and tundra are crossed by great rivers such as the Volga."
+  },
+  {
+    "Id": "SAU",
+    "Name": "Saudi Arabia",
+    "Capital": "Riyadh",
+    "Region": "Western Asia",
+    "Languages": "Arabic",
+    "Intro": "Saudi Arabia occupies most of the Arabian Peninsula. Arabic is the official language. Vast deserts cover the interior, and its holy cities draw Muslim pilgrims from across the world."
+  },
+  {
+    "Id": "SRB",
+    "Name": "Yugoslavia",
+    "Capital": "Belgrade",
+    "Region": "Southeastern Europe",
+    "Languages": "Serbo-Croatian, Slovenian, Macedonian",
+    "Intro": "Yugoslavia unites the western Balkans between the Danube and the Adriatic. Serbo-Croatian, Slovenian and Macedonian are spoken across its peoples. The Danube flows past its capital Belgrade, and the Dinaric Alps run down the coast."
+  },
+  {
+    "Id": "SWE",
+    "Name": "Sweden",
+    "Capital": "Stockholm",
+    "Region": "Northern Europe",
+    "Languages": "Swedish",
+    "Intro": "Sweden occupies the eastern side of the Scandinavian peninsula. Swedish is the language. Forests and lakes cover the country, and its long Baltic coastline has shaped centuries of trade."
+  },
+  {
+    "Id": "THA",
+    "Name": "Siam",
+    "Capital": "Bangkok",
+    "Region": "Southeast Asia",
+    "Languages": "Thai",
+    "Intro": "Siam sits in Southeast Asia between Myanmar, Laos, Cambodia and Malaya. Thai is the official language. The Chao Phraya river basin feeds the rice fields that anchor its economy and culture."
+  },
+  {
+    "Id": "TUR",
+    "Name": "Turkey",
+    "Capital": "Ankara",
+    "Region": "Western Asia & Southeastern Europe",
+    "Languages": "Turkish",
+    "Intro": "Turkey spans southeastern Europe and the Anatolian peninsula in western Asia. Turkish is the official language. The Bosphorus links the Black Sea to the Mediterranean, and the Anatolian plateau and Taurus Mountains shape the interior."
+  },
+  {
+    "Id": "UKR",
+    "Name": "Ukraine",
+    "Capital": "Kyiv",
+    "Region": "Eastern Europe",
+    "Languages": "Ukrainian",
+    "Intro": "Ukraine lies on the northern Black Sea coast. Ukrainian is the official language. Its black-earth steppe is among the most fertile grain lands in the world."
+  },
+  {
+    "Id": "USA",
+    "Name": "United States",
+    "Capital": "Washington D.C.",
+    "Region": "North America",
+    "Languages": "English",
+    "Intro": "The United States spans North America between the Atlantic and Pacific Oceans. English is the main language. Its landscapes range from Appalachian forests to the Great Plains and the Rocky Mountains."
+  },
+  {
+    "Id": "VEN",
+    "Name": "Venezuela",
+    "Capital": "Caracas",
+    "Region": "South America",
+    "Languages": "Spanish",
+    "Intro": "Venezuela sits on the Caribbean coast of South America. Spanish is the official language. The Orinoco River drains its interior, and oil dominates its economy."
+  },
+  {
+    "Id": "ZAF",
+    "Name": "South Africa",
+    "Capital": "Pretoria",
+    "Region": "Southern Africa",
+    "Languages": "English, Afrikaans",
+    "Intro": "South Africa occupies the southern tip of Africa between the Atlantic and Indian Oceans. English and Afrikaans are the main official languages, with Zulu, Xhosa and others widely spoken. Gold and diamonds drove its industrial growth."
+  }
+]

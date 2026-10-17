@@ -136,6 +136,9 @@ public partial class CabinetPanel : Control
 
         foreach (var ministry in CabinetSystem.Ministries)
         {
+            var card = new VBoxContainer();
+            card.AddThemeConstantOverride("separation", 6);
+
             var row = new HBoxContainer();
             row.AddThemeConstantOverride("separation", 10);
 
@@ -148,15 +151,40 @@ public partial class CabinetPanel : Control
             string ministerId = CabinetSystem.GetMinister(countryId, ministry.Id);
             var status = new Label
             {
-                Text = string.IsNullOrEmpty(ministerId) ? "Unassigned" : ministerId
+                Text = string.IsNullOrEmpty(ministerId) ? "Open — pick a minister" : ministerId
             };
             status.AddThemeFontSizeOverride("font_size", 15);
             status.AddThemeColorOverride("font_color",
                 string.IsNullOrEmpty(ministerId) ? UITheme.TextMuted : UITheme.Gold);
-            status.CustomMinimumSize = new Vector2(150, 0);
+            status.CustomMinimumSize = new Vector2(210, 0);
             row.AddChild(status);
 
-            _content.AddChild(row);
+            card.AddChild(row);
+
+            if (string.IsNullOrEmpty(ministerId))
+            {
+                var candidates = CabinetSystem.GetAvailableMinisters(countryId, ministry.Id);
+                if (candidates.Count > 0)
+                {
+                    var candLabel = new Label
+                    {
+                        Text = "Available: " + string.Join(" | ",
+                            candidates.Select(m => $"{m.Name} (skill {m.Skill}, honesty {m.Honesty}, loyalty {m.Loyalty}, pop {m.Popularity}) [{string.Join(",", m.Traits)}]"))
+                    };
+                    candLabel.AddThemeFontSizeOverride("font_size", 12);
+                    candLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+                    card.AddChild(candLabel);
+                }
+                else
+                {
+                    var none = new Label { Text = "No available ministers for this ministry." };
+                    none.AddThemeFontSizeOverride("font_size", 12);
+                    none.AddThemeColorOverride("font_color", UITheme.TextMuted);
+                    card.AddChild(none);
+                }
+            }
+
+            _content.AddChild(card);
         }
 
         var note = new Label { Text = "Minister pool and appointment/dismissal (M21.2/M21.3): coming next. Honest minister → lower crime & corruption." };

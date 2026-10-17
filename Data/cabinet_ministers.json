@@ -1,0 +1,42 @@
+{
+  "Ministers": [
+    { "Id": "min_deu_finance_1", "Name": "Adrian Kessler", "CountryId": "DEU", "MinistryIds": ["finance", "economy"], "Skill": 82, "Honesty": 75, "Loyalty": 68, "Popularity": 60, "Party": "Center Union", "Ideology": "Liberal", "Traits": ["teknokrat", "barajcı"] },
+    { "Id": "min_deu_defense_1", "Name": "Brigitte Hahn", "CountryId": "DEU", "MinistryIds": ["defense", "interior"], "Skill": 74, "Honesty": 80, "Loyalty": 78, "Popularity": 52, "Party": "Center Union", "Ideology": "Conservative", "Traits": ["şahin", "disiplinli"] },
+    { "Id": "min_deu_foreign_1", "Name": "Dieter Vogel", "CountryId": "DEU", "MinistryIds": ["foreign", "economy"], "Skill": 76, "Honesty": 70, "Loyalty": 65, "Popularity": 58, "Party": "Center Union", "Ideology": "Liberal", "Traits": ["diplomat", "müttefikçi"] },
+    { "Id": "min_deu_justice_1", "Name": "Clara Neumann", "CountryId": "DEU", "MinistryIds": ["justice", "interior"], "Skill": 70, "Honesty": 90, "Loyalty": 60, "Popularity": 48, "Party": "Justice Front", "Ideology": "Social Democrat", "Traits": ["dürüst", "yargıçı"] },
+
+    { "Id": "min_usa_finance_1", "Name": "Meredith Cole", "CountryId": "USA", "MinistryIds": ["finance", "economy"], "Skill": 85, "Honesty": 72, "Loyalty": 70, "Popularity": 65, "Party": "Republic Party", "Ideology": "Liberal", "Traits": ["teknokrat", "yatırımcı"] },
+    { "Id": "min_usa_defense_1", "Name": "Marcus Tolliver", "CountryId": "USA", "MinistryIds": ["defense", "intelligence"], "Skill": 80, "Honesty": 68, "Loyalty": 85, "Popularity": 55, "Party": "Republic Party", "Ideology": "Conservative", "Traits": ["şahin", "stratejist"] },
+    { "Id": "min_usa_foreign_1", "Name": "Eleanor Vance", "CountryId": "USA", "MinistryIds": ["foreign", "intelligence"], "Skill": 78, "Honesty": 75, "Loyalty": 72, "Popularity": 60, "Party": "Republic Party", "Ideology": "Liberal", "Traits": ["diplomat", "normalleşmeci"] },
+    { "Id": "min_usa_education_1", "Name": "Samuel Reed", "CountryId": "USA", "MinistryIds": ["education", "science"], "Skill": 72, "Honesty": 85, "Loyalty": 60, "Popularity": 50, "Party": "Progress League", "Ideology": "Social Democrat", "Traits": ["reformcu", "akademisyen"] },
+
+    { "Id": "min_gbr_finance_1", "Name": "Arthur Pembroke", "CountryId": "GBR", "MinistryIds": ["finance", "economy"], "Skill": 79, "Honesty": 78, "Loyalty": 72, "Popularity": 58, "Party": "Crown Party", "Ideology": "Conservative", "Traits": ["teknokrat", "bütçeci"] },
+    { "Id": "min_gbr_defense_1", "Name": "Winifred Chase", "CountryId": "GBR", "MinistryIds": ["defense", "navy"], "Skill": 75, "Honesty": 80, "Loyalty": 80, "Popularity": 50, "Party": "Crown Party", "Ideology": "Conservative", "Traits": ["disiplinli", "güvenlikçi"] },
+    { "Id": "min_gbr_foreign_1", "Name": "Julian Ashford", "CountryId": "GBR", "MinistryIds": ["foreign", "commonwealth"], "Skill": 77, "Honesty": 70, "Loyalty": 68, "Popularity": 55, "Party": "Crown Party", "Ideology": "Liberal", "Traits": ["diplomat", "imperyalist"] },
+    { "Id": "min_gbr_health_1", "Name": "Fiona Bell", "CountryId": "GBR", "MinistryIds": ["health", "social"], "Skill": 70, "Honesty": 88, "Loyalty": 62, "Popularity": 70, "Party": "People's Voice", "Ideology": "Social Democrat", "Traits": ["empatik", "hizmetçi"] },
+
+    { "Id": "min_fra_finance_1", "Name": "Laurent Dubois", "CountryId": "FRA", "MinistryIds": ["finance", "economy"], "Skill": 76, "Honesty": 65, "Loyalty": 70, "Popularity": 45, "Party": "Liberty Bloc", "Ideology": "Liberal", "Traits": ["teknokrat", "uygarlıkçı"] },
+    { "Id": "min_fra_defense_1", "Name": "Colette Marchal", "CountryId": "FRA", "MinistryIds": ["defense", "interior"], "Skill": 72, "Honesty": 80, "Loyalty": 75, "Popularity": 50, "Party": "Liberty Bloc", "Ideology": "Conservative", "Traits": ["şahin", "askerî"] },
+    { "Id": "min_fra_foreign_1", "Name": "Henri Lambert", "CountryId": "FRA", "MinistryIds": ["foreign", "europe"], "Skill": 78, "Honesty": 72, "Loyalty": 68, "Popularity": 60, "Party": "Liberty Bloc", "Ideology": "Liberal", "Traits": ["diplomat", "avrupacı"] },
+    { "Id": "min_fra_justice_1", "Name": "Elise Rousseau", "CountryId": "FRA", "MinistryIds": ["justice", "interior"], "Skill": 68, "Honesty": 92, "Loyalty": 55, "Popularity": 55, "Party": "Rights League", "Ideology": "Social Democrat", "Traits": ["dürüst", "avukat"] },
+
+    { "Id": "min_rus_finance_1", "Name": "Vladislav Orlov", "CountryId": "RUS", "MinistryIds": ["finance", "economy"], "Skill": 78, "Honesty": 60, "Loyalty": 90, "Popularity": 55, "Party": "Fatherland Front", "Ideology": "Nationalist", "Traits": ["teknokrat", "devletçi"] },
+    { "Id": "min_rus_defense_1", "Name": "Natalia Volkova", "CountryId": "RUS", "MinistryIds": ["defense", "intelligence"], "Skill": 82, "Honesty": 68, "Loyalty": 92, "Popularity": 60, "Party": "Fatherland Front", "Ideology": "Nationalist", "Traits": ["şahin", "stratejist"] },
+    { "Id": "min_rus_foreign_1", "Name": "Andrei Karpov", "CountryId": "RUS", "MinistryIds": ["foreign", "intelligence"], "Skill": 76, "Honesty": 62, "Loyalty": 88, "Popularity": 50, "Party": "Fatherland Front", "Ideology": "Nationalist", "Traits": ["diplomat", "gerçekçi"] },
+    { "Id": "min_rus_energy_1", "Name": "Olga Morozova", "CountryId": "RUS", "MinistryIds": ["energy", "economy"], "Skill": 74, "Honesty": 65, "Loyalty": 85, "Popularity": 48, "Party": "Fatherland Front", "Ideology": "Nationalist", "Traits": ["kaynakçı", "inşaatçı"] },
+
+    { "Id": "min_jpn_finance_1", "Name": "Kenji Tanaka", "CountryId": "JPN", "MinistryIds": ["finance", "economy"], "Skill": 80, "Honesty": 70, "Loyalty": 75, "Popularity": 58, "Party": "Progress Club", "Ideology": "Liberal", "Traits": ["teknokrat", "verimciler"] },
+    { "Id": "min_jpn_defense_1", "Name": "Yuto Sato", "CountryId": "JPN", "MinistryIds": ["defense", "navy"], "Skill": 76, "Honesty": 75, "Loyalty": 80, "Popularity": 50, "Party": "Progress Club", "Ideology": "Conservative", "Traits": ["disiplinli", "askerî"] },
+    { "Id": "min_jpn_foreign_1", "Name": "Emi Kobayashi", "CountryId": "JPN", "MinistryIds": ["foreign", "trade"], "Skill": 74, "Honesty": 72, "Loyalty": 70, "Popularity": 55, "Party": "Progress Club", "Ideology": "Liberal", "Traits": ["diplomat", "ticaretçi"] },
+    { "Id": "min_jpn_tech_1", "Name": "Rina Inoue", "CountryId": "JPN", "MinistryIds": ["industry", "science"], "Skill": 84, "Honesty": 78, "Loyalty": 68, "Popularity": 62, "Party": "Progress Club", "Ideology": "Liberal", "Traits": ["teknokrat", "geliştirici"] },
+
+    { "Id": "min_ita_finance_1", "Name": "Luca Moretti", "CountryId": "ITA", "MinistryIds": ["finance", "economy"], "Skill": 70, "Honesty": 55, "Loyalty": 70, "Popularity": 45, "Party": "Unity Movement", "Ideology": "Nationalist", "Traits": ["populist", "bütçeci"] },
+    { "Id": "min_ita_defense_1", "Name": "Giulia Romano", "CountryId": "ITA", "MinistryIds": ["defense", "interior"], "Skill": 68, "Honesty": 68, "Loyalty": 75, "Popularity": 50, "Party": "Unity Movement", "Ideology": "Nationalist", "Traits": ["şahin", "karizmatik"] },
+    { "Id": "min_ita_foreign_1", "Name": "Marco Ferrari", "CountryId": "ITA", "MinistryIds": ["foreign", "europe"], "Skill": 72, "Honesty": 60, "Loyalty": 65, "Popularity": 52, "Party": "Unity Movement", "Ideology": "Nationalist", "Traits": ["diplomat", "muhafazakar"] },
+
+    { "Id": "min_tur_finance_1", "Name": "Emre Yilmaz", "CountryId": "TUR", "MinistryIds": ["finance", "economy"], "Skill": 72, "Honesty": 68, "Loyalty": 72, "Popularity": 55, "Party": "Republican Path", "Ideology": "Nationalist", "Traits": ["teknokrat", "reformcu"] },
+    { "Id": "min_tur_defense_1", "Name": "Selin Demir", "CountryId": "TUR", "MinistryIds": ["defense", "interior"], "Skill": 70, "Honesty": 75, "Loyalty": 80, "Popularity": 50, "Party": "Republican Path", "Ideology": "Conservative", "Traits": ["disiplinli", "topraksever"] },
+    { "Id": "min_tur_foreign_1", "Name": "Cem Kaya", "CountryId": "TUR", "MinistryIds": ["foreign", "intelligence"], "Skill": 74, "Honesty": 65, "Loyalty": 68, "Popularity": 48, "Party": "Republican Path", "Ideology": "Nationalist", "Traits": ["diplomat", "koalisyoncu"] },
+    { "Id": "min_tur_health_1", "Name": "Zeynep Arslan", "CountryId": "TUR", "MinistryIds": ["health", "social"], "Skill": 68, "Honesty": 85, "Loyalty": 60, "Popularity": 60, "Party": "People's Union", "Ideology": "Social Democrat", "Traits": ["empatik", "hizmetçi"] }
+  ]
+}

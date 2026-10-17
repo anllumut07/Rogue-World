@@ -90,5 +90,12 @@
 - `dotnet build` 0 hata / 0 uyarı.
 - Commit: push'ed origin gece-calisma.
 
+## M21.2 — ✅ DONE (2026-10-17)
+- `Data/cabinet_ministers.json` (yeni): 41 kurgusal bakan (DEU, USA, GBR, FRA, RUS, JPN, ITA, TUR) — Skill/Honesty/Loyalty/Popularity, Party/Ideology, Traits.
+- `Scripts/CabinetSystem.cs` (güncellendi): `Minister` sınıfı, `LoadMinisters()` JSON parse (`MinistryIds` → `string[]` via `List<string>` accumulator, CS0019 düzeltildi), `GetMinisters(countryId)`, `GetAvailableMinisters(countryId, ministryId)`; GD.Print yüklenen kayıt sayısını loglar.
+- `Scripts/CabinetPanel.cs` (güncellendi): atanmamış bakanlıklar için uygun aday listesi (skill/honesty/loyalty/popularity/traits), "No available ministers" uyarısı.
+- `dotnet build` 0 hata / 0 uyarı.
+- Commit: 65fd2b4 (push'ed origin gece-calisma).
+
 ## Sonraki adım
 - M21.2: Bakan havuzu (kurgusal kişiler: yetenek, dürüstlük, sadakat, popülerlik, parti/ideoloji, özellik).

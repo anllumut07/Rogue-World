@@ -958,7 +958,25 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Yeni: `Data/cabinet_ministries.json`, `Scripts/CabinetSystem.cs`, `Scripts/CabinetPanel.cs`
 - Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/GameHud.cs`, `Scripts/SaveLoadTest.cs`
 
-**Sonraki adım:** 21.2 Bakan havuzu (kurgusal kişiler).
+---
+
+### M21.2: Bakan Havuzu — Kurgusal Kişiler — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Data/cabinet_ministers.json` (yeni): 41 kurgusal bakan — DEU, USA, GBR, FRA, RUS, JPN, ITA, TUR. Her biri: Id, Name, CountryId, MinistryIds[], Skill/Honesty/Loyalty/Popularity (0-100), Party, Ideology, Traits[]. İngilizce isimler, ülke kültürüne göre dağılmış.
+- `Scripts/CabinetSystem.cs` (güncellendi): `Minister` sınıfı eklendi (Id, Name, CountryId, MinistryIds[], Skill, Honesty, Loyalty, Popularity, Party, Ideology, Traits[]). `LoadMinisters()` — `Data/cabinet_ministers.json`'dan haberleri yükler; `MinistryIds` JSON array'i `List<string>` accumulator ile `string[]`'a dönüştürülür (CS0019 düzeltildi). `GetMinisters(countryId)`, `GetAvailableMinisters(countryId, ministryId)` — atanmamış yetkin adaylar, Skill'e göre azalan sıralama. `GD.Print` ile yüklenen kayıt sayısı loglanıyor.
+- `Scripts/CabinetPanel.cs` (güncellendi): M21.1 kabine paneline eklendi — atanmamış her bakanlık için uygun aday listesi (Adres, skill/honesty/loyalty/popularity, Traits), "No available ministers for this ministry." uyarısı. Üstteki not satırı güncellendi.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı (önceki CS0019 tür hatası düzeltildi).
+- `--save-load-test` A==B testi geçer (bakan havuzu okunma only, atama sözlüğü kaydı mevcut).
+- Panel 1152×648'e sığar, ESC kapatır, backdrop MouseFilter.Stop harita girişini bloke eder.
+
+**Dosyalar:**
+- Yeni: `Data/cabinet_ministers.json`
+- Değiştirilen: `Scripts/CabinetSystem.cs`, `Scripts/CabinetPanel.cs`
+
+**Sonraki adım:** 21.3 Atama / görevden alma; bakan nitelikleri ilgili göstergeleri etkiler.
 
 ---
 

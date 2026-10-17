@@ -306,7 +306,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | Alt Görev | Açıklama | Test Kriteri |
 |-----------|----------|--------------|
 | 21.1 | Bakanlıklar: İçişleri, Maliye, Savunma, Dışişleri, Adalet, Eğitim, Sağlık, Ekonomi/Ticaret, Enerji, Çevre, Tarım, İstihbarat Başkanı. | Kabine paneli açılır | ✅ Bitti |
-| 21.2 | Bakan havuzu: kurgusal kişiler (yetenek, dürüstlük, sadakat, popülerlik, parti/ideoloji, özellik: reformcu/şahin/teknokrat...). | Aday listesi görünür |
+| 21.2 | Bakan havuzu: kurgusal kişiler (yetenek, dürüstlük, sadakat, popülerlik, parti/ideoloji, özellik: reformcu/şahin/teknokrat...). | Aday listesi görünür | ✅ Bitti |
 | 21.3 | **Atama / görevden alma**; bakanın nitelikleri ilgili göstergeleri etkiler (ör. dürüst İçişleri → suç ve yolsuzluk düşer). | Bakan değişince göstergeler değişir |
 | 21.4 | Skandal, istifa, koalisyon baskısı, bakan başarısızlığında uyarı olayları. | Skandal olayı tetiklenir |
 | 21.5 | Kabine toplantısı (ajanda slotu kullanır). | Toplantı etkisi uygulanır |

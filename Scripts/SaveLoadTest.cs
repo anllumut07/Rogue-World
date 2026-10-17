@@ -241,7 +241,8 @@ public static class SaveLoadTest
         var cabinetSave = CabinetSystem.GetSaveData();
         int cabinetCountries = cabinetSave?.Countries?.Length ?? 0;
         int cabinetAssignments = cabinetSave?.Countries?.Sum(c => c.Assignments?.Count ?? 0) ?? 0;
-        sb.AppendLine($"Kabine: ülke={cabinetCountries}, atama={cabinetAssignments}");
+        int cabinetScandals = cabinetSave?.Countries?.Sum(c => c.Scandals?.Length ?? 0) ?? 0;
+        sb.AppendLine($"Kabine: ülke={cabinetCountries}, atama={cabinetAssignments}, skandal={cabinetScandals}");
 
         // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;

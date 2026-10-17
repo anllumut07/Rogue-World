@@ -999,6 +999,33 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 ---
 
+### M21.4: Skandal, İstifa, Koalisyon Baskısı, Başarısızlık Uyarıları — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/CabinetSystem.cs` (güncellendi): `ScandalRecord` sınıfı eklendi (MinisterId, Type: corruption/disloyalty/unpopularity/warning, Severity 1-3, DayStarted, IsActive). `_scandals` (ministerId → ScandalRecord) sözlüğü. `CheckCabinetEvents(countryId)` — günlük, deterministik (DeterministicRNG):
+  * **Başarısızlık uyarısı:** Skill < 30 → "[UYARI: yetmezlik]", stabilite -1 (her bakan için bir kez).
+  * **Skandal tetikleme:** Honesty < 25 → yolsuzluk skandalı (%3/gün); Loyalty < 25 → hıyar ve isyansızlık (%3/gün); Popularity < 15 → düşük popülerlik (%2/gün). Tetiklendiğinde stabilite -3.
+  * **Koalisyon baskısı:** aktif skandal + farklı partili bakan → koalisyon istifa isteği (%5/gün), stabilite -1.
+  * **İstifa:** aktif skandal → şiddete bağlı günlük şans (sev1: %2, sev2: %5, sev3: %10). İstifa sonrası bakan görevden alınır (AssignMinister ""), stabilite -5, skandal kaydı temizlenir.
+- `CabinetScandalSave` DTO + `CountryCabinetSave.Scandals` alanı eklendi (Save/Load).
+- `InitializeAll` → `_scandals.Clear()`. `GetSaveData`/`LoadSaveData` skandal kayıtlarını serialize eder.
+- `Scripts/GameManager.cs` (güncellendi): `DailyTick`'te `CabinetSystem.ApplyMinisterEffects`'ten sonra `CabinetSystem.CheckCabinetEvents(PlayerCountryId)` çağrılır.
+- `Scripts/CabinetPanel.cs` (güncellendi): atanmış bakan kartında skandal/uyarı durumu kırmızı etiketle gösterilir (`GetScandalStatus`). DISMISS butonu ile skandalı oluşturan bakan görevden alınabilir.
+- `Scripts/SaveLoadTest.cs` (güncellendi): kabine özetine skandal sayısı eklendi.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` A==B testi geçer (skandal denetimi DeterministicRNG ile, durum kayda dahil).
+- Panel 1152×648'e sığar, ESC kapatır, backdrop MouseFilter.Stop harita girişini bloke eder.
+- DeterministikRNG kullanıldı (`new Random()` yok). Save/Load entegrasyonu tamam.
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/CabinetSystem.cs`, `Scripts/GameManager.cs`, `Scripts/CabinetPanel.cs`, `Scripts/SaveLoadTest.cs`
+
+**Sonraki adım:** 21.5 Kabine toplantısı (ajanda slotu kullanır).
+
+---
+
 ### Sonraki adım
 - M20.3: Halk memnuniyeti (gruplara göre: işçi, iş dünyası, gençler, yaşlılar, ordu, dindar/laik, kırsal/kentsel).
 

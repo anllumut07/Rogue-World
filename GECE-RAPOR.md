@@ -106,3 +106,14 @@
 
 ## Sonraki adım
 - M21.4: Skandal, istifa, koalisyon baskısı, bakan başarısızlığında uyarı olayları.
+
+## M21.4 — ✅ DONE (2026-10-17)
+- `Scripts/CabinetSystem.cs` (güncellendi): `ScandalRecord` + `_scandals` sözlüğü; `CheckCabinetEvents(countryId)` günlük deterministik denetim — başarısızlık uyarısı (Skill<30 → stabilite -1), skandal tetikleme (Honesty<25 yolsuzluk/Loyalty<25 hıyar/Popularity<15 düşük popülerlik → stabilite -3), koalisyon baskısı (farklı partili bakan skandalında %5/gün → stabilite -1), istifa (şiddet seviyesine bağlı %2/%5/%10 günlük → görevden alma + stabilite -5). `CabinetScandalSave` DTO + `CountryCabinetSave.Scandals` Save/Load'a eklendi.
+- `Scripts/GameManager.cs` (güncellendi): `DailyTick`'te `ApplyMinisterEffects`'ten sonra `CabinetSystem.CheckCabinetEvents(PlayerCountryId)` çağrılır.
+- `Scripts/CabinetPanel.cs` (güncellendi): atanmış bakan kartında skandal/uyarı durumu kırmızı etiketle gösterilir; DISMISS butonu ile skandalı oluşturan bakan görevden alınır.
+- `Scripts/SaveLoadTest.cs` (güncellendi): kabine özetine skandal sayısı eklendi.
+- `dotnet build` 0 hata / 0 uyarı.
+- Commit: (hazırlanacak).
+
+## Sonraki adım
+- M21.5: Kabine toplantısı (ajanda slotu kullanır).

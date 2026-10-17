@@ -236,6 +236,15 @@ public partial class CabinetPanel : Control
                     card.AddChild(tLabel);
                 }
 
+                var scandal = CabinetSystem.GetScandalStatus(minister.Id);
+                if (!string.IsNullOrEmpty(scandal))
+                {
+                    var sLabel = new Label { Text = scandal };
+                    sLabel.AddThemeFontSizeOverride("font_size", 11);
+                    sLabel.AddThemeColorOverride("font_color", new Color(1, 0.5f, 0.5f));
+                    card.AddChild(sLabel);
+                }
+
                 var dismissRow = new HBoxContainer();
                 dismissRow.AddThemeConstantOverride("separation", 8);
 

@@ -380,6 +380,9 @@ public partial class GameManager : Node
         // M21.3: atanan bakanların nitelikleri ilgili göstergeleri etkiler (son söz, deterministik)
         if (HasPlayer) CabinetSystem.ApplyMinisterEffects(PlayerCountryId);
 
+        // M21.4: skandal, istifa, koalisyon baskısı, başarısızlık uyarısı denetimi
+        if (HasPlayer) CabinetSystem.CheckCabinetEvents(PlayerCountryId);
+
         // M16: Zaman ve Tempo — ajanda ilerlemesi, hafta reset, aylık rapor
         TimeTempoSystem.DailyTick(this);
 

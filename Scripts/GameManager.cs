@@ -95,6 +95,7 @@ public partial class GameManager : Node
         bool scenarioTest = false;      // M17.1: --scenario-test — her iki senaryonun yükleme sayılarını doğrula
         int loadSlot = -1;              // M17.1: --load-slot=N — mevcut kaydı yükle (v1 migration testi)
         bool constitutionTest = false;  // M22.1: anayasa yönetim-biçimi tanımlarını doğrula
+        bool lawsTest = false;            // M22.2: yasa çıkarma/kaldırma + etki testi
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -138,6 +139,8 @@ public partial class GameManager : Node
                 scenarioTest = true;
             else if (arg == "--constitution-test")
                 constitutionTest = true;
+            else if (arg == "--laws-test")
+                lawsTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -180,6 +183,9 @@ public partial class GameManager : Node
 
         // M22.1: Anayasa — yönetim biçimi, dönem, seçim yaşı, olağanüstü hal kuralları.
         ConstitutionSystem.LoadData();
+
+        // M22.2: Yasalar — tanım dosyasını yükle (Data/laws.json).
+        LawSystem.LoadData();
 
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)
@@ -282,6 +288,8 @@ public partial class GameManager : Node
             RunScenarioTest();
         if (constitutionTest)
             RunConstitutionTest();
+        if (lawsTest)
+            RunLawsTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -537,6 +545,9 @@ public partial class GameManager : Node
 
         // M21.1: Kabine/bakanlık atama sistemini yeni oyuna başlat (hiçbiri atanmamış)
         CabinetSystem.InitializeAll();
+
+        // M22.2: Yasa sistemini yeni oyuna başlat (etkin yasa/etki state'i sıfırlanır)
+        LawSystem.ResetForNewGame();
 
         // M-Flags: bayrak önbelleği sıfırlanır (rapor yeni oyunda tekrar loglanır)
         FlagLibrary.ResetForNewGame();
@@ -874,6 +885,69 @@ public partial class GameManager : Node
         }
         bool result = pass == count;
         GD.Print(result ? "[ConstitutionTest] SONUÇ: PASS ✓" : $"[ConstitutionTest] SONUÇ: FAIL ✗ ({pass}/{count})");
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M22.2: Yasa sistemi testi — yasa çıkar (PP ödeme + etki), etkin yasaları listeler,
+    /// yasa kaldırır (etki geri al), sonra yasa kalmadığını doğrular. Normal oyunda ASLA çalışmaz (--laws-test).
+    /// </summary>
+    private void RunLawsTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M22.2: YASA SİSTEM TESTİ");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 500;
+        if (Speed == 0) SetSpeed(0);
+
+        var playerId = PlayerCountryId;
+
+        // 1) Tanımlı bir yasa var mı? (law_econ_tax_cut: Economy, 80 PP, gdp_growth +0.20)
+        var law = LawSystem.GetLaw("law_econ_tax_cut");
+        if (law == null)
+        {
+            GD.Print("[LawsTest] law_econ_tax_cut bulunamadı — test atlanıyor");
+            GD.Print("=========================================");
+            return;
+        }
+        GD.Print($"[LawsTest] Yasa: {law.Name} ({law.Category}, {law.CostPP} PP), efekt: gdp_growth={law.Effects.GetValueOrDefault("gdp_growth")}");
+
+        double ppBefore = PlayerCountryData.PoliticalPower;
+        GD.Print($"[LawsTest] PP öncesi: {ppBefore:F1}");
+
+        // 2) Yasa çıkar — etki uygulanmalı, PP düşmeli
+        bool enacted = LawSystem.EnactLaw(playerId, law.Id);
+        GD.Print($"[LawsTest] Yasa çıkarıldı: {(enacted ? "OK" : "FAIL")}");
+        GD.Print($"[LawsTest] PP sonrası: {PlayerCountryData.PoliticalPower:F1} (beklenen {ppBefore - law.CostPP:F1})");
+
+        double gdpAfterEnact = LawSystem.GetLawEffect(playerId, "gdp_growth");
+        int activeCount = LawSystem.GetActiveLaws(playerId).Count;
+        int availableCount = LawSystem.GetAvailableLaws(playerId).Count;
+        GD.Print($"[LawsTest] gdp_growth etki: {gdpAfterEnact:F2} (beklenen 0.20), etkin yasa: {activeCount} (beklenen 1), mevcut yasa: {availableCount}");
+
+        // 3) Aynı yasa tekrar çıkarılamamalı
+        bool dup = LawSystem.EnactLaw(playerId, law.Id);
+        GD.Print($"[LawsTest] Aynı yasa ikinci kez: {(dup ? "FAIL — kabul edildi!" : "OK — reddedildi")}");
+
+        // 4) Yasa kaldır — etki geri alınmalı
+        bool repealed = LawSystem.RepealLaw(playerId, law.Id);
+        GD.Print($"[LawsTest] Yasa kaldırıldı: {(repealed ? "OK" : "FAIL")}");
+        double gdpAfterRepeal = LawSystem.GetLawEffect(playerId, "gdp_growth");
+        int activeAfter = LawSystem.GetActiveLaws(playerId).Count;
+        GD.Print($"[LawsTest] gdp_growth etki kaldırılınca: {gdpAfterRepeal:F2} (beklenen 0), etkin yasa: {activeAfter} (beklenen 0)");
+
+        // 5) Kaldırıldıktan sonra tekrar çıkarılabilmeli
+        bool reEnacted = LawSystem.EnactLaw(playerId, law.Id);
+        GD.Print($"[LawsTest] Tekrar çıkarıldı: {(reEnacted ? "OK" : "FAIL")}");
+        LawSystem.RepealLaw(playerId, law.Id); // temizle
+
+        bool pass = enacted && !dup && repealed
+                    && Math.Abs(gdpAfterEnact - 0.20) < 0.001
+                    && Math.Abs(gdpAfterRepeal) < 0.001
+                    && activeCount == 1 && activeAfter == 0;
+        GD.Print(pass ? "[LawsTest] SONUÇ: PASS ✓" : "[LawsTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
     }
 }

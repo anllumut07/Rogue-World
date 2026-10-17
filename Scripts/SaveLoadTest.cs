@@ -264,6 +264,13 @@ public static class SaveLoadTest
         int avgLoyalty = ministerCount > 0 ? totalLoyalty / ministerCount : 0;
         sb.AppendLine($"Bakan sadakati: ortalama=%{avgLoyalty}, bakan_sayısı={ministerCount}");
 
+        // --- M22.2: Yasalar ---
+        var lawSave = LawSystem.GetSaveData();
+        int lawCountries = lawSave?.Countries?.Length ?? 0;
+        int lawActive = lawSave?.Countries?.Sum(c => c.ActiveLawIds?.Length ?? 0) ?? 0;
+        int lawEffectIndicators = lawSave?.Countries?.Sum(c => c.Effects?.Length ?? 0) ?? 0;
+        sb.AppendLine($"Yasalar: ülke={lawCountries}, etkin_yasa={lawActive}, etki_göstergesi={lawEffectIndicators}");
+
         // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");

@@ -1,0 +1,13 @@
+{
+  "Laws": [
+    { "Id": "law_econ_tax_cut", "Name": "Tax Cut", "Category": "Economy", "CostPP": 80, "Description": "Lower income tax to stimulate consumption and investment.", "Effects": { "gdp_growth": 0.20, "budget_deficit": -0.15 }, "OneTime": false },
+    { "Id": "law_econ_tax_hike", "Name": "Tax Hike", "Category": "Economy", "CostPP": 80, "Description": "Raise taxes to reduce the budget deficit at the cost of growth.", "Effects": { "gdp_growth": -0.10, "budget_deficit": 0.20 }, "OneTime": false },
+    { "Id": "law_defense_mobilization", "Name": "General Mobilization", "Category": "Defense", "CostPP": 150, "Description": "Mobilize reserves: more manpower and war support, lower stability.", "Effects": { "manpower": 0.20, "war_support": 0.15, "stability": -0.10 }, "OneTime": false },
+    { "Id": "law_interior_surveillance", "Name": "Surveillance Act", "Category": "Interior", "CostPP": 60, "Description": "Expand domestic surveillance: less corruption and crime, fewer civil liberties.", "Effects": { "corruption": -0.10, "civil_liberties": -0.20 }, "OneTime": false },
+    { "Id": "law_foreign_nonalignment", "Name": "Non-Alignment", "Category": "Foreign", "CostPP": 100, "Description": "Stay out of military blocs: lower world tension, weaker guarantees.", "Effects": { "world_tension": -0.05 }, "OneTime": false },
+    { "Id": "law_social_healthcare", "Name": "Universal Healthcare", "Category": "Social", "CostPP": 120, "Description": "State-funded healthcare: longer life expectancy, higher deficit.", "Effects": { "life_expectancy": 0.20, "budget_deficit": -0.10 }, "OneTime": false },
+    { "Id": "law_env_carbon_tax", "Name": "Carbon Tax", "Category": "Environment", "CostPP": 90, "Description": "Tax carbon emissions: better environment, slight growth cost.", "Effects": { "environment": 0.20, "gdp_growth": -0.10 }, "OneTime": false },
+    { "Id": "law_energy_nuclear", "Name": "Nuclear Energy Program", "Category": "Energy", "CostPP": 140, "Description": "Invest in nuclear power: more energy and modest growth.", "Effects": { "energy": 0.25, "gdp_growth": 0.10 }, "OneTime": false },
+    { "Id": "law_defense_conscription", "Name": "Conscription", "Category": "Defense", "CostPP": 100, "Description": "Mandatory military service: larger manpower pool, lower war support.", "Effects": { "manpower": 0.15, "war_support": -0.05 }, "OneTime": false }
+  ]
+}

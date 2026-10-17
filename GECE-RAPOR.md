@@ -142,8 +142,18 @@
 - `dotnet build`: 0 hata / 0 uyarı.
 - `--constitution-test --speed=0`: **20/20 PASS** (tüm ülke tanımları geçerli).
 
+## M22.2 — Yasalar — ✅ DONE (2026-10-18)
+- `Data/laws.json` (yeni): 8 yasa tanımı (Economy/Defense/Interior/Foreign/Social/Environment/Energy) — Id/Name/Category/CostPP/Description/Effects/OneTime.
+- `Scripts/LawSystem.cs` (yeni): LawData/LawSave/CountryLawSave/LawEffectSave DTO'ları; LoadData (laws.json "Laws" dizisi); EnactLaw (PP ödeme + etki birikimi), RepealLaw (etki geri alma), GetLawEffect, GetActiveLaws/GetAvailableLaws; GetSaveData/LoadSaveData; CountryDatabase.Get (HOI4 alias GER→DEU normalize) kullanımı.
+- `Scripts/GameManager.cs` (güncellendi): `_Ready'de LawSystem.LoadData()`; `ResetForNewGame'de LawSystem.ResetForNewGame()`; `--laws-test` kancağı + `RunLawsTest()` (tax_cut çıkarma/tekrar engelle/kaldırma/tekrar çıkarma, PP delta ve gdp_growth etkisi doğrulaması).
+- `Scripts/SaveSystem.cs` (güncellendi): `SaveFile.Law` (LawSystem.LawSave) alanı; WriteSave'de `Law = LawSystem.GetSaveData()`; LoadGameInternal'de `LawSystem.LoadSaveData(save.Law)`.
+- `Scripts/SaveLoadTest.cs` (güncellendi): BuildSummaryCore'ye "Yasalar: ülke=..., etkin_yasa=..., etki_göstergesi=..." satırı eklendi.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--laws-test --speed=0 --country=GER`: **SONUÇ: PASS ✓** (Tax Cut çıkarıldı PP 500→420, gdp_growth 0.20, duplicate reddedildi, repeal sonrası 0.00, tekrar çıkarıldı).
+- `--save-load-test --speed=5 --country=GER --scenario=historical_1936`: **SONUÇ: PASS ✓ (A == B)** — LawSystem state kaydeder/yükler.
+
 ## Sonraki adım
-- M22.2 Yasalar (Data/laws.json + LawSystem: önerme/ekleme/kaldırma, kategori, maliyet, etkiler).
+- M22.3 Parlamento (partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum).
 
 ## Bilinen sorunlar
 - Komşuluk yalnızca ortak-kenar tabanlı; ülke sınırlarını aşan komşular kapsanmıyor.

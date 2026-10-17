@@ -794,14 +794,23 @@ public partial class GameManager : Node
         if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 200;
         if (Speed == 0) SetSpeed(0);
 
-        // Oyuncu ülkesinde İçişleri bakanı atanmış olmalı; yoksa test atlanır
+        // Oyuncu ülkesinde İçişleri bakanı atanmış olmalı; yoksa test için uygun bir aday atanır (test kanca kodu, normal oyunda çalışmaz)
         var playerId = PlayerCountryId;
+        // Minister verileri ISO kodla anahtarlanır (DEU), PlayerCountryId ise HOI4 kodu olabilir (GER) — lookup'ta normalize et.
+        var lookupId = CountryDatabase.NormalizeId(playerId);
         string ministerId = CabinetSystem.GetMinister(playerId, "interior");
         if (ministerId == null)
         {
-            GD.Print("[CabinetMeetingTest] İçişleri bakanı atanmamış — test atlanıyor");
-            GD.Print("=========================================");
-            return;
+            var available = CabinetSystem.GetAvailableMinisters(lookupId, "interior");
+            if (available.Count == 0)
+            {
+                GD.Print("[CabinetMeetingTest] İçişleri bakanı atanmamış ve uygun aday yok — test atlanıyor");
+                GD.Print("=========================================");
+                return;
+            }
+            ministerId = available[0].Id;
+            CabinetSystem.AssignMinister(playerId, "interior", ministerId);
+            GD.Print($"[CabinetMeetingTest] Test için İçişleri bakanı atandı: {ministerId}");
         }
 
         var minister = CabinetSystem.Ministers.FirstOrDefault(m => m.Id == ministerId);

@@ -124,6 +124,17 @@
 - Godot headless test çalıştırılamadı (editör yok), dotnet build 0/0; manuel editör testi önerilir.
 - Commit: aa0efdf (push'ed origin gece-calisma).
 
+## ADIM 1 — Headless test doğrulama (2026-10-17) — TÜMÜ PASS
+- `dotnet build`: 0 hata / 0 uyarı
+- Godot 4.7.2 console `--headless --path . --import --quit`: EXIT=0
+- `--save-load-test --speed=5 --country=GER` (historical_1936): **SONUÇ: PASS ✓ (A == B)** — M12 Save/Load + M17 determinizm
+- `--scenario=modern_world --save-load-test --speed=5 --country=DEU`: **SONUÇ: PASS ✓ (A == B)** — M20 Bütçe dahil tüm sistemler
+- `--cabinet-meeting-test --speed=5 --country=GER`: **SONUÇ: PASS ✓** — İçişleri bakanı auto-atama, sadakati 78→80 (delta=2). GameManager.RunCabinetMeetingTest'te normalize lookup + auto-assign düzeltmesi yapıldı.
+- `--scenario-test`: EXIT=0 — modern_world (50 ülke, 10 odak/10 olay/9 karar/54 tech/50 lider/4 faksiyon) + historical_1936 (50 ülke, 73 odak/11 olay/10 karar/73 tech/50 lider/3 faksiyon) doğru yüklendi.
+
+## M17B — Uluslararası Örgütler tasarım belgesi — ✅ DONE
+- `Design/M17B_uluslararasi_orgutler.md` yazıldı (17B.1–17B.6: veri modeli, üyelik kriterleri, ayrılma/askıya alma, toplantı/gündem, yükümlülük/avantaj, bağımlılıklar). Kod yazılmadı, yalnızca belge.
+
 ## Sonraki adım
 - M22 Yasalar, Anayasa ve Parlamento.
 
@@ -132,4 +143,4 @@
 - İl çizimi mevcut ülke çiziminin üzerine eklenir (katmanlı Polygon2D node'ları).
 - M16: Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılmıyor — kayıt yüklenince bekleyen bildirimler kaybolur.
 - M16: Ajanda efektleri (MinisterLoyaltyBonus vb.) ilgili sistemlere bağlı değil — loglanıyor.
-- M21.5: Godot editörü yok, headless `--cabinet-meeting-test` çalıştırılamadı (dotnet build 0/0 geçti).
+- M21.5: headless `--cabinet-meeting-test` çalıştırıldı ve PASS (İçişleri bakanı auto-atama eklendi, sadakati +2 doğrulandı). Godot editörü gerek kalmadı.

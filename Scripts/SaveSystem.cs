@@ -73,6 +73,7 @@ public static class SaveSystem
         public PublicSatisfactionSystem.SatisfactionSave PublicSatisfaction { get; set; } // M20.3: grup memnuniyeti
         public CabinetSystem.CabinetSave Cabinet { get; set; } // M21.1: bakanlık atamaları (ülke -> ministryId -> ministerId)
         public LawSystem.LawSave Law { get; set; } // M22.2: aktif yasalar ve birikmiş etkilere göre indirimler
+        public ParliamentSystem.ParliamentSave Parliament { get; set; } // M22.3: partiler, sandalye, veto, koalisyon, referandum
     }
 
     // ===== Economy DTOs =====
@@ -378,6 +379,7 @@ public static class SaveSystem
             PublicSatisfaction = PublicSatisfactionSystem.GetSaveData(), // M20.3: grup memnuniyeti
             Cabinet = CabinetSystem.GetSaveData(), // M21.1: bakanlık atamaları
             Law = LawSystem.GetSaveData(), // M22.2: aktif yasalar ve birikmiş etkilere göre indirimler
+            Parliament = ParliamentSystem.GetSaveData(), // M22.3: partiler, sandalye, veto, koalisyon, referandum
         };
 
         EnsureSavesDir();
@@ -503,6 +505,7 @@ public static class SaveSystem
             PublicSatisfactionSystem.LoadSaveData(save.PublicSatisfaction); // M20.3: grup memnuniyeti
             CabinetSystem.LoadSaveData(save.Cabinet); // M21.1: bakanlık atamaları
             LawSystem.LoadSaveData(save.Law); // M22.2: aktif yasalar ve birikmiş etkilere göre indirimler
+            ParliamentSystem.LoadSaveData(save.Parliament); // M22.3: partiler, sandalye, veto, koalisyon, referandum
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

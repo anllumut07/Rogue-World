@@ -271,6 +271,12 @@ public static class SaveLoadTest
         int lawEffectIndicators = lawSave?.Countries?.Sum(c => c.Effects?.Length ?? 0) ?? 0;
         sb.AppendLine($"Yasalar: ülke={lawCountries}, etkin_yasa={lawActive}, etki_göstergesi={lawEffectIndicators}");
 
+        // --- M22.3: Parlamento ---
+        var parliamentSave = ParliamentSystem.GetSaveData();
+        int parliamentParties = parliamentSave?.Parties?.Length ?? 0;
+        int parliamentVetoes = parliamentSave?.VetoedProposals?.Length ?? 0;
+        sb.AppendLine($"Parlamento: parti={parliamentParties}, veto={parliamentVetoes}, sandalye={ParliamentSystem.TotalSeats}");
+
         // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");

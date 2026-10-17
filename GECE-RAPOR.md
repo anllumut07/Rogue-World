@@ -113,7 +113,7 @@
 - `Scripts/CabinetPanel.cs` (güncellendi): atanmış bakan kartında skandal/uyarı durumu kırmızı etiketle gösterilir; DISMISS butonu ile skandalı oluşturan bakan görevden alınır.
 - `Scripts/SaveLoadTest.cs` (güncellendi): kabine özetine skandal sayısı eklendi.
 - `dotnet build` 0 hata / 0 uyarı.
-- Commit: (hazırlanacak).
+- Commit: 7159623 (push'ed origin gece-calisma).
 
 ## Sonraki adım
 - M21.5: Kabine toplantısı (ajanda slotu kullanır).

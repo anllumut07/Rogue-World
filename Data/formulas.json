@@ -1,0 +1,13 @@
+{
+  "Links": [
+    { "Source": "inflation", "Target": "unemployment", "Weight": 0.20 },
+    { "Source": "unemployment", "Target": "gdp_growth", "Weight": -0.25 },
+    { "Source": "gdp_growth", "Target": "unemployment", "Weight": -0.20 },
+    { "Source": "corruption", "Target": "gdp_growth", "Weight": -0.20 },
+    { "Source": "education", "Target": "gdp_growth", "Weight": 0.15 },
+    { "Source": "health", "Target": "life_expectancy", "Weight": 0.10 },
+    { "Source": "environment", "Target": "health", "Weight": 0.10 },
+    { "Source": "public_debt", "Target": "gdp_growth", "Weight": -0.10 },
+    { "Source": "inflation", "Target": "gdp_growth", "Weight": -0.15 }
+  ]
+}

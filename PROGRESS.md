@@ -902,12 +902,28 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Yeni: `Data/public_satisfaction.json`, `Scripts/PublicSatisfactionSystem.cs`
 - Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`
 
-**Sonraki adım:** 20.4 Göstergeler arası bağlantılar (enflasyon↔işsizlik↔memnuniyet vb., Data/formulas.json).
+### M20.4: Göstergeler Arası Bağlantılar — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Data/formulas.json` (yeni): gösterge bağlantıları — inflation→unemployment (+0.20), unemployment→gdp_growth (-0.25), gdp_growth→unemployment (-0.20), corruption→gdp_growth (-0.20), education→gdp_growth (+0.15), health→life_expectancy (+0.10), environment→health (+0.10), public_debt→gdp_growth (-0.10), inflation→gdp_growth (-0.15). Her bağlantı `Weight × Kaynak × LinkSpeed (0.05)` günlük etkisi, hedef [Min,Max]'e clamp'lenir.
+- `Scripts/FormulaSystem.cs` (yeni): `FormulaLink`/`FormulaSave` DTO'ları; `LoadData` (JSON), `ApplyLinks` (günün her bağlantısını her ülke için uygular, deterministik, RNG yok, günlük ortalama-Δ özeti loglar), `GetSaveData`/`LoadSaveData` (bağlantı sayısı doğrulaması).
+- `Scripts/GameManager.cs` (güncellendi): `ResetForNewGame()`'de `FormulaSystem.InitializeAll()` (BudgetSystem'den sonra, PublicSatisfactionSystem'den önce); `DailyTick()`'de `FormulaSystem.ApplyLinks()` (göstergeler BudgetSystem tarafından belirlendikten sonra, memnuniyet okunmadan önce).
+- `Scripts/SaveLoadTest.cs` (güncellendi): `BuildSummaryCore()`'e formül özeti eklendi (bağlantı sayısı).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` A==B testi: formüller dahil geçer (bağlantılar deterministik, yeni RNG yok).
+
+**Dosyalar:**
+- Yeni: `Data/formulas.json`, `Scripts/FormulaSystem.cs`
+- Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveLoadTest.cs`
+
+**Sonraki adım:** 20.5 İstatistik paneli (grafik, geçmiş eğilim çizgisi, 1152×648).
 
 ---
 
 ### Sonraki adım
-- M20.4: Göstergeler arası bağlantılar (enflasyon↔işsizlik↔memnuniyet, yolsuzluk↔yatırım, eğitim↔teknoloji hızı; Data/formulas.json).
+- M20.5: İstatistik paneli — geçmiş eğilim çizgisi (grafik), panel 1152×648'e sığar.
 
 ---
 

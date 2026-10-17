@@ -71,5 +71,9 @@
 - `Data/public_satisfaction.json`, `Scripts/PublicSatisfactionSystem.cs`: 9 toplum grubu + tepki ağırlıkları, günlük memnuniyet doğruşu (gösterge+bütçe tabanlı), Save/Load DTO, SaveLoadTest kapsamında, dotnet build 0/0.
 - Commit: (hazırlanacak).
 
+## M20.4 — 🔄 IN PROGRESS (2026-10-17)
+- `Data/formulas.json`, `Scripts/FormulaSystem.cs`: gösterge bağlantıları (inflation→unemployment, unemployment→gdp_growth, corruption→gdp_growth, education→gdp_growth, vb.), deterministik günlük etkisi (Weight × Kaynak × LinkSpeed, [Min,Max] clamp), GameManager sırası Budget→Formül→Memnuniyet, SaveLoadTest özeti, dotnet build 0/0.
+- Commit: (hazırlanacak).
+
 ## Sonraki adım
-- M20.4: Göstergeler arası bağlantılar (enflasyon↔işsizlik↔memnuniyet, yolsuzluk↔yatırım, eğitim↔teknoloji hızı; Data/formulas.json).
+- M20.5: İstatistik paneli (grafik, geçmiş eğilim çizgisi; panel 1152×648'e sığar).

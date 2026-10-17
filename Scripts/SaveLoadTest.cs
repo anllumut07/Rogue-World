@@ -232,6 +232,10 @@ public static class SaveLoadTest
         avgSat = satCount > 0 ? avgSat / satCount : 0;
         sb.AppendLine($"Memnuniyet: ülke={satCountries}, grup_ortalama=%{avgSat:F1}");
 
+        // --- M20.4: Göstergeler arası bağlantılar ---
+        var formulaSave = FormulaSystem.GetSaveData();
+        sb.AppendLine($"Formüller: bağlantı={formulaSave?.LinkCount ?? 0}");
+
         // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");

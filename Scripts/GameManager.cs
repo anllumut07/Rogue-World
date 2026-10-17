@@ -371,6 +371,9 @@ public partial class GameManager : Node
         // M20.2: Bütçe günlük tick'i (gelir/harcama/açık/borç/faiz + göstergelere yansıma)
         BudgetSystem.DailyTick();
 
+        // M20.4: Göstergeler arası bağlantılar (enflasyon↔işsizlik↔memnuniyet vb.)
+        FormulaSystem.ApplyLinks();
+
         // M20.3: Halk memnuniyeti günlük tick'i (grubun göstergelere/harcamalara tepkisi)
         PublicSatisfactionSystem.DailyTick();
 
@@ -503,6 +506,9 @@ public partial class GameManager : Node
 
         // M20.2: Bütçe (vergi, harcama, borç, faiz) sistemini yeni oyuna başlat
         BudgetSystem.InitializeAll();
+
+        // M20.4: Göstergeler arası bağlantıları yükle
+        FormulaSystem.InitializeAll();
 
         // M20.3: Halk memnuniyeti gruplarını yeni oyuna başlat
         PublicSatisfactionSystem.InitializeAll();

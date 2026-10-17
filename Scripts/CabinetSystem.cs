@@ -199,6 +199,68 @@ public static class CabinetSystem
             .AsReadOnly();
     }
 
+    // M21.3: atanan bakanın nitelikleri ilgili göstergeleri etkiler (günlük, deterministik).
+    // Etki büyüklüğü: (stat - 50) / 5000 → %50 istatistikte etkisiz, %100'de küçük pozitif/negatif değişim.
+    // LowerWhenHigh = true ise stat arttıkça göstergenin değeri düşer (ör. dürüstlik → yolsuzluk↓).
+    private static readonly (string MinistryId, string IndicatorId, string Stat, bool LowerWhenHigh)[]
+        _ministerEffects =
+    {
+        ("interior", "corruption", "Honesty", true),
+        ("interior", "crime_rate", "Honesty", true),
+        ("interior", "crime_rate", "Skill", true),
+        ("finance", "budget_deficit", "Skill", true),
+        ("finance", "gdp_growth", "Skill", false),
+        ("finance", "inflation", "Skill", true),
+        ("justice", "judicial_independence", "Honesty", false),
+        ("justice", "corruption", "Honesty", true),
+        ("education", "education", "Skill", false),
+        ("health", "health", "Skill", false),
+        ("health", "life_expectancy", "Skill", false),
+        ("economy", "gdp_growth", "Skill", false),
+        ("economy", "inflation", "Skill", true),
+        ("economy", "unemployment", "Skill", true),
+        ("energy", "energy", "Skill", false),
+        ("environment", "environment", "Skill", false),
+    };
+
+    // Atanan bakanların niteliklerini ilgili göstergelere yansıtır (yalnızca belirtilen ülke).
+    public static void ApplyMinisterEffects(string countryId)
+    {
+        if (string.IsNullOrEmpty(countryId)) return;
+        if (!_assignments.TryGetValue(countryId, out var a)) return;
+
+        int applied = 0;
+        foreach (var kv in a)
+        {
+            string ministryId = kv.Key;
+            string ministerId = kv.Value;
+            if (string.IsNullOrEmpty(ministerId)) continue;
+            var minister = _ministers.FirstOrDefault(m => m.Id == ministerId);
+            if (minister == null) continue;
+
+            foreach (var eff in _ministerEffects)
+            {
+                if (eff.MinistryId != ministryId) continue;
+                double stat = eff.Stat switch
+                {
+                    "Skill" => minister.Skill,
+                    "Honesty" => minister.Honesty,
+                    "Loyalty" => minister.Loyalty,
+                    "Popularity" => minister.Popularity,
+                    _ => 50
+                };
+                double delta = (stat - 50.0) / 5000.0;
+                if (eff.LowerWhenHigh) delta = -delta;
+
+                string indicatorId = eff.IndicatorId;
+                double current = StatisticsSystem.GetValue(countryId, indicatorId);
+                StatisticsSystem.SetValue(countryId, indicatorId, current + delta);
+                applied++;
+            }
+        }
+        GD.Print($"[CabinetSystem] {countryId} için {applied} bakan-etkisi uygulandı.");
+    }
+
     public static CabinetSave GetSaveData() => new CabinetSave
     {
         Countries = _assignments.Select(kv => new CountryCabinetSave

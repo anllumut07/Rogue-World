@@ -377,6 +377,9 @@ public partial class GameManager : Node
         // M20.3: Halk memnuniyeti günlük tick'i (grubun göstergelere/harcamalara tepkisi)
         PublicSatisfactionSystem.DailyTick();
 
+        // M21.3: atanan bakanların nitelikleri ilgili göstergeleri etkiler (son söz, deterministik)
+        if (HasPlayer) CabinetSystem.ApplyMinisterEffects(PlayerCountryId);
+
         // M16: Zaman ve Tempo — ajanda ilerlemesi, hafta reset, aylık rapor
         TimeTempoSystem.DailyTick(this);
 

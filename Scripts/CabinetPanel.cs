@@ -139,6 +139,7 @@ public partial class CabinetPanel : Control
             var card = new VBoxContainer();
             card.AddThemeConstantOverride("separation", 6);
 
+            // --- Üst satır: bakanlık adı + durum (bakan adı veya "Unassigned") ---
             var row = new HBoxContainer();
             row.AddThemeConstantOverride("separation", 10);
 
@@ -149,9 +150,13 @@ public partial class CabinetPanel : Control
             row.AddChild(name);
 
             string ministerId = CabinetSystem.GetMinister(countryId, ministry.Id);
+            var minister = string.IsNullOrEmpty(ministerId)
+                ? null
+                : CabinetSystem.Ministers.FirstOrDefault(m => m.Id == ministerId);
+            string ministerName = minister?.Name ?? ministerId ?? "Unassigned";
             var status = new Label
             {
-                Text = string.IsNullOrEmpty(ministerId) ? "Open — pick a minister" : ministerId
+                Text = string.IsNullOrEmpty(ministerId) ? "Unassigned" : ministerName
             };
             status.AddThemeFontSizeOverride("font_size", 15);
             status.AddThemeColorOverride("font_color",
@@ -163,17 +168,43 @@ public partial class CabinetPanel : Control
 
             if (string.IsNullOrEmpty(ministerId))
             {
+                // --- Atanmamış: uygun adaylar, her birine ASSIGN butonu ---
                 var candidates = CabinetSystem.GetAvailableMinisters(countryId, ministry.Id);
                 if (candidates.Count > 0)
                 {
-                    var candLabel = new Label
+                    foreach (var m in candidates)
                     {
-                        Text = "Available: " + string.Join(" | ",
-                            candidates.Select(m => $"{m.Name} (skill {m.Skill}, honesty {m.Honesty}, loyalty {m.Loyalty}, pop {m.Popularity}) [{string.Join(",", m.Traits)}]"))
-                    };
-                    candLabel.AddThemeFontSizeOverride("font_size", 12);
-                    candLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-                    card.AddChild(candLabel);
+                        var candRow = new HBoxContainer();
+                        candRow.AddThemeConstantOverride("separation", 8);
+
+                        var info = new Label
+                        {
+                            Text = $"{m.Name} — skill {m.Skill}, honesty {m.Honesty}, loyalty {m.Loyalty}, pop {m.Popularity} [{string.Join(",", m.Traits)}]"
+                        };
+                        info.AddThemeFontSizeOverride("font_size", 12);
+                        info.AddThemeColorOverride("font_color", UITheme.TextMuted);
+                        info.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+                        candRow.AddChild(info);
+
+                        var assignBtn = new Button
+                        {
+                            Text = "ASSIGN",
+                            FocusMode = Control.FocusModeEnum.None,
+                            CustomMinimumSize = new Vector2(70, 26)
+                        };
+                        string candId = m.Id; // closure için kopya
+                        string candName = m.Name;
+                        assignBtn.Pressed += () =>
+                        {
+                            CabinetSystem.AssignMinister(countryId, ministry.Id, candId);
+                            GD.Print($"[CabinetPanel] {candName} atandı → {ministry.Name}");
+                            RefreshContent();
+                        };
+                        UITheme.AddHoverScale(assignBtn);
+                        candRow.AddChild(assignBtn);
+
+                        card.AddChild(candRow);
+                    }
                 }
                 else
                 {
@@ -182,6 +213,50 @@ public partial class CabinetPanel : Control
                     none.AddThemeColorOverride("font_color", UITheme.TextMuted);
                     card.AddChild(none);
                 }
+            }
+            else
+            {
+                // --- Atanmış: bakan nitelikleri + DISMISS butonu ---
+                var stats = new Label
+                {
+                    Text = $"skill {minister.Skill} | honesty {minister.Honesty} | loyalty {minister.Loyalty} | pop {minister.Popularity}"
+                };
+                stats.AddThemeFontSizeOverride("font_size", 12);
+                stats.AddThemeColorOverride("font_color", UITheme.TextMuted);
+                card.AddChild(stats);
+
+                var traits = minister.Traits != null && minister.Traits.Count > 0
+                    ? $"Traits: {string.Join(", ", minister.Traits)}"
+                    : "";
+                if (!string.IsNullOrEmpty(traits))
+                {
+                    var tLabel = new Label { Text = traits };
+                    tLabel.AddThemeFontSizeOverride("font_size", 11);
+                    tLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+                    card.AddChild(tLabel);
+                }
+
+                var dismissRow = new HBoxContainer();
+                dismissRow.AddThemeConstantOverride("separation", 8);
+
+                var dismissBtn = new Button
+                {
+                    Text = "DISMISS",
+                    FocusMode = Control.FocusModeEnum.None,
+                    CustomMinimumSize = new Vector2(80, 28)
+                };
+                string minId = ministerId; // closure için kopya
+                string minName = ministerName;
+                dismissBtn.Pressed += () =>
+                {
+                    CabinetSystem.AssignMinister(countryId, ministry.Id, "");
+                    GD.Print($"[CabinetPanel] {minName} görevden alındı — {ministry.Name} tekrar boş");
+                    RefreshContent();
+                };
+                UITheme.AddHoverScale(dismissBtn);
+                dismissRow.AddChild(dismissBtn);
+
+                card.AddChild(dismissRow);
             }
 
             _content.AddChild(card);

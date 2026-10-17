@@ -71,6 +71,7 @@ public static class SaveSystem
         public StatisticsSystem.IndicatorsSave Statistics { get; set; } // M20.1: istatistik gösterge değerleri
         public BudgetSystem.BudgetSave Budget { get; set; } // M20.2: bütçe (vergi, harcama, borç, faiz)
         public PublicSatisfactionSystem.SatisfactionSave PublicSatisfaction { get; set; } // M20.3: grup memnuniyeti
+        public CabinetSystem.CabinetSave Cabinet { get; set; } // M21.1: bakanlık atamaları (ülke -> ministryId -> ministerId)
     }
 
     // ===== Economy DTOs =====
@@ -374,6 +375,7 @@ public static class SaveSystem
             Statistics = StatisticsSystem.GetSaveData(), // M20.1: istatistik gösterge değerleri
             Budget = BudgetSystem.GetSaveData(), // M20.2: bütçe (vergi, harcama, borç, faiz)
             PublicSatisfaction = PublicSatisfactionSystem.GetSaveData(), // M20.3: grup memnuniyeti
+            Cabinet = CabinetSystem.GetSaveData(), // M21.1: bakanlık atamaları
         };
 
         EnsureSavesDir();
@@ -497,6 +499,7 @@ public static class SaveSystem
             StatisticsSystem.LoadSaveData(save.Statistics); // M20.1: istatistik gösterge değerleri
             BudgetSystem.LoadSaveData(save.Budget); // M20.2: bütçe (vergi, harcama, borç, faiz)
             PublicSatisfactionSystem.LoadSaveData(save.PublicSatisfaction); // M20.3: grup memnuniyeti
+            CabinetSystem.LoadSaveData(save.Cabinet); // M21.1: bakanlık atamaları
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

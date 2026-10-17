@@ -237,6 +237,12 @@ public static class SaveLoadTest
         var formulaSave = FormulaSystem.GetSaveData();
         sb.AppendLine($"Formüller: bağlantı={formulaSave?.LinkCount ?? 0}");
 
+        // --- M21.1: Kabine atamaları ---
+        var cabinetSave = CabinetSystem.GetSaveData();
+        int cabinetCountries = cabinetSave?.Countries?.Length ?? 0;
+        int cabinetAssignments = cabinetSave?.Countries?.Sum(c => c.Assignments?.Count ?? 0) ?? 0;
+        sb.AppendLine($"Kabine: ülke={cabinetCountries}, atama={cabinetAssignments}");
+
         // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");

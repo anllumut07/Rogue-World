@@ -242,6 +242,16 @@ public partial class GameHud : CanvasLayer
         rightSection.AddChild(statisticsBtn);
         UITheme.AddHoverScale(statisticsBtn);
 
+        // CABINET butonu (M21.1): bakanlık atamaları ve bakanlık listesi
+        var cabinetBtn = new Button { Text = "CABINET", FocusMode = Control.FocusModeEnum.None, TooltipText = "Cabinet — ministries and minister assignments" };
+        cabinetBtn.Pressed += () =>
+        {
+            GD.Print("[GameHud] CABINET butonu basıldı — CabinetPanel.OpenUnder çağrılıyor");
+            CabinetPanel.OpenUnder(this);
+        };
+        rightSection.AddChild(cabinetBtn);
+        UITheme.AddHoverScale(cabinetBtn);
+
         // NEXT EVENT butonu (M16.4): bekleyen bildirim varsa görünür
         _nextEventBtn = new Button
         {

@@ -938,6 +938,30 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 ---
 
+### M21.1: Kabine Paneli — Bakanlık Listesi — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Data/cabinet_ministries.json` (yeni): 12 bakanlık tanımı — İçişleri, Maliye, Savunma, Dışişleri, Adalet, Eğitim, Sağlık, Ekonomi/Ticaret, Enerji, Çevre, Tarım, İstihbarat Başkanı. Her biri Id + Name + Description (İngilizce UI metni).
+- `Scripts/CabinetSystem.cs` (yeni): `Ministry`, `CabinetSave`, `CountryCabinetSave` DTO'ları. `LoadData()` JSON'dan bakanlıkları yükler (`IncludeFields` yok — JsonDocument ile direkt parse). `_assignments` (countryId → ministryId → ministerId) sözlüğü. `InitializeAll`/`ResetForNewGame` tüm ülkeyi boş atama ile başlatır, `GetMinister`/`IsAssigned`/`AssignMinister` yönetimi, `GetSaveData`/`LoadSaveData` (ülke bazlı sözlük), `AssignmentCount` sayacı. Deterministik — yeni RNG yok.
+- `Scripts/CabinetPanel.cs` (yeni): `CabinetPanel : Control` overlay (860×520 panel içinde CenterContainer, 1152×648'e sığar). `OpenUnder(parent)` static; `_backdrop` (ColorRect, opacity 0.75, MouseFilter.Stop → harita girişini bloke eder); başlık CABINET + CLOSE butonu; ülke adı (altın); her bakanlık için satır (bakanlık adı + durum: Unassigned / ministerId); nota: M21.2/M21.3 gelecek. ESC kapatır (`_UnhandledInput` → SetInputAsHandled + Close). `UITheme.FadeIn`/`PopIn`/`FadeOut`/`PopOut` animasyonları. `IsOpen` static bayrak, `_Ready`/`_ExitTree`/`Close` yaşam döngüsü.
+- `Scripts/GameManager.cs` (güncellendi): `ResetForNewGame()`'de `CabinetSystem.InitializeAll()` (PublicSatisfactionSystem'den sonra, M-Flags'tan önce).
+- `Scripts/SaveSystem.cs` (güncellendi): `SaveFile` DTO'ya `Cabinet` alanı (`CabinetSystem.CabinetSave`); `WriteSave` ve `LoadGameInternal` bağlandı.
+- `Scripts/GameHud.cs` (güncellendi): CABINET butonu (STATISTICS'tan sonra) → `CabinetPanel.OpenUnder(this)`.
+- `Scripts/SaveLoadTest.cs` (güncellendi): `BuildSummaryCore()`'e kabine özeti eklendi (ülke sayısı, atama sayısı).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` A==B testi: kabine atamaları dahil geçer (deterministik, RNG yok).
+- Panel 1152×648'e sığar, ESC kapatır, backdrop MouseFilter.Stop harita girişini bloke eder.
+
+**Dosyalar:**
+- Yeni: `Data/cabinet_ministries.json`, `Scripts/CabinetSystem.cs`, `Scripts/CabinetPanel.cs`
+- Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/GameHud.cs`, `Scripts/SaveLoadTest.cs`
+
+**Sonraki adım:** 21.2 Bakan havuzu (kurgusal kişiler).
+
+---
+
 ### Sonraki adım
 - M20.3: Halk memnuniyeti (gruplara göre: işçi, iş dünyası, gençler, yaşlılar, ordu, dindar/laik, kırsal/kentsel).
 

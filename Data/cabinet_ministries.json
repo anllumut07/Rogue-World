@@ -1,0 +1,16 @@
+{
+  "Ministries": [
+    { "Id": "interior", "Name": "Ministry of Interior", "Description": "Domestic security, policing, public order" },
+    { "Id": "finance", "Name": "Ministry of Finance", "Description": "Budget, taxes, spending, public debt" },
+    { "Id": "defense", "Name": "Ministry of Defense", "Description": "Armed forces, procurement, war effort" },
+    { "Id": "foreign", "Name": "Ministry of Foreign Affairs", "Description": "Diplomacy, treaties, alliances" },
+    { "Id": "justice", "Name": "Ministry of Justice", "Description": "Courts, judicial independence, corruption control" },
+    { "Id": "education", "Name": "Ministry of Education", "Description": "Schools, universities, literacy" },
+    { "Id": "health", "Name": "Ministry of Health", "Description": "Hospitals, public health, life expectancy" },
+    { "Id": "economy", "Name": "Ministry of Economy", "Description": "Industry, trade, economic growth" },
+    { "Id": "energy", "Name": "Ministry of Energy", "Description": "Energy production and supply security" },
+    { "Id": "environment", "Name": "Ministry of Environment", "Description": "Environmental quality and sustainability" },
+    { "Id": "agriculture", "Name": "Ministry of Agriculture", "Description": "Food production and rural policy" },
+    { "Id": "intelligence", "Name": "Intelligence Agency", "Description": "Espionage and counter-intelligence" }
+  ]
+}

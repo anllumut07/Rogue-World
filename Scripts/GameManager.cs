@@ -513,6 +513,9 @@ public partial class GameManager : Node
         // M20.3: Halk memnuniyeti gruplarını yeni oyuna başlat
         PublicSatisfactionSystem.InitializeAll();
 
+        // M21.1: Kabine/bakanlık atama sistemini yeni oyuna başlat (hiçbiri atanmamış)
+        CabinetSystem.InitializeAll();
+
         // M-Flags: bayrak önbelleği sıfırlanır (rapor yeni oyunda tekrar loglanır)
         FlagLibrary.ResetForNewGame();
 

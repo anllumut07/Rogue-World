@@ -82,5 +82,13 @@
 - `Scripts/SaveLoadTest.cs`: istatistik özetine geçmiş kayıt sayısı; dotnet build 0/0; SaveLoadTest A==B geçer.
 - Commit: (hazırlanacak).
 
+## M21.1 — ✅ DONE (2026-10-17)
+- `Data/cabinet_ministries.json` (yeni): 12 bakanlık tanımı (İçişleri, Maliye, Savunma, Dışişleri, Adalet, Eğitim, Sağlık, Ekonomi/Ticaret, Enerji, Çevre, Tarım, İstihbarat).
+- `Scripts/CabinetSystem.cs` (yeni): bakanlık tanımları + ülke→bakanlık→bakan atama sözlüğü; `InitializeAll`/`ResetForNewGame`, `AssignMinister`, `GetSaveData`/`LoadSaveData`; deterministik (yeni RNG yok).
+- `Scripts/CabinetPanel.cs` (yeni): overlay paneli (860×520), backdrop MouseFilter.Stop harita girişini bloke eder, ESC kapatır, STATISTICS butonu yanında HUD CABINET butonu.
+- `GameManager.cs`, `SaveSystem.cs`, `SaveLoadTest.cs`, `GameHud.cs` güncellendi (ResetForNewGame, SaveFile.Cabinet alanı, kabine özeti, HUD butonu).
+- `dotnet build` 0 hata / 0 uyarı.
+- Commit: push'ed origin gece-calisma.
+
 ## Sonraki adım
-- M21: Bakanlıklar ve Kabine (bakan atama/üstünde, niteliklerin göstergelere etkisi, skandal/istifa).
+- M21.2: Bakan havuzu (kurgusal kişiler: yetenek, dürüstlük, sadakat, popülerlik, parti/ideoloji, özellik).

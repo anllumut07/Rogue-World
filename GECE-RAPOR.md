@@ -135,8 +135,15 @@
 ## M17B — Uluslararası Örgütler tasarım belgesi — ✅ DONE
 - `Design/M17B_uluslararasi_orgutler.md` yazıldı (17B.1–17B.6: veri modeli, üyelik kriterleri, ayrılma/askıya alma, toplantı/gündem, yükümlülük/avantaj, bağımlılıklar). Kod yazılmadı, yalnızca belge.
 
+## M22.1 — Anayasa — ✅ DONE (2026-10-18)
+- `Data/constitution.json` (yeni): 20 ülke — GovernmentType (Presidential/Parliamentary/SemiPresidential/Monarchy/OneParty), TermLength, TermLimit, VotingAge. Monarşi (SAU) dönem/yaş=0.
+- `Scripts/ConstitutionSystem.cs` (yeni): LoadData, GetConstitution (varsayılan parlamentosal), SetEmergency/IsEmergencyDeclared/EmergencyStartDay, GetSaveData/LoadSaveData (olağanüstü hal state'i), GD.Print kayıt sayısı.
+- `Scripts/GameManager.cs` (güncellendi): `_Ready'de ConstitutionSystem.LoadData()` çağrısı; `--constitution-test` kancağı (tüm tanıtımları doğrular).
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--constitution-test --speed=0`: **20/20 PASS** (tüm ülke tanımları geçerli).
+
 ## Sonraki adım
-- M22 Yasalar, Anayasa ve Parlamento.
+- M22.2 Yasalar (Data/laws.json + LawSystem: önerme/ekleme/kaldırma, kategori, maliyet, etkiler).
 
 ## Bilinen sorunlar
 - Komşuluk yalnızca ortak-kenar tabanlı; ülke sınırlarını aşan komşular kapsanmıyor.

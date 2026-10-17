@@ -94,6 +94,7 @@ public partial class GameManager : Node
         string scenarioId = null;       // M17.1: --scenario=ID — aktif senaryoyu seç (modern_world / historical_1936)
         bool scenarioTest = false;      // M17.1: --scenario-test — her iki senaryonun yükleme sayılarını doğrula
         int loadSlot = -1;              // M17.1: --load-slot=N — mevcut kaydı yükle (v1 migration testi)
+        bool constitutionTest = false;  // M22.1: anayasa yönetim-biçimi tanımlarını doğrula
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -135,6 +136,8 @@ public partial class GameManager : Node
                 scenarioId = arg.Substring(11);
             else if (arg == "--scenario-test")
                 scenarioTest = true;
+            else if (arg == "--constitution-test")
+                constitutionTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -174,6 +177,9 @@ public partial class GameManager : Node
 
         // M17.2: Lider sistemi — kurgusal liderler (senaryo bazlı)
         LeaderSystem.LoadScenarioData();
+
+        // M22.1: Anayasa — yönetim biçimi, dönem, seçim yaşı, olağanüstü hal kuralları.
+        ConstitutionSystem.LoadData();
 
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)
@@ -274,6 +280,8 @@ public partial class GameManager : Node
         // M17.1: Senaryo testi — her iki senaryonun yüklediği kayıt sayılarını logla
         if (scenarioTest)
             RunScenarioTest();
+        if (constitutionTest)
+            RunConstitutionTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -836,6 +844,36 @@ public partial class GameManager : Node
 
         bool pass = ok && ministerAfter == Math.Clamp(ministerBefore + 2, 0, 100);
         GD.Print(pass ? "[CabinetMeetingTest] SONUÇ: PASS ✓" : "[CabinetMeetingTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+    }
+
+    private void RunConstitutionTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M22.1: ANAYASA TESTİ");
+        GD.Print("=========================================");
+
+        int count = ConstitutionSystem.Constitutions.Count;
+        int pass = 0;
+        foreach (var kv in ConstitutionSystem.Constitutions.OrderBy(k => k.Key))
+        {
+            var c = kv.Value;
+            bool ok = true;
+            string reason = "";
+            if (c.GovernmentType == ConstitutionSystem.GovernmentType.Monarchy)
+            {
+                if (c.VotingAge != 0 || c.TermLength != 0) { ok = false; reason = "monarşi için dönem/yaş 0 olmalı"; }
+            }
+            else
+            {
+                if (c.VotingAge <= 0) { ok = false; reason = "geçersiz seçim yaşı"; }
+                if (c.TermLength <= 0) { ok = false; reason = "geçersiz dönem süresi"; }
+            }
+            GD.Print($"[ConstitutionTest] {c.CountryId}: {c.GovernmentType}, dönem={c.TermLength}yıl, limit={c.TermLimit}, oy yaşı={c.VotingAge} → {(ok ? "OK" : "FAIL: " + reason)}");
+            if (ok) pass++;
+        }
+        bool result = pass == count;
+        GD.Print(result ? "[ConstitutionTest] SONUÇ: PASS ✓" : $"[ConstitutionTest] SONUÇ: FAIL ✗ ({pass}/{count})");
         GD.Print("=========================================");
     }
 }

@@ -1,0 +1,24 @@
+{
+  "Constitutions": [
+    { "CountryId": "DEU", "GovernmentType": "Parliamentary", "TermLength": 4, "TermLimit": 2, "VotingAge": 18 },
+    { "CountryId": "USA", "GovernmentType": "Presidential", "TermLength": 4, "TermLimit": 2, "VotingAge": 18 },
+    { "CountryId": "FRA", "GovernmentType": "SemiPresidential", "TermLength": 5, "TermLimit": 2, "VotingAge": 18 },
+    { "CountryId": "GBR", "GovernmentType": "Parliamentary", "TermLength": 5, "TermLimit": 0, "VotingAge": 18 },
+    { "CountryId": "RUS", "GovernmentType": "SemiPresidential", "TermLength": 6, "TermLimit": 2, "VotingAge": 18 },
+    { "CountryId": "CHN", "GovernmentType": "OneParty", "TermLength": 5, "TermLimit": 0, "VotingAge": 18 },
+    { "CountryId": "JPN", "GovernmentType": "Parliamentary", "TermLength": 4, "TermLimit": 0, "VotingAge": 18 },
+    { "CountryId": "ITA", "GovernmentType": "Parliamentary", "TermLength": 5, "TermLimit": 0, "VotingAge": 18 },
+    { "CountryId": "TUR", "GovernmentType": "Presidential", "TermLength": 5, "TermLimit": 2, "VotingAge": 18 },
+    { "CountryId": "BRA", "GovernmentType": "Presidential", "TermLength": 4, "TermLimit": 2, "VotingAge": 16 },
+    { "CountryId": "IND", "GovernmentType": "Parliamentary", "TermLength": 5, "TermLimit": 0, "VotingAge": 18 },
+    { "CountryId": "CAN", "GovernmentType": "Parliamentary", "TermLength": 4, "TermLimit": 0, "VotingAge": 18 },
+    { "CountryId": "AUS", "GovernmentType": "Parliamentary", "TermLength": 3, "TermLimit": 0, "VotingAge": 18 },
+    { "CountryId": "ESP", "GovernmentType": "Parliamentary", "TermLength": 4, "TermLimit": 0, "VotingAge": 18 },
+    { "CountryId": "KOR", "GovernmentType": "Presidential", "TermLength": 5, "TermLimit": 1, "VotingAge": 18 },
+    { "CountryId": "MEX", "GovernmentType": "Presidential", "TermLength": 6, "TermLimit": 1, "VotingAge": 18 },
+    { "CountryId": "IDN", "GovernmentType": "Presidential", "TermLength": 5, "TermLimit": 2, "VotingAge": 17 },
+    { "CountryId": "SAU", "GovernmentType": "Monarchy", "TermLength": 0, "TermLimit": 0, "VotingAge": 0 },
+    { "CountryId": "EGY", "GovernmentType": "Presidential", "TermLength": 6, "TermLimit": 2, "VotingAge": 18 },
+    { "CountryId": "ZAF", "GovernmentType": "Parliamentary", "TermLength": 5, "TermLimit": 2, "VotingAge": 18 }
+  ]
+}

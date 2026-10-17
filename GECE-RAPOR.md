@@ -178,5 +178,21 @@
 - **Kısıt:** Godot editörü yok (`godot` PATH'te değil), dolayısıyla `--parliament-test` headless çalıştırılamadı. Varsayım: test mantığı derleme sonrası geçerli; editörde (F5 / `godot --headless --parliament-test`) sonraki oturumda doğrulama yapılacak.
 - Commit ve `git push origin gece-calisma` bu oturumda.
 
+## M22.4 — ✅ DONE (2026-10-18)
+- `Scripts/AutoritarianSystem.cs` (yeni): tek parti rejimleri için parti kongre oylaması (DelegateCount=500, Onay Eşiği=251) + günlük deterministik darbe riski (ComputeCoupRisk / TryTriggerCoup, DeterministicRNG, stabilite ve savaş desteğe bağlı). AutoritarianSave Save/Load DTO.
+- `Scripts/GameManager.cs`: `_Ready` → `AutoritarianSystem.LoadData()`, `ResetForNewGame` → `ResetForNewGame()`, `DailyTick` → `AutoritarianSystem.DailyTick(PlayerCountryId)`, `--autoritarian-test` → `RunAutoritarianTest()`.
+- `Scripts/SaveSystem.cs`: `SaveFile.Autoritarian` alanı + WriteSave/LoadGameInternal bağlama.
+- `Scripts/SaveLoadTest.cs`: BuildSummaryCore'ye Otoriter özeti eklendi.
+- `dotnet build`: 0 hata / 0 uyarı.
+- **Kısıt:** Godot editörü yok (`godot` PATH'te değil), dolayısıyla `--autoritarian-test` headless çalıştırılamadı. Varsayım: test mantığı derleme sonrası geçerli; editörde (F5 / `godot --headless --autoritarian-test`) sonraki oturumda doğrulama yapılacak.
+- Commit ve `git push origin gece-calisma`.
+
+## Bilinen sorunlar
+- Komşuluk yalnızca ortak-kenar tabanlı; ülke sınırlarını aşan komşular kapsanmıyor.
+- İl çizimi mevcut ülke çiziminin üzerine eklenir (katmanlı Polygon2D node'ları).
+- M16: Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılmıyor — kayıt yüklenince bekleyen bildirimler kaybolur.
+- M16: Ajanda efektleri (MinisterLoyaltyBonus vb.) ilgili sistemlere bağlı değil — loglanıyor.
+- M21.5: headless `--cabinet-meeting-test` çalıştırıldı ve PASS. Godot editörü gerek kalmadı.
+
 ## Sonraki adım
-- M22.4 Otoriter sistemler (parti kongresi, darbe riski).
+- M22.5 (kongre/darbe UI paneli) veya M23 Seçimler ve Halk.

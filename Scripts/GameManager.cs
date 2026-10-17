@@ -99,6 +99,7 @@ public partial class GameManager : Node
         bool provinceTest = false;        // M18: il sayısı, sahiplik, komşuluk, deterministik üretim
         bool armyTest = false;            // M19: ordu hareketi, düşman teması durdurma, save/load kimlik
         bool parliamentTest = false;      // M22.3: partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum
+        bool autoritarianTest = false;    // M22.4: parti kongresi + darbe riski
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -150,6 +151,8 @@ public partial class GameManager : Node
                 armyTest = true;
             else if (arg == "--parliament-test")
                 parliamentTest = true;
+            else if (arg == "--autoritarian-test")
+                autoritarianTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -198,6 +201,9 @@ public partial class GameManager : Node
 
         // M22.3: Parlamento — parti/sandalye verisini yükle (Data/parties.json).
         ParliamentSystem.LoadData();
+
+        // M22.4: Otoriter sistemler — parti kongresi ve darbe riski.
+        AutoritarianSystem.LoadData();
 
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)
@@ -308,6 +314,8 @@ public partial class GameManager : Node
             RunArmyTest();
         if (parliamentTest)
             RunParliamentTest();
+        if (autoritarianTest)
+            RunAutoritarianTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -424,6 +432,9 @@ public partial class GameManager : Node
 
         // M21.4: skandal, istifa, koalisyon baskısı, başarısızlık uyarısı denetimi
         if (HasPlayer) CabinetSystem.CheckCabinetEvents(PlayerCountryId);
+
+        // M22.4: Otoriter sistem günlük darbe riski değerlendirmesi (tek parti rejimler için).
+        if (HasPlayer) AutoritarianSystem.DailyTick(PlayerCountryId);
 
         // M16: Zaman ve Tempo — ajanda ilerlemesi, hafta reset, aylık rapor
         TimeTempoSystem.DailyTick(this);
@@ -569,6 +580,9 @@ public partial class GameManager : Node
 
         // M22.3: Parlamento-yeni oyun (parti/sandalye/veto state'i sıfırlanır)
         ParliamentSystem.ResetForNewGame();
+
+        // M22.4: Otoriter sistem-yeni oyun (kongre onayları ve darbe state'i sıfırlanır)
+        AutoritarianSystem.ResetForNewGame();
 
         // M-Flags: bayrak önbelleği sıfırlanır (rapor yeni oyunda tekrar loglanır)
         FlagLibrary.ResetForNewGame();
@@ -1170,6 +1184,44 @@ public partial class GameManager : Node
                       && !coalitionMajority
                       && refr.Passed;
         GD.Print(result ? "[ParliamentTest] SONUÇ: PASS ✓" : "[ParliamentTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+    }
+
+    /// <summary>Parti kongre oylaması ve darbe riski testi (tek parti rejimleri). Normal oyunda ASLA çalışmaz (--autoritarian-test).</summary>
+    private void RunAutoritarianTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M22.4: OTORITER SİSTEMLER TESTİ");
+        GD.Print("=========================================");
+
+        // 1) Kongre rejimi tespiti: CHN = OneParty (kongre), DEU = Parliamentary (değil).
+        bool chnCongress = AutoritarianSystem.IsCongressRegime("CHN");
+        bool deuCongress = AutoritarianSystem.IsCongressRegime("DEU");
+        GD.Print($"[AutoritarianTest] CHN kongre rejimi: {chnCongress} (beklenen True)");
+        GD.Print($"[AutoritarianTest] DEU kongre rejimi: {deuCongress} (beklenen False)");
+
+        // 2) Kongre oylaması: 300 evet >= 251 eşik → geçer; 200 evet → kalır.
+        var passVote = AutoritarianSystem.ApproveProposal("pol_1", 300, 200);
+        var failVote = AutoritarianSystem.ApproveProposal("pol_2", 200, 300);
+        GD.Print($"[AutoritarianTest] Kongre 300/200 geçti mi: {passVote.Passed} (beklenen True), threshold={passVote.ApprovalThreshold}");
+        GD.Print($"[AutoritarianTest] Kongre 200/300 geçti mi: {failVote.Passed} (beklenen False)");
+
+        // 3) Aynı teklif tekrar onaylanamaz (zaten onaylı).
+        bool dupApproved = AutoritarianSystem.IsCongressApproved("pol_1");
+        GD.Print($"[AutoritarianTest] pol_1 zaten onaylı mı: {dupApproved} (beklenen True)");
+
+        // 4) Darbe riski: %0-100 arası, sıfır riskte darbe olmaz.
+        double chnRisk = AutoritarianSystem.ComputeCoupRisk("CHN");
+        bool noCoupAtZero = !AutoritarianSystem.TryTriggerCoup("DEU", 0);
+        GD.Print($"[AutoritarianTest] CHN darbe riski: % {chnRisk:F1} (0-100 arası)");
+        GD.Print($"[AutoritarianTest] DEU %0 riskte darbe yok: {noCoupAtZero} (beklenen True)");
+
+        bool result = chnCongress && !deuCongress
+                      && passVote.Passed && !failVote.Passed
+                      && dupApproved
+                      && chnRisk >= 0 && chnRisk <= 100
+                      && noCoupAtZero;
+        GD.Print(result ? "[AutoritarianTest] SONUÇ: PASS ✓" : "[AutoritarianTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
     }
 }

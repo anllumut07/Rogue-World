@@ -277,7 +277,11 @@ public static class SaveLoadTest
         int parliamentVetoes = parliamentSave?.VetoedProposals?.Length ?? 0;
         sb.AppendLine($"Parlamento: parti={parliamentParties}, veto={parliamentVetoes}, sandalye={ParliamentSystem.TotalSeats}");
 
-        // --- M17.2: Liderler ---
+        // --- M22.4: Otoriter sistemler ---
+        var autoritarianSave = AutoritarianSystem.GetSaveData();
+        sb.AppendLine($"Otoriter: kongre_onayli={autoritarianSave.ApprovedProposals?.Length ?? 0}, darbe={autoritarianSave.CoupAttempts}, son_risk=%{autoritarianSave.LastCoupRiskPercent:F1}");
+
+// --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");
 

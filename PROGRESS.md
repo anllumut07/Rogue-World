@@ -1091,5 +1091,15 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - `Scripts/ParliamentSystem.cs`, `Data/parties.json`: M22.3 Parlamento mantığı — 7 kurgusal parti, 460 sandalye, eşik 231, oylama/veto/koalisyon/referandum, Save/Load DTO'ları.
 - `dotnet build`: 0 hata / 0 uyarı.
 - **Kısıt:** Godot editörü yok → `--parliament-test` headless çalıştırılamadı; varsayım GECE-RAPOR.md'ye kaydedildi, editörde doğrulama gelecek oturum.
-- Commit ve push origin gece-calisma bekleniyor.
+- Commit ve push origin gece-calisma (1d1aa21).
 - Sonraki adım: M22.4 Otoriter sistemler (parti kongresi, darbe riski).
+
+### 2026-10-18 — M22.4 Otoriter sistemler (parti kongresi, darbe riski)
+- `Scripts/AutoritarianSystem.cs` (yeni): tek parti rejimleri için parti kongre oylaması (DelegateCount=500, ApprovalThreshold=251) + günlük deterministik darbe riski (ComputeCoupRisk / TryTriggerCoup, DeterministicRNG, stabilite ve savaş desteğe bağlı). AutoritarianSave Save/Load DTO.
+- `Scripts/GameManager.cs`: `_Ready` → `AutoritarianSystem.LoadData()`, `ResetForNewGame` → `ResetForNewGame()`, `DailyTick` → `AutoritarianSystem.DailyTick(PlayerCountryId)`, `--autoritarian-test` → `RunAutoritarianTest()`.
+- `Scripts/SaveSystem.cs`: `SaveFile.Autoritarian` alanı + WriteSave/LoadGameInternal bağlama.
+- `Scripts/SaveLoadTest.cs`: BuildSummaryCore'ye Otoriter özeti eklendi.
+- `dotnet build`: 0 hata / 0 uyarı.
+- **Kısıt:** Godot editörü yok → `--autoritarian-test` headless çalıştırılamadı; varsayım GECE-RAPOR.md'ye kaydedildi, editörde doğrulama gelecek oturum.
+- Commit ve push origin gece-calisma.
+- Sonraki adım: M22.5 (kongre/darbe UI paneli) veya M23 Seçimler.

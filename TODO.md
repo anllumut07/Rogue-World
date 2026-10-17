@@ -320,7 +320,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | 22.1 | **Anayasa:** yönetim biçimi (başkanlık, parlamenter, yarı başkanlık, monarşi, tek parti), görev süresi ve limit, seçim yaşı, olağanüstü hal kuralları. | Anayasa panelinde görünür | ✅ Bitti — `Data/constitution.json`, `Scripts/ConstitutionSystem.cs`, `--constitution-test` 20/20 PASS |
 | 22.2 | **Yasalar:** önerme, ekleme, kaldırma; her yasanın kategorisi, maliyeti ve etkileri (`Data/laws.json`). | Yasa çıkar, etkisi göstergelerde görülür | ✅ Bitti — `Data/laws.json`, `Scripts/LawSystem.cs`, Save/Load entegrasyonu, `--laws-test` PASS, `--save-load-test` A==B PASS |
 | 22.3 | **Parlamento:** partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum. | Oylamada sandalyelere göre sonuç çıkar | ✅ Bitti — `Scripts/ParliamentSystem.cs`, `Data/parties.json`, `--parliament-test` kancağı (`RunParliamentTest`), dotnet build 0/0. |
-| 22.4 | Otoriter sistemlerde farklı mekanik (parlamento yerine parti kongresi, darbe riski). | Rejim türüne göre panel değişir | |
+| 22.4 | Otoriter sistemlerde farklı mekanik (parlamento yerine parti kongresi, darbe riski). | Rejim türüne göre panel değişir | ✅ Bitti — Scripts/AutoritarianSystem.cs (tek parti kongre oylaması + günlük deterministik darbe riski), GameManager (_Ready/DailyTick/ResetForNewGame + --autoritarian-test kancağı), SaveSystem (SaveFile.Autoritarian + WriteSave/LoadGameInternal), SaveLoadTest özeti, dotnet build 0/0. |
 
 ---
 

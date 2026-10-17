@@ -97,5 +97,12 @@
 - `dotnet build` 0 hata / 0 uyarı.
 - Commit: 65fd2b4 (push'ed origin gece-calisma).
 
+## M21.3 — ✅ DONE (2026-10-17)
+- `Scripts/CabinetPanel.cs` (güncellendi): atanmamış bakanlıklar için aday başına ASSIGN butonu, atanmış bakanlıklar için bakan nitelikleri (skill/honesty/loyalty/popularity + Traits) ve DISMISS butonu.
+- `Scripts/CabinetSystem.cs` (güncellendi): `ApplyMinisterEffects(countryId)` — günlük deterministik etki: bakan nitelikleri ilgili StatisticsSystem gösterge(lerine) delta uygular (ör. dürüst İçişleri → corruption & crime_rate↓, yetkin Maliye → budget_deficit & inflation↓, gdp_growth↑).
+- `Scripts/GameManager.cs` (güncellendi): `DailyTick`'te oyuncu ülkesi için `CabinetSystem.ApplyMinisterEffects(PlayerCountryId)` çağrılır.
+- `dotnet build` 0 hata / 0 uyarı.
+- Commit: 36504e9 (push'ed origin gece-calisma).
+
 ## Sonraki adım
-- M21.2: Bakan havuzu (kurgusal kişiler: yetenek, dürüstlük, sadakat, popülerlik, parti/ideoloji, özellik).
+- M21.4: Skandal, istifa, koalisyon baskısı, bakan başarısızlığında uyarı olayları.

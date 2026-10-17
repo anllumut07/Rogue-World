@@ -980,6 +980,25 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 ---
 
+### M21.3: Atama / Görevden Alma + Bakan Etkileri — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/CabinetPanel.cs` (güncellendi): atanmamış her bakanlık için uygun adayların her birine **ASSIGN** butonu (tıklanınca `CabinetSystem.AssignMinister` çağrılır, paneli yeniler); atanmış her bakanlık için bakan nitelikleri (skill/honesty/loyalty/popularity + Traits) ve **DISMISS** butonu (atamayı kaldırır, bakanlığı tekrar boşaltır). Minister adı durum etiketinde gösterilir.
+- `Scripts/CabinetSystem.cs` (güncellendi): `ApplyMinisterEffects(countryId)` — günlük, deterministik (yeni RNG yok). Her atanan bakanın nitelikleri ilgili StatisticsSystem gösterge(lerine) küçük delta uygular: (stat − 50) / 5000; düğme = true ise stat arttıkça değer düşer (ör. dürüst İçişleri → corruption & crime_rate↓, Yetkin Maliye → budget_deficit & inflation↓, gdp_growth↑). Harita bakanlıkları: interior, finance, justice, education, health, economy, energy, environment.
+- `Scripts/GameManager.cs` (güncellendi): `DailyTick`'te `PublicSatisfactionSystem.DailyTick()`'den sonra, oyuncu ülkesi için `CabinetSystem.ApplyMinisterEffects(PlayerCountryId)` çağrılır (bakan etkileri günlük gösterge güncellemesinin son sözü).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` A==B testi geçer (bakan etkileri deterministik, atama sözlüğü zaten kayda dahil).
+- Panel 1152×648'e sığar, ESC kapatır, backdrop MouseFilter.Stop harita girişini bloke eder.
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/CabinetSystem.cs`, `Scripts/GameManager.cs`, `Scripts/CabinetPanel.cs`
+
+**Sonraki adım:** 21.4 Skandal, istifa, koalisyon baskısı, bakan başarısızlığında uyarı olayları.
+
+---
+
 ### Sonraki adım
 - M20.3: Halk memnuniyeti (gruplara göre: işçi, iş dünyası, gençler, yaşlılar, ordu, dindar/laik, kırsal/kentsel).
 

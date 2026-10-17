@@ -19,3 +19,5 @@ mono_crash.*.json
 bin/
 obj/
 *.user
+# Session management logs (Claude Code) — not project deliverables
+production/

@@ -209,6 +209,13 @@ public static class SaveLoadTest
         int statValues = statSave?.Countries?.Sum(c => c.Values?.Count ?? 0) ?? 0;
         sb.AppendLine($"İstatistikler: ülke={statCountries}, gösterge_değeri={statValues}");
 
+        // --- M20.2: Bütçe ---
+        var budgetSave = BudgetSystem.GetSaveData();
+        int budgetCountries = budgetSave?.Countries?.Length ?? 0;
+        double totalDebt = budgetSave?.Countries?.Sum(c => c.GovernmentDebt) ?? 0;
+        double avgDebt = budgetCountries > 0 ? totalDebt / budgetCountries : 0;
+        sb.AppendLine($"Bütçe: ülke={budgetCountries}, ortalama_borç=%{avgDebt:F1} GDP");
+
         // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");

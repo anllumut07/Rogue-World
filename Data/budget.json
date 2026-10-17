@@ -1,0 +1,18 @@
+{
+  "TaxRates": {
+    "IncomeTax": 0.25,
+    "CorporateTax": 0.20,
+    "Vat": 0.18
+  },
+  "SpendingCategories": [
+    { "Id": "defense", "Name": "Defense", "DefaultPercent": 20.0 },
+    { "Id": "health", "Name": "Health", "DefaultPercent": 15.0 },
+    { "Id": "education", "Name": "Education", "DefaultPercent": 15.0 },
+    { "Id": "infrastructure", "Name": "Infrastructure", "DefaultPercent": 15.0 },
+    { "Id": "social", "Name": "Social", "DefaultPercent": 20.0 },
+    { "Id": "security", "Name": "Security", "DefaultPercent": 10.0 },
+    { "Id": "r_and_d", "Name": "Research & Development", "DefaultPercent": 5.0 }
+  ],
+  "DefaultInterestRate": 0.05,
+  "DefaultDebtPercent": 40.0
+}

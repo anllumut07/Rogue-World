@@ -368,6 +368,9 @@ public partial class GameManager : Node
         // M20.1: İstatistik göstergelerinin günlük dalgalanması
         StatisticsSystem.DailyTick();
 
+        // M20.2: Bütçe günlük tick'i (gelir/harcama/açık/borç/faiz + göstergelere yansıma)
+        BudgetSystem.DailyTick();
+
         // M16: Zaman ve Tempo — ajanda ilerlemesi, hafta reset, aylık rapor
         TimeTempoSystem.DailyTick(this);
 
@@ -494,6 +497,9 @@ public partial class GameManager : Node
 
         // M20.1: İstatistik göstergelerini yeni oyuna başlat
         StatisticsSystem.InitializeAll();
+
+        // M20.2: Bütçe (vergi, harcama, borç, faiz) sistemini yeni oyuna başlat
+        BudgetSystem.InitializeAll();
 
         // M-Flags: bayrak önbelleği sıfırlanır (rapor yeni oyunda tekrar loglanır)
         FlagLibrary.ResetForNewGame();

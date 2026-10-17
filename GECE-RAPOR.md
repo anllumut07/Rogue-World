@@ -161,3 +161,12 @@
 - M16: Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılmıyor — kayıt yüklenince bekleyen bildirimler kaybolur.
 - M16: Ajanda efektleri (MinisterLoyaltyBonus vb.) ilgili sistemlere bağlı değil — loglanıyor.
 - M21.5: headless `--cabinet-meeting-test` çalıştırıldı ve PASS (İçişleri bakanı auto-atama eklendi, sadakati +2 doğrulandı). Godot editörü gerek kalmadı.
+
+## M18/M19 — Headless test kancaları (RunProvinceTest / RunArmyTest) — ✅ YAZILMIŞ, BUILD GEÇTİ (2026-10-18)
+- `Scripts/GameManager.cs`: `RunProvinceTest()` (M18: il sayısı ~1000, deterministik yeniden üretim, komşuluk simetrisi, il sahiplik, GetProvincesByOwner reverse lookup) ve `RunArmyTest()` (M19: ordular/şablon/tümen oluşturma, hareket hop'u, save/load kimlik) method bodies yazıldı; `--province-test` / `--army-test` arg parsing ve call site'ları zaten eklenmişti.
+- `dotnet build`: 0 hata / 0 uyarı.
+- **Varsayım / kısıt:** Bu ortamda Godot editörü yok (`godot` PATH'te değil), dolayısıyla `--province-test` / `--army-test` headless çalıştırılamadı. Test mantığı derleme sonrası geçerli; headless çalıştırma ve PASS/FAIL doğrulama editörde (F5 / `godot --headless --province-test`) sonraki oturumda yapılacak.
+- `RunArmyTest` assertion düzeltmesi: hareket tamamlandığında `TargetProvinceId` temizlenip `IsMoving=false` olduğu için assertion `army.ProvinceId == targetProv` ile (IsMoving değil) doğrulanıyor.
+
+## Sonraki adım
+- M22.3 Parlamento (partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum).

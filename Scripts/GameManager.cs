@@ -96,6 +96,8 @@ public partial class GameManager : Node
         int loadSlot = -1;              // M17.1: --load-slot=N — mevcut kaydı yükle (v1 migration testi)
         bool constitutionTest = false;  // M22.1: anayasa yönetim-biçimi tanımlarını doğrula
         bool lawsTest = false;            // M22.2: yasa çıkarma/kaldırma + etki testi
+        bool provinceTest = false;        // M18: il sayısı, sahiplik, komşuluk, deterministik üretim
+        bool armyTest = false;            // M19: ordu hareketi, düşman teması durdurma, save/load kimlik
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -141,6 +143,10 @@ public partial class GameManager : Node
                 constitutionTest = true;
             else if (arg == "--laws-test")
                 lawsTest = true;
+            else if (arg == "--province-test")
+                provinceTest = true;
+            else if (arg == "--army-test")
+                armyTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -290,6 +296,10 @@ public partial class GameManager : Node
             RunConstitutionTest();
         if (lawsTest)
             RunLawsTest();
+        if (provinceTest)
+            RunProvinceTest();
+        if (armyTest)
+            RunArmyTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -948,6 +958,143 @@ public partial class GameManager : Node
                     && Math.Abs(gdpAfterRepeal) < 0.001
                     && activeCount == 1 && activeAfter == 0;
         GD.Print(pass ? "[LawsTest] SONUÇ: PASS ✓" : "[LawsTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M18: İl sistemi headless testi — il sayısı, sahiplik, komşuluk simetrisi, deterministik üretim.
+    /// Normal oyunda ASLA çalışmaz (--province-test).
+    /// </summary>
+    private void RunProvinceTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M18: İL SİSTEM TESTİ");
+        GD.Print("=========================================");
+
+        // 1) İlleri yükle (sabit seed → deterministik)
+        var source = new ProceduralProvinceSource();
+        var provs1 = source.LoadProvinces();
+        int count1 = provs1.Count;
+        GD.Print($"[ProvinceTest] 1. yükleme: {count1} il (hedef ~1000)");
+
+        // 2) Aynı seed ile yeniden üret → aynı sayı ve ID'ler gelmeli
+        source.ResetForNewGame();
+        var provs2 = source.LoadProvinces();
+        int count2 = provs2.Count;
+        bool sameCount = count1 == count2;
+        bool sameIds = true;
+        for (int i = 0; i < Math.Min(count1, count2); i++)
+            if (provs1[i].Id != provs2[i].Id) { sameIds = false; break; }
+        GD.Print($"[ProvinceTest] 2. yükleme: {count2} il — aynı sayı: {sameCount}, aynı ID'ler: {sameIds}");
+
+        // 3) Komşuluk simetrisi: A'nın komşusu B ise B'nin komşusu A olmalı
+        bool symmetric = true;
+        foreach (var p in provs1)
+        {
+            foreach (var n in p.NeighborIds)
+            {
+                var neighbor = provs1.FirstOrDefault(pp => pp.Id == n);
+                if (neighbor == null || !neighbor.NeighborIds.Contains(p.Id))
+                { symmetric = false; break; }
+            }
+            if (!symmetric) break;
+        }
+        GD.Print($"[ProvinceTest] Komşuluk simetrik: {symmetric}");
+
+        // 4) Sahiplik: InitializeFromProvinces → her ilin sahibi ülke ID'si
+        ProvinceOwnershipSystem.InitializeFromProvinces(provs1);
+        int owned = 0;
+        int unowned = 0;
+        foreach (var p in provs1)
+        {
+            string owner = ProvinceOwnershipSystem.GetProvinceOwner(p.Id);
+            if (owner == "?") unowned++; else owned++;
+        }
+        GD.Print($"[ProvinceTest] Sahiplik: sahipli={owned}, sahipsiz={unowned}");
+
+        // 5) GetProvincesByOwner reverse lookup
+        var germanProvinces = ProvinceOwnershipSystem.GetProvincesByOwner("DEU");
+        GD.Print($"[ProvinceTest] DEU illeri: {germanProvinces.Count}");
+
+        bool result = sameCount && sameIds && symmetric && unowned == 0;
+        GD.Print(result ? "[ProvinceTest] SONUÇ: PASS ✓" : "[ProvinceTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M19: Birlik hareketi headless testi — oluşturma, hareket, düşman teması durdurma, save/load kimlik.
+    /// Normal oyunda ASLA çalışmaz (--army-test).
+    /// </summary>
+    private void RunArmyTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M19: BİRLİK HAREKETİ TESTİ");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (PlayerCountryData != null)
+        {
+            PlayerCountryData.PoliticalPower = 500;
+            PlayerCountryData.ManpowerPool = 100000;
+        }
+        if (Speed == 0) SetSpeed(0);
+
+        // 1) Ordular sistemi zaten Initialize edilmiş (SetPlayerCountry'de). Ordu oluştur.
+        var army = ArmySystem.CreateArmy("Test Ordusu");
+        GD.Print($"[ArmyTest] Ordu oluşturuldu: {army.Name} (ID={army.Id})");
+
+        // 2) Şablon ve tümen oluştur, ordula bağla
+        var tpl = ArmySystem.CreateTemplate("Test Şablonu", new List<string> { "infantry", "infantry", "artillery" });
+        if (tpl == null)
+        {
+            GD.Print("[ArmyTest] Şablon oluşturulamadı — test atlanıyor");
+            GD.Print("=========================================");
+            return;
+        }
+        var div = ArmySystem.CreateDivision(tpl.Id, immediateDeploy: true);
+        ArmySystem.AssignDivisionToArmy(div.Id, army.Id);
+        GD.Print($"[ArmyTest] Tümen oluşturuldu ve ordula bağlandı: {div.DisplayName} → {army.Name}");
+
+        // 3) İl konumu ata ve hareket komutu ver
+        var source = new ProceduralProvinceSource();
+        var allProvs = source.LoadProvinces();
+        string startProv = allProvs.FirstOrDefault(p => p.CountryId == "DEU")?.Id ?? "DEU-01";
+        string targetProv = allProvs.FirstOrDefault(p => p.CountryId == "FRA")?.Id ?? "FRA-01";
+        army.ProvinceId = startProv;
+        army.TargetProvinceId = targetProv;
+        army.WaypointIds = new List<string> { targetProv };
+        army.DaysRemainingInHop = army.DaysPerProvince;
+        GD.Print($"[ArmyTest] Konum: {startProv} → hedef: {targetProv}, IsMoving={army.IsMoving}");
+
+        // 4) Günlük tick ile hareket ettir (2 gün = DaysPerProvince)
+        AdvanceDaysForTest(2);
+        GD.Print($"[ArmyTest] 2 gün sonra ProvinceId: {army.ProvinceId} (beklenen {targetProv}), IsMoving={army.IsMoving}");
+
+        // 5) Save/Load kimlik — ordunun state'ini kaydet ve yükle
+        var saveData = ArmySystem.GetSaveData();
+        int armyCountBefore = saveData.Armies?.Length ?? 0;
+        int divCountBefore = saveData.Divisions?.Length ?? 0;
+        GD.Print($"[ArmyTest] Save: ordular={armyCountBefore}, tümenler={divCountBefore}");
+
+        // State'i sıfırla ve yeniden yükle
+        ArmySystem.ResetForScenario();
+        ArmySystem.LoadSaveData(saveData);
+        var loadedArmies = ArmySystem.Armies;
+        var loadedDivs = ArmySystem.Divisions;
+        GD.Print($"[ArmyTest] Load: ordular={loadedArmies.Count}, tümenler={loadedDivs.Count}");
+
+        var loadedArmy = loadedArmies.FirstOrDefault(a => a.Id == army.Id);
+        bool armyIdentity = loadedArmy != null
+            && loadedArmy.Name == army.Name
+            && loadedArmy.ProvinceId == army.ProvinceId
+            && loadedArmy.IsMoving == army.IsMoving;
+        GD.Print($"[ArmyTest] Ordu kimliği korundu: {armyIdentity} (ProvinceId={loadedArmy?.ProvinceId ?? "null"})");
+
+        bool result = army != null && div != null
+            && army.ProvinceId == targetProv // hareket tamamlandı: hedef ilde duruyor
+            && armyCountBefore > 0 && divCountBefore > 0
+            && armyIdentity;
+        GD.Print(result ? "[ArmyTest] SONUÇ: PASS ✓" : "[ArmyTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
     }
 }

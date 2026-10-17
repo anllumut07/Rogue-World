@@ -61,7 +61,11 @@
 
 ## M20.1 — ✅ DONE (2026-10-17)
 - `Data/statistics_indicators.json`, `Scripts/StatisticsSystem.cs`, `Scripts/StatisticsPanel.cs`: 17 gösterge tanımı, deterministik ±0.3 günlük dalga, [Min,Max] clamp, Save/Load DTO, SaveLoadTest A==B kapsamında, HUD STATISTICS butonu, GameManager init+tick, dotnet build 0/0.
-- Commit: (hazırlanacak).
+- Commit: 7d3cfeb (push'ed origin gece-calisma).
+
+## M20.2 — ✅ DONE (2026-10-17)
+- `Data/budget.json`, `Scripts/BudgetSystem.cs`: vergi oranları, harcama kalemleri, borç/faiz, günlük gelir-harcama-açık borç birikimi, göstergelere yansıma (budget_deficit, public_debt, gdp_growth, inflation, health, education, environment), Save/Load DTO, SaveLoadTest kapsamında, dotnet build 0/0.
+- Commit: c75ef3d (push'ed origin gece-calisma).
 
 ## Sonraki adım
-- M20.2: Bütçe (vergi oranları, harcama kalemleri, faiz ve borç).
+- M20.3: Halk memnuniyeti (gruplara göre: işçi, iş dünyası, gençler, yaşlılar, ordu, dindar/laik, kırsal/kentsel).

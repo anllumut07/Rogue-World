@@ -866,6 +866,30 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 **Sonraki adım:** 20.2 Bütçe (vergi oranları, harcama kalemleri, faiz ve borç).
 
+### M20.2: Bütçe — Vergi, Harcama, Borç, Faiz — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Data/budget.json` (yeni): vergi oranları (gelir %25, kurumsal %20, KDV %18), 7 harcama kalemi (savunma, sağlık, eğitim, altyapı, sosyal, güvenlik, Ar-Ge), varsayılan faiz %5, varsayılan borç %40 GDP.
+- `Scripts/BudgetSystem.cs` (yeni): `TaxRates`, `SpendingCategory`, `BudgetSave`/`CountryBudgetSave` DTO'ları; `GetState`/`SetTaxRate`/`SetSpendingPercent`/`GetSpendingPercent`; `DailyTick` (gelir=GDP×ortalama vergi, harcama=GDP×%toplam, açık/GDP, borç birikimi, faiz gideri, göstergelere gradual yansıma: budget_deficit, public_debt, gdp_growth, inflation, health, education, environment); `GetSaveData`/`LoadSaveData`.
+- `Scripts/GameManager.cs` (güncellendi): `ResetForNewGame()`'de `BudgetSystem.InitializeAll()`; `DailyTick()`'de `BudgetSystem.DailyTick()` (StatisticsSystem.DailyTick'ten sonra).
+- `Scripts/SaveSystem.cs` (güncellendi): `SaveFile` DTO'ya `Budget` alanı; `WriteSave` ve `LoadGameInternal` bağlandı.
+- `Scripts/SaveLoadTest.cs` (güncellendi): `BuildSummaryCore()`'e bütçe özeti eklendi (ülke sayısı, ortalama borç % GDP).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` A==B testi: bütçe dahil geçer.
+
+**Dosyalar:**
+- Yeni: `Data/budget.json`, `Scripts/BudgetSystem.cs`
+- Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`
+
+**Sonraki adım:** 20.3 Halk memnuniyeti (gruplara göre).
+
+---
+
+### Sonraki adım
+- M20.3: Halk memnuniyeti (gruplara göre: işçi, iş dünyası, gençler, yaşlılar, ordu, dindar/laik, kırsal/kentsel).
+
 ---
 
 ### Sonraki adım

@@ -47,5 +47,21 @@
 - `Scripts/WorldMap.cs`: `FrontlineSegment`/`PlanArrow` sınıfları; `RebuildFrontlines()` (farklı sahipli + savaşta olan komşu il ikilileri arasında kırmızı-turuncu cephe hattı), `DrawFrontlines()` (_Draw'da çizim), `EnsureFrontlines()`/_frontlinesDirty (sahilik/savaş değişikliğinde yeniden hesaplama), `DrawPlan()`/`FinalizePlan()`/`ApplyPlanToSelectedArmies()`/`ApplyRouteToArmy()` (Ctrl+LMB sürükle-bırak ambre ok, kaynak illerdeki seçili ordulara rota atanır, M19.4 hop mantığıyla uyumlu), `IssueMoveOrders` refactor (`ApplyRouteToArmy` üzerinden), `_Input` Ctrl+LMB basım/sürükle/bırak + RMB pan plan-iptali. dotnet build 0/0.
 - Commit: push'ed origin gece-calisma.
 
+## M19.7 — ✅ DONE (2026-10-17)
+- `Scripts/ArmySystem.cs`: `UnitDomain` enum (Land/Naval/Air), `CountryId` ve `Domain` alanları `Army`'ye eklendi; `CreateNavy()` ve `CreateAirForce()` factory metodları (aynı Army alanı, farklı Domain).
+- `Scripts/WorldMap.cs`: `DrawArmies`'te domain'e göre farklı işaret — kara kırmızı (6px), deniz mavi (7px), hava sarı-kırmızı (5px); `MouseFilter` degrade etmiyor. dotnet build 0/0.
+- Commit: 3a801cb (push'ed origin gece-calisma).
+
+## M19.8 — ✅ DONE (2026-10-17)
+- `Scripts/CountryAI.cs`: `LastMoveDay` AIState'ye eklendi; `MaybeMoveArmies()` — her 7 günde bir, savaşta olan düşmanın rastgele iline ilk kara ordusunu hareket ettirir (deterministik Shuffle, `WorldMap.IssueArmyMoveOrder` üzerinden BFS rota + M19.4 hop mantığı); `TickDecisions`'e eklendi; `LastMoveDay` serialize edildi (GetSaveData/LoadSaveData).
+- `Scripts/ProvinceOwnershipSystem.cs`: `GetProvincesByOwner(countryId)` — bir ülkenin illerinin id listesi (reverse lookup).
+- `Scripts/SaveSystem.cs`: `AiStateSave.LastMoveDay` DTO alanı.
+- `Scripts/WorldMap.cs`: `IssueArmyMoveOrder(army, targetProvinceId)` — public static, AI'nın aynı BFS rotası + hop altyapısını kullanmasını sağlar. dotnet build 0/0.
+- Commit: 3a801cb (push'ed origin gece-calisma).
+
+## M20.1 — ✅ DONE (2026-10-17)
+- `Data/statistics_indicators.json`, `Scripts/StatisticsSystem.cs`, `Scripts/StatisticsPanel.cs`: 17 gösterge tanımı, deterministik ±0.3 günlük dalga, [Min,Max] clamp, Save/Load DTO, SaveLoadTest A==B kapsamında, HUD STATISTICS butonu, GameManager init+tick, dotnet build 0/0.
+- Commit: (hazırlanacak).
+
 ## Sonraki adım
-- M19.7–19.8: deniz/hava, AI birlikleri.
+- M20.2: Bütçe (vergi oranları, harcama kalemleri, faiz ve borç).

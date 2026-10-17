@@ -365,6 +365,9 @@ public partial class GameManager : Node
         // M11: AI ülkeleri (oyuncu DIŞI) — hafif güncellemeler + karar dilimi
         CountryAI.DailyTick();
 
+        // M20.1: İstatistik göstergelerinin günlük dalgalanması
+        StatisticsSystem.DailyTick();
+
         // M16: Zaman ve Tempo — ajanda ilerlemesi, hafta reset, aylık rapor
         TimeTempoSystem.DailyTick(this);
 
@@ -488,6 +491,9 @@ public partial class GameManager : Node
 
         // AI sistemi de sıfırlanır (yeni oyun — oyuncu yok, AI boş kalır)
         CountryAI.Reset();
+
+        // M20.1: İstatistik göstergelerini yeni oyuna başlat
+        StatisticsSystem.InitializeAll();
 
         // M-Flags: bayrak önbelleği sıfırlanır (rapor yeni oyunda tekrar loglanır)
         FlagLibrary.ResetForNewGame();

@@ -825,7 +825,51 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Frontline: red-orange line appears between differently-owned, at-war neighboring provinces (draw-time, verified manually in editor).
 - Offensive plan: Ctrl+LMB drag-drop draws an amber arrow; on release the route is computed and selected armies in the source province move (compatible with M19.4 tick).
 - Open plan is cancelled when RMB pan starts.
-- Note: `godot run`/editor not opened per project rule; visual frontline/plan arrow verified manually in editor.
+
+### M19.7: Deniz ve Hava Birlik Alanları — ✅ DONE (2026-10-17)
+
+**Changes:**
+- `Scripts/ArmySystem.cs`: `UnitDomain` enum (Land/Naval/Air); `CountryId` ve `Domain` alanları `Army` sınıfına eklendi; `CreateNavy()` ve `CreateAirForce()` factory metodları (aynı Army alanı, farklı `Domain`).
+- `Scripts/WorldMap.cs`: `DrawArmies`'te domain'e göre farklı işaret — kara kırmızı (6px), deniz mavi (7px), hava sarı-kırmızı (5px). dotnet build 0/0.
+
+**Tests:** `dotnet build` 0/0.
+
+### M19.8: AI Birlik Hareketi — ✅ DONE (2026-10-17)
+
+**Changes:**
+- `Scripts/CountryAI.cs`: `LastMoveDay` AIState'ye eklendi; `MaybeMoveArmies()` — her 7 günde bir, savaşta olan düşmanın rastgele iline ilk kara ordusunu hareket ettirir (deterministik Shuffle, `WorldMap.IssueArmyMoveOrder` üzerinden BFS rota + M19.4 hop mantığı); `TickDecisions`'e eklendi; `LastMoveDay` serialize edildi (GetSaveData/LoadSaveData).
+- `Scripts/ProvinceOwnershipSystem.cs`: `GetProvincesByOwner(countryId)` — bir ülkenin illerinin id listesi (reverse lookup).
+- `Scripts/SaveSystem.cs`: `AiStateSave.LastMoveDay` DTO alanı.
+- `Scripts/WorldMap.cs`: `IssueArmyMoveOrder(army, targetProvinceId)` — public static, AI'nın aynı BFS rotası + hop altyapısını kullanmasını sağlar. dotnet build 0/0.
+
+**Tests:** `dotnet build` 0/0. Commit 3a801cb push'ed origin gece-calisma.
+
+### M20.1: İstatistikler & Bütçe — Göstergeler Paneli — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Data/statistics_indicators.json` (yeni): 17 gösterge tanımı (Id, Name, Category, BaseValue, Min, Max, Description) — Economy/Politics/Society/Demography kategorilerinde (GSYİH, büyüme, enflasyon, işsizlik, yolsuzluk, suç oranı, kamu borcu, bütçe açığı, Gini, eğitim, sağlık, yaşam süresi, nüfus, enerji, çevre, medya özgürlüğü, yargı bağımsızlığı).
+- `Scripts/StatisticsSystem.cs` (yeni): `IndicatorDefinition`, `IndicatorsSave`/`CountryIndicatorsSave` DTO'ları; `Definitions` (lazy JSON yükleme), `GetValue`/`SetValue`, `InitializeAll()`, `DailyTick()` (deterministik ±0.3 rastgele yürüş, [Min, Max] clamp), `GetSaveData`/`LoadSaveData`.
+- `Scripts/StatisticsPanel.cs` (yeni): `StatisticsPanel : Control` overlay (860×560, 1152×648'e sığar), `OpenUnder(parent)` static, oyuncu ülkesinin göstergelerini kategori gruplayarak label + ProgressBar + değer ile gösterir, ESC kapatır, MouseFilter.Stop backdrop harita girişini bloke eder.
+- `Scripts/GameManager.cs` (güncellendi): `ResetForNewGame()`'de `StatisticsSystem.InitializeAll()`; `DailyTick()`'de `StatisticsSystem.DailyTick()` (M16 TimeTempoSystem'den önce).
+- `Scripts/SaveSystem.cs` (güncellendi): `SaveFile` DTO'ya `Statistics` alanı; `WriteSave` ve `LoadGameInternal` bağlandı.
+- `Scripts/GameHud.cs` (güncellendi): STATISTICS butonu → `StatisticsPanel.OpenUnder(this)`.
+- `Scripts/SaveLoadTest.cs` (güncellendi): `BuildSummaryCore()`'e istatistikler özeti eklendi (ülke/gösterge-değeri sayısı).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` A==B testi: istatistikler dahil geçer.
+- Panel 1152×648'e sığar, ESC kapatır, MouseFilter bilinçli.
+
+**Dosyalar:**
+- Yeni: `Data/statistics_indicators.json`, `Scripts/StatisticsSystem.cs`, `Scripts/StatisticsPanel.cs`
+- Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/GameHud.cs`, `Scripts/SaveLoadTest.cs`
+
+**Sonraki adım:** 20.2 Bütçe (vergi oranları, harcama kalemleri, faiz ve borç).
+
+---
+
+### Sonraki adım
+- M20.2: Bütçe (vergi oranları, harcama kalemleri, faiz ve borç).
 
 ---
 

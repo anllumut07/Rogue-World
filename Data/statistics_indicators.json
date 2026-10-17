@@ -1,0 +1,21 @@
+{
+  "Indicators": [
+    { "Id": "gdp", "Name": "GDP", "Category": "Economy", "BaseValue": 50.0, "Min": 0, "Max": 100, "Description": "Gross Domestic Product — overall economic output" },
+    { "Id": "gdp_growth", "Name": "GDP Growth", "Category": "Economy", "BaseValue": 2.0, "Min": -10, "Max": 15, "Description": "Annual GDP growth rate (percent)" },
+    { "Id": "inflation", "Name": "Inflation", "Category": "Economy", "BaseValue": 3.0, "Min": -5, "Max": 50, "Description": "Consumer price inflation rate (percent)" },
+    { "Id": "unemployment", "Name": "Unemployment", "Category": "Economy", "BaseValue": 6.0, "Min": 0, "Max": 30, "Description": "Unemployment rate (percent of workforce)" },
+    { "Id": "corruption", "Name": "Corruption", "Category": "Politics", "BaseValue": 30.0, "Min": 0, "Max": 100, "Description": "Perceived corruption level (0=clean, 100=highly corrupt)" },
+    { "Id": "crime_rate", "Name": "Crime Rate", "Category": "Society", "BaseValue": 25.0, "Min": 0, "Max": 100, "Description": "Reported crime incidents per capita (0=safe, 100=very high)" },
+    { "Id": "public_debt", "Name": "Public Debt", "Category": "Economy", "BaseValue": 40.0, "Min": 0, "Max": 150, "Description": "Government debt as percent of GDP" },
+    { "Id": "budget_deficit", "Name": "Budget Deficit", "Category": "Economy", "BaseValue": -2.0, "Min": -20, "Max": 10, "Description": "Budget balance as percent of GDP (negative = deficit)" },
+    { "Id": "gini", "Name": "Gini Coefficient", "Category": "Society", "BaseValue": 35.0, "Min": 20, "Max": 70, "Description": "Income inequality (0=perfect equality, 100=max inequality)" },
+    { "Id": "education", "Name": "Education", "Category": "Society", "BaseValue": 60.0, "Min": 0, "Max": 100, "Description": "Education system quality and access" },
+    { "Id": "health", "Name": "Health", "Category": "Society", "BaseValue": 60.0, "Min": 0, "Max": 100, "Description": "Healthcare system quality and access" },
+    { "Id": "life_expectancy", "Name": "Life Expectancy", "Category": "Society", "BaseValue": 70.0, "Min": 40, "Max": 90, "Description": "Average life expectancy at birth (years)" },
+    { "Id": "population", "Name": "Population", "Category": "Demography", "BaseValue": 50.0, "Min": 0, "Max": 100, "Description": "Population size (normalized relative to largest country)" },
+    { "Id": "energy", "Name": "Energy", "Category": "Economy", "BaseValue": 50.0, "Min": 0, "Max": 100, "Description": "Energy production and supply security" },
+    { "Id": "environment", "Name": "Environment", "Category": "Society", "BaseValue": 50.0, "Min": 0, "Max": 100, "Description": "Environmental quality and sustainability" },
+    { "Id": "media_freedom", "Name": "Media Freedom", "Category": "Politics", "BaseValue": 50.0, "Min": 0, "Max": 100, "Description": "Press and media freedom level" },
+    { "Id": "judicial_independence", "Name": "Judicial Independence", "Category": "Politics", "BaseValue": 50.0, "Min": 0, "Max": 100, "Description": "Judicial independence from political influence" }
+  ]
+}

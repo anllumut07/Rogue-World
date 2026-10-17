@@ -232,6 +232,16 @@ public partial class GameHud : CanvasLayer
         rightSection.AddChild(agendaBtn);
         UITheme.AddHoverScale(agendaBtn);
 
+        // STATISTICS butonu (M20.1): ülke istatistik & bütçe göstergeleri
+        var statisticsBtn = new Button { Text = "STATISTICS", FocusMode = Control.FocusModeEnum.None, TooltipText = "Statistics & budget indicators (GDP, inflation, unemployment, corruption, ...)" };
+        statisticsBtn.Pressed += () =>
+        {
+            GD.Print("[GameHud] STATISTICS butonu basıldı — StatisticsPanel.OpenUnder çağrılıyor");
+            StatisticsPanel.OpenUnder(this);
+        };
+        rightSection.AddChild(statisticsBtn);
+        UITheme.AddHoverScale(statisticsBtn);
+
         // NEXT EVENT butonu (M16.4): bekleyen bildirim varsa görünür
         _nextEventBtn = new Button
         {

@@ -203,6 +203,12 @@ public static class SaveLoadTest
         }
         sb.AppendLine($"AI: ülke={aiCountries}, toplam_tümen={aiTotalDivs}");
 
+        // --- M20.1: İstatistikler ---
+        var statSave = StatisticsSystem.GetSaveData();
+        int statCountries = statSave?.Countries?.Length ?? 0;
+        int statValues = statSave?.Countries?.Sum(c => c.Values?.Count ?? 0) ?? 0;
+        sb.AppendLine($"İstatistikler: ülke={statCountries}, gösterge_değeri={statValues}");
+
         // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");

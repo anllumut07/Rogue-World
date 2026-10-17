@@ -1,9 +1,0 @@
-Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
-
-GameManager hazır. Başlangıç tarihi: 1 Jan 1936 | Hız: 0
-MapViewportFrame: hazır
-WorldMap hazır: 180 ülke, 292 parça çizildi.
-WorldMap: hazır — kamera zoom=0.03 pos=(1080, 560), viewport=(64, 64)
-Game: harita + paneller hazır
-Game: hazır
-[Teşhis] SubViewport boyut=(2, 2), konteyner rect=(0, 0), (0, 0), Stretch=True, görünür=True

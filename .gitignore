@@ -21,3 +21,9 @@ obj/
 *.user
 # Session management logs (Claude Code) — not project deliverables
 production/
+
+# Test output files (headless test logs) — moved to test-logs/
+test-logs/
+*.log
+*.err
+DURUM-RAPORU.md

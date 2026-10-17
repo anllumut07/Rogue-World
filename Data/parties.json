@@ -1,0 +1,11 @@
+{
+  "Parties": [
+    { "Id": "p_conservative", "Name": "Conservative Party", "Ideology": "conservatism", "Seats": 120, "Color": "#8B0000", "IsRuling": false },
+    { "Id": "p_social_democrat", "Name": "Social Democratic Party", "Ideology": "social_democracy", "Seats": 110, "Color": "#DC143C", "IsRuling": false },
+    { "Id": "p_liberal", "Name": "Liberal Party", "Ideology": "liberalism", "Seats": 80, "Color": "#1E90FF", "IsRuling": false },
+    { "Id": "p_nationalist", "Name": "Nationalist Party", "Ideology": "nationalism", "Seats": 70, "Color": "#FF8C00", "IsRuling": false },
+    { "Id": "p_green", "Name": "Green Party", "Ideology": "environmentalism", "Seats": 40, "Color": "#228B22", "IsRuling": false },
+    { "Id": "p_communist", "Name": "Communist Party", "Ideology": "communism", "Seats": 30, "Color": "#8B008B", "IsRuling": false },
+    { "Id": "p_centrist", "Name": "Centrist Party", "Ideology": "centrism", "Seats": 10, "Color": "#4682B4", "IsRuling": false }
+  ]
+}

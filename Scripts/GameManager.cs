@@ -98,6 +98,7 @@ public partial class GameManager : Node
         bool lawsTest = false;            // M22.2: yasa çıkarma/kaldırma + etki testi
         bool provinceTest = false;        // M18: il sayısı, sahiplik, komşuluk, deterministik üretim
         bool armyTest = false;            // M19: ordu hareketi, düşman teması durdurma, save/load kimlik
+        bool parliamentTest = false;      // M22.3: partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -147,6 +148,8 @@ public partial class GameManager : Node
                 provinceTest = true;
             else if (arg == "--army-test")
                 armyTest = true;
+            else if (arg == "--parliament-test")
+                parliamentTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -192,6 +195,9 @@ public partial class GameManager : Node
 
         // M22.2: Yasalar — tanım dosyasını yükle (Data/laws.json).
         LawSystem.LoadData();
+
+        // M22.3: Parlamento — parti/sandalye verisini yükle (Data/parties.json).
+        ParliamentSystem.LoadData();
 
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)
@@ -300,6 +306,8 @@ public partial class GameManager : Node
             RunProvinceTest();
         if (armyTest)
             RunArmyTest();
+        if (parliamentTest)
+            RunParliamentTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -558,6 +566,9 @@ public partial class GameManager : Node
 
         // M22.2: Yasa sistemini yeni oyuna başlat (etkin yasa/etki state'i sıfırlanır)
         LawSystem.ResetForNewGame();
+
+        // M22.3: Parlamento-yeni oyun (parti/sandalye/veto state'i sıfırlanır)
+        ParliamentSystem.ResetForNewGame();
 
         // M-Flags: bayrak önbelleği sıfırlanır (rapor yeni oyunda tekrar loglanır)
         FlagLibrary.ResetForNewGame();
@@ -1095,6 +1106,70 @@ public partial class GameManager : Node
             && armyCountBefore > 0 && divCountBefore > 0
             && armyIdentity;
         GD.Print(result ? "[ArmyTest] SONUÇ: PASS ✓" : "[ArmyTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M22.3: Parlamento headless testi — parti/sandalye yükleme, çoğunluk eşiği,
+    /// sandalye ağırlıklı oylama, veto, koalisyon, referendum. Normal oyunda ASLA çalışmaz (--parliament-test).
+    /// </summary>
+    private void RunParliamentTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M22.3: PARLAMENTO SİSTEM TESTİ");
+        GD.Print("=========================================");
+
+        // 1) Partiler yüklendi mi? (7 parti, toplam 460 sandalye, çoğunluk eşiği 231)
+        int partyCount = ParliamentSystem.Parties.Count;
+        int totalSeats = ParliamentSystem.TotalSeats;
+        int threshold = ParliamentSystem.MajorityThreshold;
+        GD.Print($"[ParliamentTest] Parti sayısı: {partyCount} (beklenen 7), toplam sandalye: {totalSeats} (beklenen 460), çoğunluk eşiği: {threshold} (beklenen 231)");
+
+        // 2) Çoğunluk denetimi: iki büyük parti (120+110=230) eşiğe ulaşamaz; üç parti (120+110+80=310) ulaşır.
+        bool twoParties = ParliamentSystem.HasMajority(new[] { "p_conservative", "p_social_democrat" }); // 230 < 231
+        bool threeParties = ParliamentSystem.HasMajority(new[] { "p_conservative", "p_social_democrat", "p_liberal" }); // 310 >= 231
+        GD.Print($"[ParliamentTest] Conservative+SocialDemocrat=230 çoğunluk mu: {twoParties} (beklenen False)");
+        GD.Print($"[ParliamentTest] +Liberal=310 çoğunluk mu: {threeParties} (beklenen True)");
+
+        // 3) CanPass (oylama geçebilme) — destek sandalyesi >= eşik
+        bool canPass = ParliamentSystem.CanPass(new[] { "p_conservative", "p_nationalist", "p_centrist" }); // 120+70+10=200 < 231 -> False
+        GD.Print($"[ParliamentTest] CanPass Conservative+Nationalist+Centrist=200: {canPass} (beklenen False)");
+
+        // 4) Oylama: Evet sandalyesi >= eşik geçer, aksi halde kalır
+        var vote = ParliamentSystem.Vote("law_test_1",
+            new[] { "p_conservative", "p_social_democrat", "p_liberal" }, // 310 evet
+            new[] { "p_nationalist", "p_green", "p_communist" },           // 140 hayır
+            new[] { "p_centrist" });                                       // 10 tarafsız
+        GD.Print($"[ParliamentTest] Oylama geçti mi: {vote.Passed} (beklenen True), YesSeats={vote.YesSeats}");
+
+        // 5) Veto: yürütme organı veto koyar → teklif engellenir (IsVetoed true)
+        ParliamentSystem.Veto("law_test_2");
+        bool vetoed = ParliamentSystem.IsVetoed("law_test_2");
+        ParliamentSystem.RemoveVeto("law_test_2");
+        bool vetoRemoved = !ParliamentSystem.IsVetoed("law_test_2");
+        GD.Print($"[ParliamentTest] Veto uygulandı: {vetoed} (beklenen True), veto kaldırıldı: {vetoRemoved} (beklenen True)");
+
+        // 6) Koalisyon: birleşik sandalye çoğunluk oluşturuyor mu?
+        var coalition = ParliamentSystem.FormCoalition(new[] { "p_social_democrat", "p_liberal", "p_green" }); // 110+80+40=230 < 231
+        bool coalitionMajority = coalition.HasMajority; // False
+        GD.Print($"[ParliamentTest] Koalisyon SD+Lib+Green={coalition.CombinedSeats} sandalye, çoğunluk mu: {coalitionMajority} (beklenen False)");
+
+        // 7) Referandum: direkt oy (sandalye ağırlığı yok)
+        var refr = ParliamentSystem.Referendum("issue_test_1", 55, 45);
+        GD.Print($"[ParliamentTest] Referandum kabul edildi mi: {refr.Passed} (beklenen True)");
+
+        bool result = partyCount == 7
+                      && totalSeats == 460
+                      && threshold == 231
+                      && !twoParties
+                      && threeParties
+                      && !canPass
+                      && vote.Passed
+                      && vetoed
+                      && vetoRemoved
+                      && !coalitionMajority
+                      && refr.Passed;
+        GD.Print(result ? "[ParliamentTest] SONUÇ: PASS ✓" : "[ParliamentTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
     }
 }

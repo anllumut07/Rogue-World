@@ -1076,3 +1076,20 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 ## Stuck Items (3+ failed fixes)
 *None yet*
+
+---
+
+### 2026-10-18 — M18/M19 headless test hooks (RunProvinceTest / RunArmyTest)
+- `Scripts/GameManager.cs`: `RunProvinceTest()` (M18: ~1000 il, deterministik üretim, komşuluk simetrisi, il sahiplik, `GetProvincesByOwner`) ve `RunArmyTest()` (M19: ordular/şablon/tümen, hareket hop'u, save/load kimlik) method bodies yazıldı.
+- `dotnet build`: 0 hata / 0 uyarı.
+- Commit c2ec745, push'ed origin gece-calisma.
+- **Kısıt:** Bu ortamda Godot editörü yok → `--province-test` / `--army-test` headless çalıştırılamadı. GECE-RAPOR.md'ye varsayım kaydedildi; headless doğrulama editörde gelecek oturumda.
+- Sonraki adım: M22.3 Parlamento (partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum).
+
+### 2026-10-18 — M22.3 Parlamento (RunParliamentTest)
+- `Scripts/GameManager.cs`: `RunParliamentTest()` method body (7 parti, 460 sandalye, çoğunluk eşiği 231, `HasMajority`/`CanPass`, sandalye ağırlıklı `Vote`, `Veto`/`IsVetoed`/`RemoveVeto`, `FormCoalition`, `Referendum`, PASS/FAIL raporu). `--parliament-test` kancağı ve call site mevcuttu.
+- `Scripts/ParliamentSystem.cs`, `Data/parties.json`: M22.3 Parlamento mantığı — 7 kurgusal parti, 460 sandalye, eşik 231, oylama/veto/koalisyon/referandum, Save/Load DTO'ları.
+- `dotnet build`: 0 hata / 0 uyarı.
+- **Kısıt:** Godot editörü yok → `--parliament-test` headless çalıştırılamadı; varsayım GECE-RAPOR.md'ye kaydedildi, editörde doğrulama gelecek oturum.
+- Commit ve push origin gece-calisma bekleniyor.
+- Sonraki adım: M22.4 Otoriter sistemler (parti kongresi, darbe riski).

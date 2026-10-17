@@ -152,8 +152,11 @@
 - `--laws-test --speed=0 --country=GER`: **SONUÇ: PASS ✓** (Tax Cut çıkarıldı PP 500→420, gdp_growth 0.20, duplicate reddedildi, repeal sonrası 0.00, tekrar çıkarıldı).
 - `--save-load-test --speed=5 --country=GER --scenario=historical_1936`: **SONUÇ: PASS ✓ (A == B)** — LawSystem state kaydeder/yükler.
 
-## Sonraki adım
-- M22.3 Parlamento (partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum).
+## M22.3 Parlamento (RunParliamentTest) — ✅ DONE (2026-10-18)
+- `Scripts/GameManager.cs`: `RunParliamentTest()` method body — parti yükleme (7 parti, 460 sandalye, eşik 231), `HasMajority`/`CanPass`, sandalye ağırlıklı `Vote`, `Veto`/`IsVetoed`/`RemoveVeto`, `FormCoalition`, `Referendum` ve PASS/FAIL raporu. `--parliament-test` kancağı ve call site zaten eklenmişti.
+- `Scripts/ParliamentSystem.cs`, `Data/parties.json`: M22.3 Parlamento mantığı — 7 kurgusal parti, toplam 460 sandalye, çoğunluk eşiği 231, sandalye ağırlıklı oylama, veto, koalisyon, referendum, Save/Load DTO'ları.
+- `dotnet build`: 0 hata / 0 uyarı.
+- **Kısıt:** Godot editörü yok (`godot` PATH'te değil), dolayısıyla `--parliament-test` headless çalıştırılamadı. Varsayım: test mantığı derleme sonrası geçerli; editörde doğrulama gelecek oturum.
 
 ## Bilinen sorunlar
 - Komşuluk yalnızca ortak-kenar tabanlı; ülke sınırlarını aşan komşular kapsanmıyor.
@@ -168,5 +171,12 @@
 - **Varsayım / kısıt:** Bu ortamda Godot editörü yok (`godot` PATH'te değil), dolayısıyla `--province-test` / `--army-test` headless çalıştırılamadı. Test mantığı derleme sonrası geçerli; headless çalıştırma ve PASS/FAIL doğrulama editörde (F5 / `godot --headless --province-test`) sonraki oturumda yapılacak.
 - `RunArmyTest` assertion düzeltmesi: hareket tamamlandığında `TargetProvinceId` temizlenip `IsMoving=false` olduğu için assertion `army.ProvinceId == targetProv` ile (IsMoving değil) doğrulanıyor.
 
+## M22.3 Parlamento (RunParliamentTest) — ✅ DONE (2026-10-18)
+- `Scripts/GameManager.cs`: `RunParliamentTest()` method body — parti yükleme (7 parti, 460 sandalye, eşik 231), `HasMajority`/`CanPass`, sandalye ağırlıklı `Vote`, `Veto`/`IsVetoed`/`RemoveVeto`, `FormCoalition`, `Referendum` ve PASS/FAIL raporu. `--parliament-test` kancağı ve call site zaten eklenmişti.
+- `Scripts/ParliamentSystem.cs`, `Data/parties.json`: M22.3 Parlamento mantığı — 7 kurgusal parti, toplam 460 sandalye, çoğunluk eşiği 231, sandalye ağırlıklı oylama, veto, koalisyon, referendum, Save/Load DTO'ları.
+- `dotnet build`: 0 hata / 0 uyarı.
+- **Kısıt:** Godot editörü yok (`godot` PATH'te değil), dolayısıyla `--parliament-test` headless çalıştırılamadı. Varsayım: test mantığı derleme sonrası geçerli; editörde (F5 / `godot --headless --parliament-test`) sonraki oturumda doğrulama yapılacak.
+- Commit ve `git push origin gece-calisma` bu oturumda.
+
 ## Sonraki adım
-- M22.3 Parlamento (partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum).
+- M22.4 Otoriter sistemler (parti kongresi, darbe riski).

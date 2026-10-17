@@ -244,6 +244,26 @@ public static class SaveLoadTest
         int cabinetScandals = cabinetSave?.Countries?.Sum(c => c.Scandals?.Length ?? 0) ?? 0;
         sb.AppendLine($"Kabine: ülke={cabinetCountries}, atama={cabinetAssignments}, skandal={cabinetScandals}");
 
+        // --- M21.5: Bakan sadakati (kabine toplantısı etkisi) ---
+        int totalLoyalty = 0;
+        int ministerCount = 0;
+        if (cabinetSave?.Countries != null)
+        {
+            foreach (var c in cabinetSave.Countries)
+            {
+                if (c.MinisterStats != null)
+                {
+                    foreach (var s in c.MinisterStats)
+                    {
+                        totalLoyalty += s.Loyalty;
+                        ministerCount++;
+                    }
+                }
+            }
+        }
+        int avgLoyalty = ministerCount > 0 ? totalLoyalty / ministerCount : 0;
+        sb.AppendLine($"Bakan sadakati: ortalama=%{avgLoyalty}, bakan_sayısı={ministerCount}");
+
         // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");

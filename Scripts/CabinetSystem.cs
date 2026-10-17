@@ -42,6 +42,7 @@ public static class CabinetSystem
         public string CountryId { get; set; }
         public Dictionary<string, string> Assignments { get; set; } // ministryId -> ministerId
         public CabinetScandalSave[] Scandals { get; set; } // M21.4: aktif skandal/uyarı kayıtları (ministerId -> ...)
+        public MinisterStatSave[] MinisterStats { get; set; } // M21.5: bakanlık toplantısı sonrası değiştirilmiş bakan nitelikleri
     }
     public class CabinetScandalSave
     {
@@ -49,6 +50,16 @@ public static class CabinetSystem
         public string Type { get; set; }      // corruption / disloyalty / unpopularity / warning
         public int Severity { get; set; }     // 1-3
         public int DayStarted { get; set; }
+    }
+
+    // M21.5: Kabine toplantısı sonrası değiştirilmiş bakan nitelikleri (loyalty bonus vb.)
+    public class MinisterStatSave
+    {
+        public string MinisterId { get; set; }
+        public int Loyalty { get; set; }
+        public int Skill { get; set; }
+        public int Honesty { get; set; }
+        public int Popularity { get; set; }
     }
 
     private static readonly string MinistriesPath = "res://Data/cabinet_ministries.json";
@@ -281,6 +292,28 @@ public static class CabinetSystem
         GD.Print($"[CabinetSystem] {countryId} için {applied} bakan-etkisi uygulandı.");
     }
 
+    // M21.5: Kabine toplantısı etkisi — atanan tüm bakanların sadakasına bonus uygular (kılav: 0-100).
+    public static void ApplyMinisterLoyaltyBonus(string countryId, int bonus)
+    {
+        if (string.IsNullOrEmpty(countryId)) return;
+        if (!_assignments.TryGetValue(countryId, out var a)) return;
+
+        int applied = 0;
+        foreach (var kv in a)
+        {
+            string ministerId = kv.Value;
+            if (string.IsNullOrEmpty(ministerId)) continue;
+            var minister = _ministers.FirstOrDefault(m => m.Id == ministerId);
+            if (minister == null) continue;
+
+            int oldLoyalty = minister.Loyalty;
+            minister.Loyalty = Math.Clamp(minister.Loyalty + bonus, 0, 100);
+            if (minister.Loyalty != oldLoyalty) applied++;
+        }
+
+        GD.Print($"[CabinetSystem] {countryId} kabine toplantısı: {applied} bakanın sadakati {bonus:+0;-0} değişti");
+    }
+
     // M21.4: Günlük kabine denetimi — skandal, istifa, koalisyon baskısı, başarısızlık uyarısı.
     // Deterministik (DeterministicRNG). Etkiler: CountryData.StabilityPercent üzerinden.
     public static void CheckCabinetEvents(string countryId)
@@ -421,6 +454,18 @@ public static class CabinetSystem
                     Severity = x.s.Severity,
                     DayStarted = x.s.DayStarted
                 })
+                .ToArray(),
+            // M21.5: atanan bakanların mevcut nitelikleri (loyalty bonus vb. kalıcılaştırılır)
+            MinisterStats = _ministers
+                .Where(m => kv.Value.ContainsValue(m.Id))
+                .Select(m => new MinisterStatSave
+                {
+                    MinisterId = m.Id,
+                    Loyalty = m.Loyalty,
+                    Skill = m.Skill,
+                    Honesty = m.Honesty,
+                    Popularity = m.Popularity
+                })
                 .ToArray()
         }).ToArray()
     };
@@ -450,6 +495,23 @@ public static class CabinetSystem
                             DayStarted = s.DayStarted,
                             IsActive = true
                         };
+                    }
+                }
+
+                // M21.5: kaydedilmiş bakan niteliklerini geri yükle (loyalty bonus vb.)
+                if (c.MinisterStats != null)
+                {
+                    foreach (var s in c.MinisterStats)
+                    {
+                        if (string.IsNullOrEmpty(s.MinisterId)) continue;
+                        var m = _ministers.FirstOrDefault(x => x.Id == s.MinisterId);
+                        if (m != null)
+                        {
+                            m.Loyalty = s.Loyalty;
+                            m.Skill = s.Skill;
+                            m.Honesty = s.Honesty;
+                            m.Popularity = s.Popularity;
+                        }
                     }
                 }
             }

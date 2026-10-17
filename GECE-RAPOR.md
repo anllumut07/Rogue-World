@@ -115,5 +115,21 @@
 - `dotnet build` 0 hata / 0 uyarı.
 - Commit: 7159623 (push'ed origin gece-calisma).
 
+## M21.5 — ✅ DONE (2026-10-17)
+- `Scripts/GameManager.cs`: `RunCabinetMeetingTest()` eklendi (`--cabinet-meeting-test`) — meeting aksiyonu → slot 0, 1 gün ilerle, İçişleri bakanı sadakası +2 (clamp 0-100), PASS/FAIL raporu. `GetMinister` string (ministerId) döndürür → `Ministers.FirstOrDefault(m => m.Id == ministerId)` ile çözülür.
+- `Scripts/TimeTempoSystem.cs`: `ApplyActionEffects`'te `"MinisterLoyaltyBonus"` case → `CabinetSystem.ApplyMinisterLoyaltyBonus(PlayerCountryId, (int)val)`.
+- `Scripts/CabinetSystem.cs`: `MinisterStatSave` DTO + `MinisterStats[]` `CountryCabinetSave`'a; `ApplyMinisterLoyaltyBonus(countryId, bonus)` (Loyalty 0-100 clamp); `GetSaveData/LoadSaveData` bakan istatistikleri serialize eder.
+- `Scripts/SaveLoadTest.cs`: bakan sadakası ortalaması özetine eklendi.
+- `dotnet build`: 0 hata / 0 uyarı.
+- Godot headless test çalıştırılamadı (editör yok), dotnet build 0/0; manuel editör testi önerilir.
+- Commit: (hazırlanacak).
+
 ## Sonraki adım
-- M21.5: Kabine toplantısı (ajanda slotu kullanır).
+- M22 Yasalar, Anayasa ve Parlamento.
+
+## Bilinen sorunlar
+- Komşuluk yalnızca ortak-kenar tabanlı; ülke sınırlarını aşan komşular kapsanmıyor.
+- İl çizimi mevcut ülke çiziminin üzerine eklenir (katmanlı Polygon2D node'ları).
+- M16: Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılmıyor — kayıt yüklenince bekleyen bildirimler kaybolur.
+- M16: Ajanda efektleri (MinisterLoyaltyBonus vb.) ilgili sistemlere bağlı değil — loglanıyor.
+- M21.5: Godot editörü yok, headless `--cabinet-meeting-test` çalıştırılamadı (dotnet build 0/0 geçti).

@@ -435,6 +435,10 @@ public static class TimeTempoSystem
                 case "PoliticalPower":
                     data.PoliticalPower += val;
                     break;
+                case "MinisterLoyaltyBonus":
+                    // M21.5: Kabine toplantısı — atanan bakanların sadakasına bonus uygular
+                    CabinetSystem.ApplyMinisterLoyaltyBonus(GameManager.Instance.PlayerCountryId, (int)val);
+                    break;
                 default:
                     // Diğer efektler (ResearchSpeedBonus, AdminEfficiencyBonus vb.) ilgili sistemlerde ele alınacak
                     GD.Print($"[Agenda] Etki (sistem entegrasyonu bekliyor): {eff.Key} = {val}");

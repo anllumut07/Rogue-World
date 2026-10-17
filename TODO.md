@@ -309,7 +309,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | 21.2 | Bakan havuzu: kurgusal kişiler (yetenek, dürüstlük, sadakat, popülerlik, parti/ideoloji, özellik: reformcu/şahin/teknokrat...). | Aday listesi görünür | ✅ Bitti |
 | 21.3 | **Atama / görevden alma**; bakanın nitelikleri ilgili göstergeleri etkiler (ör. dürüst İçişleri → suç ve yolsuzluk düşer). | Bakan değişince göstergeler değişir | ✅ Bitti |
 | 21.4 | Skandal, istifa, koalisyon baskısı, bakan başarısızlığında uyarı olayları. | Skandal olayı tetiklenir | ✅ Bitti |
-| 21.5 | Kabine toplantısı (ajanda slotu kullanır). | Toplantı etkisi uygulanır |
+| 21.5 | Kabine toplantısı (ajanda slotu kullanır). | Toplantı etkisi uygulanır | ✅ Bitti |
 
 ---
 

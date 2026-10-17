@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 // Merkezi oyun döngüsü: tarih, hız, pause, sinyaller.
 // Autoload olarak eklenir (project.godot -> [autoload] GameManager).
@@ -89,6 +90,7 @@ public partial class GameManager : Node
         bool saveLoadTest = false;      // M12: --save-load-test — kaydet/yükle doğrulama
         bool warSimTest = false;        // JOB1: 5 yıllık savaş simülasyonu
         bool agendaTest = false;        // M16: ajanda sistem testi (aksiyon ekle + gün ilerlet + efekt kontrol)
+        bool cabinetMeetingTest = false; // M21.5: kabine toplantısı testi (ajanda slotu + bakan sadakati)
         string scenarioId = null;       // M17.1: --scenario=ID — aktif senaryoyu seç (modern_world / historical_1936)
         bool scenarioTest = false;      // M17.1: --scenario-test — her iki senaryonun yükleme sayılarını doğrula
         int loadSlot = -1;              // M17.1: --load-slot=N — mevcut kaydı yükle (v1 migration testi)
@@ -127,6 +129,8 @@ public partial class GameManager : Node
                 warSimTest = true;
             else if (arg == "--agenda-test")
                 agendaTest = true;
+            else if (arg == "--cabinet-meeting-test")
+                cabinetMeetingTest = true;
             else if (arg.StartsWith("--scenario="))
                 scenarioId = arg.Substring(11);
             else if (arg == "--scenario-test")
@@ -262,6 +266,10 @@ public partial class GameManager : Node
         // M16: Ajanda testi — normal oyunda asla çalışmaz
         if (agendaTest)
             RunAgendaTest();
+
+        // M21.5: Kabine toplantısı testi — normal oyunda asla çalışmaz
+        if (cabinetMeetingTest)
+            RunCabinetMeetingTest();
 
         // M17.1: Senaryo testi — her iki senaryonun yüklediği kayıt sayılarını logla
         if (scenarioTest)
@@ -769,6 +777,56 @@ public partial class GameManager : Node
 
         GD.Print("=========================================");
         GD.Print("[ScenarioTest] Tamamlandı — logları inceleyin");
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M21.5: Kabine toplantısı testi — "meeting" aksiyonunu ajanda slota ekler,
+    /// 1 gün ilerler, bakan sadakasının arttığını doğrular. Normal oyunda asla çalışmaz (--cabinet-meeting-test).
+    /// </summary>
+    private void RunCabinetMeetingTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M21.5: KABINE TOPLANTISI TESTI");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 200;
+        if (Speed == 0) SetSpeed(0);
+
+        // Oyuncu ülkesinde İçişleri bakanı atanmış olmalı; yoksa test atlanır
+        var playerId = PlayerCountryId;
+        string ministerId = CabinetSystem.GetMinister(playerId, "interior");
+        if (ministerId == null)
+        {
+            GD.Print("[CabinetMeetingTest] İçişleri bakanı atanmamış — test atlanıyor");
+            GD.Print("=========================================");
+            return;
+        }
+
+        var minister = CabinetSystem.Ministers.FirstOrDefault(m => m.Id == ministerId);
+        if (minister == null)
+        {
+            GD.Print("[CabinetMeetingTest] İçişleri bakanı bulunamadı — test atlanıyor");
+            GD.Print("=========================================");
+            return;
+        }
+
+        int ministerBefore = minister.Loyalty;
+        GD.Print($"[CabinetMeetingTest] {minister.Name} sadakati toplantı öncesi: {ministerBefore}");
+
+        // Meeting aksiyonu: 1 gün, 5 PP, MinisterLoyaltyBonus = 2
+        bool ok = TimeTempoSystem.AddActionToSlot(0, "meeting");
+        GD.Print($"[CabinetMeetingTest] meeting → slot 0: {(ok ? "OK" : "FAIL")}");
+
+        // 1 gün ilerle (meeting süresi 1 gün) → etkiler uygulanır
+        AdvanceDaysForTest(1);
+
+        int ministerAfter = minister.Loyalty;
+        GD.Print($"[CabinetMeetingTest] {minister.Name} sadakati toplantı sonrası: {ministerAfter} (delta={ministerAfter - ministerBefore})");
+
+        bool pass = ok && ministerAfter == Math.Clamp(ministerBefore + 2, 0, 100);
+        GD.Print(pass ? "[CabinetMeetingTest] SONUÇ: PASS ✓" : "[CabinetMeetingTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
     }
 }

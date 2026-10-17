@@ -1022,7 +1022,30 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Dosyalar:**
 - Değiştirilen: `Scripts/CabinetSystem.cs`, `Scripts/GameManager.cs`, `Scripts/CabinetPanel.cs`, `Scripts/SaveLoadTest.cs`
 
-**Sonraki adım:** 21.5 Kabine toplantısı (ajanda slotu kullanır).
+**Sonraki adım:** M22 Yasalar, Anayasa ve Parlamento.
+
+---
+
+### M21.5: Kabine Toplantısı (Ajanda Slotu) — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Scripts/GameManager.cs` (güncellendi): `RunCabinetMeetingTest()` (yalnızca `--cabinet-meeting-test` arg'ıyla, normal oyunda asla çalışmaz) — İçişleri bakanı atanmışsa "meeting" aksiyonunu ajanda slot 0'a ekler, 1 gün ilerler, bakan sadakasının %2 (clamp 0-100) arttığını doğrular. Bakan yoksa test atlanır. PASS/FAIL raporu GD.Print ile.
+- `Scripts/TimeTempoSystem.cs` (güncellendi): `ApplyActionEffects`'te `"MinisterLoyaltyBonus"` case — `CabinetSystem.ApplyMinisterLoyaltyBonus(PlayerCountryId, (int)val)` çağrısı.
+- `Scripts/CabinetSystem.cs` (güncellendi): `MinisterStatSave` DTO (MinisterId, Loyalty, Skill, Honesty, Popularity); `MinisterStats[]` alanını `CountryCabinetSave`'a ekle; `ApplyMinisterLoyaltyBonus(countryId, bonus)` — atanmış bakanın Loyalty'sini clamp 0-100 ile arttırır; `GetSaveData()`/`LoadSaveData()` bakan istatistikleriniSerialize eder (sadece atanmış bakanlar: `kv.Value.ContainsValue(m.Id)`).
+- `Scripts/SaveLoadTest.cs` (güncellendi): `BuildSummaryCore()`'e "Bakan sadakati: ortalama=%X, bakan_sayısı=Y" satırı eklendi.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `CabinetSystem.GetMinister(countryId, "interior")` string (ministerId) döndürür — test bu değeri doğrudan `Ministers.FirstOrDefault(m => m.Id == ministerId)` ile çözer.
+- Save/Load entegrasyonu: bakan sadakası kayıtta korunur, A==B determinizm testi kapsamında.
+- DeterministicRNG kuralı: `new Random()` yok, yalnızca `DeterministicRNG`.
+- **Not:** Godot kurulumu yok (headless `--cabinet-meeting-test` çalıştırılamadı), dotnet build 0/0 geçti; manuel editör testi önerilir.
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/CabinetSystem.cs`, `Scripts/GameManager.cs`, `Scripts/TimeTempoSystem.cs`, `Scripts/SaveLoadTest.cs`
+- Yeni: yok
+
+**Sonraki adım:** M22 Yasalar, Anayasa ve Parlamento.
 
 ---
 

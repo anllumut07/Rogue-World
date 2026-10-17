@@ -267,7 +267,26 @@ public partial class WorldMap : Node2D
             }
 
             if (!havePos) continue;
-            DrawCircle(drawPos, 6f, new Color(1f, 0.2f, 0.2f, 0.8f));
+
+            // M19.7: Birlik alanına göre farklı işaret (kara kırmızı, deniz mavi, hava sarı-kırmızı)
+            Color armyColor;
+            float armyRadius;
+            switch (army.Domain)
+            {
+                case ArmySystem.UnitDomain.Naval:
+                    armyColor = new Color(0.2f, 0.6f, 1f, 0.85f); // mavi — deniz
+                    armyRadius = 7f;
+                    break;
+                case ArmySystem.UnitDomain.Air:
+                    armyColor = new Color(1f, 0.9f, 0.2f, 0.85f); // sarı — hava
+                    armyRadius = 5f;
+                    break;
+                default: // Kara (varsayılan — mevcut davranış)
+                    armyColor = new Color(1f, 0.2f, 0.2f, 0.8f); // kırmızı — kara
+                    armyRadius = 6f;
+                    break;
+            }
+            DrawCircle(drawPos, armyRadius, armyColor);
         }
     }
 
@@ -1372,6 +1391,24 @@ public partial class WorldMap : Node2D
         army.MovementPathIndex = 0;
         army.TargetProvinceId = fullPath[^1];
         army.DaysRemainingInHop = army.DaysPerProvince;
+    }
+
+    // M19.8: AI bu yöntemle aynı BFS rotası + M19.4 hop altyapısını kullanarak
+    // ordularını bir hedef iline hareket ettirir. Oyuncu emriyle aynı yol guzergahı.
+    public static void IssueArmyMoveOrder(ArmySystem.Army army, string targetProvinceId)
+    {
+        if (Instance == null || army == null) return;
+        if (string.IsNullOrEmpty(army.ProvinceId)) return;
+        if (string.IsNullOrEmpty(targetProvinceId) || army.ProvinceId == targetProvinceId) return;
+
+        var route = Instance.BuildFullRoute(army.ProvinceId, new List<string> { targetProvinceId });
+        if (route.Count == 0) return;
+
+        var fullPath = new List<string> { army.ProvinceId };
+        fullPath.AddRange(route);
+        Instance.ApplyRouteToArmy(army, fullPath);
+
+        GD.Print($"[AI Move] {army.Name} → {targetProvinceId} (rota={army.WaypointIds.Count} il)");
     }
 
     private void AnimateSelectedBorder(float delta)

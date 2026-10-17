@@ -260,6 +260,7 @@ public static class SaveSystem
         public int DivisionsInTraining { get; set; }
         public string FactionId { get; set; }
         public int LastDecisionDay { get; set; }
+        public int LastMoveDay { get; set; } // M19.8: AI ordusu hareket cooldown'u
         public bool AiExhausted { get; set; }
     }
 

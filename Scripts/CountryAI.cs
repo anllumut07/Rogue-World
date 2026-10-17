@@ -47,6 +47,9 @@ public static class CountryAI
         // İlk karar hemen verilebilsin (int.MinValue ile fark hesabı taşar!)
         public int LastDecisionDay = -1000;
         public bool AiExhausted;         // Odak ağacı tükendi (tekrar arama spam yok)
+
+        // M19.8: Askeri hareket cooldown'u (her X günde bir harekete geçsin)
+        public int LastMoveDay = -1000;
     }
 
     // ===== Yapı tipleri — EconomySystem.BuildType ile aynı sıra/ Günler =====
@@ -225,6 +228,9 @@ public static class CountryAI
 
         // 4) Diplomasi: M11.3'te (faksiyon/garanti/savaş) — iskelet
         MaybeDiplomacy(st, data);
+
+        // 5) Askeri hareket: AI ordularını düşman illere hareket ettir (M19.8)
+        MaybeMoveArmies(st, data);
     }
 
     // --- 11.1 Ekonomi kararları ---
@@ -557,6 +563,60 @@ public static class CountryAI
         }
     }
 
+    // ===== M19.8: AI askeri hareket =====
+
+    /// <summary>
+    /// AI ordularını düşman illere hareket ettirir. Her 7 günde bir,
+    /// savaşta olan bir düşmanın rastgele ilini hedef alır.
+    /// Sadece kara orduları; deniz/hava M20+'de.
+    /// </summary>
+    private static void MaybeMoveArmies(AIState st, CountryData data)
+    {
+        // Cooldown: her 7 günde bir harekete geç
+        if (GM.TotalDays - st.LastMoveDay < 7) return;
+
+        if (data.IsAnnexed) return;
+
+        // Sadece savaşta olan ülke hareket eder (düşman yoksa gitmeyecek yer yok)
+        bool anyEnemyAtWar = CountryDatabase.All()
+            .Any(c => c != null && !c.IsAnnexed && c.Id != data.Id
+                 && WarSystem.IsAtWarWith(data.Id, c.Id));
+        if (!anyEnemyAtWar) return;
+
+        // Bu ülkenin kara ordularını bul (hareket etmeyen, bu ülkeye ait veya atanmamış)
+        var myArmies = ArmySystem.Armies
+            .Where(a => a.Domain == ArmySystem.UnitDomain.Land
+                 && !a.IsMoving
+                 && (string.IsNullOrEmpty(a.CountryId) || a.CountryId == data.Id))
+            .ToList();
+
+        if (myArmies.Count == 0) return;
+
+        // Düşman illerini topla
+        var enemyProvinces = new List<string>();
+        foreach (var enemy in CountryDatabase.All())
+        {
+            if (enemy == null || enemy.IsAnnexed || enemy.Id == data.Id) continue;
+            if (!WarSystem.IsAtWarWith(data.Id, enemy.Id)) continue;
+            enemyProvinces.AddRange(ProvinceOwnershipSystem.GetProvincesByOwner(enemy.Id));
+        }
+
+        if (enemyProvinces.Count == 0) return;
+
+        // Rastgele bir düşman ilini hedef al (deterministik)
+        DeterministicRNG.Shuffle(enemyProvinces);
+        string targetProvince = enemyProvinces[0];
+
+        // İlk kullanılabilir orduyu hareket ettir
+        var army = myArmies[0];
+        if (string.IsNullOrEmpty(army.CountryId)) army.CountryId = data.Id;
+
+        WorldMap.IssueArmyMoveOrder(army, targetProvince);
+        st.LastMoveDay = GM.TotalDays;
+
+        GD.Print($"[AI] {data.Id} ordusu hareket ediyor: {army.Name} → {targetProvince} (gün {GM.TotalDays})");
+    }
+
     // ===== Yardımcılar =====
 
     // CG ideolojiye göre (EconomySystem yasalarının AI soyutlaması)
@@ -593,6 +653,7 @@ public static class CountryAI
                 DivisionsInTraining = st.DivisionsInTraining,
                 FactionId = st.FactionId,
                 LastDecisionDay = st.LastDecisionDay,
+                LastMoveDay = st.LastMoveDay,
                 AiExhausted = st.AiExhausted
             }).ToArray(),
             AiCountryIds = _aiCountryIds.ToArray(),
@@ -632,6 +693,7 @@ public static class CountryAI
                     DivisionsInTraining = s.DivisionsInTraining,
                     FactionId = s.FactionId ?? "",
                     LastDecisionDay = s.LastDecisionDay,
+                    LastMoveDay = s.LastMoveDay,
                     AiExhausted = s.AiExhausted
                 };
             }

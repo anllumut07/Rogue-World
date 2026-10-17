@@ -74,6 +74,10 @@ public static class ArmySystem
         public string DisplayName => $"{TemplateName} ({Id})";
     }
 
+    // M19.7: Birlik alanı — kara / deniz / hava. Aynı hareket/tick komut altyapısı
+    // kullanılır; yalnızca haritada farklı işaretle çizilir.
+    public enum UnitDomain { Land, Naval, Air }
+
     // Ordu: genel + bölükler
     public class Army
     {
@@ -83,6 +87,12 @@ public static class ArmySystem
         public int GeneralSkill { get; set; } // 1-5
         public string ProvinceId = ""; // M19.1: ordunun bulunduğu il (harita sayacı konumu)
         public List<string> DivisionIds { get; set; } = new();
+
+        // M19.8: Bu ordunun bağlı olduğu ülke (AI birliklerini ülke bazında takip etmek için).
+        public string CountryId = "";
+
+        // M19.7: Birlik alanı (varsayılan kara — mevcut davranışla uyumlu)
+        public UnitDomain Domain = UnitDomain.Land;
 
         // M19.3: Hareket komutu — hedef il ve Shift ile eklenen ara noktalar (sıra ile)
         public string TargetProvinceId = "";
@@ -669,6 +679,24 @@ public static class ArmySystem
         _armies.Add(army);
         GD.Print($"[Army] Ordu oluşturuldu: {army.Name} (Gen. {army.GeneralName}, Skill={army.GeneralSkill})");
         return army;
+    }
+
+    // M19.7: Deniz filosu (ayrı bir sınıf yok — aynı Army alanı, Domain = Naval)
+    public static Army CreateNavy(string baseName = "")
+    {
+        var navy = CreateArmy(baseName);
+        navy.Domain = UnitDomain.Naval;
+        GD.Print($"[Army] Deniz filosu oluşturuldu: {navy.Name} (ID={navy.Id})");
+        return navy;
+    }
+
+    // M19.7: Hava kuvvetleri (ayrı bir sınıf yok — aynı Army alanı, Domain = Air)
+    public static Army CreateAirForce(string baseName = "")
+    {
+        var air = CreateArmy(baseName);
+        air.Domain = UnitDomain.Air;
+        GD.Print($"[Army] Hava ordusu oluşturuldu: {air.Name} (ID={air.Id})");
+        return air;
     }
 
     public static void AssignDivisionToArmy(string divisionId, string armyId)

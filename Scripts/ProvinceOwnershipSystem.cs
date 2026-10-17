@@ -15,6 +15,15 @@ public static class ProvinceOwnershipSystem
         return owner ?? "?";
     }
 
+    // M19.8: AI için — bir ülkenin sahip olduğu illerin id listesi (start-province seçimi).
+    public static List<string> GetProvincesByOwner(string countryId)
+    {
+        var result = new List<string>();
+        foreach (var kvp in _ownerByProvince)
+            if (kvp.Value == countryId) result.Add(kvp.Key);
+        return result;
+    }
+
     public static void SetProvinceOwner(string provinceId, string countryId)
     {
         string old = GetProvinceOwner(provinceId);

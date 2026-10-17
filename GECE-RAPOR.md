@@ -122,7 +122,7 @@
 - `Scripts/SaveLoadTest.cs`: bakan sadakası ortalaması özetine eklendi.
 - `dotnet build`: 0 hata / 0 uyarı.
 - Godot headless test çalıştırılamadı (editör yok), dotnet build 0/0; manuel editör testi önerilir.
-- Commit: (hazırlanacak).
+- Commit: aa0efdf (push'ed origin gece-calisma).
 
 ## Sonraki adım
 - M22 Yasalar, Anayasa ve Parlamento.

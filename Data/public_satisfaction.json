@@ -1,0 +1,24 @@
+{
+  "Groups": [
+    { "Id": "workers", "Name": "Workers", "Base": 50, "Description": "Industrial and service workforce" },
+    { "Id": "business", "Name": "Business Community", "Base": 50, "Description": "Entrepreneurs, investors, company owners" },
+    { "Id": "youth", "Name": "Youth", "Base": 50, "Description": "Young citizens, students, new workforce entrants" },
+    { "Id": "elderly", "Name": "Elderly", "Base": 50, "Description": "Retired and senior citizens" },
+    { "Id": "military", "Name": "Military", "Base": 50, "Description": "Active and retired armed forces personnel" },
+    { "Id": "religious", "Name": "Religious", "Base": 50, "Description": "Faith-based citizens and communities" },
+    { "Id": "secular", "Name": "Secular", "Base": 50, "Description": "Non-religious citizens and institutions" },
+    { "Id": "rural", "Name": "Rural", "Base": 50, "Description": "Countryside and agricultural population" },
+    { "Id": "urban", "Name": "Urban", "Base": 50, "Description": "City dwellers and metropolitan population" }
+  ],
+  "GroupWeights": {
+    "workers": { "unemployment": -0.45, "gini": -0.25, "gdp_growth": 0.20, "social": 0.20, "health": 0.10 },
+    "business": { "gdp_growth": 0.35, "corporate_tax": -0.30, "inflation": -0.20, "r_and_d": 0.15, "environment": -0.10 },
+    "youth": { "education": 0.30, "unemployment": -0.30, "environment": 0.20, "health": 0.10, "r_and_d": 0.10 },
+    "elderly": { "health": 0.40, "social": 0.30, "gdp_growth": 0.10, "inflation": -0.10, "environment": 0.10 },
+    "military": { "defense": 0.50, "gdp_growth": 0.10, "security": 0.20, "inflation": -0.10 },
+    "religious": { "social": 0.35, "education": -0.10, "environment": 0.10, "health": 0.10, "security": 0.15 },
+    "secular": { "education": 0.35, "environment": 0.20, "health": 0.15, "social": -0.10, "security": -0.10 },
+    "rural": { "infrastructure": 0.35, "environment": 0.30, "social": 0.15, "health": 0.10, "defense": -0.10 },
+    "urban": { "health": 0.30, "education": 0.25, "infrastructure": 0.20, "environment": 0.15, "social": 0.10 }
+  }
+}

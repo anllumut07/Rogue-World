@@ -70,6 +70,7 @@ public static class SaveSystem
         public Dictionary<string, string> ProvinceOwners { get; set; } // M18.5: il sahipliği (provinceId -> countryId)
         public StatisticsSystem.IndicatorsSave Statistics { get; set; } // M20.1: istatistik gösterge değerleri
         public BudgetSystem.BudgetSave Budget { get; set; } // M20.2: bütçe (vergi, harcama, borç, faiz)
+        public PublicSatisfactionSystem.SatisfactionSave PublicSatisfaction { get; set; } // M20.3: grup memnuniyeti
     }
 
     // ===== Economy DTOs =====
@@ -372,6 +373,7 @@ public static class SaveSystem
             ProvinceOwners = ProvinceOwnershipSystem.GetSaveData(), // M18.5: il sahipliği
             Statistics = StatisticsSystem.GetSaveData(), // M20.1: istatistik gösterge değerleri
             Budget = BudgetSystem.GetSaveData(), // M20.2: bütçe (vergi, harcama, borç, faiz)
+            PublicSatisfaction = PublicSatisfactionSystem.GetSaveData(), // M20.3: grup memnuniyeti
         };
 
         EnsureSavesDir();
@@ -494,6 +496,7 @@ public static class SaveSystem
             ProvinceOwnershipSystem.LoadSaveData(save.ProvinceOwners); // M18.5: il sahipliği
             StatisticsSystem.LoadSaveData(save.Statistics); // M20.1: istatistik gösterge değerleri
             BudgetSystem.LoadSaveData(save.Budget); // M20.2: bütçe (vergi, harcama, borç, faiz)
+            PublicSatisfactionSystem.LoadSaveData(save.PublicSatisfaction); // M20.3: grup memnuniyeti
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

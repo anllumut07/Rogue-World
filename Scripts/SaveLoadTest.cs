@@ -216,6 +216,22 @@ public static class SaveLoadTest
         double avgDebt = budgetCountries > 0 ? totalDebt / budgetCountries : 0;
         sb.AppendLine($"Bütçe: ülke={budgetCountries}, ortalama_borç=%{avgDebt:F1} GDP");
 
+        // --- M20.3: Halk memnuniyeti ---
+        var satSave = PublicSatisfactionSystem.GetSaveData();
+        int satCountries = satSave?.Countries?.Length ?? 0;
+        double avgSat = 0;
+        int satCount = 0;
+        if (satSave?.Countries != null)
+        {
+            foreach (var c in satSave.Countries)
+            {
+                foreach (var v in c.Satisfaction?.Values ?? Enumerable.Empty<double>())
+                { avgSat += v; satCount++; }
+            }
+        }
+        avgSat = satCount > 0 ? avgSat / satCount : 0;
+        sb.AppendLine($"Memnuniyet: ülke={satCountries}, grup_ortalama=%{avgSat:F1}");
+
         // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");

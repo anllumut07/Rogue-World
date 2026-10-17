@@ -885,6 +885,30 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 **Sonraki adım:** 20.3 Halk memnuniyeti (gruplara göre).
 
+### M20.3: Halk Memnuniyeti — Topluluk Grupları — ✅ DONE (2026-10-17)
+
+**Değişiklikler:**
+- `Data/public_satisfaction.json` (yeni): 9 toplum grubu (Workers, Business Community, Youth, Elderly, Military, Religious, Secular, Rural, Urban) + her grubun gösterge/harcama tepki ağırlıkları (GroupWeights).
+- `Scripts/PublicSatisfactionSystem.cs` (yeni): `SatisfactionGroup`, `SatisfactionSave`/`CountrySatisfactionSave` DTO'ları; `GetSatisfaction`/`SetSatisfaction`; `DailyTick` (her grubun hedef memnuniyeti gösterge+bütçe harcamalar üzerinden ağırlıklı hesaplanır, mevcut değer hedef doğru yavaşça doğruçar + deterministik jitter, [0,100] clamp); `GetSaveData`/`LoadSaveData`.
+- `Scripts/GameManager.cs` (güncellendi): `ResetForNewGame()`'de `PublicSatisfactionSystem.InitializeAll()`; `DailyTick()`'de `PublicSatisfactionSystem.DailyTick()` (BudgetSystem.DailyTick'ten sonra).
+- `Scripts/SaveSystem.cs` (güncellendi): `SaveFile` DTO'ya `PublicSatisfaction` alanı; `WriteSave` ve `LoadGameInternal` bağlandı.
+- `Scripts/SaveLoadTest.cs` (güncellendi): `BuildSummaryCore()`'e halk memnuniyeti özeti eklendi (ülke sayısı, grup ortalama %).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` A==B testi: halk memnuniyeti dahil geçer.
+
+**Dosyalar:**
+- Yeni: `Data/public_satisfaction.json`, `Scripts/PublicSatisfactionSystem.cs`
+- Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`
+
+**Sonraki adım:** 20.4 Göstergeler arası bağlantılar (enflasyon↔işsizlik↔memnuniyet vb., Data/formulas.json).
+
+---
+
+### Sonraki adım
+- M20.4: Göstergeler arası bağlantılar (enflasyon↔işsizlik↔memnuniyet, yolsuzluk↔yatırım, eğitim↔teknoloji hızı; Data/formulas.json).
+
 ---
 
 ### Sonraki adım

@@ -67,5 +67,9 @@
 - `Data/budget.json`, `Scripts/BudgetSystem.cs`: vergi oranları, harcama kalemleri, borç/faiz, günlük gelir-harcama-açık borç birikimi, göstergelere yansıma (budget_deficit, public_debt, gdp_growth, inflation, health, education, environment), Save/Load DTO, SaveLoadTest kapsamında, dotnet build 0/0.
 - Commit: c75ef3d (push'ed origin gece-calisma).
 
+## M20.3 — ✅ DONE (2026-10-17)
+- `Data/public_satisfaction.json`, `Scripts/PublicSatisfactionSystem.cs`: 9 toplum grubu + tepki ağırlıkları, günlük memnuniyet doğruşu (gösterge+bütçe tabanlı), Save/Load DTO, SaveLoadTest kapsamında, dotnet build 0/0.
+- Commit: (hazırlanacak).
+
 ## Sonraki adım
-- M20.3: Halk memnuniyeti (gruplara göre: işçi, iş dünyası, gençler, yaşlılar, ordu, dindar/laik, kırsal/kentsel).
+- M20.4: Göstergeler arası bağlantılar (enflasyon↔işsizlik↔memnuniyet, yolsuzluk↔yatırım, eğitim↔teknoloji hızı; Data/formulas.json).

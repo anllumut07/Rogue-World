@@ -71,9 +71,16 @@
 - `Data/public_satisfaction.json`, `Scripts/PublicSatisfactionSystem.cs`: 9 toplum grubu + tepki ağırlıkları, günlük memnuniyet doğruşu (gösterge+bütçe tabanlı), Save/Load DTO, SaveLoadTest kapsamında, dotnet build 0/0.
 - Commit: (hazırlanacak).
 
-## M20.4 — 🔄 IN PROGRESS (2026-10-17)
+## M20.4 — ✅ DONE (2026-10-17)
 - `Data/formulas.json`, `Scripts/FormulaSystem.cs`: gösterge bağlantıları (inflation→unemployment, unemployment→gdp_growth, corruption→gdp_growth, education→gdp_growth, vb.), deterministik günlük etkisi (Weight × Kaynak × LinkSpeed, [Min,Max] clamp), GameManager sırası Budget→Formül→Memnuniyet, SaveLoadTest özeti, dotnet build 0/0.
+- Commit: 3adac99 (push'ed origin gece-calisma).
+
+## M20.5 — ✅ DONE (2026-10-17)
+- `Scripts/StatisticsSystem.cs`: her gösterge için son 60 gün değer geçmişi, Save/Load'ta History DTO, GetHistory.
+- `Scripts/GraphControl.cs` (yeni): 60 günlük polyline grafik, [Min,Max] ölçeklendirme, eşik etiketleri, son değer vurgusu.
+- `Scripts/StatisticsPanel.cs`: gösterge seçici OptionButton + eğilim grafiği; panel 860×560 → 1152×648'de sığar; ESC kapatır.
+- `Scripts/SaveLoadTest.cs`: istatistik özetine geçmiş kayıt sayısı; dotnet build 0/0; SaveLoadTest A==B geçer.
 - Commit: (hazırlanacak).
 
 ## Sonraki adım
-- M20.5: İstatistik paneli (grafik, geçmiş eğilim çizgisi; panel 1152×648'e sığar).
+- M21: Bakanlıklar ve Kabine (bakan atama/üstünde, niteliklerin göstergelere etkisi, skandal/istifa).

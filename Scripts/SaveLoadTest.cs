@@ -207,7 +207,8 @@ public static class SaveLoadTest
         var statSave = StatisticsSystem.GetSaveData();
         int statCountries = statSave?.Countries?.Length ?? 0;
         int statValues = statSave?.Countries?.Sum(c => c.Values?.Count ?? 0) ?? 0;
-        sb.AppendLine($"İstatistikler: ülke={statCountries}, gösterge_değeri={statValues}");
+        int statHistoryPoints = statSave?.Countries?.Sum(c => c.History?.Values.Sum(h => h.Count) ?? 0) ?? 0;
+        sb.AppendLine($"İstatistikler: ülke={statCountries}, gösterge_değeri={statValues}, geçmiş_kayıt={statHistoryPoints}");
 
         // --- M20.2: Bütçe ---
         var budgetSave = BudgetSystem.GetSaveData();

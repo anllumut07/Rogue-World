@@ -14,6 +14,11 @@ public partial class StatisticsPanel : Control
     private VBoxContainer _content;
     private ScrollContainer _scroll;
 
+    private OptionButton _indicatorSelector;
+    private GraphControl _graph;
+    private string _selectedIndicatorId;
+    private readonly List<string> _optionIds = new();
+
     private const string Title = "STATISTICS & BUDGET";
 
     public static void OpenUnder(Node parent)
@@ -175,6 +180,38 @@ public partial class StatisticsPanel : Control
         note.AddThemeFontSizeOverride("font_size", 12);
         note.AddThemeColorOverride("font_color", UITheme.TextMuted);
         _content.AddChild(note);
+
+        // --- Gösterge seçimi + eğilim grafiği (son 60 gün) ---
+        var selRow = new HBoxContainer();
+        selRow.AddThemeConstantOverride("separation", 8);
+        var selLbl = new Label { Text = "Eğilim grafiği için gösterge:" };
+        selLbl.AddThemeFontSizeOverride("font_size", 13);
+        selRow.AddChild(selLbl);
+
+        _indicatorSelector = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(220, 0) };
+        _optionIds.Clear();
+        foreach (var def in StatisticsSystem.Definitions.OrderBy(d => d.Name))
+        {
+            _optionIds.Add(def.Id);
+            _indicatorSelector.AddItem(def.Name);
+        }
+        _indicatorSelector.Select(0);
+        _selectedIndicatorId = _optionIds.Count > 0 ? _optionIds[0] : "";
+        _indicatorSelector.ItemSelected += OnIndicatorSelected;
+        selRow.AddChild(_indicatorSelector);
+        _content.AddChild(selRow);
+
+        _graph = new GraphControl { CustomMinimumSize = new Vector2(760, 220) };
+        _graph.SetSeries(countryId, _selectedIndicatorId);
+        _content.AddChild(_graph);
+    }
+
+    private void OnIndicatorSelected(long index)
+    {
+        if (index < 0 || index >= _optionIds.Count) return;
+        _selectedIndicatorId = _optionIds[(int)index];
+        var gm = GameManager.Instance;
+        _graph.SetSeries(gm?.PlayerCountryData?.Id ?? "", _selectedIndicatorId);
     }
 
     private void Close()

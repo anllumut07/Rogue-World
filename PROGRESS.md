@@ -918,12 +918,23 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Yeni: `Data/formulas.json`, `Scripts/FormulaSystem.cs`
 - Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveLoadTest.cs`
 
-**Sonraki adım:** 20.5 İstatistik paneli (grafik, geçmiş eğilim çizgisi, 1152×648).
+### M20.5: İstatistik Paneli — Grafik ve Geçmiş Eğilim — ✅ DONE (2026-10-17)
 
----
+**Değişiklikler:**
+- `Scripts/StatisticsSystem.cs` (güncellendi): her gösterge için son 60 günün değer geçmişi (`_history`), `SetValue` ile her değer değişikliği kaydedilir (günlük dalgalanma, bütçe/formül güncellemeleri dahil), `GetHistory(countryId, indicatorId)`; `CountryIndicatorsSave.History` DTO alanı ve Save/Load geri yükleme.
+- `Scripts/GraphControl.cs` (yeni): `Control` tabanlı çizgi grafik — son 60 günün polylinesi, [Min,Max] aralığına ölçeklendirilmiş değerler, min/orta/max eşik etiketleri, son değer vurgusu; panel açıkken değerlerin değiştiği her karede yeniden çizer.
+- `Scripts/StatisticsPanel.cs` (güncellendi): OptionButton ile gösterge seçimi (17 gösterge), seçilen göstergenin 60 günlük eğilim grafiği panele eklendi; PanelContainer 860×560 → 1152×648'e sığar; ESC kapatır, MouseFilter.Stop backdrop harita girdisini bloke eder.
+- `Scripts/SaveLoadTest.cs` (güncellendi): istatistik özetine geçmiş kayıt sayısı eklendi.
 
-### Sonraki adım
-- M20.5: İstatistik paneli — geçmiş eğilim çizgisi (grafik), panel 1152×648'e sığar.
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` A==B testi: geçmiş kayıtlar dahil geçer (deterministik, RNG yok).
+
+**Dosyalar:**
+- Yeni: `Scripts/GraphControl.cs`
+- Değiştirilen: `Scripts/StatisticsSystem.cs`, `Scripts/StatisticsPanel.cs`, `Scripts/SaveLoadTest.cs`
+
+**Sonraki adım:** M21 Bakanlıklar ve Kabine.
 
 ---
 

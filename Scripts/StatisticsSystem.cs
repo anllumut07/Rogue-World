@@ -6,9 +6,10 @@ using System.Text.Json;
 
 // İstatistik & Bütçe göstergeleri sistemi (M20.1).
 // - Data/statistics_indicators.json'dan gösterge tanımlarını yükler.
-// - Her ülke için gösterge değerini tutar (günlük deterministik dalgalanma).
+// - Her ülke için gösterge değerini tutar (günlük deterministik dalgalanma) ve son 60 günün
+//   değerini geçmiş olarak saklar (M20.5 grafik için).
 // - StatisticsPanel oyuncu ülkesinin göstergelerini gösterir.
-// - Save/Load: SaveSystem.SaveFile.Statistics + SaveLoadTest özerk özeti.
+// - Save/Load: SaveSystem.SaveFile.Statistics (+ değer geçmişi) + SaveLoadTest özeti.
 public static class StatisticsSystem
 {
     public class IndicatorDefinition
@@ -30,16 +31,26 @@ public static class StatisticsSystem
     {
         public string CountryId { get; set; }
         public Dictionary<string, double> Values { get; set; }
+        public Dictionary<string, List<double>> History { get; set; } // indicatorId -> son 60 günün değeri
     }
 
     private static readonly string DataPath = "res://Data/statistics_indicators.json";
     private static readonly List<IndicatorDefinition> _definitions = new();
     private static bool _definitionsLoaded;
-    private static readonly Dictionary<string, Dictionary<string, double>> _values = new(); // countryId -> indicatorId -> value
+    private static readonly Dictionary<string, Dictionary<string, double>> _values = new(); // countryId -> indicatorId -> değer
+    private const int HISTORY_DAYS = 60; // grafik için tutulan geçmiş gün sayısı
+    private static readonly Dictionary<string, Dictionary<string, List<double>>> _history = new(); // countryId -> indicatorId -> değer geçişi
 
     public static IReadOnlyList<IndicatorDefinition> Definitions
     {
         get { EnsureDefinitions(); return _definitions; }
+    }
+
+    public static IReadOnlyList<double> GetHistory(string countryId, string indicatorId)
+    {
+        if (_history.TryGetValue(countryId, out var h) && h.TryGetValue(indicatorId, out var list))
+            return list;
+        return new List<double>();
     }
 
     private static void EnsureDefinitions()
@@ -104,6 +115,20 @@ public static class StatisticsSystem
             _values[countryId] = dict;
         }
         dict[indicatorId] = value;
+
+        // Günlük geçmişi kaydet (grafik için, M20.5)
+        if (!_history.TryGetValue(countryId, out var h))
+        {
+            h = new Dictionary<string, List<double>>();
+            _history[countryId] = h;
+        }
+        if (!h.TryGetValue(indicatorId, out var list))
+        {
+            list = new List<double>();
+            h[indicatorId] = list;
+        }
+        list.Add(value);
+        if (list.Count > HISTORY_DAYS) list.RemoveAt(0);
     }
 
     private static double GetBase(string indicatorId) =>
@@ -114,13 +139,16 @@ public static class StatisticsSystem
     {
         if (string.IsNullOrEmpty(countryId) || _values.ContainsKey(countryId)) return;
         var dict = new Dictionary<string, double>();
+        var h = new Dictionary<string, List<double>>();
         foreach (var def in _definitions)
         {
             double jitter = (DeterministicRNG.NextDouble() * 2.0 - 1.0) * 0.05; // ±%5
             double v = Math.Clamp(def.BaseValue * (1.0 + jitter), def.Min, def.Max);
             dict[def.Id] = v;
+            h[def.Id] = new List<double> { v }; // gün 0 = başlangıç değeri
         }
         _values[countryId] = dict;
+        _history[countryId] = h;
     }
 
     // ===== Başlatma =====
@@ -128,6 +156,7 @@ public static class StatisticsSystem
     {
         EnsureDefinitions();
         _values.Clear();
+        _history.Clear();
         foreach (var c in CountryDatabase.All())
             EnsureCountry(c.Id);
         GD.Print($"[StatisticsSystem] {_values.Count} ülke göstergesi başlatıldı.");
@@ -142,13 +171,14 @@ public static class StatisticsSystem
 
         foreach (var kv in _values)
         {
+            string countryId = kv.Key;
             var dict = kv.Value;
             foreach (var def in _definitions)
             {
                 if (!dict.TryGetValue(def.Id, out double v)) continue;
                 // Küçük deterministik randôm yürüyüş: günlük değişim ±0.3 puan
                 double delta = (DeterministicRNG.NextDouble() * 2.0 - 1.0) * 0.3;
-                dict[def.Id] = Math.Clamp(v + delta, def.Min, def.Max);
+                SetValue(countryId, def.Id, Math.Clamp(v + delta, def.Min, def.Max));
             }
         }
     }
@@ -162,7 +192,10 @@ public static class StatisticsSystem
             Countries = _values.Select(kv => new CountryIndicatorsSave
             {
                 CountryId = kv.Key,
-                Values = kv.Value.ToDictionary(p => p.Key, p => p.Value)
+                Values = kv.Value.ToDictionary(p => p.Key, p => p.Value),
+                History = _history.TryGetValue(kv.Key, out var h)
+                    ? h.ToDictionary(p => p.Key, p => new List<double>(p.Value))
+                    : null
             }).ToArray()
         };
     }
@@ -171,12 +204,24 @@ public static class StatisticsSystem
     {
         if (data == null) return;
         _values.Clear();
+        _history.Clear();
         if (data.Countries != null)
         {
             foreach (var c in data.Countries)
             {
                 if (string.IsNullOrEmpty(c.CountryId)) continue;
                 _values[c.CountryId] = c.Values?.ToDictionary(p => p.Key, p => p.Value) ?? new Dictionary<string, double>();
+                if (!_history.TryGetValue(c.CountryId, out var hh))
+                {
+                    hh = new Dictionary<string, List<double>>();
+                    _history[c.CountryId] = hh;
+                }
+                foreach (var def in _definitions)
+                {
+                    hh[def.Id] = c.History != null && c.History.TryGetValue(def.Id, out var arr)
+                        ? new List<double>(arr)
+                        : new List<double> { _values[c.CountryId].TryGetValue(def.Id, out var cur) ? cur : GetBase(def.Id) };
+                }
             }
         }
         GD.Print($"[StatisticsSystem] {_values.Count} ülke göstergesi yüklendi.");

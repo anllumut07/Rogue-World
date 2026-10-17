@@ -297,7 +297,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | 20.2 | Bütçe: vergi oranları, harcama kalemleri (savunma, sağlık, eğitim, altyapı, sosyal, güvenlik, Ar-Ge), faiz ve borç. | Bütçe değişince göstergeler tepki verir | ✅ Bitti |
 | 20.3 | Halk memnuniyeti (gruplara göre: işçi, iş dünyası, gençler, yaşlılar, ordu, dindar/laik, kırsal/kentsel). | Gruplar farklı tepki verir | ✅ Bitti |
 | 20.4 | Göstergeler arası bağlantılar (enflasyon↔işsizlik↔memnuniyet, yolsuzluk↔yatırım, eğitim↔teknoloji hızı vb.). Formüller `Data/formulas.json` içinde ayarlanabilir. | Bir göstergeyi değiştirince bağlantılar loglanır | ✅ Bitti |
-| 20.5 | İstatistik paneli (grafik, geçmiş eğilim çizgisi). | Panel 1152x648'e sığar | |
+| 20.5 | İstatistik paneli (grafik, geçmiş eğilim çizgisi). | Panel 1152x648'e sığar | ✅ Bitti |
 
 ---
 

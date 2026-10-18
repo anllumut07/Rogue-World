@@ -355,8 +355,14 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 - `--save-load-test --scenario=historical_1936 --speed=0`: **SONUÇ: PASS ✓ (A == B)** — `Afetler: aktif=2, geçmiş_kayıt=6` hem A hem B'de aynı (afet kaydet/yükle deterministi onaylandı). Ateşlenen: Storm (GBR), Flood (RUS), Earthquake (CHL ×2), Drought (ARG ×2), Epidemic (CHL ×2), Flood (CHN).
 - Commit + `git push origin gece-calisma` (hazırlanıyor).
 
+## M26.2 — ✅ DONE (2026-10-19)
+- `Scripts/DisasterSystem.cs` (güncellendi): `DailyTick`'e `RunRecovery()` eklendi — her aktif afet, `StatisticsSystem` üzerinden sunduğu shock'ı `DurationDays` boyunca doğrusal olarak geri alır (günlük `1/DurationDays`); etki afet süresi dolunca tamamen toplanır. Yeni JSON alanı veya Save/Load state yok (iyileşme zaten kaydedilen `_active`'den türetilir) → A==B determinizm bozulmaz.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--disaster-test`: **SONUÇ: PASS ✓** (afetler ateşlendi, her gün "İyileşme" logu).
+- `--save-load-test --scenario=historical_1936 --speed=0`: **SONUÇ: PASS ✓ (A == B)** — `Afetler: aktif=2, geçmiş_kayıt=6` aynı.
+
 ## Sonraki adım
-- M26.2: Etkiler + iyileşme süreci (nüfus, ekonomi, altyapı, memnuniyet göstergesi iyileşmesi).
+- M26.3: Müdahale (acil yardım, uluslararası yardım, yeniden inşa, tahliye; yönetim kalitesi sonucu etkiler; seçimler sonucu değiştirir).
 
 ---
 
@@ -364,5 +370,11 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 1. Değişen dosyalar: `Data/disasters.json` (yeni), `Scripts/DisasterSystem.cs` (yeni), `Scripts/GameManager.cs` (DailyTick + test modu kancağı), `Scripts/SaveSystem.cs` (SaveFile.Disasters), `Scripts/SaveLoadTest.cs` (afet özeti), `Scripts/ScenarioSystem.cs` (ResetForScenario), `TODO.md` (26.1 [x]), `PROGRESS.md` (M26.1 DONE).
 2. Çözülemeyen şey: yok — M26.1 %100 tamamlandı (build 0/0, disaster-test PASS, save-load-test A==B).
 3. Bilinen sorun: M26.2 iyileşme/recovery henüz yok — afet etkileri kalıcı şok olarak kalır (M26.2'de toparlanma gelecek).
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--disaster-test` (EXIT 0, PASS); `--save-load-test --scenario=historical_1936 --speed=0` (EXIT 0, A==B).
+
+### ÖZET (M26.2 — 2026-10-19)
+1. Değişen dosyalar: `Scripts/DisasterSystem.cs` (`RunRecovery` + `DailyTick` çağrısı), `TODO.md` (26.2 [x]), `PROGRESS.md` (M26.2 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M26.2 %100 tamamlandı (build 0/0, disaster-test PASS, save-load-test A==B).
+3. Bilinen sorun: iyileşme yalnızca afetin aktif süresi boyunca uygulanır (afet biterken tamamen toplanır); afet sonrası ekstra toparlama süresi yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--disaster-test` (EXIT 0, PASS); `--save-load-test --scenario=historical_1936 --speed=0` (EXIT 0, A==B).
 

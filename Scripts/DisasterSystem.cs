@@ -233,6 +233,35 @@ public static class DisasterSystem
                 break; // bir ülkede günde en fazla bir afet
             }
         }
+
+        // M26.2: İyileşme — aktif her afetin gösterge etkileri DurationDays boyunca
+        // doğru oranda toparlanır (günlük 1/DurationDays oranında doğrusal geri dönüş).
+        RunRecovery();
+    }
+
+    // M26.2: Aktif afetlerin gösterge etkilerini günlük olarak toparla.
+    // Her aktif afet, sunduğu shock'ı DurationDays boyunca doğrusal olarak geri alır;
+    // afet süresi dolunca etki tamamen toplanmış sayılır.
+    private static void RunRecovery()
+    {
+        foreach (var d in _active)
+        {
+            var def = _definitions.FirstOrDefault(defx => defx.Id == d.DisasterId);
+            if (def == null || def.Impacts == null || def.Impacts.Count == 0) continue;
+            int recoveryDays = def.DurationDays;
+            if (recoveryDays <= 0) continue;
+            double rate = 1.0 / recoveryDays;
+            foreach (var kv in def.Impacts)
+            {
+                string indicator = kv.Key;
+                double shock = kv.Value; // orijinal delta (negatif = düşüş)
+                double cur = StatisticsSystem.GetValue(d.CountryId, indicator);
+                // shock'ın tersi yönde oransal geri dönüş
+                double next = cur + (-shock * rate);
+                StatisticsSystem.SetValue(d.CountryId, indicator, next);
+                GD.Print($"[Disaster] İyileşme: {d.DisasterId} ({d.CountryId}) {indicator} {cur:+#;-#} → {next:+#;-#} (kalan gün {d.DaysLeft}/{recoveryDays})");
+            }
+        }
     }
 
     private static bool IsRegionEligible(DisasterDefinition def, string region)

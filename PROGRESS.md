@@ -1151,4 +1151,26 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Yeni: `Data/disasters.json`, `Scripts/DisasterSystem.cs`
 - Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/ScenarioSystem.cs`
 
-**Sonraki adım:** M26.2 (Etkiler + iyileşme süreci).
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--disaster-test`: **SONUÇ: PASS ✓** — afetler ülke/bölge bazlı doğru şiddette ateşlendi.
+- `--save-load-test --scenario=historical_1936 --speed=0`: **SONUÇ: PASS ✓ (A == B)** — `Afetler: aktif=2, geçmiş_kayıt=6` hem summary A hem B'de aynı → afet kaydet/yükle deterministi onaylandı. Ateşlenen afetler: Storm (GBR), Flood (RUS), Earthquake (CHL ×2), Drought (ARG ×2), Epidemic (CHL ×2), Flood (CHN).
+
+**Dosyalar:**
+- Yeni: `Data/disasters.json`, `Scripts/DisasterSystem.cs`
+- Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/ScenarioSystem.cs`
+
+### M26.2: Afet Etkileri + İyileşme Süreci — ✅ DONE (2026-10-19)
+
+**Değişiklikler:**
+- `Scripts/DisasterSystem.cs` (güncellendi): `DailyTick`'e `RunRecovery()` eklendi. Her aktif afet, `StatisticsSystem` üzerinden sunduğu shock'ı `DurationDays` boyunca doğrusal olarak geri alır (günlük `1/DurationDays` oranında; negatif şok pozitif, pozitif şok negatif ile toplanır). Etki afet süresi dolunca tamamen toplanmış sayılır. Yeni JSON alanı yok, yeni Save/Load state yok (iyileşme zaten kaydedilen `_active` listesinden türetilir) → A==B determinizm bozulmaz.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--disaster-test`: **SONUÇ: PASS ✓** — afetler ateşlendi, etki kurulan her gün için "İyileşme" logu basıldı.
+- `--save-load-test --scenario=historical_1936 --speed=0`: **SONUÇ: PASS ✓ (A == B)** — iyileşme dahil tüm durum kaydedilir/yükler.
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/DisasterSystem.cs`
+
+**Sonraki adım:** M26.3 (Müdahale: acil yardım, uluslararası yardım, yeniden inşa, tahliye).

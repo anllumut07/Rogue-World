@@ -27,3 +27,6 @@ test-logs/
 *.log
 *.err
 DURUM-RAPORU.md
+
+# Headless test scratch outputs — never commit
+*_out*.txt

@@ -252,6 +252,16 @@ public partial class GameHud : CanvasLayer
         rightSection.AddChild(cabinetBtn);
         UITheme.AddHoverScale(cabinetBtn);
 
+        // ELECTION butonu (M23.1): seçim takvimi + oy tahmini paneli
+        var electionBtn = new Button { Text = "ELECTION", FocusMode = Control.FocusModeEnum.None, TooltipText = "Elections — calendar and vote prediction" };
+        electionBtn.Pressed += () =>
+        {
+            GD.Print("[GameHud] ELECTION butonu basıldı — ElectionPanel.OpenUnder çağrılıyor");
+            ElectionPanel.OpenUnder(this);
+        };
+        rightSection.AddChild(electionBtn);
+        UITheme.AddHoverScale(electionBtn);
+
         // NEXT EVENT butonu (M16.4): bekleyen bildirim varsa görünür
         _nextEventBtn = new Button
         {

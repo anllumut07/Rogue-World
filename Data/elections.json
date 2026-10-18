@@ -1,0 +1,15 @@
+{
+  "DefaultTermYears": 4,
+  "VotePredictionWeights": {
+    "gdp_growth": 2.0,
+    "budget_deficit": -1.0,
+    "public_debt": -0.1,
+    "inflation": -0.5,
+    "unemployment": -0.5,
+    "corruption": -0.3
+  },
+  "ScandalPenaltyPerScandal": 3.0,
+  "JitterRange": 5.0,
+  "MinVote": 0.0,
+  "MaxVote": 100.0
+}

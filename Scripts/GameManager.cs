@@ -100,6 +100,7 @@ public partial class GameManager : Node
         bool armyTest = false;            // M19: ordu hareketi, düşman teması durdurma, save/load kimlik
         bool parliamentTest = false;      // M22.3: partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum
         bool autoritarianTest = false;    // M22.4: parti kongresi + darbe riski
+        bool electionTest = false;        // M23.1: seçim takvimi + oy tahmini
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -153,6 +154,8 @@ public partial class GameManager : Node
                 parliamentTest = true;
             else if (arg == "--autoritarian-test")
                 autoritarianTest = true;
+            else if (arg == "--election-test")
+                electionTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -204,6 +207,9 @@ public partial class GameManager : Node
 
         // M22.4: Otoriter sistemler — parti kongresi ve darbe riski.
         AutoritarianSystem.LoadData();
+
+        // M23.1: Seçim takvimi ve oy tahmini.
+        ElectionSystem.LoadData();
 
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)
@@ -316,6 +322,8 @@ public partial class GameManager : Node
             RunParliamentTest();
         if (autoritarianTest)
             RunAutoritarianTest();
+        if (electionTest)
+            RunElectionTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -583,6 +591,9 @@ public partial class GameManager : Node
 
         // M22.4: Otoriter sistem-yeni oyun (kongre onayları ve darbe state'i sıfırlanır)
         AutoritarianSystem.ResetForNewGame();
+
+        // M23.1: Seçim takvimi-yeni oyun (son seçim günleri sıfırlanır)
+        ElectionSystem.ResetForNewGame();
 
         // M-Flags: bayrak önbelleği sıfırlanır (rapor yeni oyunda tekrar loglanır)
         FlagLibrary.ResetForNewGame();
@@ -1222,6 +1233,71 @@ public partial class GameManager : Node
                       && chnRisk >= 0 && chnRisk <= 100
                       && noCoupAtZero;
         GD.Print(result ? "[AutoritarianTest] SONUÇ: PASS ✓" : "[AutoritarianTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M23.1: Seçim sistemi headless testi — takvim hesaplama, oy tahmini ve Save/Load kimliği.
+    /// Normal oyunda ASLA çalışmaz (--election-test).
+    /// </summary>
+    private void RunElectionTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M23.1: SEÇİM SİSTEMİ TESTİ");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        // 1) Seçim takvimi: DEU (Parliamentary, dönem 4y) → ilk seçim gün 1460
+        long deuNext = ElectionSystem.GetNextElectionDay("DEU");
+        GD.Print($"[ElectionTest] DEU bir sonraki seçim: gün {deuNext} (beklenen 1460 = 4*365)");
+
+        // 2) CHN (OneParty) ve SAU (Monarchy) için seçim yok → 0
+        long chnNext = ElectionSystem.GetNextElectionDay("CHN");
+        long sauNext = ElectionSystem.GetNextElectionDay("SAU");
+        GD.Print($"[ElectionTest] CHN (tek parti) seçim: {chnNext} (beklenen 0)");
+        GD.Print($"[ElectionTest] SAU (monarşi) seçim: {sauNext} (beklenen 0)");
+
+        // 3) Seçim durumu: gün 0'da henüz seçim yok; gün 1460'da GEÇER
+        bool notDueAt0 = !ElectionSystem.IsElectionDue("DEU", 0);
+        bool dueAt1460 = ElectionSystem.IsElectionDue("DEU", 1460);
+        GD.Print($"[ElectionTest] DEU gün 0'da seçim var mı: {notDueAt0} (beklenen False)");
+        GD.Print($"[ElectionTest] DEU gün 1460'da seçim var mı: {dueAt1460} (beklenen True)");
+
+        // 4) Seçim işaretle → sonraki dönem gün 2920
+        ElectionSystem.MarkElectionHeld("DEU", 1460);
+        long afterMark = ElectionSystem.GetNextElectionDay("DEU");
+        GD.Print($"[ElectionTest] DEU seçim sonrası sonraki dönem: {afterMark} (beklenen 2920)");
+
+        // 5) Oy tahmini: oyuncu ülkesinde hesaplanmalı, 0-100 arası
+        var pred = ElectionSystem.GetVotePrediction(GameManager.Instance.PlayerCountryId, GameManager.Instance.TotalDays);
+        GD.Print($"[ElectionTest] {pred.CountryName} oy tahmini: %{pred.PredictedVote:F1} (0-100 aralıklı olmalı)");
+        GD.Print($"[ElectionTest]   Taban memnuniyet: %{pred.BaseSatisfaction:F1}");
+        GD.Print($"[ElectionTest]   Gün sonra: {pred.DaysUntilElection}, seçim var mı: {pred.ElectionDue}");
+        GD.Print($"[ElectionTest]   Hükümet tipi: {pred.GovernmentType}, dönem: {pred.TermLengthYears}yıl");
+
+        // 6) Tüm ülkeler için tahmin
+        int allCount = ElectionSystem.GetAllVotePredictions(GameManager.Instance.TotalDays).Count();
+        GD.Print($"[ElectionTest] Tüm ülke tahmin sayısı: {allCount}");
+
+        // 7) Save/Load kimliği
+        var save = ElectionSystem.GetSaveData();
+        int saveCountries = save.Countries?.Length ?? 0;
+        GD.Print($"[ElectionTest] Save kayıt sayısı: {saveCountries}");
+        ElectionSystem.LoadSaveData(save);
+        long reloadNext = ElectionSystem.GetNextElectionDay("DEU");
+        bool saveLoadId = reloadNext == 2920;
+        GD.Print($"[ElectionTest] Save/Load sonrası DEU bir sonraki seçim: {reloadNext} (beklenen 2920, eşleşiyor: {saveLoadId})");
+
+        bool result = deuNext == 1460
+                      && chnNext == 0 && sauNext == 0
+                      && notDueAt0 && dueAt1460
+                      && afterMark == 2920
+                      && pred.PredictedVote >= 0 && pred.PredictedVote <= 100
+                      && allCount == CountryDatabase.All().Count(c => c != null)
+                      && saveLoadId;
+        GD.Print(result ? "[ElectionTest] SONUÇ: PASS ✓" : "[ElectionTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
     }
 }

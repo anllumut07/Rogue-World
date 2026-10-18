@@ -75,6 +75,7 @@ public static class SaveSystem
         public LawSystem.LawSave Law { get; set; } // M22.2: aktif yasalar ve birikmiş etkilere göre indirimler
         public ParliamentSystem.ParliamentSave Parliament { get; set; } // M22.3: partiler, sandalye, veto, koalisyon, referandum
         public AutoritarianSystem.AutoritarianSave Autoritarian { get; set; } // M22.4: parti kongresi ve darbe riski
+        public ElectionSystem.ElectionSave Election { get; set; } // M23.1: seçim takvimi (son seçim günü)
     }
 
     // ===== Economy DTOs =====
@@ -382,6 +383,7 @@ public static class SaveSystem
             Law = LawSystem.GetSaveData(), // M22.2: aktif yasalar ve birikmiş etkilere göre indirimler
             Parliament = ParliamentSystem.GetSaveData(), // M22.3: partiler, sandalye, veto, koalisyon, referandum
             Autoritarian = AutoritarianSystem.GetSaveData(), // M22.4: parti Kongresi ve darbe riski
+            Election = ElectionSystem.GetSaveData(), // M23.1: seçim takvimi
         };
 
         EnsureSavesDir();
@@ -509,6 +511,7 @@ public static class SaveSystem
             LawSystem.LoadSaveData(save.Law); // M22.2: aktif yasalar ve birikmiş etkilere göre indirimler
             ParliamentSystem.LoadSaveData(save.Parliament); // M22.3: partiler, sandalye, veto, koalisyon, referandum
             AutoritarianSystem.LoadSaveData(save.Autoritarian); // M22.4: parti Kongresi ve darbe riski
+            ElectionSystem.LoadSaveData(save.Election); // M23.1: seçim takvimi
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

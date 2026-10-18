@@ -281,6 +281,12 @@ public static class SaveLoadTest
         var autoritarianSave = AutoritarianSystem.GetSaveData();
         sb.AppendLine($"Otoriter: kongre_onayli={autoritarianSave.ApprovedProposals?.Length ?? 0}, darbe={autoritarianSave.CoupAttempts}, son_risk=%{autoritarianSave.LastCoupRiskPercent:F1}");
 
+        // --- M23.1: Seçim takvimi ---
+        var electionSave = ElectionSystem.GetSaveData();
+        int electionCountries = electionSave?.Countries?.Length ?? 0;
+        long nextElection = electionSave?.Countries?.FirstOrDefault(c => c.CountryId == gm.PlayerCountryId)?.LastElectionDay ?? 0;
+        sb.AppendLine($"Seçim: ülke={electionCountries}, oyuncu_son_seçim_gün={nextElection}");
+
 // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");

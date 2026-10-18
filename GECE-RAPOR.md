@@ -271,9 +271,16 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 
 **Düzeltme:** `--scenario-test` önceki sürümünde `GetTree().Quit(0)` sabitlenmiş ve gerçek assert yoktu. `RunScenarioTest()` yeniden yazıldı: modern_world (50 ülke / >=1 odak-10 fokus / 0 olay / 0 karar / >0 tech / 50 kütüphane / 0 CB / 0 iddiâ) ve historical_1936 (50 ülke / 8 odak-73 fokus / 0 olay / 0 karar / 73 tech / 50 kütüphane / 0 CB / 0 iddiâ) için gerçek assertler eklendi, eşleşmezlikte `Quit(1)`. `sonucu PASS` ✓.
 
-## M24.2 — Nitelikler ve özellikler (yeni)
-- 7 nitelik: Diplomacy, Administration, Intelligence, Charisma, Military, Economy, Law
-- Traits: List<string> (ör. dürüst, yetenekli, karizmatik vb.)
-- Karakterlere nitelik atanması, etkileri (statistik/dekont/olay üzerinden), Save/Load entegrasyonu
-- DeterministicRNG kullanılır (new Random() yok)
+## M24.2 — ✅ DONE (2026-10-18)
+- `Scripts/GameManager.cs`: `ApplyCharacterEffects()` eklendi (DailyTick'te CabinetSystem.ApplyMinisterEffects'ten sonra çağrılır) — oyuncu karakterinin 7 niteliği ilgili istatistik göstergelerini düşük, deterministik olarak etkiler:
+  - Administration → corruption (daha yüksek = daha az yolsuzluk)
+  - Intelligence → education
+  - Economy → gdp_growth (+), budget_deficit (−)
+  - Law → judicial_independence (+), crime_rate (−)
+  - Pattern: delta = (attribute − 50) / 5000.0, `StatisticsSystem.SetValue` ile clamp [Min,Max]
+- `Character.cs` (M24.1'den kalan): 7 nitelik (Diplomacy/Administration/Intelligence/Charisma/Military/Economy/Law) + Traits List<string> zaten mevcut; GenerateRandom seed'li atama, Background köken bonusu, Save/Load CharacterSave DTO ile kayıtlı.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test historical_1936`: **PASS ✓ (A == B)** — karakter etkisiyle birlikte determinizm bozulmadı.
+- `--save-load-test modern_world`: **PASS ✓ (A == B)**.
+- `--character-test`: **PASS ✓** — aynı seed → aynı karakter, farklı seed → farklı, Save/Load dönüşüm A==B, SetCharacter/HasCharacter.
 

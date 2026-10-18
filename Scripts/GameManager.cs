@@ -454,6 +454,9 @@ public partial class GameManager : Node
         // M21.3: atanan bakanların nitelikleri ilgili göstergeleri etkiler (son söz, deterministik)
         if (HasPlayer) CabinetSystem.ApplyMinisterEffects(PlayerCountryId);
 
+        // M24.2: oyuncu karakterinin 7 niteliği ilgili göstergeleri etkiler (düşük, deterministik)
+        if (HasPlayer) ApplyCharacterEffects();
+
         // M21.4: skandal, istifa, koalisyon baskısı, başarısızlık uyarısı denetimi
         if (HasPlayer) CabinetSystem.CheckCabinetEvents(PlayerCountryId);
 
@@ -474,6 +477,37 @@ public partial class GameManager : Node
             SaveSystem.AutoSave();
 
         EmitSignal(SignalName.PlayerCountryDataChanged);
+    }
+
+    // M24.2: Oyuncu karakterinin 7 niteliği ilgili istatistik göstergelerini düşük,
+    // deterministik olarak etkiler (günlük). CabinetSystem.ApplyMinisterEffects ile aynı pattern.
+    private void ApplyCharacterEffects()
+    {
+        if (PlayerCharacter == null) return;
+
+        var c = PlayerCharacter;
+        int applied = 0;
+
+        // Yönetim → yolsuzluk (daha iyi yönetim = daha az yolsuzluk)
+        ApplyCharStat("corruption", -(c.Administration - 50.0) / 5000.0, ref applied);
+        // İstihbarat → eğitim
+        ApplyCharStat("education", (c.Intelligence - 50.0) / 5000.0, ref applied);
+        // Ekonomi → GSYİH büyümesi + bütçe açığı (daha iyi ekonomi = daha fazla büyüme, daha az açık)
+        ApplyCharStat("gdp_growth", (c.Economy - 50.0) / 5000.0, ref applied);
+        ApplyCharStat("budget_deficit", -(c.Economy - 50.0) / 5000.0, ref applied);
+        // Hukuk → yargı bağımsızlığı + suç oranı (daha iyi hukuk = daha fazla bağımsızlık, daha az suç)
+        ApplyCharStat("judicial_independence", (c.Law - 50.0) / 5000.0, ref applied);
+        ApplyCharStat("crime_rate", -(c.Law - 50.0) / 5000.0, ref applied);
+
+        GD.Print($"[CharacterEffects] {c.FullName} nitelik-etkisi: {applied} gösterge güncellendi.");
+    }
+
+    private void ApplyCharStat(string indicatorId, double delta, ref int applied)
+    {
+        if (string.IsNullOrEmpty(indicatorId)) return;
+        double current = StatisticsSystem.GetValue(PlayerCountryId, indicatorId);
+        StatisticsSystem.SetValue(PlayerCountryId, indicatorId, current + delta);
+        applied++;
     }
 
     public string GetDateText()

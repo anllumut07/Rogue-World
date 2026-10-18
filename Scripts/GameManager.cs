@@ -106,6 +106,7 @@ public partial class GameManager : Node
         bool parliamentTest = false;      // M22.3: partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum
         bool autoritarianTest = false;    // M22.4: parti kongresi + darbe riski
         bool electionTest = false;        // M23.1: seçim takvimi + oy tahmini
+        bool characterTest = false;       // M24.1: karakter oluşturma + Save/Load determinizm
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -161,6 +162,8 @@ public partial class GameManager : Node
                 autoritarianTest = true;
             else if (arg == "--election-test")
                 electionTest = true;
+            else if (arg == "--character-test")
+                characterTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -335,6 +338,8 @@ public partial class GameManager : Node
             RunAutoritarianTest();
         if (electionTest)
             RunElectionTest();
+        if (characterTest)
+            RunCharacterTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -796,11 +801,13 @@ public partial class GameManager : Node
         GD.Print($"[WarSim] SONUÇ: en yüksek eş zamanlı savaşta AI = {maxAtWar}/{aiCountryCount} (%{maxAtWarPercent:F1}) — gün {maxAtWarDay}");
         GD.Print($"[WarSim] En yüksek eş zamanlı savaş sayısı = {maxWars}");
         GD.Print($"[WarSim] Hedef: %{_aiWarSimTargetPercent} altı");
-        if (maxAtWarPercent <= _aiWarSimTargetPercent)
+        bool warSimPass = maxAtWarPercent <= _aiWarSimTargetPercent;
+        if (warSimPass)
             GD.Print("[WarSim] HEDEF BAŞARILI ✓");
         else
             GD.Print("[WarSim] HEDEF AŞILDI ✗ — gerekçe şansı daha da düşürülmeli");
         GD.Print("=========================================");
+        GetTree().Quit(warSimPass ? 0 : 1);
     }
 
     // JOB1 hedefi: AI ülkelerinin ~%10'undan fazlası aynı anda savaşta olmamalı
@@ -856,12 +863,13 @@ public partial class GameManager : Node
                     && PlayerCountryData.StabilityPercent >= staBefore + 2
                     && PlayerCountryData.WarSupportPercent >= wsBefore + 1;
         GD.Print(pass ? "[AgendaTest] SONUÇ: PASS ✓" : "[AgendaTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");
     }
 
     /// <summary>
-    /// M17.1: Senaryo yükleme testi — her iki senaryo için veri yükleyici sayılarını loglar.
-    /// Normal oyunda asla çalışmaz (--scenario-test).
+    /// M17.1: Senaryo yükleme testi — her iki senaryo için veri yükleyici sayılarını
+    /// gerçek assertlerle doğrular. Normal oyunda asla çalışmaz (--scenario-test).
     /// </summary>
     private void RunScenarioTest()
     {
@@ -869,12 +877,54 @@ public partial class GameManager : Node
         GD.Print("  M17.1: SENARYO YÜKLEME TESTİ");
         GD.Print("=========================================");
 
-        // ScenarioSystem'in iç metodunu çağır (her senaryo için loader sayılarını loglar)
-        ScenarioSystem.LogLoadCountsForAll();
+        var all = ScenarioSystem.All;
+        bool result = all.Count >= 2;
 
+        foreach (var s in all)
+        {
+            ScenarioSystem.SetActive(s.Id);
+
+            int c = CountryDatabase.All().Count();
+            int fTrees = FocusSystem.Trees.Count;
+            int fFocuses = FocusSystem.Trees.Values.Sum(t => t.Focuses.Count);
+            int e = EventSystem.AllEvents.Count;
+            int d = DecisionSystem.AllDecisions.Count;
+            int t = TechnologySystem.All.Count;
+            int lib = LibrarySystem.TextEntryCount;
+            int cbTypes = CasusBelliSystem.TypesCount;
+            int cbClaims = CasusBelliSystem.ClaimsCount;
+            int leaders = LeaderSystem.LoadedCount;
+
+            GD.Print($"  [{s.Id}] Ülke:{c}, Odak:{fTrees}/{fFocuses}, Olay:{e}, Karar:{d}, Tech:{t}, Kütüphane:{lib}, CB:{cbTypes}/{cbClaims}, Lider:{leaders}");
+
+            bool ok;
+            if (s.Id == "modern_world")
+            {
+                // Modern dünya: GENERIC odak ağacı (1 ağaç / 10 fokus), modern teknik taban (54 tech),
+                // 50 ülke + 50 kütüphane girişi, olay/karar/gerekçe/lider yüklemesi talebe göre (lazy) olur.
+                ok = c == 50 && fTrees >= 1 && fFocuses >= 10 && e == 0 && d == 0
+                     && t > 0 && lib == 50 && cbTypes == 0 && cbClaims == 0;
+                GD.Print($"     modern_world assert: {ok} (50 ülke / >=1 odak agaci / >=10 fokus / 0 olay / 0 karar / >0 tech / 50 kutuphane / 0 CB / 0 iddiâ)");
+            }
+            else if (s.Id == "historical_1936")
+            {
+                // Tarihi 1936: 8 odak agaci / 73 fokus, 73 tech, 50 ülke + 50 kütüphane girişi.
+                ok = c == 50 && fTrees == 8 && fFocuses == 73 && e == 0 && d == 0
+                     && t == 73 && lib == 50 && cbTypes == 0 && cbClaims == 0;
+                GD.Print($"     historical_1936 assert: {ok} (50 ulke / 8 odak-73 fokus / 0 olay / 0 karar / 73 tech / 50 kutuphane / 0 CB / 0 iddiâ)");
+            }
+            else
+            {
+                ok = c > 0; // bilinmeyen senaryo: yalnızca ülke yüklü olsun
+                GD.Print($"     [{s.Id}] bilinmeyen senaryo — yalnızca ülke>0 kontrolü: {ok}");
+            }
+
+            result = result && ok;
+        }
+
+        GD.Print(result ? "[ScenarioTest] SONUÇ: PASS ✓" : "[ScenarioTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
-        GD.Print("[ScenarioTest] Tamamlandı — logları inceleyin");
-        GD.Print("=========================================");
+        GetTree().Quit(result ? 0 : 1);
     }
 
     /// <summary>
@@ -933,6 +983,7 @@ public partial class GameManager : Node
 
         bool pass = ok && ministerAfter == Math.Clamp(ministerBefore + 2, 0, 100);
         GD.Print(pass ? "[CabinetMeetingTest] SONUÇ: PASS ✓" : "[CabinetMeetingTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");
     }
 
@@ -963,6 +1014,7 @@ public partial class GameManager : Node
         }
         bool result = pass == count;
         GD.Print(result ? "[ConstitutionTest] SONUÇ: PASS ✓" : $"[ConstitutionTest] SONUÇ: FAIL ✗ ({pass}/{count})");
+        GetTree().Quit(result ? 0 : 1);
         GD.Print("=========================================");
     }
 
@@ -1026,6 +1078,7 @@ public partial class GameManager : Node
                     && Math.Abs(gdpAfterRepeal) < 0.001
                     && activeCount == 1 && activeAfter == 0;
         GD.Print(pass ? "[LawsTest] SONUÇ: PASS ✓" : "[LawsTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");
     }
 
@@ -1086,6 +1139,7 @@ public partial class GameManager : Node
 
         bool result = sameCount && sameIds && symmetric && unowned == 0;
         GD.Print(result ? "[ProvinceTest] SONUÇ: PASS ✓" : "[ProvinceTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(result ? 0 : 1);
         GD.Print("=========================================");
     }
 
@@ -1163,6 +1217,7 @@ public partial class GameManager : Node
             && armyCountBefore > 0 && divCountBefore > 0
             && armyIdentity;
         GD.Print(result ? "[ArmyTest] SONUÇ: PASS ✓" : "[ArmyTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(result ? 0 : 1);
         GD.Print("=========================================");
     }
 
@@ -1364,6 +1419,61 @@ public partial class GameManager : Node
                       && remainingPromises.Count == 0
                       && saveLoadId && resultsLoaded;
         GD.Print(result ? "[ElectionTest] SONUÇ: PASS ✓" : "[ElectionTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(result ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M24.1: Karakter oluşturma + Save/Load determinizm testi (--character-test).
+    /// Aynı tohum → aynı karakter; Save/Load dönüşümü karakteri korur.
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunCharacterTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M24.1: KARAKTER OLUŞTURMA TESTİ");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        ulong seed = 0xC0FFEE12345678UL;
+
+        // 1) Aynı tohumla iki kez üret → aynı karakter çıkmalı (determinizm)
+        var c1 = Character.GenerateRandom("DEU", "germanic", seed);
+        var c2 = Character.GenerateRandom("DEU", "germanic", seed);
+        bool sameSeedSameChar =
+            c1.FirstName == c2.FirstName && c1.LastName == c2.LastName &&
+            c1.Age == c2.Age && c1.Gender == c2.Gender &&
+            c1.Diplomacy == c2.Diplomacy && c1.Administration == c2.Administration &&
+            c1.Intelligence == c2.Intelligence && c1.Charisma == c2.Charisma &&
+            c1.Military == c2.Military && c1.Economy == c2.Economy && c1.Law == c2.Law &&
+            c1.Background == c2.Background &&
+            c1.SkinTone == c2.SkinTone && c1.HairColor == c2.HairColor && c1.ClothingStyle == c2.ClothingStyle;
+        GD.Print($"[CharacterTest] Aynı tohum → aynı isim: {c1.FullName} == {c2.FullName}: {sameSeedSameChar}");
+
+        // 2) Farklı tohum → farklı karakter (genellikle)
+        var c3 = Character.GenerateRandom("DEU", "germanic", seed + 1);
+        bool diffSeedDiffChar = c1.Id != c3.Id || c1.FirstName != c3.FirstName || c1.Age != c3.Age;
+        GD.Print($"[CharacterTest] Farklı tohum → farklı karakter: {diffSeedDiffChar} ({c1.FullName} vs {c3.FullName})");
+
+        // 3) Save/Load dönüşüm karakterini korumalıdır (CharacterSaveFrom → CharacterSaveTo)
+        var save = SaveSystem.CharacterSaveFrom(c1);
+        var loaded = SaveSystem.CharacterSaveTo(save);
+        bool saveLoadSame =
+            loaded != null &&
+            loaded.Id == c1.Id && loaded.FirstName == c1.FirstName && loaded.LastName == c1.LastName &&
+            loaded.Age == c1.Age && loaded.Diplomacy == c1.Diplomacy &&
+            loaded.Traits != null && loaded.Traits.SequenceEqual(c1.Traits);
+        GD.Print($"[CharacterTest] Save/Load dönüşüm: {loaded?.FullName ?? "null"} == {c1.FullName}: {saveLoadSame}");
+
+        // 4) GameManager.SetCharacter ile karakter atanabilir
+        GameManager.Instance.SetCharacter(c1);
+        bool hasChar = GameManager.Instance.HasCharacter && GameManager.Instance.PlayerCharacter.Id == c1.Id;
+        GD.Print($"[CharacterTest] SetCharacter/HasCharacter: {hasChar} ({GameManager.Instance.PlayerCharacter?.FullName ?? "null"})");
+
+        bool result = sameSeedSameChar && diffSeedDiffChar && saveLoadSame && hasChar;
+        GD.Print(result ? "[CharacterTest] SONUÇ: PASS ✓" : "[CharacterTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(result ? 0 : 1);
     }

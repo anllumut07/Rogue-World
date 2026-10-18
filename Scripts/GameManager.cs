@@ -479,7 +479,15 @@ public partial class GameManager : Node
 
         // M12: Ocak 1'de otomatik kayıt (yeni yılın ilk günü)
         if (CurrentDate.Month == 1 && CurrentDate.Day == 1)
+        {
             SaveSystem.AutoSave();
+            // M24.4: Karakter her oyun yılında 1 yaşlanır (deterministik).
+            if (HasCharacter)
+            {
+                PlayerCharacter.Age += 1;
+                GD.Print($"[M24.4] {PlayerCharacter.FullName} yaşlandı: {PlayerCharacter.Age}");
+            }
+        }
 
         EmitSignal(SignalName.PlayerCountryDataChanged);
     }

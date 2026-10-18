@@ -34,6 +34,10 @@ public partial class Character
 
     public string FullName => $"{FirstName} {LastName}".Trim();
 
+    // M24.4: Temel aile / halefiyet (basit)
+    public string SpouseId { get; set; } = "";
+    public bool IsMarried { get; set; }
+
     public static readonly string[] Backgrounds = { "military", "law", "business", "academic", "activist" };
     public static readonly string[] Genders = { "Male", "Female", "Other" };
 

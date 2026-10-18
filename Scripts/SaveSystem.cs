@@ -304,6 +304,8 @@ public static class SaveSystem
         public string HairColor { get; set; }
         public string ClothingStyle { get; set; }
         public int Health { get; set; }
+        public string SpouseId { get; set; } = "";
+        public bool IsMarried { get; set; }
     }
 
     // ===== Yardımcı: Dosya yolları =====
@@ -601,6 +603,8 @@ public static class SaveSystem
             HairColor = c.HairColor,
             ClothingStyle = c.ClothingStyle,
             Health = c.Health,
+            SpouseId = c.SpouseId,
+            IsMarried = c.IsMarried,
         };
     }
 
@@ -629,6 +633,8 @@ public static class SaveSystem
             HairColor = s.HairColor,
             ClothingStyle = s.ClothingStyle,
             Health = s.Health,
+            SpouseId = s.SpouseId ?? "",
+            IsMarried = s.IsMarried,
         };
     }
 

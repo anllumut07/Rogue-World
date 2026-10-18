@@ -289,3 +289,12 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 - `Scripts/Game.cs`: `OnPlayerCountryLockedForCharacter` artık önce `ShowStartPathChoice()` gösterir — iki butonlu seçim (Start as Leader Sandbox / Start Career Path); her iki yol da `CharacterCreationPanel.OpenUnder` → `SetCharacter` ile oyun başlar; `GameManager.Instance.SetStartPath()` seçimi kaydeder (M25 carrière sistemi bu bayrağı kullanır).
 - `dotnet build`: 0 hata / 0 uyarı.
 
+## M24.4 — ✅ DONE (2026-10-18)
+- `Scripts/GameManager.cs`: DailyTick'te Ocak 1'de `PlayerCharacter.Age += 1` (deterministik yıllık yaşlanma), loglanır.
+- `Scripts/Character.cs`: `SpouseId` (string) + `IsMarried` (bool) eklendi (basit aile/halefiyet).
+- `Scripts/SaveSystem.cs`: `CharacterSave` DTO + `CharacterSaveFrom`/`CharacterSaveTo` güncellendi (`SpouseId`, `IsMarried` dahil); WriteSave/LoadGameInternal zaten karakter bağlamı yapıyor.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test historical_1936`: **PASS ✓ (A == B)**.
+- `--save-load-test modern_world`: **PASS ✓ (A == B)**.
+- `--character-test`: **PASS ✓** — Save/Load dönüşüm A==B (yaş, sağlık, aile alanları dahil).
+

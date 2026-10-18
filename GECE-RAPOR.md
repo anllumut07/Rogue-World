@@ -223,5 +223,11 @@
 - M16: Ajanda efektleri (MinisterLoyaltyBonus vb.) ilgili sistemlere bağlı değil — loglanıyor.
 - M21.5: headless `--cabinet-meeting-test` çalıştırıldı ve PASS. Godot editörü gerek kalmadı.
 
+## M23.4 — ✅ DONE (2026-10-18)
+- `Scripts/PoliticalUnrestSystem.cs` (yeni): protesto, grev, güven oylaması, erken seçim, darbe girişimi — düşük memnuniyet/stabilitede tetiklenir, deterministik, Save/Load entegrasyonu.
+- `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`: DailyTick entegrasyonu, SaveFile.PoliticalUnrest alanı, SaveLoadTest HalkRefahı özeti.
+- `dotnet build`: 0 hata / 0 uyarı. `--save-load-test` A==B PASS.
+- Commit 8d1939f + `git push origin gece-calisma` (tree temiz).
+
 ## Sonraki adım
-- M23.4 Protesto, grev, güven oylaması, erken seçim, darbe girişimi.
+- M24.1 Karakter ekranı (ad, yaş, cinsiyet, kültür, görünüm, köken).

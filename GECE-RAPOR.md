@@ -284,3 +284,8 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 - `--save-load-test modern_world`: **PASS ✓ (A == B)**.
 - `--character-test`: **PASS ✓** — aynı seed → aynı karakter, farklı seed → farklı, Save/Load dönüşüm A==B, SetCharacter/HasCharacter.
 
+## M24.3 — ✅ DONE (2026-10-18)
+- `Scripts/GameManager.cs`: `StartPath` enum (Sandbox/Career) + `PlayerStartPath` property + `SetStartPath()`.
+- `Scripts/Game.cs`: `OnPlayerCountryLockedForCharacter` artık önce `ShowStartPathChoice()` gösterir — iki butonlu seçim (Start as Leader Sandbox / Start Career Path); her iki yol da `CharacterCreationPanel.OpenUnder` → `SetCharacter` ile oyun başlar; `GameManager.Instance.SetStartPath()` seçimi kaydeder (M25 carrière sistemi bu bayrağı kullanır).
+- `dotnet build`: 0 hata / 0 uyarı.
+

@@ -341,7 +341,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 |-----------|----------|--------------|
 | 24.1 | Karakter ekranı: ad, yaş, cinsiyet, doğum ülkesi/kültürü, **görünüm** (katmanlı prosedürel portre: yüz, saç, renkler, kıyafet), kökeni (asker, hukukçu, iş insanı, akademisyen, aktivist). | Karakter oluşturulur, portre görünür |
 | 24.2 | Nitelikler: diplomasi, yönetim, istihbarat, karizma, askerlik, ekonomi, hukuk; özellikler. | Nitelikler kayıtlı ve görünür | [x] Bitti — 7 nitelik + Traits mevcut (Character.cs), GameManager.ApplyCharacterEffects() DailyTick'te göstergelere etkiler, Save/Load CharacterSave ile kayıtlı, dotnet build 0/0, --save-load-test A==B PASS |
-| 24.3 | Oyun akışı: ülke seçimi → karakter → (seçenek) "kariyerle başla" ya da "doğrudan lider ol (sandbox)". | İki başlangıç yolu çalışır |
+| 24.3 | Oyun akışı: ülke seçimi → karakter → (seçenek) "kariyerle başla" ya da "doğrudan lider ol (sandbox)". | İki başlangıç yolu çalışır | [x] Bitti — GameManager.StartPath enum (Sandbox/Career) + PlayerStartPath, Game.cs ShowStartPathChoice() iki-butonlu seçim, her iki yol da CharacterCreationPanel → SetCharacter, dotnet build 0/0 |
 | 24.4 | Karakter kayıt/yükleme, yaşlanma, sağlık, aile, halefiyet (basit). | Karakter yaşlanır, kaydedilir |
 
 ---

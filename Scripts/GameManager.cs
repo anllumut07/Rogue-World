@@ -43,6 +43,11 @@ public partial class GameManager : Node
     public Character PlayerCharacter { get; private set; }
     public bool HasCharacter => PlayerCharacter != null;
 
+    // M24.3: Başlangıç yolu — Sandbox (doğrudan lider olarak başla) veya Career (kariyer/educasyon, M25).
+    public enum StartPath { Sandbox, Career }
+    public StartPath PlayerStartPath { get; private set; } = StartPath.Sandbox;
+    public void SetStartPath(StartPath path) => PlayerStartPath = path;
+
     // Oyuncu ülkesi kilidi: bir kez seçilince oyun sürerken değiştirilemez.
     // Yalnızca yeni oyun başlatınca ResetForNewGame() temizler.
     // Kilit tek bu property'de durur → ileride Save/Load buradan okur/yazar.

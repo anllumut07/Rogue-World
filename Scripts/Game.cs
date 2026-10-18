@@ -156,8 +156,61 @@ public partial class Game : Control
         if (GameManager.IsAvailable && GameManager.Instance.IsPlayerCountryLocked && !GameManager.Instance.HasCharacter)
         {
             GameManager.Instance.PlayerCountryChanged -= OnPlayerCountryLockedForCharacter;
-            CharacterCreationPanel.OpenUnder(this, OnCharacterConfirmed);
+            // M24.3: Başlangıç yolu seçimi (Sandbox / Career) önce karakter paneline gelmeden önce.
+            ShowStartPathChoice();
         }
+    }
+
+    // M24.3: Başlangıç yolu seçimi — Sandbox (doğrudan lider) veya Career (kariyer yolu, M25).
+    // Her iki yol da karakter oluşturma panele kadar gider; sadece GameManager.PlayerStartPath farklıdır.
+    private void ShowStartPathChoice()
+    {
+        var choice = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
+        choice.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+
+        var backdrop = new ColorRect { Color = new Color(0, 0, 0, 0.5f) };
+        backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        backdrop.MouseFilter = Control.MouseFilterEnum.Stop;
+        choice.AddChild(backdrop);
+
+        var panel = new PanelContainer { CustomMinimumSize = new Vector2(600, 320), MouseFilter = Control.MouseFilterEnum.Stop };
+        panel.SetAnchorsPreset(Control.LayoutPreset.Center);
+        UITheme.ApplyTheme(panel);
+        choice.AddChild(panel);
+
+        var vbox = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        vbox.AddThemeConstantOverride("separation", 16);
+        vbox.AddThemeConstantOverride("margin_top", 24);
+        vbox.AddThemeConstantOverride("margin_bottom", 24);
+        vbox.AddThemeConstantOverride("margin_left", 32);
+        vbox.AddThemeConstantOverride("margin_right", 32);
+        panel.AddChild(vbox);
+
+        var title = new Label { Text = "STARTING PATH", HorizontalAlignment = HorizontalAlignment.Center };
+        title.AddThemeFontSizeOverride("font_size", 22);
+        vbox.AddChild(title);
+
+        var btnSandbox = new Button { Text = "Start as Leader (Sandbox)", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        btnSandbox.Pressed += () =>
+        {
+            GameManager.Instance.SetStartPath(GameManager.StartPath.Sandbox);
+            choice.QueueFree();
+            CharacterCreationPanel.OpenUnder(this, OnCharacterConfirmed);
+        };
+        UITheme.AddHoverScale(btnSandbox);
+        vbox.AddChild(btnSandbox);
+
+        var btnCareer = new Button { Text = "Start Career Path", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        btnCareer.Pressed += () =>
+        {
+            GameManager.Instance.SetStartPath(GameManager.StartPath.Career);
+            choice.QueueFree();
+            CharacterCreationPanel.OpenUnder(this, OnCharacterConfirmed);
+        };
+        UITheme.AddHoverScale(btnCareer);
+        vbox.AddChild(btnCareer);
+
+        AddChild(choice);
     }
 
     private void OnCharacterConfirmed(Character character)

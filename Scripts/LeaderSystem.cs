@@ -273,6 +273,21 @@ public static class LeaderSystem
         return _leaders.GetValueOrDefault(countryId);
     }
 
+    // M23.3: Seçim kaybı sonrası yeni (farklı, deterministik) lider üretir.
+    // Seed'e seçim günü dahil edilir → aynı ülke ve aynı günde tekrar çağrıldığında aynı lider çıkar.
+    public static Leader RegenerateLeader(string countryId, long electionDay)
+    {
+        EnsureLoaded();
+        var current = _leaders.GetValueOrDefault(countryId);
+        if (current == null) return GetLeader(countryId);
+
+        ulong seed = HashSeed($"{ScenarioSystem.ActiveId}:{countryId}:{electionDay}");
+        var leader = GenerateLeader(countryId, current.Ideology, current.RegimeType, false, 0, seed);
+        _leaders[countryId] = leader;
+        GD.Print($"[LeaderSystem] {countryId}: yeni lider seçildi (gün {electionDay}): {leader.FullName}");
+        return leader;
+    }
+
     // ===== M17.1: Senaryo değişikliği =====
 
     public static void ResetForScenario()
@@ -469,9 +484,9 @@ public static class LeaderSystem
         }
     }
 
-    private static Leader GenerateLeader(string countryId, string ideology, string regimeType, bool nuclearPower, double gdpBillion)
+    private static Leader GenerateLeader(string countryId, string ideology, string regimeType, bool nuclearPower, double gdpBillion, ulong? seedOverride = null)
     {
-        var rng = new LocalRng(HashSeed($"{ScenarioSystem.ActiveId}:{countryId}"));
+        var rng = new LocalRng(seedOverride ?? HashSeed($"{ScenarioSystem.ActiveId}:{countryId}"));
 
         ideology = string.IsNullOrEmpty(ideology) ? "Neutral" : ideology;
         regimeType = string.IsNullOrEmpty(regimeType) ? IdeologyToRegime(ideology) : regimeType;

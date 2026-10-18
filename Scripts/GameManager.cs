@@ -450,6 +450,9 @@ public partial class GameManager : Node
         // M16: Zaman ve Tempo — ajanda ilerlemesi, hafta reset, aylık rapor
         TimeTempoSystem.DailyTick(this);
 
+        // M23.3: Seçim günü — oyuncu ülkesinde seçim sonucu çözümlenir (kazanma/kaybetme, lider değişikliği, yeni kabine)
+        if (HasPlayer) ElectionSystem.ResolveElection(PlayerCountryId, TotalDays);
+
         // M12: Ocak 1'de otomatik kayıt (yeni yılın ilk günü)
         if (CurrentDate.Month == 1 && CurrentDate.Day == 1)
             SaveSystem.AutoSave();
@@ -1243,13 +1246,13 @@ public partial class GameManager : Node
     }
 
     /// <summary>
-    /// M23.1: Seçim sistemi headless testi — takvim hesaplama, oy tahmini ve Save/Load kimliği.
+    /// M23.3: Seçim sistemi headless testi — takvim, oy tahmini, seçim çözümü (kazanma/kaybetme, lider değişikliği, yeni kabine) ve Save/Load kimliği.
     /// Normal oyunda ASLA çalışmaz (--election-test).
     /// </summary>
     private void RunElectionTest()
     {
         GD.Print("=========================================");
-        GD.Print("  M23.1: SEÇİM SİSTEMİ TESTİ");
+        GD.Print("  M23.3: SEÇİM SİSTEMİ TESTİ (kazanma/kaybetme, lider değişikliği)");
         GD.Print("=========================================");
 
         if (!HasPlayer) SetPlayerCountry("GER");
@@ -1271,10 +1274,24 @@ public partial class GameManager : Node
         GD.Print($"[ElectionTest] DEU gün 0'da seçim var mı: {notDueAt0} (beklenen False)");
         GD.Print($"[ElectionTest] DEU gün 1460'da seçim var mı: {dueAt1460} (beklenen True)");
 
-        // 4) Seçim işaretle → sonraki dönem gün 2920
-        ElectionSystem.MarkElectionHeld("DEU", 1460);
-        long afterMark = ElectionSystem.GetNextElectionDay("DEU");
-        GD.Print($"[ElectionTest] DEU seçim sonrası sonraki dönem: {afterMark} (beklenen 2920)");
+        // 4) (M23.3) Seçim çözümlemesi: 1940-01-02 (gün ~1462)'ta DEU için seçim geçer.
+        //    Son seçim günü henüz 0 (ilk dönem doldu) → seçim due. Kazanınca iktidar korunur,
+        //    kaybetse lider değişir ve yeni kabine dağıtılır.
+        GameManager.Instance.JumpToDateForTest(new DateTime(1940, 1, 2));
+        long resolveDay = GameManager.Instance.TotalDays;
+        var electionResult = ElectionSystem.ResolveElection("DEU", resolveDay);
+        GD.Print($"[ElectionTest] DEU seçim çözümü (gün {resolveDay}): {(electionResult == null ? "yok/geçmedi" : electionResult.Won ? "KAZANDI — iktidar korundu" : "KAYBEDİLDİ — lider değişti: " + electionResult.NewLeader)}");
+        bool resolveOk = electionResult != null
+                         && electionResult.CountryId == "DEU"
+                         && electionResult.Day == resolveDay
+                         && electionResult.PredictedVote >= 0 && electionResult.PredictedVote <= 100
+                         && (electionResult.Won || (electionResult.LeaderChanged && !string.IsNullOrEmpty(electionResult.NewLeader)));
+        GD.Print($"[ElectionTest] Seçim çözümü geçerli: {resolveOk}");
+
+        // Seçimden sonraki dönem ileri taşınmış mı?
+        long afterResolve = ElectionSystem.GetNextElectionDay("DEU");
+        GD.Print($"[ElectionTest] DEU çözüm sonrası sonraki seçim: {afterResolve} (beklenen > {resolveDay})");
+        bool nextAdvanced = afterResolve > resolveDay;
 
         // 5) Oy tahmini: oyuncu ülkesinde hesaplanmalı, 0-100 arası
         var pred = ElectionSystem.GetVotePrediction(GameManager.Instance.PlayerCountryId, GameManager.Instance.TotalDays);
@@ -1300,25 +1317,27 @@ public partial class GameManager : Node
         var remainingPromises = ElectionCampaignSystem.GetActivePromises("DEU");
         GD.Print($"[ElectionTest] DEU vaat yerine getirme sonrası aktif vaat: {remainingPromises.Count} (beklenen 0)");
 
-        // 9) Save/Load kimliği
+        // 9) Save/Load kimliği (seçim tarihi + seçim sonuçları)
         var save = ElectionSystem.GetSaveData();
         int saveCountries = save.Countries?.Length ?? 0;
-        GD.Print($"[ElectionTest] Save kayıt sayısı: {saveCountries}");
+        int saveResults = save.Results?.Length ?? 0;
+        GD.Print($"[ElectionTest] Save kayıt sayısı: {saveCountries} ülke, {saveResults} seçim sonucu");
         ElectionSystem.LoadSaveData(save);
         long reloadNext = ElectionSystem.GetNextElectionDay("DEU");
-        bool saveLoadId = reloadNext == 2920;
-        GD.Print($"[ElectionTest] Save/Load sonrası DEU bir sonraki seçim: {reloadNext} (beklenen 2920, eşleşiyor: {saveLoadId})");
+        bool saveLoadId = reloadNext == afterResolve;
+        bool resultsLoaded = ElectionSystem.ElectionResults.TryGetValue("DEU", out var loadedResults) && loadedResults.Count > 0;
+        GD.Print($"[ElectionTest] Save/Load sonrası DEU bir sonraki seçim: {reloadNext} (eşleşiyor: {saveLoadId}), sonuç yüklendi: {resultsLoaded}");
 
         bool result = deuNext == 1460
                       && chnNext == 0 && sauNext == 0
                       && notDueAt0 && dueAt1460
-                      && afterMark == 2920
+                      && resolveOk && nextAdvanced
                       && pred.PredictedVote >= 0 && pred.PredictedVote <= 100
                       && allCount == CountryDatabase.All().Count(c => c != null)
                       && campaignBonus > 0
                       && activePromises.Count == 1
                       && remainingPromises.Count == 0
-                      && saveLoadId;
+                      && saveLoadId && resultsLoaded;
         GD.Print(result ? "[ElectionTest] SONUÇ: PASS ✓" : "[ElectionTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
     }

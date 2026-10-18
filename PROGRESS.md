@@ -1103,3 +1103,12 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - **Kısıt:** Godot editörü yok → `--autoritarian-test` headless çalıştırılamadı; varsayım GECE-RAPOR.md'ye kaydedildi, editörde doğrulama gelecek oturum.
 - Commit ve push origin gece-calisma.
 - Sonraki adım: M22.5 (kongre/darbe UI paneli) veya M23 Seçimler.
+
+### 2026-10-18 — M23.3 Seçim çözümü (kazanma/kaybetme, lider değişikliği, yeni kabine)
+- `Scripts/LeaderSystem.cs`: `GenerateLoader` → `GenerateLeader` overload'a `ulong? seedOverride`; `RegenerateLeader(countryId, electionDay)` — seçim kaybı sonrası yeni deterministik lider (seed: "{ActiveId}:{countryId}:{electionDay}").
+- `Scripts/ElectionSystem.cs`: `ElectionResult` modeli + `_electionResults` + `ResolveElection(countryId, currentDay)` (oy ≥ WinThreshold 50 → iktidar; altında → lider değişir + kabine yeniden dağıtılır), `GetSaveData`/`LoadSaveData` ile `Results` kalıcılığı.
+- `Scripts/GameManager.cs`: `DailyTick` → oyuncu ülkesi için `ElectionSystem.ResolveElection(PlayerCountryId, TotalDays)`; `RunElectionTest` genişletildi (seçim çözümü, sonraki dönem, Save/Load sonuç kimliği).
+- `dotnet build`: 0 hata / 0 uyarı.
+- **Kısıt:** Godot editörü yok → `--election-test` headless çalıştırılamadı; varsayım GECE-RAPOR.md'ye kaydedildi.
+- Commit ve push origin gece-calisma.
+- Sonraki adım: M23.4 Protesto, grev, güven oylaması, erken seçim, darbe girişimi.

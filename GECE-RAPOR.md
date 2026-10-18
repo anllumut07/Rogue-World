@@ -187,6 +187,35 @@
 - **Kısıt:** Godot editörü yok (`godot` PATH'te değil), dolayısıyla `--autoritarian-test` headless çalıştırılamadı. Varsayım: test mantığı derleme sonrası geçerli; editörde (F5 / `godot --headless --autoritarian-test`) sonraki oturumda doğrulama yapılacak.
 - Commit ve `git push origin gece-calisma`.
 
+## M23.1 — ✅ DONE (2026-10-18)
+- `Data/elections.json` (yeni): DefaultTermYears=4, VotePredictionWeights (gdp_growth 2.0, budget_deficit -1.0, public_debt -0.1, inflation -0.5, unemployment -0.5), ScandalPenaltyPerScandal=3.0, JitterRange=5.0.
+- `Scripts/ElectionSystem.cs` (yeni): GetNextElectionDay (TermLength'e göre), IsElectionDue, GetDaysUntilElection (-1 monarşi/tek parti), MarkElectionHeld, GetVotePrediction (9-grubun ortalama memnuniyeti + gösterge/bütçe etkileri + skandal cezası + deterministik jitter ±5, 0-100 clamp), GetAllVotePredictions, GetSaveData/LoadSaveData, deterministik DeterministicRNG (new Random() yok).
+- `Scripts/ElectionPanel.cs` (yeni): overlay Control paneli (860×520), backdrop MouseFilter.Stop harita girişini bloke eder, OptionButton ülke seçici, bir sonraki seçim + oy tahmini + breakdown (en yüksek/en düşük grup) + faktörler (GDP büyümesi, bütçe açığı, borç, enflasyon, işsizlik, skandal), ESC kapatır, QueueFree, 1152x648'de sığar.
+- `Scripts/GameHud.cs` (güncellendi): ELECTION butonu CABINET butonundan sonra, NEXT EVENT butonundan önce (rightSection).
+- `Scripts/GameManager.cs` (güncellendi): `_Ready` → ElectionSystem.LoadData(), `ResetForNewGame` → ResetForNewGame(), `--election-test` kancağı + RunElectionTest() (DEU=1460 ilk seçim, CHN/SAU=0, IsElectionDue, MarkElectionHeld → 2920, vote prediction 0-100, tüm ülke sayısı, save/load kimlik).
+- `Scripts/SaveSystem.cs` (güncellendi): SaveFile.Election alanı + WriteSave/LoadGameInternal bağlama.
+- `Scripts/SaveLoadTest.cs` (güncellendi): BuildSummaryCore'ye "Seçim: ülke=..., oyuncu_son_seçim_gün=..." satırı eklendi.
+- `dotnet build`: 0 hata / 0 uyarı.
+
+## M23.2 — ✅ DONE (2026-10-18)
+- `Scripts/ElectionCampaignSystem.cs` (yeni): kampanya aksiyonu kaydı (ActionId/Name, DayCompleted, DurationDays, VoteBonus, IsPromise/IsFulfilled), GetCampaignBonus (süreli aktif bonus toplamı), GetActivePromises, FulfillPromise, GetSaveData/LoadSaveData, deterministik (new Random() yok).
+- `Data/agenda_actions.json` (güncellendi): miting ve basın konuşmasına kampanya etkisi eklendi; yeni aksiyonlar: reklam, TV konuşması, ittifak, vaat (CampaignActionId/CampaignActionName/CampaignVoteBonus/CampaignDurationDays efektleri).
+- `Scripts/TimeTempoSystem.cs` (güncellendi): ApplyActionEffects'te CampaignActionId algılandığında ElectionCampaignSystem.RecordCampaignAction çağrısı (aksiyon tamamlandığında); ToDouble/ToInt yardımcıları.
+- `Scripts/ElectionSystem.cs` (güncellendi): VotePrediction'a CampaignBonus alanı; GetVotePrediction'te aktif kampanya bonusu oy tahminine eklenir.
+- `Scripts/ElectionPanel.cs` (güncellendi): aktif kampanya bonusu (+X oy) ve aktif vaatler listesi; "VAATİ YERİNE GETİR" butonu (ilk aktif vaatı tamamlar, Refresh ile yeniler).
+- `Scripts/GameManager.cs` (güncellendi): `_Ready` → ElectionCampaignSystem.LoadData(); `ResetForNewGame` → ElectionCampaignSystem.ResetForNewGame(); RunElectionTest'e kampanya bonusu (>0) ve vaat kaydı/yerine-getirme doğrulamaları eklendi.
+- `Scripts/SaveSystem.cs` (güncellendi): SaveFile.ElectionCampaign alanı + WriteSave/LoadGameInternal bağlama.
+- `Scripts/SaveLoadTest.cs` (güncellendi): "Kampanya: ülke=..., aksiyon=..., aktif_vaat=..." özet satırı.
+- `dotnet build`: 0 hata / 0 uyarı.
+
+## M23.3 — ✅ DONE (2026-10-18)
+- `Scripts/LeaderSystem.cs` (güncellendi): `GenerateLeader` overload'a `ulong? seedOverride` eklendi (deterministik LokalRng seed seçimi); `RegenerateLeader(countryId, electionDay)` — seçim kaybı sonrası yeni (farklı, deterministik) lider üretir (seed: `"{ScenarioSystem.ActiveId}:{countryId}:{electionDay}"`, aynı günde tekrar çağrıldığında aynı lider çıkar).
+- `Scripts/ElectionSystem.cs` (güncellendi): `ElectionResult` modeli + `_electionResults` sözlüğü + `ElectionResults` salt-okunur erişim; `ResolveElection(countryId, currentDay)` — oy ≥ WinThreshold (50) → iktidar korundu; altında → lider değişir (`LeaderSystem.RegenerateLeader`) ve kabine yeniden dağıtılır (`CabinetSystem.AssignMinister`, ülke içinden en yetenekli uygun aday), sonuç `_electionResults`'e kaydedilir, `MarkElectionHeld` sonraki dönemi başlatır; `GetSaveData`/`LoadSaveData` `Results` alanını kalıcılaştırır. `Data/elections.json` zaten `WinThreshold: 50.0`.
+- `Scripts/GameManager.cs` (güncellendi): `DailyTick`'te oyuncu ülkesi için `ElectionSystem.ResolveElection(PlayerCountryId, TotalDays)`; `RunElectionTest` genişletildi — 1940-01-02 (gün ~1462) seçim çözümü, sonuç geçerliliği (`Won`/`LeaderChanged`/`NewLeader`), sonraki dönem ileri alma, Save/Load ile seçim tarihi + sonuç kimliği (`resultsLoaded`).
+- `Scripts/SaveLoadTest.cs`: `BuildSummaryCore` zaten `ElectionSystem.GetSaveData()`'ı seriliştirdiği için `Results` otomatik dâhil; 150-günlük testte seçim yapılmaz (ilk seçim gün 1460) → A==B determinizmi bozulmuyor.
+- `dotnet build`: 0 hata / 0 uyarı.
+- **Kısıt:** Godot editörü yok → `--election-test` headless çalıştırılamadı; test akışı kod üzerinden izlendi ve varsayım GECE-RAPOR.md'ye kaydedildi, editörde doğrulama gelecek oturum.
+
 ## Bilinen sorunlar
 - Komşuluk yalnızca ortak-kenar tabanlı; ülke sınırlarını aşan komşular kapsanmıyor.
 - İl çizimi mevcut ülke çiziminin üzerine eklenir (katmanlı Polygon2D node'ları).
@@ -195,4 +224,4 @@
 - M21.5: headless `--cabinet-meeting-test` çalıştırıldı ve PASS. Godot editörü gerek kalmadı.
 
 ## Sonraki adım
-- M22.5 (kongre/darbe UI paneli) veya M23 Seçimler ve Halk.
+- M23.4 Protesto, grev, güven oylaması, erken seçim, darbe girişimi.

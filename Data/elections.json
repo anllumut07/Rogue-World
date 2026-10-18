@@ -11,5 +11,6 @@
   "ScandalPenaltyPerScandal": 3.0,
   "JitterRange": 5.0,
   "MinVote": 0.0,
-  "MaxVote": 100.0
+  "MaxVote": 100.0,
+  "WinThreshold": 50.0
 }

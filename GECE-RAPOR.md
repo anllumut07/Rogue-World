@@ -331,6 +331,14 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 - `--candidacy-test`: **PASS ✓** (eğilimsiz karakter: uygun=false, eksik kriterler listelenir; eğilimli karakter: uygun=true; Save/Load kriterler korunur).
 - `--save-load-test historical_1936`: **PASS ✓ (A == B)** — yeni Character alanları (PartyId, Recognition, Reputation, HasCriminalRecord) kaydedilir/yükler.
 
+## M25.5 — ✅ DONE (2026-10-18)
+- `Scripts/CareerEventSystem.cs` (yeni): kariyer olay sistemi — CareerEventType (None/Scandal/Opportunity/MentorLoss/Illness), CareerEventDef (ProbabilityPerDay/ReputationChange/RecognitionChange/PpChange/StageSetback/BlockedDays), DailyTick engelleme-azaltma + deterministik olay tetiklemesi (DeterministicRNG.NextBool), TriggerEvent manuel tetikleme, CareerEventSave DTO + GetSaveData/LoadSaveData/ResetForNewGame. Olaylar itibar/tanınırlık/PP'yi değiştirir, aşamayı geri alır ve kariyeri engeller (mentor 30g, hastalık 14g).
+- `Scripts/CareerSystem.cs` (güncellendi): BlockedDaysRemaining, BlockCareer/SetbackStage, DailyTick engelleme-kontrolü (engeliyken ilerleme durur), CareerSave.BlockedDaysRemaining + GetSaveData/LoadSaveData/ResetForNewGame.
+- `Scripts/GameManager.cs` (güncellendi): `CareerEventSystem.Initialize()` (_Ready), `CareerEventSystem.ResetForNewGame()` (ResetForNewGame), DailyTick'te `PlayerCountryData.PoliticalPower = CareerEventSystem.DailyTick(...)` (PP akışı), `--career-events-test` kancağı + `RunCareerEventsTest()` (skandal/fırsat/mentor-kayıp/hastalık etkileri, engelleme 30/14 gün, Save/Load dönüşüm).
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--career-events-test`: **PASS ✓** (skandal Rep↓/Rec↓/PP↓/aşama geri, fırsat Rep↑/Rec↑/PP↑, mentor 30g engelleme, hastalık 14g engelleme, DailyTick engelleme azaltma, Save/Load dönüşüm).
+- `--save-load-test historical_1936`: **PASS ✓ (A == B)** — KarriereEventSystem/CareerSystem state'i (engelleme, geçmiş olaylar) kaydedilir/yükler.
+
 ## Sonraki adım
-- M25.5: Kariyer olayları (skandal, fırsat, mentor kaybı, hastalık).
+- M25.6: Seçimi kazanınca lider olarak ülkeyi devralma (kabine devralınır).
 

@@ -17,6 +17,7 @@ public static class CareerSystem
         public bool EducationCompleted { get; set; }
         public int StageStartedDay { get; set; }
         public int TotalDaysInCareer { get; set; }
+        public int BlockedDaysRemaining { get; set; } // M25.5
     }
 
     private static readonly string DataPath = "res://Data/career_stages.json";
@@ -28,12 +29,14 @@ public static class CareerSystem
     private static bool _educationCompleted;
     private static int _stageStartedDay;
     private static int _totalDaysInCareer;
+    private static int _blockedDaysRemaining; // M25.5: olay nedeniyle engellenmiş gün sayısı
 
     public static CareerStage Stage => _stage;
     public static EducationField Education => _education;
     public static bool EducationCompleted => _educationCompleted;
     public static int StageStartedDay => _stageStartedDay;
     public static int TotalDaysInCareer => _totalDaysInCareer;
+    public static int BlockedDaysRemaining => _blockedDaysRemaining;
 
     public static void Initialize()
     {
@@ -99,11 +102,47 @@ public static class CareerSystem
         GD.Print($"[CareerSystem] Aşama ileri: {_stage} (gün {currentDay})");
     }
 
+    // M25.5: Kariyeri engelle (hastalık vb. nedeniyle ilerleme durur).
+    public static void BlockCareer(int days)
+    {
+        _blockedDaysRemaining = Math.Max(_blockedDaysRemaining, days);
+        GD.Print($"[CareerSystem] Kariyer engellendi: {days} gün (kalan engelleme: {_blockedDaysRemaining})");
+    }
+
+    // M25.5: Bir aşama geri al (skandal, mentor kaybı vb.).
+    public static void SetbackStage(int currentDay)
+    {
+        if (_stage == CareerStage.None) return;
+        switch (_stage)
+        {
+            case CareerStage.University:
+                _stage = CareerStage.None; break;
+            case CareerStage.PartyYouth:
+                _stage = CareerStage.University; break;
+            case CareerStage.LocalGovernment:
+                _stage = CareerStage.PartyYouth; break;
+            case CareerStage.MP:
+                _stage = CareerStage.LocalGovernment; break;
+            case CareerStage.Minister:
+                _stage = CareerStage.MP; break;
+        }
+        _stageStartedDay = currentDay;
+        GD.Print($"[CareerSystem] Aşama geri alındı: {_stage} (gün {currentDay})");
+    }
+
     // Günlük tick — aktif aşamada süre geçince ilerleme (basit: her 30 günde bir bir sonraki aşama).
     public static void DailyTick(int currentDay, Character character)
     {
         if (character == null) return;
         if (_stage == CareerStage.None || _stage == CareerStage.Minister) return;
+
+        // Engelleme süresi azaltılıyor; engeli kaldıysa ilerleme durdurulur.
+        if (_blockedDaysRemaining > 0)
+        {
+            _blockedDaysRemaining--;
+            GD.Print($"[CareerSystem] Kariyer engellenme devam ediyor: kalan {_blockedDaysRemaining} gün");
+            return;
+        }
 
         int daysInStage = currentDay - _stageStartedDay;
         if (daysInStage >= 30)
@@ -116,7 +155,8 @@ public static class CareerSystem
         EducationField = (int)_education,
         EducationCompleted = _educationCompleted,
         StageStartedDay = _stageStartedDay,
-        TotalDaysInCareer = _totalDaysInCareer
+        TotalDaysInCareer = _totalDaysInCareer,
+        BlockedDaysRemaining = _blockedDaysRemaining
     };
 
     public static void LoadSaveData(CareerSave data)
@@ -127,6 +167,17 @@ public static class CareerSystem
         _educationCompleted = data.EducationCompleted;
         _stageStartedDay = data.StageStartedDay;
         _totalDaysInCareer = data.TotalDaysInCareer;
+        _blockedDaysRemaining = Math.Max(0, data.BlockedDaysRemaining);
+    }
+
+    public static void ResetForNewGame()
+    {
+        _stage = CareerStage.None;
+        _education = EducationField.None;
+        _educationCompleted = false;
+        _stageStartedDay = 0;
+        _totalDaysInCareer = 0;
+        _blockedDaysRemaining = 0;
     }
 
     private static void ApplyEducationBonus(EducationField field, Character c)

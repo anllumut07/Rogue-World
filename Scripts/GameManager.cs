@@ -116,6 +116,7 @@ public partial class GameManager : Node
         bool militaryCareerTest = false;  // M25.2: asker kariyer yolu (harp okulu → rütbeler → görev yerleri → savaş deneyimi → darbe)
         bool educationTest = false;       // M25.3: eğitim modülleri (ders, staj, mentor, sınav, tez/proje, ağ kurma)
         bool candidacyTest = false;       // M25.4: aday olma kriterleri (yaş, eğitim, parti, tanınırlık, itibar, sicil)
+        bool careerEventsTest = false;    // M25.5: kariyer olayları (skandal, fırsat, mentor kaybı, hastalık)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -181,6 +182,8 @@ public partial class GameManager : Node
                 educationTest = true;
             else if (arg == "--candidacy-test")
                 candidacyTest = true;
+            else if (arg == "--career-events-test")
+                careerEventsTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -250,6 +253,9 @@ public partial class GameManager : Node
 
         // M25.4: Aday olma kriterleri — yaş, eğitim seviyesi, parti üyeliği, tanınırlık, itibar, sicil.
         CandidacySystem.Initialize();
+
+        // M25.5: Kariyer olayları — skandal, fırsat, mentor kaybı, hastalık.
+        CareerEventSystem.Initialize();
 
         // M23.4: Halk refahı — protesto, grev, güven oylaması, erken seçim, darbe girişimi.
         PoliticalUnrestSystem.InitializeAll();
@@ -377,6 +383,8 @@ public partial class GameManager : Node
             RunEducationTest();
         if (candidacyTest)
             RunCandidacyTest();
+        if (careerEventsTest)
+            RunCareerEventsTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -508,6 +516,10 @@ public partial class GameManager : Node
 
         // M25.3: Eğitim modülü günlük ilerleme (süre, başarı/başarısızlık çözümü).
         if (HasPlayer) EducationSystem.DailyTick(TotalDays, PlayerCharacter);
+
+        // M25.5: Kariyer olayları günlük denetimi (skandal, fırsat, mentor kaybı, hastalık).
+        if (HasPlayer)
+            data.PoliticalPower = CareerEventSystem.DailyTick(TotalDays, PlayerCharacter, data.PoliticalPower);
 
         // M16: Zaman ve Tempo — ajanda ilerlemesi, hafta reset, aylık rapor
         TimeTempoSystem.DailyTick(this);
@@ -734,6 +746,9 @@ public partial class GameManager : Node
 
         // M25.4: Aday olma kriter durumu sıfırlanır
         CandidacySystem.ResetForNewGame();
+
+        // M25.5: Kariyer olayı durumu sıfırlanır
+        CareerEventSystem.ResetForNewGame();
 
         GD.Print($"GameManager: Yeni oyun — senaryo: {ScenarioSystem.ActiveName}, başlangıç: {StartDate:yyyy-MM-dd}, oyuncu ülkesi ve kilit sıfırlandı");
 
@@ -1844,6 +1859,89 @@ public partial class GameManager : Node
         result = result && saveLoadSame;
 
         GD.Print(result ? "[CandidacyTest] SONUÇ: PASS ✓" : "[CandidacyTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(result ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M25.5: Kariyer olayları testi — skandal, fırsat, mentor kaybı, hastalık.
+    /// Her olayın karakter niteliklerini ve KarriereSystem durumunu etkilediğini doğrular.
+    /// Normal oyunda asla çalışmaz (--career-events-test).
+    /// </summary>
+    private void RunCareerEventsTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M25.5: KARİYER OLAYLARI TESTİ");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0xDEADBEEFUL);
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+        if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 500;
+
+        CareerSystem.Initialize();
+        CareerEventSystem.Initialize();
+
+        bool result = true;
+
+        var c = GameManager.Instance.PlayerCharacter;
+        if (c == null)
+        {
+            c = Character.GenerateRandom("DEU", "germanic", 0xBEEFUL);
+            GameManager.Instance.SetCharacter(c);
+        }
+
+        // Kariyeri bir aşamaya ilerlet (olaların etkisini görebilmek için)
+        CareerSystem.StartEducation(CareerSystem.EducationField.Law, c, 0);
+        int repBefore = c.Reputation;
+        int recBefore = c.Recognition;
+        double ppBefore = PlayerCountryData.PoliticalPower;
+        int stageBefore = (int)CareerSystem.Stage;
+
+        // 1) Skandal: itibar -15, tanınırlık -5, PP -50, aşama geri
+        bool triggered = CareerEventSystem.TriggerEvent(CareerEventSystem.CareerEventType.Scandal, c, 10, ref ppBefore);
+        GD.Print($"[CareerEventTest] Skandal tetiklendi: {triggered}");
+        result = result && triggered;
+        GD.Print($"[CareerEventTest] Skandal sonrası: Rep {repBefore}→{c.Reputation}, Rec {recBefore}→{c.Recognition}, PP {ppBefore}, Stage {stageBefore}→{(int)CareerSystem.Stage}");
+        result = result && c.Reputation < repBefore && c.Recognition < recBefore && ppBefore < 500;
+
+        // 2) Fırsat: itibar +10, tanınırlık +5, PP +100
+        int repBefore2 = c.Reputation;
+        int recBefore2 = c.Recognition;
+        double ppBefore2 = ppBefore;
+        triggered = CareerEventSystem.TriggerEvent(CareerEventSystem.CareerEventType.Opportunity, c, 11, ref ppBefore2);
+        GD.Print($"[CareerEventTest] Fırsat tetiklendi: {triggered}");
+        result = result && triggered;
+        GD.Print($"[CareerEventTest] Fırsat sonrası: Rep {repBefore2}→{c.Reputation}, Rec {recBefore2}→{c.Recognition}, PP {ppBefore2}");
+        result = result && c.Reputation > repBefore2 && c.Recognition > recBefore2 && ppBefore2 > ppBefore;
+
+        // 3) Mentor kaybı: engelleme 30 gün
+        int blockedBefore = CareerSystem.BlockedDaysRemaining;
+        triggered = CareerEventSystem.TriggerEvent(CareerEventSystem.CareerEventType.MentorLoss, c, 12, ref ppBefore2);
+        GD.Print($"[CareerEventTest] Mentor kaybı tetiklendi: {triggered}, engellenme {blockedBefore}→{CareerSystem.BlockedDaysRemaining}");
+        result = result && triggered && CareerSystem.BlockedDaysRemaining == 30;
+
+        // 4) Hastalık: engelleme 14 gün
+        triggered = CareerEventSystem.TriggerEvent(CareerEventSystem.CareerEventType.Illness, c, 13, ref ppBefore2);
+        GD.Print($"[CareerEventTest] Hastalık tetiklendi: {triggered}, engellenme {CareerSystem.BlockedDaysRemaining}");
+        result = result && triggered && CareerSystem.BlockedDaysRemaining == 30; // max(30, 14) = 30
+
+        // 5) DailyTick engelleme azaltma (30 günden az ki bir 사건 tetiklenmesin)
+        int daysLeft = CareerSystem.BlockedDaysRemaining;
+        for (int i = 0; i < 5; i++)
+            CareerEventSystem.DailyTick(20 + i, c, ppBefore2);
+        GD.Print($"[CareerEventTest] 5 gün sonra engellenme: {daysLeft}→{CareerSystem.BlockedDaysRemaining}");
+        result = result && CareerSystem.BlockedDaysRemaining < daysLeft;
+
+        // 6) Save/Load dönüşüm
+        var save = CareerEventSystem.GetSaveData();
+        CareerEventSystem.LoadSaveData(save);
+        bool saveLoadSame = CareerSystem.BlockedDaysRemaining == save.DaysBlockedRemaining;
+        GD.Print($"[CareerEventTest] Save/Load engellenme: {saveLoadSame}");
+        result = result && saveLoadSame;
+
+        GD.Print(result ? "[CareerEventTest] SONUÇ: PASS ✓" : "[CareerEventTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(result ? 0 : 1);
     }

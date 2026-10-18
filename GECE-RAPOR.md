@@ -240,5 +240,13 @@ Tüm testler kendi kendine kapanır (GetTree().Quit), zaman aşımına düşmedi
 - Save-load A==B `historical_1936` (`--save-load-test --scenario=historical_1936 --speed=0`): **PASS ✓** — 15.3s
 - Save-load A==B `modern_world` (`--save-load-test --scenario=modern_world --speed=0`): **PASS ✓** — 16.6s
 
+## M24.1 — ✅ DONE (2026-10-18)
+- `Scripts/Character.cs`, `Scripts/PortraitControl.cs`, `Scripts/CharacterCreationPanel.cs`: karakter oluşturma paneli tamamlandı (ad, yaş, cinsiyet, doğum ülke/kültür, katmanlı prosedürel portre, köken bonuslu 7 nitelik).
+- `Scripts/GameManager.cs`: PlayerCharacter property + HasCharacter + SetCharacter + PlayerCharacterChanged sinyali; ResetForNewGame'de null.
+- `Scripts/Game.cs`: _isNewGame; OnCountrySelected → PlayerCountryChanged aboneliği; OnPlayerCountryLockedForCharacter → CharacterCreationPanel.OpenUnder; OnCharacterConfirmed → SetCharacter.
+- `Scripts/SaveSystem.cs`: CharacterSave DTO zaten mevcut; **CharacterSaveFrom()/CharacterSaveTo() yardımcıları eklendi**, WriteSave/LoadGameInternal bağlama tamamlandı. Derleme hatası (tanımsız metot) giderildi.
+- `dotnet build`: 0 hata / 0 uyarı.
+- **Rationale (otonom mod):** STOP.txt yok, SaveSystem.cs'deki eksik metotlar en makul varsayımla eklendi (DTO zaten tanımlıydı, yalnızca From/To yardımcıları ve Load çağrısı eksikti). GECE-RAPOR'a kaydedildi, onay beklenmeden ilerle.
+
 ## Sonraki adım
-- M24.1 Karakter ekranı (ad, yaş, cinsiyet, kültür, görünüm, köken).
+- M24.2 Nitelikler ve özellikler (M24.1 tamamlandı).

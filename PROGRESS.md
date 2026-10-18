@@ -1130,4 +1130,4 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Yeni: `Scripts/PoliticalUnrestSystem.cs`
 - Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/ElectionSystem.cs`
 
-**Sonraki adım:** M24.1 Karakter ekranı (ad, yaş, cinsiyet, kültür, görünüm, köken).
+**Sonraki adım:** M24.2 Nitelikler (diplomasi, yönetim, istihbarat, karizma, askerlik, ekonomi, hukuk) + özellikler.

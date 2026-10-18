@@ -78,6 +78,7 @@ public static class SaveSystem
         public ElectionSystem.ElectionSave Election { get; set; } // M23.1: seçim takvimi (son seçim günü)
         public ElectionCampaignSystem.CampaignSave ElectionCampaign { get; set; } // M23.2: kampanya aksiyonları ve vaatler
         public PoliticalUnrestSystem.PoliticalUnrestSave PoliticalUnrest { get; set; } // M23.4: protesto, grev, güven oylaması, erken seçim, darbe
+        public CharacterSave Character { get; set; } // M24.1: oyuncu karakteri
     }
 
     // ===== Economy DTOs =====
@@ -280,6 +281,31 @@ public static class SaveSystem
         public LeaderSystem.Leader[] Leaders { get; set; }
     }
 
+    // ===== Character DTOs (M24.1) =====
+    public class CharacterSave
+    {
+        public string Id { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public int Age { get; set; }
+        public string Gender { get; set; }
+        public string BirthCountryId { get; set; }
+        public string CultureKey { get; set; }
+        public string Background { get; set; }
+        public int Diplomacy { get; set; }
+        public int Administration { get; set; }
+        public int Intelligence { get; set; }
+        public int Charisma { get; set; }
+        public int Military { get; set; }
+        public int Economy { get; set; }
+        public int Law { get; set; }
+        public string[] Traits { get; set; }
+        public string SkinTone { get; set; }
+        public string HairColor { get; set; }
+        public string ClothingStyle { get; set; }
+        public int Health { get; set; }
+    }
+
     // ===== Yardımcı: Dosya yolları =====
     private static string SlotPath(int slot, bool auto = false)
     {
@@ -388,6 +414,7 @@ public static class SaveSystem
             Election = ElectionSystem.GetSaveData(), // M23.1: seçim takvimi
             ElectionCampaign = ElectionCampaignSystem.GetSaveData(), // M23.2: kampanya aksiyonları ve vaatler
             PoliticalUnrest = PoliticalUnrestSystem.GetSaveData(), // M23.4: protesto, grev, güven oylaması, erken seçim, darbe
+            Character = CharacterSaveFrom(gm.PlayerCharacter), // M24.1: oyuncu karakteri
         };
 
         EnsureSavesDir();
@@ -519,6 +546,14 @@ public static class SaveSystem
             ElectionCampaignSystem.LoadSaveData(save.ElectionCampaign); // M23.2: kampanya aksiyonları ve vaatler
             PoliticalUnrestSystem.LoadSaveData(save.PoliticalUnrest); // M23.4: protesto, grev, güven oylaması, erken seçim, darbe
 
+            // M24.1: oyuncu karakteri — kayıtta varsa geri yüklenir
+            if (save.Character != null)
+            {
+                var character = CharacterSaveTo(save.Character);
+                GameManager.Instance.SetCharacter(character);
+                GD.Print($"[SaveSystem] Oyuncu karakteri yüklendi: {character.FullName} (köken={character.Background}, yaş={character.Age})");
+            }
+
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;
             gm.EmitSignal(GameManager.SignalName.CountryOwnershipChanged);
@@ -538,6 +573,63 @@ public static class SaveSystem
             GD.PrintErr($"[SaveSystem] Yükleme HATA (apply): {sourceLabel} — {e}");
             return false;
         }
+    }
+
+    // ===== Character serialization helpers (M24.1) =====
+    public static CharacterSave CharacterSaveFrom(Character c)
+    {
+        if (c == null) return null;
+        return new CharacterSave
+        {
+            Id = c.Id,
+            FirstName = c.FirstName,
+            LastName = c.LastName,
+            Age = c.Age,
+            Gender = c.Gender,
+            BirthCountryId = c.BirthCountryId,
+            CultureKey = c.CultureKey,
+            Background = c.Background,
+            Diplomacy = c.Diplomacy,
+            Administration = c.Administration,
+            Intelligence = c.Intelligence,
+            Charisma = c.Charisma,
+            Military = c.Military,
+            Economy = c.Economy,
+            Law = c.Law,
+            Traits = c.Traits?.ToArray() ?? Array.Empty<string>(),
+            SkinTone = c.SkinTone,
+            HairColor = c.HairColor,
+            ClothingStyle = c.ClothingStyle,
+            Health = c.Health,
+        };
+    }
+
+    public static Character CharacterSaveTo(CharacterSave s)
+    {
+        if (s == null) return null;
+        return new Character
+        {
+            Id = s.Id,
+            FirstName = s.FirstName,
+            LastName = s.LastName,
+            Age = s.Age,
+            Gender = s.Gender,
+            BirthCountryId = s.BirthCountryId,
+            CultureKey = s.CultureKey,
+            Background = s.Background,
+            Diplomacy = s.Diplomacy,
+            Administration = s.Administration,
+            Intelligence = s.Intelligence,
+            Charisma = s.Charisma,
+            Military = s.Military,
+            Economy = s.Economy,
+            Law = s.Law,
+            Traits = s.Traits != null ? new List<string>(s.Traits) : new List<string>(),
+            SkinTone = s.SkinTone,
+            HairColor = s.HairColor,
+            ClothingStyle = s.ClothingStyle,
+            Health = s.Health,
+        };
     }
 
     // ===== SLOT BİLGİSİ (Load menüsü listelemesi için) =====

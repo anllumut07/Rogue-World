@@ -10,6 +10,7 @@ public partial class Game : Control
     private CountryMiniCard _miniCard; // M15.1: kilitli oyundaki küçük ülke kartı
     private GameHud _hud;
     private WorldMap _worldMap; // X/ESC kapatma isteğinde ClearSelection() için
+    private bool _isNewGame; // M24.1: yeni oyun mu yoksa yükleme mi?
 
     public const int HudHeight = 64; // HUD yüksekliği (görsel ölçüm) — info panel bundan sonra başlar
 
@@ -21,6 +22,7 @@ public partial class Game : Control
 
         // M12: Ana menüden LOAD seçildiyse — pending slot'u yükle.
         // PendingLoadSlot: -1=yok, 0=auto-save, 1-10=slot.
+        _isNewGame = SaveSystem.PendingLoadSlot < 0; // M24.1: yeni oyun mu?
         if (SaveSystem.PendingLoadSlot >= 0)
         {
             int slot = SaveSystem.PendingLoadSlot;
@@ -125,6 +127,13 @@ public partial class Game : Control
     {
         var data = CountryDatabase.GetOrCreate(countryId, countryName);
 
+        // M24.1: Yeni oyunda ilk ülke seçimi sonrası karakter oluşturma paneli açılır.
+        // Yüklü oyunda karakter zaten kaytta mevcut → panel açılmaz.
+        if (GameManager.IsAvailable && !GameManager.Instance.HasPlayer && _isNewGame)
+        {
+            GameManager.Instance.PlayerCountryChanged += OnPlayerCountryLockedForCharacter;
+        }
+
         // M15.1: Oyuncu ülkesi kilitlendiyse tam panel YOK — yalnızca küçük kart
         // (ad, bayrak, ilişki, savaş durumu). Seçim aşamasında davranış aynı: tam panel.
         if (GameManager.IsAvailable && GameManager.Instance.IsPlayerCountryLocked)
@@ -139,6 +148,22 @@ public partial class Game : Control
         }
         // Alt çubuğa da seçimi yaz
         _hud?.OnCountrySelected(countryName);
+    }
+
+    // M24.1: SetPlayerCountry kilidi açıklandıktan sonra karakter panelsini aç (yeni oyun).
+    private void OnPlayerCountryLockedForCharacter(string countryId)
+    {
+        if (GameManager.IsAvailable && GameManager.Instance.IsPlayerCountryLocked && !GameManager.Instance.HasCharacter)
+        {
+            GameManager.Instance.PlayerCountryChanged -= OnPlayerCountryLockedForCharacter;
+            CharacterCreationPanel.OpenUnder(this, OnCharacterConfirmed);
+        }
+    }
+
+    private void OnCharacterConfirmed(Character character)
+    {
+        GameManager.Instance.SetCharacter(character);
+        GD.Print($"[Game] Karakter onaylandı ve oyuncu olarak ayarlandı: {character.FullName}");
     }
 
     private void OnCountryDeselected()

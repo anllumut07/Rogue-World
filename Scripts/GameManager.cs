@@ -20,6 +20,7 @@ public partial class GameManager : Node
     [Signal] public delegate void DayChangedEventHandler(long totalDays);
     [Signal] public delegate void PlayerCountryChangedEventHandler(string countryId);
     [Signal] public delegate void PlayerCountryDataChangedEventHandler();
+    [Signal] public delegate void PlayerCharacterChangedEventHandler();
     [Signal] public delegate void CountryOwnershipChangedEventHandler(); // M7: ilhak sonrası harita yenile
 
     // --- Yapılandırma ---
@@ -37,6 +38,10 @@ public partial class GameManager : Node
 
     public string PlayerCountryId { get; private set; } = "";
     public bool HasPlayer => PlayerCountryId != "";
+
+    // M24.1: Oyuncu karakteri (yeni oyun başlangıcında oluşturulur, Save/Load'ta kalıcıdır)
+    public Character PlayerCharacter { get; private set; }
+    public bool HasCharacter => PlayerCharacter != null;
 
     // Oyuncu ülkesi kilidi: bir kez seçilince oyun sürerken değiştirilemez.
     // Yalnızca yeni oyun başlatınca ResetForNewGame() temizler.
@@ -560,6 +565,14 @@ public partial class GameManager : Node
         EmitSignal(SignalName.PlayerCountryDataChanged);
     }
 
+    // M24.1: Oyuncu karakterini ayarlar (karakter oluşturma panelsinden çağrılır).
+    public void SetCharacter(Character character)
+    {
+        PlayerCharacter = character ?? throw new ArgumentNullException(nameof(character));
+        EmitSignal(SignalName.PlayerCharacterChanged);
+        GD.Print($"GameManager: Oyuncu karakteri ayarlandı: {character.FullName} (köken={character.Background}, yaş={character.Age})");
+    }
+
     // Yeni oyun: oturum durumunu sıfırla — oyuncu ülkesi + kilidi dahil.
     // MainMenu START çağırır; ana menü → yeni oyun akışında eski ülke kalmaz.
     public void ResetForNewGame()
@@ -567,6 +580,7 @@ public partial class GameManager : Node
         PlayerCountryId = "";
         _playerCountryData = null;
         IsPlayerCountryLocked = false;
+        PlayerCharacter = null; // M24.1: yeni oyun → karakter yok
         CurrentDate = StartDate; // M17.1: aktif senaryonun başlangıç tarihi
         TotalDays = 0;
         Speed = 0; // pause — oyuncu hız seçince başlar

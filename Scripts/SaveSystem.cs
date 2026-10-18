@@ -79,6 +79,7 @@ public static class SaveSystem
         public ElectionCampaignSystem.CampaignSave ElectionCampaign { get; set; } // M23.2: kampanya aksiyonları ve vaatler
         public PoliticalUnrestSystem.PoliticalUnrestSave PoliticalUnrest { get; set; } // M23.4: protesto, grev, güven oylaması, erken seçim, darbe
         public CharacterSave Character { get; set; } // M24.1: oyuncu karakteri
+        public CareerSystem.CareerSave Career { get; set; } // M25.1: oyuncu kariyer durumu
     }
 
     // ===== Economy DTOs =====
@@ -417,6 +418,7 @@ public static class SaveSystem
             ElectionCampaign = ElectionCampaignSystem.GetSaveData(), // M23.2: kampanya aksiyonları ve vaatler
             PoliticalUnrest = PoliticalUnrestSystem.GetSaveData(), // M23.4: protesto, grev, güven oylaması, erken seçim, darbe
             Character = CharacterSaveFrom(gm.PlayerCharacter), // M24.1: oyuncu karakteri
+            Career = CareerSystem.GetSaveData(), // M25.1: oyuncu kariyer durumu
         };
 
         EnsureSavesDir();
@@ -555,6 +557,9 @@ public static class SaveSystem
                 GameManager.Instance.SetCharacter(character);
                 GD.Print($"[SaveSystem] Oyuncu karakteri yüklendi: {character.FullName} (köken={character.Background}, yaş={character.Age})");
             }
+
+            // M25.1: oyuncu kariyer durumu — kayıtta varsa geri yüklenir
+            CareerSystem.LoadSaveData(save.Career);
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

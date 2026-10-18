@@ -112,6 +112,7 @@ public partial class GameManager : Node
         bool autoritarianTest = false;    // M22.4: parti kongresi + darbe riski
         bool electionTest = false;        // M23.1: seçim takvimi + oy tahmini
         bool characterTest = false;       // M24.1: karakter oluşturma + Save/Load determinizm
+        bool careerTest = false;          // M25.1: siyasetçi kariyer yolu (eğitim → parti gençlik → yerel yönetim → milletvekili → bakanlık)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -169,6 +170,8 @@ public partial class GameManager : Node
                 electionTest = true;
             else if (arg == "--character-test")
                 characterTest = true;
+            else if (arg == "--career-test")
+                careerTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -226,6 +229,9 @@ public partial class GameManager : Node
 
         // M23.2: Kampanya aksiyonları (miting, reklam, TV, ittifak, vaat).
         ElectionCampaignSystem.LoadData();
+
+        // M25.1: Siyasetçi kariyer yolu — üniversite → parti gençlik → yerel yönetim → milletvekili → bakanlık.
+        CareerSystem.Initialize();
 
         // M23.4: Halk refahı — protesto, grev, güven oylaması, erken seçim, darbe girişimi.
         PoliticalUnrestSystem.InitializeAll();
@@ -345,6 +351,8 @@ public partial class GameManager : Node
             RunElectionTest();
         if (characterTest)
             RunCharacterTest();
+        if (careerTest)
+            RunCareerTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -467,6 +475,9 @@ public partial class GameManager : Node
 
         // M22.4: Otoriter sistem günlük darbe riski değerlendirmesi (tek parti rejimler için).
         if (HasPlayer) AutoritarianSystem.DailyTick(PlayerCountryId);
+
+        // M25.1: Kariyer sistemi günlük ilerleme (eğitim/kariyer aşaması).
+        if (HasPlayer) CareerSystem.DailyTick(TotalDays, PlayerCharacter);
 
         // M16: Zaman ve Tempo — ajanda ilerlemesi, hafta reset, aylık rapor
         TimeTempoSystem.DailyTick(this);
@@ -1521,6 +1532,63 @@ public partial class GameManager : Node
 
         bool result = sameSeedSameChar && diffSeedDiffChar && saveLoadSame && hasChar;
         GD.Print(result ? "[CharacterTest] SONUÇ: PASS ✓" : "[CharacterTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(result ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M25.1: Siyasetçi kariyer yolu testi — eğitim başlatma, nitelik bonusu, aşama ilerleme, Save/Load.
+    /// Normal oyunda asla çalışmaz (--career-test).
+    /// </summary>
+    private void RunCareerTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M25.1: SİYASETCİ KARİYER YOLU TESTİ");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        CareerSystem.Initialize();
+
+        bool result = true;
+
+        // 1) Eğitim başlatma → nitelik bonusu
+        var c = GameManager.Instance.PlayerCharacter;
+        if (c == null)
+        {
+            c = Character.GenerateRandom("DEU", "germanic", 0x1234UL);
+            GameManager.Instance.SetCharacter(c);
+        }
+        int lawBefore = c.Law;
+        CareerSystem.StartEducation(CareerSystem.EducationField.Law, c, 0);
+        bool eduBonus = c.Law > lawBefore; // Law +10
+        GD.Print($"[CareerTest] Eğitim başlatıldı (Law bonus): law {lawBefore} → {c.Law}: {eduBonus}");
+        result = result && eduBonus;
+
+        // 2) Eğitim tamamlandı → Parti Gençlik aşamasına ilerler
+        CareerSystem.CompleteEducation(0);
+        bool stagePartyYouth = CareerSystem.Stage == CareerSystem.CareerStage.PartyYouth;
+        GD.Print($"[CareerTest] Eğitim tamamlandı → aşama={CareerSystem.Stage}: {stagePartyYouth}");
+        result = result && stagePartyYouth;
+
+        // 3) Günlük tick ile 30 günde bir sonraki aşama (LocalGovernment)
+        CareerSystem.DailyTick(30, c);
+        bool stageLocalGov = CareerSystem.Stage == CareerSystem.CareerStage.LocalGovernment;
+        GD.Print($"[CareerTest] 30 gün sonra aşama={CareerSystem.Stage}: {stageLocalGov}");
+        result = result && stageLocalGov;
+
+        // 4) Save/Load dönüşüm
+        var save = CareerSystem.GetSaveData();
+        CareerSystem.LoadSaveData(save);
+        bool saveLoadSame =
+            CareerSystem.Stage == (CareerSystem.CareerStage)save.Stage &&
+            CareerSystem.Education == (CareerSystem.EducationField)save.EducationField &&
+            CareerSystem.EducationCompleted == save.EducationCompleted;
+        GD.Print($"[CareerTest] Save/Load dönüşüm: stage={CareerSystem.Stage} edu={CareerSystem.Education} completed={CareerSystem.EducationCompleted}: {saveLoadSame}");
+        result = result && saveLoadSame;
+
+        GD.Print(result ? "[CareerTest] SONUÇ: PASS ✓" : "[CareerTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(result ? 0 : 1);
     }

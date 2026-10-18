@@ -298,3 +298,14 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 - `--save-load-test modern_world`: **PASS ✓ (A == B)**.
 - `--character-test`: **PASS ✓** — Save/Load dönüşüm A==B (yaş, sağlık, aile alanları dahil).
 
+## M25.1 — ✅ DONE (2026-10-18)
+- `Scripts/CareerSystem.cs` (yeni): siyasetçi kariyer yolu — CareerStage (None/University/PartyYouth/LocalGovernment/MP/Minister), EducationField (None/Law/Economics/PoliticalScience), deterministik aşama ilerleme (her 30 günde bir), eğitime göre nitelik bonusu (Law→Law+10, Economics→Economy+10, PoliticalScience→Diplomacy+10), CareerSave DTO + GetSaveData/LoadSaveData.
+- `Scripts/GameManager.cs`: `CareerSystem.Initialize()` (_Ready), `CareerSystem.DailyTick(TotalDays, PlayerCharacter)` (DailyTick), `--career-test` kancağı + `RunCareerTest()`.
+- `Scripts/SaveSystem.cs`: `SaveFile.Career` alanı + WriteSave/LoadGameInternal bağlama.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--career-test --speed=0`: **PASS ✓** (eğitim bonusu, Parti Gençlik → Yerel Yönetim ilerleme, Save/Load dönüşüm).
+- `--save-load-test historical_1936` / `modern_world`: **PASS ✓ (A == B)** — Karriere state kaydeder/yükler.
+
+## Sonraki adım
+- M25.2: Asker yolu (harp okulu, rütbeler, görev yerleri, savaş deneyimi).
+

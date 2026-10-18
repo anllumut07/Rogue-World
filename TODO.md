@@ -351,7 +351,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri |
 |-----------|----------|--------------|
-| 25.1 | **Siyasetçi yolu:** üniversite (hukuk/iktisat/siyaset), parti gençlik kolu, yerel yönetim, milletvekilliği, bakanlık deneyimi, parti içi yükselme. | Adımlar sırayla açılır |
+| 25.1 | **Siyasetçi yolu:** üniversite (hukuk/iktisat/siyaset), parti gençlik kolu, yerel yönetim, milletvekilliği, bakanlık deneyimi, parti içi yükselme. | Adımlar sırayla açılır | [x] Bitti — CareerSystem.cs (yeni): CareerStage/EducationField, 30-günlük deterministik aşama ilerleme, eğitime göre nitelik bonusu, CareerSave DTO + GetSaveData/LoadSaveData; GameManager.cs: Initialize + DailyTick + --career-test/RunCareerTest; SaveSystem.cs: SaveFile.Career alan + WriteSave/LoadGameInternal bağlama; dotnet build 0/0, --career-test PASS, --save-load-test A==B PASS |
 | 25.2 | **Asker yolu:** harp okulu, rütbeler, görev yerleri, savaş deneyimi, genelkurmay; darbe seçeneği (ağır sonuçlu). | Rütbe yükselir |
 | 25.3 | Eğitim ögeleri: dersler, staj, mentor, sınav, tez/proje, ağ kurma. Her seçim zaman, para ve bağlantı kaybı/kazancı getirir; başarısızlık ve tekrar mümkün. | Sınav sonucu nitelikleri değiştirir |
 | 25.4 | **Aday olma kriterleri** (anayasadan): yaş, eğitim seviyesi, parti üyeliği, tanınırlık, itibar, sicil. Kriterler sağlanmıyorsa bir sonraki seçime kadar eğitime devam. | Eksik kriter listesi gösterilir |

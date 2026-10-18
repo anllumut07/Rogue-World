@@ -114,6 +114,7 @@ public partial class GameManager : Node
         bool characterTest = false;       // M24.1: karakter oluşturma + Save/Load determinizm
         bool careerTest = false;          // M25.1: siyasetçi kariyer yolu (eğitim → parti gençlik → yerel yönetim → milletvekili → bakanlık)
         bool militaryCareerTest = false;  // M25.2: asker kariyer yolu (harp okulu → rütbeler → görev yerleri → savaş deneyimi → darbe)
+        bool educationTest = false;       // M25.3: eğitim modülleri (ders, staj, mentor, sınav, tez/proje, ağ kurma)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -175,6 +176,8 @@ public partial class GameManager : Node
                 careerTest = true;
             else if (arg == "--military-career-test")
                 militaryCareerTest = true;
+            else if (arg == "--education-test")
+                educationTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -238,6 +241,9 @@ public partial class GameManager : Node
 
         // M25.2: Asker kariyer yolu — harp okulu → rütbeler → görev yerleri → savaş deneyimi → genelkurmay.
         MilitaryCareerSystem.Initialize();
+
+        // M25.3: Eğitim modülleri — ders, staj, mentor, sınav, tez/proje, ağ kurma.
+        EducationSystem.Initialize();
 
         // M23.4: Halk refahı — protesto, grev, güven oylaması, erken seçim, darbe girişimi.
         PoliticalUnrestSystem.InitializeAll();
@@ -361,6 +367,8 @@ public partial class GameManager : Node
             RunCareerTest();
         if (militaryCareerTest)
             RunMilitaryCareerTest();
+        if (educationTest)
+            RunEducationTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -489,6 +497,9 @@ public partial class GameManager : Node
 
         // M25.2: Asker kariyeri günlük ilerleme (rütbe, deneyim, darbe riski).
         if (HasPlayer) MilitaryCareerSystem.DailyTick(TotalDays, PlayerCharacter);
+
+        // M25.3: Eğitim modülü günlük ilerleme (süre, başarı/başarısızlık çözümü).
+        if (HasPlayer) EducationSystem.DailyTick(TotalDays, PlayerCharacter);
 
         // M16: Zaman ve Tempo — ajanda ilerlemesi, hafta reset, aylık rapor
         TimeTempoSystem.DailyTick(this);
@@ -709,6 +720,9 @@ public partial class GameManager : Node
 
         // M25.2: Asker kariyer durumu sıfırlanır
         MilitaryCareerSystem.ResetForNewGame();
+
+        // M25.3: Eğitim modül durumu sıfırlanır
+        EducationSystem.ResetForNewGame();
 
         GD.Print($"GameManager: Yeni oyun — senaryo: {ScenarioSystem.ActiveName}, başlangıç: {StartDate:yyyy-MM-dd}, oyuncu ülkesi ve kilit sıfırlandı");
 
@@ -1675,6 +1689,73 @@ public partial class GameManager : Node
         result = result && coupBlocked;
 
         GD.Print(result ? "[MilitaryCareerTest] SONUÇ: PASS ✓" : "[MilitaryCareerTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(result ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M25.3: Eğitim modülü testi — ders/staj/mentor/sınav/tez/ağ-kurma; süre + PP + nitelik değişimi,
+    /// başarısızlık ve tekrar, Save/Load. Normal oyunda asla çalışmaz (--education-test).
+    /// </summary>
+    private void RunEducationTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M25.3: EĞİTİM MODÜLLERİ TESTİ");
+        GD.Print("=========================================");
+
+        // Deterministik sonuç: sabit tohum
+        DeterministicRNG.InitializeForNewGame(0xE00D1EEDUL);
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+        if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 500;
+
+        EducationSystem.Initialize();
+
+        bool result = true;
+
+        var c = GameManager.Instance.PlayerCharacter;
+        if (c == null)
+        {
+            c = Character.GenerateRandom("DEU", "germanic", 0xBEEFUL);
+            GameManager.Instance.SetCharacter(c);
+        }
+
+        // 1) Sınav modülünü başlat (5 gün, 25 PP; başarı→Law+6, hata→Intelligence-2)
+        int lawBefore = c.Law;
+        int intelBefore = c.Intelligence;
+        bool started = EducationSystem.StartModule(EducationSystem.EducationModuleType.Exam, c, 0);
+        GD.Print($"[EducationTest] Sınav başlatıldı: aktif={EducationSystem.IsActive}, süre={EducationSystem.DaysRemaining}: {started}");
+        result = result && started && EducationSystem.IsActive && EducationSystem.DaysRemaining == 5;
+
+        // 2) 5 gün ilerle → modül çözülür (başarılı veya başarısız; her iki sonuçta nitelik değişir)
+        for (int i = 0; i < 5; i++)
+            EducationSystem.DailyTick(0 + i, c);
+        bool moduleResolved = !EducationSystem.IsActive; // modül çözüldü (başarı veya başarısızlık)
+        GD.Print($"[EducationTest] 5 gün sonra: aktif={EducationSystem.IsActive}, tamamlanan={EducationSystem.CompletedCount}, son={EducationSystem.LastSuccess}: {moduleResolved}");
+        result = result && moduleResolved;
+
+        // 3) Nitelik değişimi doğrulanır (sınav: Law +6 başarılı / Intelligence -2 başarısız)
+        bool statChanged = c.Law == lawBefore + 6 || c.Intelligence == intelBefore - 2;
+        GD.Print($"[EducationTest] Nitelik değişimi: Law {lawBefore}→{c.Law}, Intelligence {intelBefore}→{c.Intelligence}: {statChanged}");
+        result = result && statChanged;
+
+        // 4) Tekrar deneyebilirlik: aynı modülü tekrar başlatılabilir
+        bool restarted = EducationSystem.StartModule(EducationSystem.EducationModuleType.Course, c, 0);
+        GD.Print($"[EducationTest] Tekrar başlatma (Course): {restarted}, aktif={EducationSystem.IsActive}");
+        result = result && restarted;
+
+        // 5) Save/Load dönüşüm durumu korunur
+        var save = EducationSystem.GetSaveData();
+        EducationSystem.LoadSaveData(save);
+        bool saveLoadSame =
+            EducationSystem.CurrentModule == save.CurrentModule
+            && EducationSystem.DaysRemaining == save.DaysRemaining
+            && EducationSystem.CompletedCount == save.CompletedCount;
+        GD.Print($"[EducationTest] Save/Load dönüşüm: modül={EducationSystem.CurrentModule}, süre={EducationSystem.DaysRemaining}, tamamlanan={EducationSystem.CompletedCount}: {saveLoadSame}");
+        result = result && saveLoadSame;
+
+        GD.Print(result ? "[EducationTest] SONUÇ: PASS ✓" : "[EducationTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(result ? 0 : 1);
     }

@@ -314,6 +314,14 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 - `--military-career-test`: **PASS ✓** (kariyer başlatma Private, harp okulu → Corporal, 61 gün sonra Sergeant terfisi + deneyim, Save/Load dönüşüm, darbe engeli Sergeant'da reddedilir).
 - `--save-load-test historical_1936`: **PASS ✓ (A == B)** — asker kariyer state'i kaydedilir/yükler.
 
+## M25.3 — ✅ DONE (2026-10-18)
+- `Scripts/EducationSystem.cs` (yeni): eğitim modül sistemi — EducationModuleType (None/Course/Internship/Mentor/Exam/Thesis/Networking), her birinin DurationDays/CostPP/SuccessChance/SuccessStat+Bonus/FailureStat+Penalty tanımı, deterministik başarı/başarısızlık (DeterministicRNG.NextBool), DailyTick decrement + çözümle, tek aynı anda aktif modül, tekrarlanabilir, nitelik artar/azalır (clamp 1-100). EducationSave DTO + GetSaveData/LoadSaveData + ResetForNewGame. Array index == enum değeri (None placeholder index 0).
+- `Scripts/GameManager.cs` (güncellendi): `EducationSystem.Initialize()` (_Ready), `EducationSystem.DailyTick(TotalDays, PlayerCharacter)` (DailyTick), `--education-test` kancağı + `RunEducationTest()` — sınav modülünü başlatır, 5 gün ilerler, modül çözülür (başarı Law+6 / hata Intelligence-2), nitelik değişimi doğrulanır, tekrar başlatma (Course), Save/Load dönüşüm korundu.
+- `Scripts/SaveSystem.cs`: `SaveFile.Education` alanı + WriteSave/LoadGameInternal bağlama.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--education-test`: **PASS ✓** (sınav başlatıldı süre=5, 5 gün sonra çözüldü, nitelik değişti, tekrar başlatma, Save/Load dönüşüm).
+- `--save-load-test historical_1936`: **PASS ✓ (A == B)** — eğitim modül state'i kaydedilir/yükler.
+
 ## Sonraki adım
-- M25.3: Eğitim öğeleri (dersler, staj, mentor, sınav, tez/proje, ağ kurma).
+- M25.4: Aday olma kriterleri (anayasadan: yaş, eğitim seviyesi, parti üyeliği, tanınırlık, itibar, sicil).
 

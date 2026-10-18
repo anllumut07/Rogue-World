@@ -81,6 +81,7 @@ public static class SaveSystem
         public CharacterSave Character { get; set; } // M24.1: oyuncu karakteri
         public CareerSystem.CareerSave Career { get; set; } // M25.1: oyuncu kariyer durumu
         public MilitaryCareerSystem.MilitaryCareerSave MilitaryCareer { get; set; } // M25.2: asker kariyer durumu
+        public EducationSystem.EducationSave Education { get; set; } // M25.3: eğitim modül durumu
     }
 
     // ===== Economy DTOs =====
@@ -421,6 +422,7 @@ public static class SaveSystem
             Character = CharacterSaveFrom(gm.PlayerCharacter), // M24.1: oyuncu karakteri
             Career = CareerSystem.GetSaveData(), // M25.1: oyuncu kariyer durumu
             MilitaryCareer = MilitaryCareerSystem.GetSaveData(), // M25.2: asker kariyer durumu
+            Education = EducationSystem.GetSaveData(), // M25.3: eğitim modül durumu
         };
 
         EnsureSavesDir();
@@ -565,6 +567,9 @@ public static class SaveSystem
 
             // M25.2: asker kariyer durumu — kayıtta varsa geri yüklenir
             MilitaryCareerSystem.LoadSaveData(save.MilitaryCareer);
+
+            // M25.3: eğitim modül durumu — kayıtta varsa geri yüklenir
+            EducationSystem.LoadSaveData(save.Education);
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

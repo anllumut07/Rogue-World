@@ -117,6 +117,7 @@ public partial class GameManager : Node
         bool educationTest = false;       // M25.3: eğitim modülleri (ders, staj, mentor, sınav, tez/proje, ağ kurma)
         bool candidacyTest = false;       // M25.4: aday olma kriterleri (yaş, eğitim, parti, tanınırlık, itibar, sicil)
         bool careerEventsTest = false;    // M25.5: kariyer olayları (skandal, fırsat, mentor kaybı, hastalık)
+        bool characterTakeoverTest = false; // M25.6: seçim kazanıp ülkeyi devralma testi
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -184,6 +185,8 @@ public partial class GameManager : Node
                 candidacyTest = true;
             else if (arg == "--career-events-test")
                 careerEventsTest = true;
+            else if (arg == "--character-takeover-test")
+                characterTakeoverTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -385,6 +388,8 @@ public partial class GameManager : Node
             RunCandidacyTest();
         if (careerEventsTest)
             RunCareerEventsTest();
+        if (characterTakeoverTest)
+            RunCharacterTakeoverTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -448,6 +453,36 @@ public partial class GameManager : Node
 
     private void DailyTick()
     {
+        // M25.6: Karakter henüz ülke yönetmiyorsa, doğum ülkesindeki seçimi denetle;
+        // kazanınca ülkeyi devral (lider olur, kabine devralınır). Bu blok HasPlayer
+        // olmadan da çalışmalı, çünkü kendi içinde SetPlayerCountry çağırır ve
+        // ilk kez bir ülkeyi seçer.
+        if (HasCharacter && !HasPlayer && PlayerCharacter != null)
+        {
+            var birthCountry = PlayerCharacter.BirthCountryId;
+            if (!string.IsNullOrEmpty(birthCountry)
+                && CandidacySystem.IsEligible(PlayerCharacter, birthCountry)
+                && ElectionSystem.IsElectionDue(birthCountry, TotalDays))
+            {
+                var result = ElectionSystem.ResolveElection(birthCountry, TotalDays);
+                if (result != null && result.Won)
+                {
+                    SetPlayerCountry(birthCountry);
+                    // Kabine devralınır: atanmamış bakanlıklar için ülke içinden en yetenekli bakan atanır
+                    foreach (var m in CabinetSystem.Ministries)
+                    {
+                        if (!CabinetSystem.IsAssigned(birthCountry, m.Id))
+                        {
+                            var available = CabinetSystem.GetAvailableMinisters(birthCountry, m.Id);
+                            if (available.Count > 0)
+                                CabinetSystem.AssignMinister(birthCountry, m.Id, available[0].Id);
+                        }
+                    }
+                    GD.Print($"[M25.6] {PlayerCharacter.FullName} seçimi kazandı, {birthCountry} ülkesinin lideri oldu.");
+                }
+            }
+        }
+
         if (!HasPlayer) return;
         var data = PlayerCountryData;
         if (data == null) return;
@@ -1942,6 +1977,80 @@ public partial class GameManager : Node
         result = result && saveLoadSame;
 
         GD.Print(result ? "[CareerEventTest] SONUÇ: PASS ✓" : "[CareerEventTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(result ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M25.6: Seçimi kazanınca karakterin doğum ülkesini devralma testi.
+    /// Eğilimli bir karakterin doğum ülkesindeki (DEU) seçimin debido olduğu,
+    /// kazandığı durumda SetPlayerCountry + kabine devralınmasını doğrular.
+    /// Normal oyunda asla çalışmaz (--character-takeover-test).
+    /// </summary>
+    private void RunCharacterTakeoverTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M25.6: KARAKTER ÜLKE DEVRALMA TESTİ");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0xFEEDFACEUL);
+
+        if (Speed == 0) SetSpeed(0);
+
+        CandidacySystem.Initialize();
+        EducationSystem.ResetForNewGame();
+
+        bool result = true;
+
+        // 1) Eğilimli bir karakter oluştur: DEU doğumlu, yaş 35, parti üyesi,
+        // yüksek tanınırlık/itibar, temiz sicil, bir eğitim modülü tamamlanmış.
+        var c = GameManager.Instance.PlayerCharacter;
+        if (c == null)
+        {
+            c = Character.GenerateRandom("DEU", "germanic", 0xBEEFUL);
+            GameManager.Instance.SetCharacter(c);
+        }
+        c.BirthCountryId = "DEU";
+        c.Age = 35;
+        c.PartyId = "DEMOKRATIK_PARTI";
+        c.Recognition = 60;
+        c.Reputation = 70;
+        c.HasCriminalRecord = false;
+
+        EducationSystem.StartModule(EducationSystem.EducationModuleType.Course, c, 0);
+        for (int i = 0; i < 7; i++)
+            EducationSystem.DailyTick(i, c);
+        GD.Print($"[TakeoverTest] Karakter: {c.FullName}, yaş={c.Age}, parti={c.PartyId}, tanınırlık={c.Recognition}, itibar={c.Reputation}, eğitim={EducationSystem.CompletedCount}");
+
+        var elig = CandidacySystem.CheckEligibility(c, "DEU");
+        GD.Print($"[TakeoverTest] Adaylık: uygun={elig.IsEligible}, eksikler={string.Join("; ", elig.MissingCriteria)}");
+        result = result && elig.IsEligible && elig.MissingCriteria.Count == 0;
+
+        // 2) DEU halk memnuniyetini yüksek tut → seçimde kazanma garantisi (oy ≥ 50).
+        foreach (var g in PublicSatisfactionSystem.Groups)
+            PublicSatisfactionSystem.SetSatisfaction("DEU", g.Id, 80.0);
+
+        // 3) Tarihi DEU'nın ilk seçiminin ardındanına atla (4*365 = 1460 → gün 1462).
+        GameManager.Instance.JumpToDateForTest(new DateTime(1940, 1, 2));
+        long resolveDay = GameManager.Instance.TotalDays;
+        GD.Print($"[TakeoverTest] Tarih atlatıldı: gün {resolveDay} (DEU ilk seçimi 1460)");
+
+        // 4) Günlük tick → M25.6 bloğu çalışır: karakter seçimi kazanır ve ülkeyi devralır.
+        DailyTick();
+
+        GD.Print($"[TakeoverTest] Sonra: HasPlayer={HasPlayer}, PlayerCountryId={PlayerCountryId}, kilitli={IsPlayerCountryLocked}");
+        bool takenOver = HasPlayer && PlayerCountryId == "DEU" && IsPlayerCountryLocked;
+        GD.Print($"[TakeoverTest] Ülke devredildi: {takenOver}");
+        result = result && takenOver;
+
+        // 5) Kabine devralınmış olmalı: en az bir bakanlık atanmış.
+        int assigned = 0;
+        foreach (var m in CabinetSystem.Ministries)
+            if (CabinetSystem.IsAssigned("DEU", m.Id)) assigned++;
+        GD.Print($"[TakeoverTest] DEU atanmış bakanlık sayısı: {assigned}");
+        result = result && assigned > 0;
+
+        GD.Print(result ? "[TakeoverTest] SONUÇ: PASS ✓" : "[TakeoverTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(result ? 0 : 1);
     }

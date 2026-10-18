@@ -339,6 +339,13 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 - `--career-events-test`: **PASS ✓** (skandal Rep↓/Rec↓/PP↓/aşama geri, fırsat Rep↑/Rec↑/PP↑, mentor 30g engelleme, hastalık 14g engelleme, DailyTick engelleme azaltma, Save/Load dönüşüm).
 - `--save-load-test historical_1936`: **PASS ✓ (A == B)** — KarriereEventSystem/CareerSystem state'i (engelleme, geçmiş olaylar) kaydedilir/yükler.
 
+## M25.6 — ✅ DONE (2026-10-19)
+- `Scripts/GameManager.cs` (güncellendi): `DailyTick()` başına M25.6 bloğu eklendi — `HasCharacter && !HasPlayer` ve `BirthCountryId`'deki seçim `ElectionSystem.IsElectionDue` olduğunda `ElectionSystem.ResolveElection(birthCountry, TotalDays)` çağrılır; `result.Won` ise `SetPlayerCountry(birthCountry)` ve atanmamış her bakanlık için `CabinetSystem.GetAvailableMinisters(birthCountry, m.Id)`'den en yetenekli bakan `CabinetSystem.AssignMinister` ile atanır. Blok `if (!HasPlayer) return;`'den önce çalışır, çünkü ilk ülke seçimi buradan yapılır.
+- `GameManager.cs`: `--character-takeover-test` kancağı + `RunCharacterTakeoverTest()` eklendi — DEU doğumlu, yaş 35, parti üyesi, yüksek tanınırlık/itibar, temiz sicil, bir eğitim modülü tamamlanmış karakter; `JumpToDateForTest(1940-01-02)` → gün 1462 (DEU ilk seçimi 1460'den sonra); `DailyTick()` → karakter seçimi kazanır ve ülke devre alınır.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--character-takeover-test --speed=0`: **PASS ✓** — `HasPlayer=True, PlayerCountryId=DEU, kilitli=True`, DEU'da 4 bakanlık atandı, `EXIT_CODE=0`.
+- `--save-load-test historical_1936 --speed=0`: **PASS ✓ (A == B)** — seçim takvimi dahil tüm sistem state'i kaydedilir/yükler.
+
 ## Sonraki adım
-- M25.6: Seçimi kazanınca lider olarak ülkeyi devralma (kabine devralınır).
+- M26: Doğal Afetler ve Beklenmedik Olaylar (M26.1 afetler: deprem, sel, kuraklık, orman yangını, fırtına, volkan, salgın).
 

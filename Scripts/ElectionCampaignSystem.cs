@@ -34,11 +34,6 @@ public static class ElectionCampaignSystem
 
     public static IReadOnlyDictionary<string, List<CampaignActionRecord>> CampaignHistory => _campaignHistory;
 
-    static ElectionCampaignSystem()
-    {
-        LoadData();
-    }
-
     public static void LoadData()
     {
         _campaignHistory.Clear();

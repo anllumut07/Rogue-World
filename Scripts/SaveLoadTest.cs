@@ -91,6 +91,7 @@ public static class SaveLoadTest
             FindDiff(summaryA, summaryB);
             // test_save.json'i bırak (inceleme için)
         }
+        GameManager.Instance.GetTree().Quit(pass ? 0 : 1);
     }
 
     private static string BuildSummaryCore()

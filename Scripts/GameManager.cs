@@ -1214,6 +1214,7 @@ public partial class GameManager : Node
                       && refr.Passed;
         GD.Print(result ? "[ParliamentTest] SONUÇ: PASS ✓" : "[ParliamentTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
+        GetTree().Quit(result ? 0 : 1);
     }
 
     /// <summary>Parti kongre oylaması ve darbe riski testi (tek parti rejimleri). Normal oyunda ASLA çalışmaz (--autoritarian-test).</summary>
@@ -1252,6 +1253,7 @@ public partial class GameManager : Node
                       && noCoupAtZero;
         GD.Print(result ? "[AutoritarianTest] SONUÇ: PASS ✓" : "[AutoritarianTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
+        GetTree().Quit(result ? 0 : 1);
     }
 
     /// <summary>
@@ -1349,5 +1351,6 @@ public partial class GameManager : Node
                       && saveLoadId && resultsLoaded;
         GD.Print(result ? "[ElectionTest] SONUÇ: PASS ✓" : "[ElectionTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
+        GetTree().Quit(result ? 0 : 1);
     }
 }

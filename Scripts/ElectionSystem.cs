@@ -71,11 +71,6 @@ public static class ElectionSystem
     // M23.3: dışarıdan salt okunur erişim (UI / test)
     public static IReadOnlyDictionary<string, List<ElectionResult>> ElectionResults => _electionResults;
 
-    static ElectionSystem()
-    {
-        LoadData();
-    }
-
     public static void LoadData()
     {
         try

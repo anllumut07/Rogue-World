@@ -229,5 +229,16 @@
 - `dotnet build`: 0 hata / 0 uyarı. `--save-load-test` A==B PASS.
 - Commit 8d1939f + `git push origin gece-calisma` (tree temiz).
 
+## ADIM 1 — Headless test doğrulama (2026-10-18) — TAMAMLANDI
+Tüm testler kendi kendine kapanır (GetTree().Quit), zaman aşımına düşmedi:
+- dotnet build: 0 hata / 0 uyarı
+- M22.4 Otoriter (`--autoritarian-test --speed=0`): **PASS ✓** — 2.7s
+- M22.3 Parlamento (`--parliament-test --speed=0`): **PASS ✓** — 1.96s (7 parti, 460 sandalye, eşik 231, oylama/veto/koalisyon/referandum)
+- M23.x Seçim (`--election-test --speed=0`): **PASS ✓** — 2.16s (takvim, oy tahmini, seçim çözümü, kampanya, save/load kimliği)
+- **Düzeltme:** `ElectionSystem` / `ElectionCampaignSystem` statik kurucusundaki `LoadData()` çift çağrısı kaldırıldı (tek başlatma onaylandı: log satırları tek sefer).
+- **Düzeltme:** Dört test kancağının sonuna `GetTree().Quit(pass ? 0 : 1)` eklendi (GameManager.RunParliamentTest, RunAutoritarianTest, RunElectionTest; SaveLoadTest.Run → GameManager.Instance.GetTree().Quit).
+- Save-load A==B `historical_1936` (`--save-load-test --scenario=historical_1936 --speed=0`): **PASS ✓** — 15.3s
+- Save-load A==B `modern_world` (`--save-load-test --scenario=modern_world --speed=0`): **PASS ✓** — 16.6s
+
 ## Sonraki adım
 - M24.1 Karakter ekranı (ad, yaş, cinsiyet, kültür, görünüm, köken).

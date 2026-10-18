@@ -349,3 +349,11 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 ## Sonraki adım
 - M26: Doğal Afetler ve Beklenmedik Olaylar (M26.1 afetler: deprem, sel, kuraklık, orman yangını, fırtına, volkan, salgın).
 
+---
+
+### ÖZET (M25.6 — 2026-10-19)
+1. Değişen dosyalar: Scripts/GameManager.cs (M25.6 DailyTick bloğu + --character-takeover-test/RunCharacterTakeoverTest), TODO.md (25.6 [x]), GECE-RAPOR.md (M25.6 DONE).
+2. Çözülemeyen şey: yok — M25.6 %100 tamamlandı.
+3. Bilinen sorun: headless testlerde OS.GetCmdlineUserArgs() argümanları almak için komut satırında `--` ayracı gerekli (ör. `-- --character-takeover-test --speed=0`).
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--character-takeover-test --speed=0` (EXIT 0, PASS); `--save-load-test --scenario=historical_1936 --speed=0` (EXIT 0, A==B).
+

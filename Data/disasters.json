@@ -1,0 +1,88 @@
+{
+  "Disasters": [
+    {
+      "Id": "earthquake",
+      "Name": "Earthquake",
+      "Type": "Earthquake",
+      "Severity": 3,
+      "DurationDays": 7,
+      "BaseProbabilityPerDay": 0.0003,
+      "Regions": ["Southern Asia", "East Asia", "Southeast Asia", "Central Europe", "South America", "Western Europe", "Western Asia"],
+      "RegionSeverityMultiplier": { "Southern Asia": 1.3, "East Asia": 1.2 },
+      "Impacts": { "population": -1.0, "health": -3.0, "environment": -2.0, "gdp": -3.0 },
+      "Description": "A strong earthquake shakes cities and infrastructure."
+    },
+    {
+      "Id": "flood",
+      "Name": "Flood",
+      "Type": "Flood",
+      "Severity": 2,
+      "DurationDays": 5,
+      "BaseProbabilityPerDay": 0.0008,
+      "Regions": [],
+      "RegionSeverityMultiplier": {},
+      "Impacts": { "population": -1.0, "health": -2.0, "environment": -1.0, "gdp": -2.0 },
+      "Description": "Heavy rainfall causes flooding in low-lying areas."
+    },
+    {
+      "Id": "drought",
+      "Name": "Drought",
+      "Type": "Drought",
+      "Severity": 2,
+      "DurationDays": 30,
+      "BaseProbabilityPerDay": 0.0004,
+      "Regions": ["Southern Asia", "North America", "South America", "Oceania", "Western Asia", "Northern Africa", "Central Asia"],
+      "RegionSeverityMultiplier": {},
+      "Impacts": { "gdp": -3.0, "energy": -3.0, "environment": -3.0, "health": -1.0 },
+      "Description": "Extended dry period damages agriculture and water supply."
+    },
+    {
+      "Id": "wildfire",
+      "Name": "Wildfire",
+      "Type": "Wildfire",
+      "Severity": 2,
+      "DurationDays": 14,
+      "BaseProbabilityPerDay": 0.0003,
+      "Regions": ["North America", "Oceania", "South America", "Southern Europe", "Western Europe"],
+      "RegionSeverityMultiplier": {},
+      "Impacts": { "environment": -4.0, "health": -1.0, "gdp": -1.0 },
+      "Description": "Forest fire destroys woodland and harms air quality."
+    },
+    {
+      "Id": "storm",
+      "Name": "Storm",
+      "Type": "Storm",
+      "Severity": 2,
+      "DurationDays": 3,
+      "BaseProbabilityPerDay": 0.0005,
+      "Regions": ["North America", "Western Europe", "East Asia", "Southeast Asia", "Oceania", "Northern Europe"],
+      "RegionSeverityMultiplier": {},
+      "Impacts": { "gdp": -2.0, "environment": -1.0, "health": -1.0 },
+      "Description": "Severe storm damages buildings and disrupts transport."
+    },
+    {
+      "Id": "volcano",
+      "Name": "Volcano",
+      "Type": "Volcano",
+      "Severity": 4,
+      "DurationDays": 60,
+      "BaseProbabilityPerDay": 0.0001,
+      "Regions": ["East Asia", "Southeast Asia", "South America", "Southern Asia", "Central America"],
+      "RegionSeverityMultiplier": { "Southeast Asia": 1.2 },
+      "Impacts": { "environment": -3.0, "health": -3.0, "gdp": -2.0, "population": -1.0 },
+      "Description": "Volcanic eruption covers the region in ash and disrupts life."
+    },
+    {
+      "Id": "epidemic",
+      "Name": "Epidemic",
+      "Type": "Epidemic",
+      "Severity": 3,
+      "DurationDays": 45,
+      "BaseProbabilityPerDay": 0.0002,
+      "Regions": [],
+      "RegionSeverityMultiplier": {},
+      "Impacts": { "health": -4.0, "population": -1.0, "gdp": -2.0 },
+      "Description": "Disease outbreak strains the healthcare system."
+    }
+  ]
+}

@@ -120,6 +120,7 @@ public static class ScenarioSystem
         TechnologySystem.ResetForScenario();
         LibrarySystem.ResetForScenario();
         CasusBelliSystem.ResetForScenario();
+        DisasterSystem.ResetForScenario();
         // M17.2: senaryoya bağlı başlangıç verisi olan sistemler
         DiplomacySystem.ResetForScenario();
         ArmySystem.ResetForScenario();

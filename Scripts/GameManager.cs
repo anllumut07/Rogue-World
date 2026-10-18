@@ -118,6 +118,7 @@ public partial class GameManager : Node
         bool candidacyTest = false;       // M25.4: aday olma kriterleri (yaş, eğitim, parti, tanınırlık, itibar, sicil)
         bool careerEventsTest = false;    // M25.5: kariyer olayları (skandal, fırsat, mentor kaybı, hastalık)
         bool characterTakeoverTest = false; // M25.6: seçim kazanıp ülkeyi devralma testi
+        bool disasterTest = false;          // M26.1: afet sistemi testi (--disaster-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -187,9 +188,16 @@ public partial class GameManager : Node
                 careerEventsTest = true;
             else if (arg == "--character-takeover-test")
                 characterTakeoverTest = true;
+            else if (arg == "--disaster-test")
+                disasterTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
+
+        // M26.1: --disaster-test (ve --save-load-test) verilmişse afet test modunu etkinleştir
+        // (olasılık artırır), böylece afet kaydet/yükle determinizmi de sınanır.
+        if (disasterTest || saveLoadTest)
+            DisasterSystem.EnableTestMode();
 
         // M17.1: Aktif senaryoyu ayarla — veri yükleyicilerin yolları buradan gelir.
         // --scenario verilmezse ScenarioSystem varsayılanı (historical_1936) kullanılır.
@@ -262,6 +270,9 @@ public partial class GameManager : Node
 
         // M23.4: Halk refahı — protesto, grev, güven oylaması, erken seçim, darbe girişimi.
         PoliticalUnrestSystem.InitializeAll();
+
+        // M26.1: Afet sistemini yükle (tanımlar + ülke→bölge haritası, aktif senaryodan).
+        DisasterSystem.LoadScenarioData();
 
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)
@@ -390,6 +401,8 @@ public partial class GameManager : Node
             RunCareerEventsTest();
         if (characterTakeoverTest)
             RunCharacterTakeoverTest();
+        if (disasterTest)
+            RunDisasterTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -521,6 +534,9 @@ public partial class GameManager : Node
 
         // M20.1: İstatistik göstergelerinin günlük dalgalanması
         StatisticsSystem.DailyTick();
+
+        // M26.1: Afet günlük tick'i — bölgeye özel olasılık/şiddet, gösterge şokları.
+        DisasterSystem.DailyTick();
 
         // M20.2: Bütçe günlük tick'i (gelir/harcama/açık/borç/faiz + göstergelere yansıma)
         BudgetSystem.DailyTick();
@@ -784,6 +800,9 @@ public partial class GameManager : Node
 
         // M25.5: Kariyer olayı durumu sıfırlanır
         CareerEventSystem.ResetForNewGame();
+
+        // M26.1: Afet durumu sıfırlanır (yeni oyun → eski aktif/geçmiş afetler silinir).
+        DisasterSystem.ResetForNewGame();
 
         GD.Print($"GameManager: Yeni oyun — senaryo: {ScenarioSystem.ActiveName}, başlangıç: {StartDate:yyyy-MM-dd}, oyuncu ülkesi ve kilit sıfırlandı");
 
@@ -2053,5 +2072,35 @@ public partial class GameManager : Node
         GD.Print(result ? "[TakeoverTest] SONUÇ: PASS ✓" : "[TakeoverTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(result ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M26.1: Afet sistemi testi (--disaster-test). Deterministik tohumla N gün ilerletir,
+    /// test modunda afet tetiklenmesini garanti eder ve sonucu raporlar.
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunDisasterTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M26.1: AFET SİSTEMİ TESTİ (--disaster-test)");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0xDEADCAFEUL);
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+        DisasterSystem.EnableTestMode();
+
+        int days = 60;
+        AdvanceDaysForTest(days);
+        int active = DisasterSystem.ActiveDisasters.Count;
+        int history = DisasterSystem.DisasterHistory.Count;
+        GD.Print($"[DisasterTest] {days} gün → aktif={active}, geçmiş_kayıt={history}, RNG={DeterministicRNG.GetState():X}");
+        foreach (var d in DisasterSystem.DisasterHistory)
+            GD.Print($"[DisasterTest]   {d.Day:D3}.gün {d.DisasterId} → {d.CountryId} ({d.Region}) şiddet={d.Severity}");
+
+        bool ok = history > 0; // test modunda en az bir afet ateşlenmeli
+        GD.Print(ok ? "[DisasterTest] SONUÇ: PASS ✓" : "[DisasterTest] SONUÇ: FAIL ✗ (hiç afet ateşlenmedi)");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
     }
 }

@@ -1131,3 +1131,24 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/ElectionSystem.cs`
 
 **Sonraki adım:** M24.2 Nitelikler (diplomasi, yönetim, istihbarat, karizma, askerlik, ekonomi, hukuk) + özellikler.
+
+### M26.1: Doğal Afetler — ✅ DONE (2026-10-19)
+
+**Değişiklikler:**
+- `Data/disasters.json` (yeni): 7 afet tanımı (deprem, sel, kuraklık, orman yangını, fırtına, volkan, salgın) — Id/Name/Type/Severity/DurationDays/BaseProbabilityPerDay/Regions/RegionSeverityMultiplier/Impacts/Description.
+- `Scripts/DisasterSystem.cs` (yeni): static sınıf ~230 satır. DisasterDefinition/ActiveDisaster/DisasterRecord/DisasterSave DTO'ları. `EnsureLoaded` (Data/disasters.json parse, `IncludeFields` + `EnumerateObject` sözlük özellikleri için), `EnsureRegionMap` (aktif senaryonun library/countries.json `Region` alanı), `DailyTick` (aktif afet süresi azaltma + `DeterministicRNG.NextDouble()` tetikleme zarı, bölgeye özel olasılık, ülke başına günde en fazla bir afet), `Strike` (şiddet çarpanı clamp 1-5, `StatisticsSystem` tek seferlik şok, GD.Print logu), `GetSaveData`/`LoadSaveData` (aktif + geçmiş), `EnableTestMode()` (olasılık ×100, kapat 1.0).
+- `Scripts/GameManager.cs` (güncellendi): `disasterTest` bayrağı + `--disaster-test` arg; `DisasterSystem.LoadScenarioData()` (_Ready, PoliticalUnrestSystem'den sonra); `DisasterSystem.DailyTick()` (DailyTick, StatisticsSystem'den sonra); `DisasterSystem.ResetForNewGame()` (ResetForNewGame); `if (disasterTest || saveLoadTest) DisasterSystem.EnableTestMode()` (affectSave/Load determinizmi de sınanır); `RunDisasterTest()` metodu (60 gün, test modu, history>0 → exit 0).
+- `Scripts/SaveSystem.cs` (güncellendi): `public DisasterSystem.DisasterSave Disasters { get; set; }` SaveFile'de; `Disasters = DisasterSystem.GetSaveData()` (WriteSave); `DisasterSystem.LoadSaveData(save.Disasters)` (LoadGameInternal).
+- `Scripts/SaveLoadTest.cs` (güncellendi): `BuildSummaryCore`'e "Afetler: aktif=X, geçmiş_kayıt=Y" satırı eklendi.
+- `Scripts/ScenarioSystem.cs` (güncellendi): `DisasterSystem.ResetForScenario()` → SetActive reset zincirine eklendi.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--disaster-test`: **SONUÇ: PASS ✓** — afetler ülke/bölge bazlı doğru şiddette ateşlendi.
+- `--save-load-test --scenario=historical_1936 --speed=0`: **SONUÇ: PASS ✓ (A == B)** — `Afetler: aktif=2, geçmiş_kayıt=6` hem summary A hem B'de aynı → afet kaydet/yükle deterministi onaylandı. Ateşlenen afetler: Storm (GBR), Flood (RUS), Earthquake (CHL ×2), Drought (ARG ×2), Epidemic (CHL ×2), Flood (CHN).
+
+**Dosyalar:**
+- Yeni: `Data/disasters.json`, `Scripts/DisasterSystem.cs`
+- Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/ScenarioSystem.cs`
+
+**Sonraki adım:** M26.2 (Etkiler + iyileşme süreci).

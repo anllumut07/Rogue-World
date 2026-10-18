@@ -346,14 +346,23 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 - `--character-takeover-test --speed=0`: **PASS ✓** — `HasPlayer=True, PlayerCountryId=DEU, kilitli=True`, DEU'da 4 bakanlık atandı, `EXIT_CODE=0`.
 - `--save-load-test historical_1936 --speed=0`: **PASS ✓ (A == B)** — seçim takvimi dahil tüm sistem state'i kaydedilir/yükler.
 
+## M26.1 — ✅ DONE (2026-10-19)
+- `Data/disasters.json` (yeni): 7 afet tanımı (deprem, sel, kuraklık, orman yangını, fırtına, volkan, salgın) — bölgeye özel olasılık/şiddet ve gösterge etkileri.
+- `Scripts/DisasterSystem.cs` (yeni): static sistem — EnsureLoaded/EnsureRegionMap/DailyTick/Strike/GetSaveData/LoadSaveData/EnableTestMode; `DeterministicRNG` tetikleme, şiddet clamp 1-5, StatisticsSystem tek seferlik şok, Save/Load DTO.
+- `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/ScenarioSystem.cs`: DailyTick entegrasyonu, SaveFile.Disasters alanı, SaveLoadTest afet özeti, ResetForScenario zinciri, `--disaster-test`/`--save-load-test` test modu kancağı.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--disaster-test`: **SONUÇ: PASS ✓** — afetler ülke/bölge bazlı doğru şiddette ateşlendi.
+- `--save-load-test --scenario=historical_1936 --speed=0`: **SONUÇ: PASS ✓ (A == B)** — `Afetler: aktif=2, geçmiş_kayıt=6` hem A hem B'de aynı (afet kaydet/yükle deterministi onaylandı). Ateşlenen: Storm (GBR), Flood (RUS), Earthquake (CHL ×2), Drought (ARG ×2), Epidemic (CHL ×2), Flood (CHN).
+- Commit + `git push origin gece-calisma` (hazırlanıyor).
+
 ## Sonraki adım
-- M26: Doğal Afetler ve Beklenmedik Olaylar (M26.1 afetler: deprem, sel, kuraklık, orman yangını, fırtına, volkan, salgın).
+- M26.2: Etkiler + iyileşme süreci (nüfus, ekonomi, altyapı, memnuniyet göstergesi iyileşmesi).
 
 ---
 
-### ÖZET (M25.6 — 2026-10-19)
-1. Değişen dosyalar: Scripts/GameManager.cs (M25.6 DailyTick bloğu + --character-takeover-test/RunCharacterTakeoverTest), TODO.md (25.6 [x]), GECE-RAPOR.md (M25.6 DONE).
-2. Çözülemeyen şey: yok — M25.6 %100 tamamlandı.
-3. Bilinen sorun: headless testlerde OS.GetCmdlineUserArgs() argümanları almak için komut satırında `--` ayracı gerekli (ör. `-- --character-takeover-test --speed=0`).
-4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--character-takeover-test --speed=0` (EXIT 0, PASS); `--save-load-test --scenario=historical_1936 --speed=0` (EXIT 0, A==B).
+### ÖZET (M26.1 — 2026-10-19)
+1. Değişen dosyalar: `Data/disasters.json` (yeni), `Scripts/DisasterSystem.cs` (yeni), `Scripts/GameManager.cs` (DailyTick + test modu kancağı), `Scripts/SaveSystem.cs` (SaveFile.Disasters), `Scripts/SaveLoadTest.cs` (afet özeti), `Scripts/ScenarioSystem.cs` (ResetForScenario), `TODO.md` (26.1 [x]), `PROGRESS.md` (M26.1 DONE).
+2. Çözülemeyen şey: yok — M26.1 %100 tamamlandı (build 0/0, disaster-test PASS, save-load-test A==B).
+3. Bilinen sorun: M26.2 iyileşme/recovery henüz yok — afet etkileri kalıcı şok olarak kalır (M26.2'de toparlanma gelecek).
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--disaster-test` (EXIT 0, PASS); `--save-load-test --scenario=historical_1936 --speed=0` (EXIT 0, A==B).
 

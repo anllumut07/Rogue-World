@@ -211,6 +211,12 @@ public static class SaveLoadTest
         int statHistoryPoints = statSave?.Countries?.Sum(c => c.History?.Values.Sum(h => h.Count) ?? 0) ?? 0;
         sb.AppendLine($"İstatistikler: ülke={statCountries}, gösterge_değeri={statValues}, geçmiş_kayıt={statHistoryPoints}");
 
+        // --- M26.1: Afetler ---
+        var disasterSave = DisasterSystem.GetSaveData();
+        int disasterActive = disasterSave?.Active?.Length ?? 0;
+        int disasterHistory = disasterSave?.History?.Length ?? 0;
+        sb.AppendLine($"Afetler: aktif={disasterActive}, geçmiş_kayıt={disasterHistory}");
+
         // --- M20.2: Bütçe ---
         var budgetSave = BudgetSystem.GetSaveData();
         int budgetCountries = budgetSave?.Countries?.Length ?? 0;

@@ -322,6 +322,15 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 - `--education-test`: **PASS ✓** (sınav başlatıldı süre=5, 5 gün sonra çözüldü, nitelik değişti, tekrar başlatma, Save/Load dönüşüm).
 - `--save-load-test historical_1936`: **PASS ✓ (A == B)** — eğitim modül state'i kaydedilir/yükler.
 
+## M25.4 — ✅ DONE (2026-10-18)
+- `Scripts/CandidacySystem.cs` (yeni): aday olma kriterleri sistemi — CandidacyCriteria (MinAge/MinEducationCompleted/RequiresPartyMembership/MinRecognition/MinReputation/RequiresCleanRecord), CandidacyResult (IsEligible + MissingCriteria listesi), CheckEligibility/IsEligible, anayasa VotingAge entegrasyonu (yaş ≥ max(kriter, VotingAge)), CandidacySave DTO + GetSaveData/LoadSaveData/ResetForNewGame.
+- `Scripts/Character.cs` (güncellendi): PartyId, Recognition (0-100 tanınırlık), Reputation (0-100 itibar), HasCriminalRecord alanları eklendi.
+- `Scripts/SaveSystem.cs` (güncellendi): CharacterSave DTO + PartyId/Recognition/Reputation/HasCriminalRecord alanları; CharacterSaveFrom/To güncellendi.
+- `Scripts/GameManager.cs` (güncellendi): `CandidacySystem.Initialize()` (_Ready), `CandidacySystem.ResetForNewGame()` (ResetForNewGame), `--candidacy-test` kancağı + `RunCandidacyTest()` — eğilimsiz karakter reddedilir + eksik kriter listesi gösterilir, eğilimli karakter kabul edilir, Save/Load kriter korundu.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--candidacy-test`: **PASS ✓** (eğilimsiz karakter: uygun=false, eksik kriterler listelenir; eğilimli karakter: uygun=true; Save/Load kriterler korunur).
+- `--save-load-test historical_1936`: **PASS ✓ (A == B)** — yeni Character alanları (PartyId, Recognition, Reputation, HasCriminalRecord) kaydedilir/yükler.
+
 ## Sonraki adım
-- M25.4: Aday olma kriterleri (anayasadan: yaş, eğitim seviyesi, parti üyeliği, tanınırlık, itibar, sicil).
+- M25.5: Kariyer olayları (skandal, fırsat, mentor kaybı, hastalık).
 

@@ -115,6 +115,7 @@ public partial class GameManager : Node
         bool careerTest = false;          // M25.1: siyasetçi kariyer yolu (eğitim → parti gençlik → yerel yönetim → milletvekili → bakanlık)
         bool militaryCareerTest = false;  // M25.2: asker kariyer yolu (harp okulu → rütbeler → görev yerleri → savaş deneyimi → darbe)
         bool educationTest = false;       // M25.3: eğitim modülleri (ders, staj, mentor, sınav, tez/proje, ağ kurma)
+        bool candidacyTest = false;       // M25.4: aday olma kriterleri (yaş, eğitim, parti, tanınırlık, itibar, sicil)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -178,6 +179,8 @@ public partial class GameManager : Node
                 militaryCareerTest = true;
             else if (arg == "--education-test")
                 educationTest = true;
+            else if (arg == "--candidacy-test")
+                candidacyTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -244,6 +247,9 @@ public partial class GameManager : Node
 
         // M25.3: Eğitim modülleri — ders, staj, mentor, sınav, tez/proje, ağ kurma.
         EducationSystem.Initialize();
+
+        // M25.4: Aday olma kriterleri — yaş, eğitim seviyesi, parti üyeliği, tanınırlık, itibar, sicil.
+        CandidacySystem.Initialize();
 
         // M23.4: Halk refahı — protesto, grev, güven oylaması, erken seçim, darbe girişimi.
         PoliticalUnrestSystem.InitializeAll();
@@ -369,6 +375,8 @@ public partial class GameManager : Node
             RunMilitaryCareerTest();
         if (educationTest)
             RunEducationTest();
+        if (candidacyTest)
+            RunCandidacyTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -723,6 +731,9 @@ public partial class GameManager : Node
 
         // M25.3: Eğitim modül durumu sıfırlanır
         EducationSystem.ResetForNewGame();
+
+        // M25.4: Aday olma kriter durumu sıfırlanır
+        CandidacySystem.ResetForNewGame();
 
         GD.Print($"GameManager: Yeni oyun — senaryo: {ScenarioSystem.ActiveName}, başlangıç: {StartDate:yyyy-MM-dd}, oyuncu ülkesi ve kilit sıfırlandı");
 
@@ -1756,6 +1767,83 @@ public partial class GameManager : Node
         result = result && saveLoadSame;
 
         GD.Print(result ? "[EducationTest] SONUÇ: PASS ✓" : "[EducationTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(result ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M25.4: Aday olma kriterleri testi — yaş, eğitim seviyesi, parti üyeliği,
+    /// tanınırlık, itibar, sicil. Eksik kriter listesi gösterilir. Normal oyunda
+    /// asla çalışmaz (--candidacy-test).
+    /// </summary>
+    private void RunCandidacyTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M25.4: ADAY OLMA KRİTERLERİ TESTİ");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0xCAFE1234UL);
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+        if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 500;
+
+        CandidacySystem.Initialize();
+
+        bool result = true;
+
+        var c = GameManager.Instance.PlayerCharacter;
+        if (c == null)
+        {
+            c = Character.GenerateRandom("DEU", "germanic", 0xBEEFUL);
+            GameManager.Instance.SetCharacter(c);
+        }
+
+        // Varsayılan kriterler: yaş≥18, eğitim≥1, parti üyesi, tanınırlık≥30, itibar≥40, temiz sicil
+        var defaultCriteria = CandidacySystem.GetCriteria();
+        GD.Print($"[CandidacyTest] Varsayılan kriterler: yaş≥{defaultCriteria.MinAge}, eğitim≥{defaultCriteria.MinEducationCompleted}, parti={defaultCriteria.RequiresPartyMembership}, tanınırlık≥{defaultCriteria.MinRecognition}, itibar≥{defaultCriteria.MinReputation}, temiz_sicil={defaultCriteria.RequiresCleanRecord}");
+
+        // Karakteri kriterleri sağlamayan durumda ayarla (genç, eğitim yok, partisiz, düşük tanınırlık/itibar, sicil var)
+        c.Age = 16;
+        c.PartyId = "";
+        c.Recognition = 10;
+        c.Reputation = 20;
+        c.HasCriminalRecord = true;
+        EducationSystem.ResetForNewGame(); // tamamlanmış modül sayısı 0
+
+        var res1 = CandidacySystem.CheckEligibility(c, "DEU");
+        GD.Print($"[CandidacyTest] Eğilimsiz karakter: uygun={res1.IsEligible}, eksikler={string.Join("; ", res1.MissingCriteria)}");
+        result = result && !res1.IsEligible && res1.MissingCriteria.Count > 0;
+
+        // Karakteri kriterleri sağlayan durumda ayarla
+        c.Age = 35;
+        c.PartyId = "DEMOKRATIK_PARTI";
+        c.Recognition = 60;
+        c.Reputation = 70;
+        c.HasCriminalRecord = false;
+        EducationSystem.StartModule(EducationSystem.EducationModuleType.Course, c, 0);
+        for (int i = 0; i < 7; i++)
+            EducationSystem.DailyTick(i, c); // 7 gün → ders tamamlanır, CompletedCount=1
+
+        var res2 = CandidacySystem.CheckEligibility(c, "DEU");
+        GD.Print($"[CandidacyTest] Eğilimli karakter: uygun={res2.IsEligible}, eksikler={string.Join("; ", res2.MissingCriteria)}");
+        result = result && res2.IsEligible && res2.MissingCriteria.Count == 0;
+
+        // Save/Load dönüşüm kriter korundu mu
+        var save = CandidacySystem.GetSaveData();
+        CandidacySystem.LoadSaveData(save);
+        var crit2 = CandidacySystem.GetCriteria();
+        bool saveLoadSame =
+            crit2.MinAge == defaultCriteria.MinAge
+            && crit2.MinEducationCompleted == defaultCriteria.MinEducationCompleted
+            && crit2.RequiresPartyMembership == defaultCriteria.RequiresPartyMembership
+            && crit2.MinRecognition == defaultCriteria.MinRecognition
+            && crit2.MinReputation == defaultCriteria.MinReputation
+            && crit2.RequiresCleanRecord == defaultCriteria.RequiresCleanRecord;
+        GD.Print($"[CandidacyTest] Save/Load dönüşüm kriterler: {saveLoadSame}");
+        result = result && saveLoadSame;
+
+        GD.Print(result ? "[CandidacyTest] SONUÇ: PASS ✓" : "[CandidacyTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(result ? 0 : 1);
     }

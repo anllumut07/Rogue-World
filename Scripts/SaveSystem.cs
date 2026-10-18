@@ -309,6 +309,11 @@ public static class SaveSystem
         public int Health { get; set; }
         public string SpouseId { get; set; } = "";
         public bool IsMarried { get; set; }
+        // M25.4: aday olma kriterleri alanları
+        public string PartyId { get; set; } = "";
+        public int Recognition { get; set; }
+        public int Reputation { get; set; }
+        public bool HasCriminalRecord { get; set; }
     }
 
     // ===== Yardımcı: Dosya yolları =====
@@ -620,6 +625,10 @@ public static class SaveSystem
             Health = c.Health,
             SpouseId = c.SpouseId,
             IsMarried = c.IsMarried,
+            PartyId = c.PartyId,
+            Recognition = c.Recognition,
+            Reputation = c.Reputation,
+            HasCriminalRecord = c.HasCriminalRecord,
         };
     }
 
@@ -650,6 +659,10 @@ public static class SaveSystem
             Health = s.Health,
             SpouseId = s.SpouseId ?? "",
             IsMarried = s.IsMarried,
+            PartyId = s.PartyId ?? "",
+            Recognition = s.Recognition,
+            Reputation = s.Reputation,
+            HasCriminalRecord = s.HasCriminalRecord,
         };
     }
 

@@ -38,6 +38,12 @@ public partial class Character
     public string SpouseId { get; set; } = "";
     public bool IsMarried { get; set; }
 
+    // M25.4: Aday olma kriterleri için karakter alanları
+    public string PartyId { get; set; } = "";           // boş = parti üyesi değil
+    public int Recognition { get; set; } = 0;           // tanınırlık / fama (0-100)
+    public int Reputation { get; set; } = 50;           // itibar (0-100)
+    public bool HasCriminalRecord { get; set; } = false;// sicil
+
     public static readonly string[] Backgrounds = { "military", "law", "business", "academic", "activist" };
     public static readonly string[] Genders = { "Male", "Female", "Other" };
 

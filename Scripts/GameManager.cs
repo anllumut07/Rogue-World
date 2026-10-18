@@ -214,6 +214,9 @@ public partial class GameManager : Node
         // M23.2: Kampanya aksiyonları (miting, reklam, TV, ittifak, vaat).
         ElectionCampaignSystem.LoadData();
 
+        // M23.4: Halk refahı — protesto, grev, güven oylaması, erken seçim, darbe girişimi.
+        PoliticalUnrestSystem.InitializeAll();
+
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)
             SetupProductionTest();
@@ -453,6 +456,9 @@ public partial class GameManager : Node
         // M23.3: Seçim günü — oyuncu ülkesinde seçim sonucu çözümlenir (kazanma/kaybetme, lider değişikliği, yeni kabine)
         if (HasPlayer) ElectionSystem.ResolveElection(PlayerCountryId, TotalDays);
 
+        // M23.4: Halk refahı — protesto, grev, güven oylaması, erken seçim, darbe girişimi (oyuncu ülkesinde).
+        if (HasPlayer) PoliticalUnrestSystem.DailyTick(PlayerCountryId, TotalDays);
+
         // M12: Ocak 1'de otomatik kayıt (yeni yılın ilk günü)
         if (CurrentDate.Month == 1 && CurrentDate.Day == 1)
             SaveSystem.AutoSave();
@@ -603,6 +609,9 @@ public partial class GameManager : Node
 
         // M23.2: Kampanya geçmişi-yeni oyun (kampanya aksiyonları ve vaatler sıfırlanır)
         ElectionCampaignSystem.ResetForNewGame();
+
+        // M23.4: Halk refahı durumu-yeni oyun (protesto/grev/darbe state'i sıfırlanır)
+        PoliticalUnrestSystem.ResetForNewGame();
 
         // M-Flags: bayrak önbelleği sıfırlanır (rapor yeni oyunda tekrar loglanır)
         FlagLibrary.ResetForNewGame();

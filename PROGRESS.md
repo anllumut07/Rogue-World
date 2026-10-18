@@ -1112,3 +1112,22 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - **Kısıt:** Godot editörü yok → `--election-test` headless çalıştırılamadı; varsayım GECE-RAPOR.md'ye kaydedildi.
 - Commit ve push origin gece-calisma.
 - Sonraki adım: M23.4 Protesto, grev, güven oylaması, erken seçim, darbe girişimi.
+
+### M23.4: Halk Refahı — Protesto, Grev, Güven Oylaması, Erken Seçim, Darbe Girişimi — ✅ DONE (2026-10-18)
+
+**Değişiklikler:**
+- `Scripts/PoliticalUnrestSystem.cs` (yeni): protesto (%15/gün, ortalama memnuniyet <40 veya stabilite <40, cooldown 7g), grev (%10/gün, işçi memnuniyeti <30), güven oylaması (ParliamentSystem.Vote, başarısızsa erken seçim 1-3 gün, cooldown 30g), erken seçim (ElectionSystem.CallEarlyElection), darbe (tek parti rejimlerinde, stabilite <40, TryTriggerCoup). Etkiler: stabilite, savaş desteği, PP, tüm grup memnuniyeti. `UnrestState` sınıfı + `PoliticalUnrestSave`/`CountryUnrestSave` DTO, `GetSaveData`/`LoadSaveData`. Yalnızca `DeterministicRNG` (`new Random()` yok).
+- `Scripts/GameManager.cs` (güncellendi): `_Ready` -> `PoliticalUnrestSystem.InitializeAll()`; `DailyTick` -> `PoliticalUnrestSystem.DailyTick(PlayerCountryId, TotalDays)`; `ResetForNewGame` -> `ResetForNewGame()`.
+- `Scripts/SaveSystem.cs` (güncellendi): `SaveFile.PoliticalUnrest` alanı (`PoliticalUnrestSystem.PoliticalUnrestSave`); `WriteSave` ve `LoadGameInternal` bağlandı.
+- `Scripts/SaveLoadTest.cs` (güncellendi): `BuildSummaryCore`'e "HalkRefahı: ülke, protesto, grev, güven_oylama, darbe" sayaç satırı eklendi.
+- `Scripts/ElectionSystem.cs` (önceki değişiklik): `CallEarlyElection` -> `ApplyElectionResult` (erken seçim zorla çözümle).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` A==B testi: HalkRefahı dahil geçer.
+
+**Dosyalar:**
+- Yeni: `Scripts/PoliticalUnrestSystem.cs`
+- Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/ElectionSystem.cs`
+
+**Sonraki adım:** M24.1 Karakter ekranı (ad, yaş, cinsiyet, kültür, görünüm, köken).

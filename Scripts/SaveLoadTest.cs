@@ -307,6 +307,15 @@ public static class SaveLoadTest
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");
 
+        // M23.4: Halk refahı (protesto, grev, güven oylaması, darbe)
+        var unrestSave = PoliticalUnrestSystem.GetSaveData();
+        int unrestCountries = unrestSave?.Countries?.Length ?? 0;
+        int totalProtests = unrestSave?.Countries?.Sum(c => c.ProtestCount) ?? 0;
+        int totalStrikes = unrestSave?.Countries?.Sum(c => c.StrikeCount) ?? 0;
+        int totalConfidenceVotes = unrestSave?.Countries?.Sum(c => c.VoteOfConfidenceCount) ?? 0;
+        int totalCoups = unrestSave?.Countries?.Sum(c => c.CoupAttemptCount) ?? 0;
+        sb.AppendLine($"HalkRefahı: ülke={unrestCountries}, protesto={totalProtests}, grev={totalStrikes}, güven_oylama={totalConfidenceVotes}, darbe={totalCoups}");
+
         // M18.5: İl sahipliği özeti
         var provOwners = ProvinceOwnershipSystem.GetSaveData();
         sb.AppendLine($"İller: {provOwners.Count} kayıt (provinceId -> countryId)");

@@ -198,7 +198,20 @@ public static class ElectionSystem
     {
         if (string.IsNullOrEmpty(countryId)) return null;
         if (!IsElectionDue(countryId, currentDay)) return null;
+        return ApplyElectionResult(countryId, currentDay);
+    }
 
+    // M23.4: Erken seçim — talep edilen günde seçim sonucunu zorla çözümle (dönem sonu beklenmez).
+    public static ElectionResult CallEarlyElection(string countryId, long currentDay)
+    {
+        if (string.IsNullOrEmpty(countryId)) return null;
+        return ApplyElectionResult(countryId, currentDay);
+    }
+
+    // Seçim sonucunu ortak olarak uygula: kazanınca iktidar korunur, kaybedince lider + kabine değişir,
+    // sonuç kaydedilir ve sonraki dönem başlar.
+    private static ElectionResult ApplyElectionResult(string countryId, long currentDay)
+    {
         var pred = GetVotePrediction(countryId, currentDay);
         bool won = pred.PredictedVote >= _config.WinThreshold;
 
@@ -215,16 +228,12 @@ public static class ElectionSystem
 
         if (!won)
         {
-            // Lider değişir: mevcut lideri geçersiz kıl, yeni deterministik lider üret.
             var newLeader = LeaderSystem.RegenerateLeader(countryId, currentDay);
             result.LeaderChanged = true;
             result.NewLeader = newLeader.FullName;
-
-            // Kabineyi yeniden dağıt: mevcut atamaları temizle, her bakanlık için en iyi uygun bakanı ata.
             ReshuffleCabinet(countryId);
         }
 
-        // Sonucu kaydet
         if (!_electionResults.TryGetValue(countryId, out var list))
         {
             list = new List<ElectionResult>();
@@ -232,7 +241,6 @@ public static class ElectionSystem
         }
         list.Add(result);
 
-        // Sonraki dönem başlar
         MarkElectionHeld(countryId, currentDay);
 
         GD.Print($"[ElectionSystem] {countryId}: seçim {currentDay}. günde {(won ? "KAZANDI — iktidar korundu" : "KAYBEDİLDİ — lider değişti: " + result.NewLeader)}, oy=%{pred.PredictedVote:F1}");

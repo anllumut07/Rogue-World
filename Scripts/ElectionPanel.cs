@@ -17,6 +17,9 @@ public partial class ElectionPanel : Control
     private Label _votePredictionLabel;
     private Label _breakdownLabel;
     private Label _factorsLabel;
+    private Label _campaignBonusLabel;
+    private Label _promisesLabel;
+    private Button _fulfillPromiseBtn;
     private OptionButton _countrySelector;
     private Button _closeButton;
 
@@ -142,6 +145,23 @@ public partial class ElectionPanel : Control
         _factorsLabel.AddThemeColorOverride("font_color", new Color(0.85f, 0.85f, 0.85f));
         _content.AddChild(_factorsLabel);
 
+        // Kampanya bonusu
+        _campaignBonusLabel = new Label();
+        _campaignBonusLabel.AddThemeFontSizeOverride("font_size", 16);
+        _campaignBonusLabel.AddThemeColorOverride("font_color", new Color(0.5f, 1f, 0.5f));
+        _content.AddChild(_campaignBonusLabel);
+
+        // Aktif vaatler
+        _promisesLabel = new Label();
+        _promisesLabel.AddThemeFontSizeOverride("font_size", 16);
+        _promisesLabel.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.5f));
+        _content.AddChild(_promisesLabel);
+
+        _fulfillPromiseBtn = new Button { Text = "VAATİ YERİNE GETİR", FocusMode = Control.FocusModeEnum.None, Visible = false };
+        _fulfillPromiseBtn.Pressed += OnFulfillPromise;
+        UITheme.AddHoverScale(_fulfillPromiseBtn);
+        _content.AddChild(_fulfillPromiseBtn);
+
         _content.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
 
         // Kapat butonu
@@ -236,5 +256,31 @@ public partial class ElectionPanel : Control
 
         _factorsLabel.Text =
             $"Faktörler: GDP büyümesi %{gdpGrowth:F1} | Bütçe açığı %{deficit:F1} | Devlet borcu %{debt:F0} | Enflasyon %{inflation:F1} | İşsizlik %{unemployment:F1} | Aktif skandal: {scandalCount}";
+
+        // Kampanya bonusu
+        _campaignBonusLabel.Text = $"Aktif kampanya bonusu: +{p.CampaignBonus:F1} oy";
+
+        // Aktif vaatler
+        var promises = ElectionCampaignSystem.GetActivePromises(p.CountryId);
+        if (promises.Count > 0)
+        {
+            _promisesLabel.Text = $"Aktif vaatler ({promises.Count}): {string.Join(", ", promises.Select(pr => pr.ActionName))}";
+            _fulfillPromiseBtn.Visible = true;
+        }
+        else
+        {
+            _promisesLabel.Text = "Aktif vaat yok.";
+            _fulfillPromiseBtn.Visible = false;
+        }
+    }
+
+    private void OnFulfillPromise()
+    {
+        if (string.IsNullOrEmpty(_selectedCountryId)) return;
+        var promises = ElectionCampaignSystem.GetActivePromises(_selectedCountryId);
+        if (promises.Count == 0) return;
+        ElectionCampaignSystem.FulfillPromise(_selectedCountryId, 0);
+        GD.Print($"[ElectionPanel] {_selectedCountryId}: vaat yerine getirildi '{promises[0].ActionName}'");
+        Refresh();
     }
 }

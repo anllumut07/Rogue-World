@@ -211,6 +211,9 @@ public partial class GameManager : Node
         // M23.1: Seçim takvimi ve oy tahmini.
         ElectionSystem.LoadData();
 
+        // M23.2: Kampanya aksiyonları (miting, reklam, TV, ittifak, vaat).
+        ElectionCampaignSystem.LoadData();
+
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)
             SetupProductionTest();
@@ -594,6 +597,9 @@ public partial class GameManager : Node
 
         // M23.1: Seçim takvimi-yeni oyun (son seçim günleri sıfırlanır)
         ElectionSystem.ResetForNewGame();
+
+        // M23.2: Kampanya geçmişi-yeni oyun (kampanya aksiyonları ve vaatler sıfırlanır)
+        ElectionCampaignSystem.ResetForNewGame();
 
         // M-Flags: bayrak önbelleği sıfırlanır (rapor yeni oyunda tekrar loglanır)
         FlagLibrary.ResetForNewGame();
@@ -1281,7 +1287,20 @@ public partial class GameManager : Node
         int allCount = ElectionSystem.GetAllVotePredictions(GameManager.Instance.TotalDays).Count();
         GD.Print($"[ElectionTest] Tüm ülke tahmin sayısı: {allCount}");
 
-        // 7) Save/Load kimliği
+        // 7) Kampanya aksiyonu: rally kaydı ve süresi dolmadan önce oy bonusu
+        ElectionCampaignSystem.RecordCampaignAction("DEU", "rally", "Miting", GameManager.Instance.TotalDays, 7, 5.0, false);
+        double campaignBonus = ElectionCampaignSystem.GetCampaignBonus("DEU", GameManager.Instance.TotalDays);
+        GD.Print($"[ElectionTest] DEU kampanya bonusu: %{campaignBonus:F1} (beklenen > 0)");
+
+        // 8) Vaat kaydı ve yerine getirme
+        ElectionCampaignSystem.RecordCampaignAction("DEU", "promise", "Vaat", GameManager.Instance.TotalDays, 30, 2.0, true);
+        var activePromises = ElectionCampaignSystem.GetActivePromises("DEU");
+        GD.Print($"[ElectionTest] DEU aktif vaat sayısı: {activePromises.Count} (beklenen 1)");
+        ElectionCampaignSystem.FulfillPromise("DEU", 0);
+        var remainingPromises = ElectionCampaignSystem.GetActivePromises("DEU");
+        GD.Print($"[ElectionTest] DEU vaat yerine getirme sonrası aktif vaat: {remainingPromises.Count} (beklenen 0)");
+
+        // 9) Save/Load kimliği
         var save = ElectionSystem.GetSaveData();
         int saveCountries = save.Countries?.Length ?? 0;
         GD.Print($"[ElectionTest] Save kayıt sayısı: {saveCountries}");
@@ -1296,6 +1315,9 @@ public partial class GameManager : Node
                       && afterMark == 2920
                       && pred.PredictedVote >= 0 && pred.PredictedVote <= 100
                       && allCount == CountryDatabase.All().Count(c => c != null)
+                      && campaignBonus > 0
+                      && activePromises.Count == 1
+                      && remainingPromises.Count == 0
                       && saveLoadId;
         GD.Print(result ? "[ElectionTest] SONUÇ: PASS ✓" : "[ElectionTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");

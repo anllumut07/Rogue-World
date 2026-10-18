@@ -39,6 +39,7 @@ public static class ElectionSystem
         public string CountryName { get; set; } = "";
         public double PredictedVote { get; set; }   // 0-100, iktidar partisi için tahmini oy oranı
         public double BaseSatisfaction { get; set; } // 9 grubun ortalama memnuniyeti
+        public double CampaignBonus { get; set; }    // aktif kampanya aksiyonlarından gelen oy bonusu
         public int DaysUntilElection { get; set; }   // -1 = seçim yok (monarşi/tek parti)
         public bool ElectionDue { get; set; }        // seçim günü geldi / geçti
         public string GovernmentType { get; set; }
@@ -221,6 +222,11 @@ public static class ElectionSystem
                 scandalCount++;
         }
         vote -= scandalCount * _config.ScandalPenaltyPerScandal;
+
+        // Kampanya aksiyonu bonusu (miting/reklam/TV/ittifak/vaat — süreli)
+        double campaignBonus = ElectionCampaignSystem.GetCampaignBonus(countryId, currentDay);
+        vote += campaignBonus;
+        pred.CampaignBonus = campaignBonus;
 
         // Deterministik jitter (±JitterRange)
         double jitter = (DeterministicRNG.NextDouble() * 2.0 - 1.0) * _config.JitterRange;

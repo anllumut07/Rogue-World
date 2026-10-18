@@ -445,6 +445,30 @@ public static class TimeTempoSystem
                     break;
             }
         }
+
+        // M23.2: Kampanya aksiyonu tamamlandı → oy tahmini bonusu ve vaat kaydı
+        if (GameManager.IsAvailable && GameManager.Instance.PlayerCountryData != null
+            && action.Effects.TryGetValue("CampaignActionId", out var campaignIdObj))
+        {
+            string actionId = campaignIdObj?.ToString() ?? "";
+            string actionName = action.Effects.TryGetValue("CampaignActionName", out var nameObj) ? nameObj?.ToString() ?? actionId : actionId;
+            double voteBonus = ToDouble(action.Effects.TryGetValue("CampaignVoteBonus", out var vbObj) ? vbObj : 0);
+            int durationDays = ToInt(action.Effects.TryGetValue("CampaignDurationDays", out var ddObj) ? ddObj : 0);
+            bool isPromise = actionId == "promise";
+            ElectionCampaignSystem.RecordCampaignAction(GameManager.Instance.PlayerCountryId, actionId, actionName, GameManager.Instance.TotalDays, durationDays, voteBonus, isPromise);
+        }
+    }
+
+    private static double ToDouble(object v)
+    {
+        if (v == null) return 0;
+        if (v is JsonElement je && je.ValueKind == JsonValueKind.Number) return je.GetDouble();
+        try { return Convert.ToDouble(v); } catch { return 0; }
+    }
+
+    private static int ToInt(object v)
+    {
+        return (int)ToDouble(v);
     }
 
     // ===== Aylık Rapor =====

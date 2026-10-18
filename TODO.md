@@ -326,12 +326,12 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 ### 📋 Milestone 23: Seçimler ve Halk
 
-| Alt Görev | Açıklama | Test Kriteri |
-|-----------|----------|--------------|
-| 23.1 | Seçim takvimi ve oy tahmini (memnuniyet, ekonomi, skandallar, kampanya). | Seçim günü sonuç hesaplanır |
-| 23.2 | Kampanya aksiyonları: miting, reklam, TV, ittifak, vaat (verilen vaatlerin takibi). | Aksiyonlar oy tahminini etkiler |
-| 23.3 | Seçimi kaybetmek/kazanmak: devam ya da iktidarın el değiştirmesi, yeni hükümet/kabine. | Kaybedince lider değişir |
-| 23.4 | Protesto, grev, güven oylaması, erken seçim, darbe girişimi. | Düşük memnuniyette olaylar tetiklenir |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 23.1 | Seçim takvimi ve oy tahmini (memnuniyet, ekonomi, skandallar, kampanya). | Seçim günü sonuç hesaplanır | ✅ Bitti (2026-10-18) |
+| 23.2 | Kampanya aksiyonları: miting, reklam, TV, ittifak, vaat (verilen vaatlerin takibi). | Aksiyonlar oy tahminini etkiler | ✅ Bitti (2026-10-18) |
+| 23.3 | Seçimi kaybetmek/kazanmak: devam ya da iktidarın el değiştirmesi, yeni hükümet/kabine. | Kaybedince lider değişir | — |
+| 23.4 | Protesto, grev, güven oylaması, erken seçim, darbe girişimi. | Düşük memnuniyette olaylar tetiklenir | — |
 
 ---
 

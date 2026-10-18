@@ -287,6 +287,22 @@ public static class SaveLoadTest
         long nextElection = electionSave?.Countries?.FirstOrDefault(c => c.CountryId == gm.PlayerCountryId)?.LastElectionDay ?? 0;
         sb.AppendLine($"Seçim: ülke={electionCountries}, oyuncu_son_seçim_gün={nextElection}");
 
+        // --- M23.2: Kampanya aksiyonları ve vaatler ---
+        var campaignSave = ElectionCampaignSystem.GetSaveData();
+        int campaignCountries = campaignSave?.Countries?.Length ?? 0;
+        int campaignActions = campaignSave?.Countries?.Sum(c => c.Actions?.Length ?? 0) ?? 0;
+        int activePromises = 0;
+        if (campaignSave?.Countries != null)
+        {
+            foreach (var c in campaignSave.Countries)
+            {
+                if (c.Actions != null)
+                    foreach (var a in c.Actions)
+                        if (a.IsPromise && !a.IsFulfilled) activePromises++;
+            }
+        }
+        sb.AppendLine($"Kampanya: ülke={campaignCountries}, aksiyon={campaignActions}, aktif_vaat={activePromises}");
+
 // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");

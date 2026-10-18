@@ -18,14 +18,18 @@
     {
       "Id": "rally",
       "Name": "Miting",
-      "Description": "Halk karşısında miting düzenler. Karizmatik konuşma ile halk desteğini ve meşruiyeti artırır.",
+      "Description": "Halk karşısında miting düzenler. Karizmatik konuşma ile halk desteğini ve meşruiyeti artırır. Seçim oy tahminini kısa süreyle artırır.",
       "DurationDays": 3,
       "CostPP": 15,
       "Effects": {
         "Stability": 2,
         "WarSupport": 3,
         "PoliticalPower": -15,
-        "PopularityBonus": 5
+        "PopularityBonus": 5,
+        "CampaignActionId": "rally",
+        "CampaignActionName": "Miting",
+        "CampaignVoteBonus": 2.0,
+        "CampaignDurationDays": 7
       },
       "Requirements": { "MinWarSupport": 20 },
       "Icon": "🎤"
@@ -33,17 +37,93 @@
     {
       "Id": "press",
       "Name": "Basın Konuşması",
-      "Description": "Medya aracılığıyla halka seslenir. Politik mesajı netleştirir, itibarını yönetir.",
+      "Description": "Medya aracılığıyla halka seslenir. Politik mesajı netleştirir, itibarını yönetir. Seçim oy tahminini kısa süreyle artırır.",
       "DurationDays": 1,
       "CostPP": 10,
       "Effects": {
         "Stability": 1,
         "WarSupport": 1,
         "PoliticalPower": -10,
-        "LegitimacyBonus": 3
+        "LegitimacyBonus": 3,
+        "CampaignActionId": "press",
+        "CampaignActionName": "Basın Konuşması",
+        "CampaignVoteBonus": 2.0,
+        "CampaignDurationDays": 5
       },
       "Requirements": {},
       "Icon": "📺"
+    },
+    {
+      "Id": "advertisement",
+      "Name": "Reklam",
+      "Description": "Gazete, plakat ve dijital reklam kampanyası. Parti tanınırlığını ve oy tahminini orta sürede artırır.",
+      "DurationDays": 2,
+      "CostPP": 20,
+      "Effects": {
+        "Stability": 0,
+        "WarSupport": 0,
+        "PoliticalPower": -20,
+        "CampaignActionId": "advertisement",
+        "CampaignActionName": "Reklam",
+        "CampaignVoteBonus": 3.0,
+        "CampaignDurationDays": 14
+      },
+      "Requirements": {},
+      "Icon": "📢"
+    },
+    {
+      "Id": "tv_speech",
+      "Name": "TV Konuşması",
+      "Description": "Canlı TV konuşması ile ulusal kitleye seslenir. Oy tahminini güçlü ama kısa süreli artırır.",
+      "DurationDays": 1,
+      "CostPP": 25,
+      "Effects": {
+        "Stability": 1,
+        "WarSupport": 1,
+        "PoliticalPower": -25,
+        "CampaignActionId": "tv_speech",
+        "CampaignActionName": "TV Konuşması",
+        "CampaignVoteBonus": 5.0,
+        "CampaignDurationDays": 10
+      },
+      "Requirements": {},
+      "Icon": "📺"
+    },
+    {
+      "Id": "alliance",
+      "Name": "İttifak Dönemi",
+      "Description": "Müttefik partilerle ittifak ilan eder. Siyasi meşruiyeti ve oy tahminini uzun süre artırır.",
+      "DurationDays": 5,
+      "CostPP": 40,
+      "Effects": {
+        "Stability": 2,
+        "WarSupport": 2,
+        "PoliticalPower": -40,
+        "CampaignActionId": "alliance",
+        "CampaignActionName": "İttifak Dönemi",
+        "CampaignVoteBonus": 4.0,
+        "CampaignDurationDays": 21
+      },
+      "Requirements": {},
+      "Icon": "🤝"
+    },
+    {
+      "Id": "promise",
+      "Name": "Vaat",
+      "Description": "Seçim vaati verir. Kısa süreli oy bonusu sağlar; yerine getirilmediği takdirde memnuniyeti etkiler (Vaat takibi).",
+      "DurationDays": 1,
+      "CostPP": 10,
+      "Effects": {
+        "Stability": 0,
+        "WarSupport": 0,
+        "PoliticalPower": -10,
+        "CampaignActionId": "promise",
+        "CampaignActionName": "Vaat",
+        "CampaignVoteBonus": 2.0,
+        "CampaignDurationDays": 30
+      },
+      "Requirements": {},
+      "Icon": "✍️"
     },
     {
       "Id": "summit",

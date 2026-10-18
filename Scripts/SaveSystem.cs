@@ -80,6 +80,7 @@ public static class SaveSystem
         public PoliticalUnrestSystem.PoliticalUnrestSave PoliticalUnrest { get; set; } // M23.4: protesto, grev, güven oylaması, erken seçim, darbe
         public CharacterSave Character { get; set; } // M24.1: oyuncu karakteri
         public CareerSystem.CareerSave Career { get; set; } // M25.1: oyuncu kariyer durumu
+        public MilitaryCareerSystem.MilitaryCareerSave MilitaryCareer { get; set; } // M25.2: asker kariyer durumu
     }
 
     // ===== Economy DTOs =====
@@ -419,6 +420,7 @@ public static class SaveSystem
             PoliticalUnrest = PoliticalUnrestSystem.GetSaveData(), // M23.4: protesto, grev, güven oylaması, erken seçim, darbe
             Character = CharacterSaveFrom(gm.PlayerCharacter), // M24.1: oyuncu karakteri
             Career = CareerSystem.GetSaveData(), // M25.1: oyuncu kariyer durumu
+            MilitaryCareer = MilitaryCareerSystem.GetSaveData(), // M25.2: asker kariyer durumu
         };
 
         EnsureSavesDir();
@@ -560,6 +562,9 @@ public static class SaveSystem
 
             // M25.1: oyuncu kariyer durumu — kayıtta varsa geri yüklenir
             CareerSystem.LoadSaveData(save.Career);
+
+            // M25.2: asker kariyer durumu — kayıtta varsa geri yüklenir
+            MilitaryCareerSystem.LoadSaveData(save.MilitaryCareer);
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

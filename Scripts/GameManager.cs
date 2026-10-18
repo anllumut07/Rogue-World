@@ -113,6 +113,7 @@ public partial class GameManager : Node
         bool electionTest = false;        // M23.1: seçim takvimi + oy tahmini
         bool characterTest = false;       // M24.1: karakter oluşturma + Save/Load determinizm
         bool careerTest = false;          // M25.1: siyasetçi kariyer yolu (eğitim → parti gençlik → yerel yönetim → milletvekili → bakanlık)
+        bool militaryCareerTest = false;  // M25.2: asker kariyer yolu (harp okulu → rütbeler → görev yerleri → savaş deneyimi → darbe)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -172,6 +173,8 @@ public partial class GameManager : Node
                 characterTest = true;
             else if (arg == "--career-test")
                 careerTest = true;
+            else if (arg == "--military-career-test")
+                militaryCareerTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -232,6 +235,9 @@ public partial class GameManager : Node
 
         // M25.1: Siyasetçi kariyer yolu — üniversite → parti gençlik → yerel yönetim → milletvekili → bakanlık.
         CareerSystem.Initialize();
+
+        // M25.2: Asker kariyer yolu — harp okulu → rütbeler → görev yerleri → savaş deneyimi → genelkurmay.
+        MilitaryCareerSystem.Initialize();
 
         // M23.4: Halk refahı — protesto, grev, güven oylaması, erken seçim, darbe girişimi.
         PoliticalUnrestSystem.InitializeAll();
@@ -353,6 +359,8 @@ public partial class GameManager : Node
             RunCharacterTest();
         if (careerTest)
             RunCareerTest();
+        if (militaryCareerTest)
+            RunMilitaryCareerTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -478,6 +486,9 @@ public partial class GameManager : Node
 
         // M25.1: Kariyer sistemi günlük ilerleme (eğitim/kariyer aşaması).
         if (HasPlayer) CareerSystem.DailyTick(TotalDays, PlayerCharacter);
+
+        // M25.2: Asker kariyeri günlük ilerleme (rütbe, deneyim, darbe riski).
+        if (HasPlayer) MilitaryCareerSystem.DailyTick(TotalDays, PlayerCharacter);
 
         // M16: Zaman ve Tempo — ajanda ilerlemesi, hafta reset, aylık rapor
         TimeTempoSystem.DailyTick(this);
@@ -695,6 +706,9 @@ public partial class GameManager : Node
 
         // M16: Ajanda/aylık rapor durumu sıfırlanır
         TimeTempoSystem.ResetForNewGame();
+
+        // M25.2: Asker kariyer durumu sıfırlanır
+        MilitaryCareerSystem.ResetForNewGame();
 
         GD.Print($"GameManager: Yeni oyun — senaryo: {ScenarioSystem.ActiveName}, başlangıç: {StartDate:yyyy-MM-dd}, oyuncu ülkesi ve kilit sıfırlandı");
 
@@ -1589,6 +1603,78 @@ public partial class GameManager : Node
         result = result && saveLoadSame;
 
         GD.Print(result ? "[CareerTest] SONUÇ: PASS ✓" : "[CareerTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(result ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M25.2: Asker kariyer yolu testi — harp okulu, rütbe terfisi, görev yeri, savaş deneyimi,
+    /// Save/Load, darbe engeli (Albay altı reddedilir). Normal oyunda asla çalışmaz (--military-career-test).
+    /// </summary>
+    private void RunMilitaryCareerTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M25.2: ASKER KARİYER YOLU TESTİ");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        MilitaryCareerSystem.Initialize();
+
+        bool result = true;
+
+        // 1) Karakter (asker kökenli) + kariyer başlat → Private
+        var c = GameManager.Instance.PlayerCharacter;
+        if (c == null)
+        {
+            c = Character.GenerateRandom("DEU", "germanic", 0x55AAUL);
+            c.Background = "military"; // asker kökeni: başlangıç deneyim avantajı
+            GameManager.Instance.SetCharacter(c);
+        }
+        MilitaryCareerSystem.StartMilitaryCareer(MilitaryCareerSystem.MilitaryBranch.Infantry, c, 0);
+        bool startedPrivate = MilitaryCareerSystem.Rank == MilitaryCareerSystem.MilitaryRank.Private
+                              && MilitaryCareerSystem.CareerActive;
+        GD.Print($"[MilitaryCareerTest] Kariyer başlatıldı: rütbe={MilitaryCareerSystem.Rank}, aktif={MilitaryCareerSystem.CareerActive}: {startedPrivate}");
+        result = result && startedPrivate;
+
+        // 2) Harp okulu → Corporal (özel terfi), görev=Garrison
+        MilitaryCareerSystem.CompleteAcademy(0);
+        bool academyDone = MilitaryCareerSystem.AcademyCompleted
+                           && MilitaryCareerSystem.Rank == MilitaryCareerSystem.MilitaryRank.Corporal
+                           && MilitaryCareerSystem.Duty == MilitaryCareerSystem.DutyStation.Garrison;
+        GD.Print($"[MilitaryCareerTest] Harp okulu: akademi={MilitaryCareerSystem.AcademyCompleted}, rütbe={MilitaryCareerSystem.Rank}, görev={MilitaryCareerSystem.Duty}: {academyDone}");
+        result = result && academyDone;
+
+        // 3) FrontLine'ye geç → deneyim kazanmaya başla
+        MilitaryCareerSystem.ChangeDutyStation(MilitaryCareerSystem.DutyStation.FrontLine, 0);
+
+        // 4) 61 gün ilerle → Corporal(60 gün) → Sergeant terfisi, deneyim > 0
+        MilitaryCareerSystem.DailyTick(61, c);
+        for (int i = 0; i < 60; i++) MilitaryCareerSystem.DailyTick(61 + i, c);
+        bool promotedSergeant = MilitaryCareerSystem.Rank == MilitaryCareerSystem.MilitaryRank.Sergeant;
+        bool hasCombatExp = MilitaryCareerSystem.CombatExperience > 0;
+        GD.Print($"[MilitaryCareerTest] 61 gün sonra: rütbe={MilitaryCareerSystem.Rank}, deneyim={MilitaryCareerSystem.CombatExperience}: terfi={promotedSergeant}, deneyim={hasCombatExp}");
+        result = result && promotedSergeant && hasCombatExp;
+
+        // 5) Save/Load dönüşüm durumu korunur
+        var save = MilitaryCareerSystem.GetSaveData();
+        MilitaryCareerSystem.LoadSaveData(save);
+        bool saveLoadSame =
+            MilitaryCareerSystem.Rank == (MilitaryCareerSystem.MilitaryRank)save.Rank
+            && MilitaryCareerSystem.AcademyCompleted == save.AcademyCompleted
+            && MilitaryCareerSystem.Duty == (MilitaryCareerSystem.DutyStation)save.DutyStation
+            && MilitaryCareerSystem.CombatExperience == save.CombatExperience;
+        GD.Print($"[MilitaryCareerTest] Save/Load dönüşüm: rütbe={MilitaryCareerSystem.Rank}, deneyim={MilitaryCareerSystem.CombatExperience}: {saveLoadSame}");
+        result = result && saveLoadSame;
+
+        // 6) Darbe engeli: Sergeant < Albay → reddedilir, kariyer sona ermez (discharge olur ama testte sadece engel doğrulanır)
+        var (coupOk, coupMsg) = MilitaryCareerSystem.AttemptCoup();
+        bool coupBlocked = !coupOk && coupMsg.Contains("yetersiz");
+        GD.Print($"[MilitaryCareerTest] Darbe girişimi (Şeriş): başarı={coupOk}, mesaj=\"{coupMsg}\": engel={coupBlocked}");
+        result = result && coupBlocked;
+
+        GD.Print(result ? "[MilitaryCareerTest] SONUÇ: PASS ✓" : "[MilitaryCareerTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(result ? 0 : 1);
     }

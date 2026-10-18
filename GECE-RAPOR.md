@@ -306,6 +306,14 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 - `--career-test --speed=0`: **PASS ✓** (eğitim bonusu, Parti Gençlik → Yerel Yönetim ilerleme, Save/Load dönüşüm).
 - `--save-load-test historical_1936` / `modern_world`: **PASS ✓ (A == B)** — Karriere state kaydeder/yükler.
 
+## M25.2 — ✅ DONE (2026-10-18)
+- `Scripts/MilitaryCareerSystem.cs` (yeni): asker kariyer yolu — MilitaryRank (Private→FieldMarshal), MilitaryBranch, DutyStation (WarAcademy→GeneralStaff), harp okulu (Private→Corporal özel terfi), 30-günlük rütbe terfisi (dönem + akademi + staf kolajı önkoşulu), FrontLine'de savaş deneyimi kazanması (+1/gün, maksimum 100), darbe riski yavaş artış, `AttemptCoup()` (Albay ve üzeri gerekir; başarılı → askerî müdahale, başarısız → haysiyesiz çıkarma + tüm rütbe kaybı), MilitaryCareerSave DTO + GetSaveData/LoadSaveData + ResetForNewGame.
+- `Scripts/GameManager.cs`: `MilitaryCareerSystem.Initialize()` (_Ready), `MilitaryCareerSystem.DailyTick(TotalDays, PlayerCharacter)` (DailyTick), `--military-career-test` kancağı + `RunMilitaryCareerTest()`, `ResetForNewGame`'te sıfırlama.
+- `Scripts/SaveSystem.cs`: `SaveFile.MilitaryCareer` alanı + WriteSave/LoadGameInternal bağlama.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--military-career-test`: **PASS ✓** (kariyer başlatma Private, harp okulu → Corporal, 61 gün sonra Sergeant terfisi + deneyim, Save/Load dönüşüm, darbe engeli Sergeant'da reddedilir).
+- `--save-load-test historical_1936`: **PASS ✓ (A == B)** — asker kariyer state'i kaydedilir/yükler.
+
 ## Sonraki adım
-- M25.2: Asker yolu (harp okulu, rütbeler, görev yerleri, savaş deneyimi).
+- M25.3: Eğitim öğeleri (dersler, staj, mentor, sınav, tez/proje, ağ kurma).
 

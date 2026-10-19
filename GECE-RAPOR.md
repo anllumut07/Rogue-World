@@ -512,3 +512,23 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 3. Bilinen sorun: yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--profile-test` ve `--save-load-test` (A==B).
 
+## M28.3 — Gündem (trend) listesi + duygu eğilimi — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/SocialMediaSystem.cs`: `GetTrendList(int limit = 10)` — etkileşime (beğeni+paylaşım) göre azalan sıralı trend listesi (eşlikte daha önceki önce), `GetSentimentSummary()` → (pozitif, negatif, nötr), `GetEngagementTotals()` → (toplam beğeni, toplam paylaşım).
+- `Scripts/GameManager.cs`: `trendTest` field, `--trend-test` arg parsing, `RunTrendTest()` — 6 olay kategorisiyle tweet üretilir, trend sıralama + duygu toplamı + etkileşim + içerik doğrulanır; `GetTree().Quit(pass?0:1)`.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--trend-test`: **PASS ✓** (trend_count=6, sıralı_azalan=True, duygu toplam=6 tweet, etkileşim non-negative, içerik dolu).
+- `--save-load-test`: **PASS ✓ (A == B)** — M28.3 determinizm korunuyor.
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/SocialMediaSystem.cs`, `Scripts/GameManager.cs`.
+
+### ÖZET (M28.3 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/SocialMediaSystem.cs` (GetTrendList/GetSentimentSummary/GetEngagementTotals), `Scripts/GameManager.cs` (--trend-test + RunTrendTest).
+2. Çözülemeyen şey: yok — M28.3 %100 tamamlandı (build 0/0, trend-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--trend-test` ve `--save-load-test` (A==B).
+

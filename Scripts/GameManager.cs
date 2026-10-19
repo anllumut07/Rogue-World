@@ -127,6 +127,7 @@ public partial class GameManager : Node
         bool sanctionsTest = false;         // M27.4: yaptirim / ticaret savasi testi (--sanctions-test)
         bool socialTest = false;            // M28.1: olay → tweet üreteci testi (--social-test)
         bool profileTest = false;           // M28.2: kurgusal profil sistemi testi (--profile-test)
+        bool trendTest = false;             // M28.3: trend listesi + duygu eğilimi testi (--trend-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -214,6 +215,8 @@ public partial class GameManager : Node
                 socialTest = true;
             else if (arg == "--profile-test")
                 profileTest = true;
+            else if (arg == "--trend-test")
+                trendTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -482,6 +485,10 @@ public partial class GameManager : Node
         // başarısızlıkta Quit(1)).
         if (profileTest)
             RunProfileTest();
+
+        // M28.3: Trend listesi + duygu eğilimi testi (--trend-test).
+        if (trendTest)
+            RunTrendTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -1673,6 +1680,95 @@ public partial class GameManager : Node
         GD.Print($"[ProfileTest] toplam_profil={totalProfiles}, yazar_dolu={authorOk}");
         GD.Print(pass ? "[ProfileTest] SONUÇ: PASS ✓" : "[ProfileTest] SONUÇ: FAIL ✗");
         GetTree().Quit(pass ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M28.3: Trend listesi + duygu eğilimi testi — tweet'leri etkileşime göre sıralayan
+    /// GetTrendList ve GetSentimentSummary/GetEngagementTotals'in doğru çalıştığını doğrular.
+    /// Normal oyunda ASLA çalışır (--trend-test).
+    /// </summary>
+    private void RunTrendTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M28.3: TREND LISTESI + DUYGU EĞİLİMİ TESTİ (--trend-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        string playerId = PlayerCountryId;
+        SocialProfileSystem.EnsureProfilesFor(playerId);
+
+        int before = SocialMediaSystem.TweetCount;
+
+        // Farklı kategorilerle tweet üret → farklı sentiment (War/Annex=Negatif,
+        // Peace/Economy/Focus=Pozitif, Default=Nötr) ve farklı etkileşim.
+        var testEvents = new[]
+        {
+            (Id: "trend_war", Name: "Test War", DeclareWar: "FRA"),
+            (Id: "trend_annex", Name: "Test Annex", DeclareWar: ""),
+            (Id: "trend_peace", Name: "Test Peace", DeclareWar: ""),
+            (Id: "trend_economy", Name: "Test Economy", DeclareWar: ""),
+            (Id: "trend_focus", Name: "Test Focus", DeclareWar: ""),
+            (Id: "trend_diplomacy", Name: "Test Diplomacy", DeclareWar: ""),
+        };
+
+        bool allOk = true;
+        foreach (var te in testEvents)
+        {
+            var evt = new EventSystem.GameEvent
+            {
+                Id = te.Id,
+                Name = te.Name,
+                Description = "test",
+                Options = new List<EventSystem.EventOption>
+                {
+                    new EventSystem.EventOption { Label = "Accept", Effects = new EventSystem.EventEffects { DeclareWar = te.DeclareWar } }
+                }
+            };
+            SocialMediaSystem.OnEventResolved(evt, 0);
+        }
+
+        int after = SocialMediaSystem.TweetCount;
+        int generated = after - before;
+        bool tweetsGenerated = generated >= testEvents.Length;
+
+        // 1) Trend listesi: etkileşime (beğeni+paylaşım) göre azalan, eşlikte daha yeni önce.
+        var trend = SocialMediaSystem.GetTrendList(100);
+        bool trendSorted = true;
+        for (int i = 1; i < trend.Count; i++)
+        {
+            int engPrev = trend[i - 1].Likes + trend[i - 1].Shares;
+            int engCur = trend[i].Likes + trend[i].Shares;
+            if (engCur > engPrev || (engCur == engPrev && trend[i].Day > trend[i - 1].Day))
+            {
+                trendSorted = false;
+                break;
+            }
+        }
+        GD.Print($"[TrendTest] trend_count={trend.Count}, sıralı_azalan={trendSorted}");
+
+        // 2) Duygu özeti: toplam tweet sayısına eşit olmalı.
+        var (pos, neg, neu) = SocialMediaSystem.GetSentimentSummary();
+        int sentimentTotal = pos + neg + neu;
+        bool sentimentCounts = sentimentTotal == after;
+        GD.Print($"[TrendTest] duygu: pozitif={pos}, negatif={neg}, nötr={neu}, toplam={sentimentTotal} (tweet={after})");
+
+        // 3) Toplam etkileşim: non-negative ve tweet sayısıyla tutarlı.
+        var (totalLikes, totalShares) = SocialMediaSystem.GetEngagementTotals();
+        bool engagementOk = totalLikes >= 0 && totalShares >= 0;
+        GD.Print($"[TrendTest] toplam_beğeni={totalLikes}, toplam_paylaşım={totalShares}");
+
+        bool contentsNonEmpty = SocialMediaSystem.GetTweets().Skip(before).All(t =>
+            !string.IsNullOrEmpty(t.Content) && !string.IsNullOrEmpty(t.AuthorHandle)
+            && !string.IsNullOrEmpty(t.AuthorName));
+
+        bool result = allOk && tweetsGenerated && trendSorted && sentimentCounts && engagementOk && contentsNonEmpty;
+        GD.Print($"[TrendTest] üretilen={generated}, bekleseen>={testEvents.Length}, trend_sıralı={trendSorted}, " +
+                 $"duygu_tam={sentimentCounts}, etkileşim_ok={engagementOk}, içerik_dolu={contentsNonEmpty}");
+        GD.Print(result ? "[TrendTest] SONUÇ: PASS ✓" : "[TrendTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(result ? 0 : 1);
         GD.Print("=========================================");
     }
 

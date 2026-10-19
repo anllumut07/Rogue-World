@@ -389,7 +389,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 |-----------|----------|--------------|-------|
 | 28.1 | Olay → tweet üreteci: her olay türü için şablon cümleler, değişkenli. | Olayda tweetler üretilir | ✅ Bitti (2026-10-20) |
 | 28.2 | **Rastgele kurgusal profiller** (ad-soyad ülke kültürüne göre, avatar: renkli baş harf), türler: vatandaş, gazeteci, muhalefet, resmî hesap, bot. | Profiller çeşitli | ✅ Bitti (2026-10-20) |
-| 28.3 | Gündem (trend) listesi, beğeni/paylaşım sayısı, duygu (olumlu/olumsuz) eğilimi. | Trend listesi güncellenir |
+| 28.3 | Gündem (trend) listesi, beğeni/paylaşım sayısı, duygu (olumlu/olumsuz) eğilimi. | Trend listesi güncellenir | ✅ Bitti (2026-10-20) |
 | 28.4 | Tweetlere göre aksiyon: açıklama yap, soruşturma aç, görmezden gel, yasakla (sonuçlu). | Aksiyonlar memnuniyeti etkiler |
 | 28.5 | Küfür/nefret içeriği filtresi, günlük tweet sayısı sınırı (performans). | Panel akıcı çalışır |
 | 28.6 | Oyunda bu kişiler oyun karakteri olarak yer almaz, yalnızca panelde görünür. | |

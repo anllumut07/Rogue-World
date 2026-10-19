@@ -203,6 +203,33 @@ public static class SocialMediaSystem
 
     public static IReadOnlyList<Tweet> GetTweets() => _tweets;
 
+    // M28.3: Gündem (trend) listesi — tweet'leri toplam etkileşime (beğeni+paylaşım)
+    // göre sıralar; eşlikte daha yeni tweet önce gelir.
+    public static IReadOnlyList<Tweet> GetTrendList(int limit = 10)
+    {
+        return _tweets
+            .OrderByDescending(t => t.Likes + t.Shares)
+            .ThenByDescending(t => t.Day)
+            .ThenBy(t => t.Id)
+            .Take(limit)
+            .ToList();
+    }
+
+    // M28.3: Duygu (olumlu/olumsuz/nötr) eğilimi özeti.
+    public static (int Positive, int Negative, int Neutral) GetSentimentSummary()
+    {
+        int pos = _tweets.Count(t => t.Sentiment == Sentiment.Positive);
+        int neg = _tweets.Count(t => t.Sentiment == Sentiment.Negative);
+        int neu = _tweets.Count(t => t.Sentiment == Sentiment.Neutral);
+        return (pos, neg, neu);
+    }
+
+    // M28.3: Toplam etkileşim sayısı.
+    public static (int TotalLikes, int TotalShares) GetEngagementTotals()
+    {
+        return (_tweets.Sum(t => t.Likes), _tweets.Sum(t => t.Shares));
+    }
+
     // ===== M12: Save/Load =====
 
     public static SaveSystem.SocialMediaSave GetSaveData()

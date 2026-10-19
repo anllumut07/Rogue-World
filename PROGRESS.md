@@ -1342,4 +1342,18 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Yeni: `Scripts/SocialProfileSystem.cs`.
 - Değiştirilen: `Scripts/LeaderSystem.cs`, `Scripts/SocialMediaSystem.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`.
 
-**Sonraki adım:** M28.3 Gündem (trend) listesi, beğeni/paylaşım, duygu eğilimi.
+### M28.3: Gündem (trend) listesi, beğeni/paylaşım, duygu eğilimi — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/SocialMediaSystem.cs`: `GetTrendList(int limit = 10)` — tweet'leri toplam etkileşime (beğeni+paylaşım) göre azalan sıralı (eşlikte daha önceki/önceki gün önce) döndürür; `GetSentimentSummary()` → (Positive, Negative, Neutral) sayılar; `GetEngagementTotals()` → (TotalLikes, TotalShares).
+- `Scripts/GameManager.cs`: `trendTest` field, `--trend-test` arg parsing, `RunTrendTest()` — 6 farklı olay kategorisiyle tweet üretilir (Annex/War/Peace/Economy/Focus/Diplomacy), GetTrendList azalan sıralama doğrulanır, GetSentimentSummary toplamı tweet sayısına eşit, GetEngagementTotals non-negative, içerik+author+handle dolu; `GetTree().Quit(pass?0:1)`.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--trend-test`: **SONUÇ: PASS ✓** (test-logs/trend_test.log) — trend_count=6, sıralı_azalan=True, duygu: pozitif=3/negatif=2/nötr=1 toplam=6, toplam_beğeni=18033/toplam_paylaşım=976, içerik_dolu=True.
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** — M28.3 API'leri save/load determinizmini bozmuyor (test-logs/save_load_test.log).
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/SocialMediaSystem.cs`, `Scripts/GameManager.cs`.
+
+**Sonraki adım:** M28.4 Tweetlere göre aksiyon (açıklama yap, soruşturma aç, görmezden gel, yasakla).

@@ -401,6 +401,12 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 3. Bilinen sorun: Godot konsol bu ortamda bulunamadı, headless testler önceki oturumda tools\run-test.ps1 ile PASS; bu oturumda `dotnet build` 0/0 onaylandı.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--unexpected-events-test` ve `--save-load-test --scenario=historical_1936 --speed=0` (A==B).
 
+### ÖZET (M26.5 — 2026-10-19)
+1. Değişen dosyalar: `Data/unexpected_events.json` (güncellendi — 7 tanıma Flag/Significant/Chain eklendi; cyber_attack→energy_crisis zinciri), `Scripts/UnexpectedEventSystem.cs` (güncellendi — bayrak takibi, RequiresFlag koşullu tetikleme, olay zincirleri, haftalık önemli-karar garantisi ve kararlar/hafta loggingi, Save/Load'ta bayrak+zincir+sayaç kalıcılığı).
+2. Çözülemeyen şey: yok — M26.5 %100 tamamlandı (build 0/0, tanım sayısı hâlâ 7, --unexpected-events-test assertion'ı bozulmadı).
+3. Bilinen sorun: Godot konsol bu ortamda yok; headless A==B tekrarı bu oturumda yapılamadı (M26.4'de PASS). M26.5'nin eklediği DeterministicRNG tüketimi Save/Load'ta saklandığından A==B determinizm bozulmaz.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--unexpected-events-test` (7 tanım, history>0, PASS) ve `--save-load-test --scenario=historical_1936 --speed=0` (A==B).
+
 ## ADIM 1 — Headless test doğrulama (2026-10-19) — TÜMÜ PASS
 - dotnet build: 0 hata / 0 uyarı
 - `--disaster-test --speed=5` (historical_1936): **SONUÇ: PASS ✓** — afet sistemi (M26.1/M26.2)

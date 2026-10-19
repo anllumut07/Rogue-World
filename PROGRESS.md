@@ -1286,3 +1286,21 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Değiştirilen: `Scripts/DiplomacySystem.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/GameManager.cs`.
 
 **Sonraki adım:** M27.4 Yaptırımlar ve Ticaret Savaşları (verme/alma).
+
+### M27.4: Yaptırımlar ve Ticaret Savaşları — ✅ DONE (2026-10-19)
+
+**Değişiklikler:**
+- `Scripts/DiplomacySystem.cs`: `Sanction` modeli (enum Type: Trade/Financial/Tech/Energy/Arms; Id/InitiatorId/TargetId/SanctionType/DayStarted/DurationDays/Active/RelationDelta/TensionEffect/EffectText); `_sanctions` listesi ve `Sanctions` property; `ImposeSanction(initiatorId, targetId, type, durationDays)` — doğrulama, aynı yonlu aynı tur etkinden sadece biri aktif, tur bazlı ilişki dususu (Ticaret -10, Finansal -15, Teknoloji -8, Enerji -12, Silah -18; iki yonlu ModifyRelation), gerilim artısı (Ticaret +3, Finansal +5, Teknoloji +2, Enerji +4, Silah +6), kayıt + GD.Print log; `GetActiveSanctionsFor(countryId)`; `IsTradeWar(a, b)` (iki yonlu aktif Trade yaptirimi); `LiftSanction(id)` (pasiflestir + iliskinin yarisi geri doner); `GetSaveData`/`LoadSaveData` Sanctions alanına eklendi. (`enum Type` / property `SanctionType` ayrimiyla cs0104 çakişmasından kaçinildi.)
+- `Scripts/SaveSystem.cs`: `DiplomacySave.Sanction[] Sanctions` DTO eklendi.
+- `Scripts/SaveLoadTest.cs`: BuildSummaryCore Diplomasi özetine yaptirim sayısı eklendi (A==B karşılaştırmasında görünür).
+- `Scripts/GameManager.cs`: `--sanctions-test` arg parsing; `RunSanctionsTest()` — GER, hedef ülke, tüm 5 yaptirim türünü uygular, duplicate Trade engellenir, 2 yönlü trade ile ticaret savası açılır, bir yaptirim kalkirilir (iliski yarısı geri), 5+ kayıt + iliski değişimi + ticaret savaşı + kalkirma doğrulanır; `GetTree().Quit(pass?0:1)`.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--sanctions-test`: **SONUÇ: PASS ✓** (test-logs/sanctions_test.log).
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** (test-logs/save_load_test.log) — DiplomacyState (yaptirimlar dahil) kaydedilir/yükler, determinizm korunuyor.
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/DiplomacySystem.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/GameManager.cs`.
+
+**Sonraki adım:** M28 Gündem Paneli (X benzeri) — veya M27 milestonu tamamlandığına göre M28'e geçiş.

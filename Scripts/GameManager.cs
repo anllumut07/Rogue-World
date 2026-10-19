@@ -124,6 +124,7 @@ public partial class GameManager : Node
         bool diplomacyTest = false;         // M27: lider diploması testi (--diplomacy-test)
         bool agreementsTest = false;        // M27.2: anlaşma testi (--agreements-test)
         bool pressTest = false;             // M27.3: basın etkinliği testi (--press-test)
+        bool sanctionsTest = false;         // M27.4: yaptirim / ticaret savasi testi (--sanctions-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -205,6 +206,8 @@ public partial class GameManager : Node
                 agreementsTest = true;
             else if (arg == "--press-test")
                 pressTest = true;
+            else if (arg == "--sanctions-test")
+                sanctionsTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -456,6 +459,12 @@ public partial class GameManager : Node
         // deterministik geri-etki, kaydet/yüklede A==B korunur; başarısızlıkta Quit(1)).
         if (pressTest)
             RunPressTest();
+
+        // M27.4: Yaptirim / ticaret savasi testi (ticaret/finansal/teknoloji/enerji/silah yaptirim,
+        // iki yonlu iliski ve gerilim etkisi, ticaret savasi algilama, kalkirma, kaydet/yüklede A==B;
+        // basarisizlikta Quit(1)).
+        if (sanctionsTest)
+            RunSanctionsTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -1429,6 +1438,101 @@ public partial class GameManager : Node
         bool pass = allOk && eventsRecorded && anyIndicatorChanged;
 
         GD.Print(pass ? "[PressTest] SONUÇ: PASS ✓" : "[PressTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(pass ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M27.4: Yaptirim / ticaret savasi testi — GER (sert/uzlasmaci contex), bir hedef ulkeden
+    /// kullanilan yaptirimlar (ticaret, finansal, teknoloji, enerji, silah), iki yonlu iliski
+    /// dususu, gerilim artisi, ticaret savasi (iki yonlu trade yaptirim) algilama, kalkirma +
+    /// iliski geri donusu, kayit sayisi. Deterministik, normal oyunda ASLA calismasi (--sanctions-test).
+    /// </summary>
+    private void RunSanctionsTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M27.4: YAPTIRIM / TICARET SAVASI TESTI (--sanctions-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        string playerId = PlayerCountryId;
+
+        // Hedef ulke: oyuncuya komsu degil, goz atalim (ilk suitable non-player, non-annexed)
+        string targetId = null;
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c.Id != playerId && !c.IsAnnexed) { targetId = c.Id; break; }
+        }
+        if (targetId == null)
+        {
+            GD.Print("[SanctionsTest] Uygun hedef ulke bulunamadi — test atlaniyor");
+            GD.Print("=========================================");
+            return;
+        }
+
+        float tensionBefore = DiplomacySystem.WorldTension;
+        int relationBefore = DiplomacySystem.GetRelation(playerId, targetId);
+        int reverseBefore = DiplomacySystem.GetRelation(targetId, playerId);
+        int sanctionsBefore = DiplomacySystem.Sanctions.Count;
+        GD.Print($"[SanctionsTest] {playerId} -> {targetId}: tension once=%{tensionBefore:F1}, iliski once={relationBefore}, " +
+                 $"ters yon once={reverseBefore}, yaptirim once={sanctionsBefore}");
+
+        bool allOk = true;
+        var types = new[]
+        {
+            DiplomacySystem.Sanction.Type.Trade,
+            DiplomacySystem.Sanction.Type.Financial,
+            DiplomacySystem.Sanction.Type.Tech,
+            DiplomacySystem.Sanction.Type.Energy,
+            DiplomacySystem.Sanction.Type.Arms
+        };
+        foreach (var t in types)
+        {
+            bool ok = DiplomacySystem.ImposeSanction(playerId, targetId, t, 30);
+            GD.Print($"[SanctionsTest] ImposeSanction({playerId} -> {targetId}, {t}, 30g): {(ok ? "OK" : "FAIL")}");
+            if (!ok) allOk = false;
+        }
+
+        // Ayni yonlu ayni tur tekrar engellenmeli (diger tur onceden var)
+        bool dupBlocked = !DiplomacySystem.ImposeSanction(playerId, targetId, DiplomacySystem.Sanction.Type.Trade, 60);
+        GD.Print($"[SanctionsTest] Duplicate Trade engellendi: {(!dupBlocked ? "HAYIR (beklenmeydi)" : "EVET (dogru)")}");
+        if (!dupBlocked) allOk = false;
+
+        float tensionAfterImpose = DiplomacySystem.WorldTension;
+        int relationAfterImpose = DiplomacySystem.GetRelation(playerId, targetId);
+        int sanctionsAfterImpose = DiplomacySystem.Sanctions.Count;
+        GD.Print($"[SanctionsTest] 5 yaptirim sonrasi: tension=%{tensionAfterImpose:F1} (delta={tensionAfterImpose - tensionBefore:+#;-#;0}), " +
+                 $"iliski={relationAfterImpose} (delta={relationAfterImpose - relationBefore}), yaptirim={sanctionsBefore}->{sanctionsAfterImpose}");
+
+        // Ticaret savasi: ikiden bir tarafin trade yaptirimi yeterli degil, iki yonlu lazim
+        bool tradeWarBefore = DiplomacySystem.IsTradeWar(playerId, targetId);
+        GD.Print($"[SanctionsTest] Ticaret savasi (once): {tradeWarBefore}");
+
+        // Ters yonlu trade yaptirimyla tam turu kapat
+        DiplomacySystem.ImposeSanction(targetId, playerId, DiplomacySystem.Sanction.Type.Trade, 45);
+        bool tradeWarAfter = DiplomacySystem.IsTradeWar(playerId, targetId);
+        GD.Print($"[SanctionsTest] Ticaret savasi (sonra): {tradeWarAfter}");
+        if (!tradeWarAfter) allOk = false;
+
+        // Tek bir yaptirimi kalkir: iliskinin yarisi geri doner
+        var first = DiplomacySystem.Sanctions.FirstOrDefault(s => s.Active && s.InitiatorId == playerId && s.TargetId == targetId);
+        bool liftOk = first != null && DiplomacySystem.LiftSanction(first.Id);
+        GD.Print($"[SanctionsTest] Kalkirma ({first?.Id}): {(liftOk ? "OK" : "FAIL")}");
+        if (!liftOk) allOk = false;
+
+        int relationAfterLift = DiplomacySystem.GetRelation(playerId, targetId);
+        int activeAfterLift = DiplomacySystem.GetActiveSanctionsFor(playerId).Count(s => s.Active);
+        GD.Print($"[SanctionsTest] Kalkirma sonrasi: iliski={relationAfterLift} (delta vs once={relationAfterLift - relationAfterImpose}), " +
+                 $"aktif yaptirim={activeAfterLift}");
+
+        int sanctionsFinal = DiplomacySystem.Sanctions.Count;
+        bool sanctionsRecorded = sanctionsAfterImpose >= sanctionsBefore + 5;
+        bool relationChanged = relationAfterImpose != relationBefore;
+        bool pass = allOk && sanctionsRecorded && relationChanged && tradeWarAfter && liftOk;
+
+        GD.Print(pass ? "[SanctionsTest] SONUÇ: PASS ✓" : "[SanctionsTest] SONUÇ: FAIL ✗");
         GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");
     }

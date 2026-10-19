@@ -455,3 +455,20 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 3. Bilinen sorun: yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--press-test` ve `--save-load-test` (A==B).
 
+## M27.4: Yaptirimlar ve Ticaret Savlari — ✅ DONE (2026-10-19)
+- `Scripts/DiplomacySystem.cs`: `Sanction` modeli (Type: Trade/Financial/Tech/Energy/Arms), `ImposeSanction` (iki yönlü ilişki dususu + gerilim, duplicate engelle), `LiftSanction` (yarı geri dönüş), `IsTradeWar` (iki yönlü trade → ticaret savaşı), `Sanctions` kaydı, `GetSaveData`/`LoadSaveData`. `enum Type` / property `SanctionType` ayrimiyle CS0104 önlendi.
+- `Scripts/SaveSystem.cs`: `DiplomacySave.Sanction[] Sanctions` DTO.
+- `Scripts/SaveLoadTest.cs`: BuildSummaryCore Diplomasi özetine yaptirim sayısı eklendi.
+- `Scripts/GameManager.cs`: `--sanctions-test` + `RunSanctionsTest()` (GER, 5 yaptirim türü, duplicate engelleme, ticaret savaşı, kalkirma + iliski geri dönüş).
+- `dotnet build`: 0 hata / 0 uyarı. `--sanctions-test`: **PASS ✓**. `--save-load-test`: **PASS ✓ (A == B)**.
+- Commit ve `git push origin gece-calisma` (bu oturumda).
+
+### ÖZET (M27.4 — 2026-10-19)
+1. Değişen dosyalar: `Scripts/DiplomacySystem.cs` (Sanction modeli, ImposeSanction/LiftSanction/IsTradeWar), `Scripts/SaveSystem.cs` (Sanctions DTO), `Scripts/SaveLoadTest.cs` (yaptırım sayısı özeti), `Scripts/GameManager.cs` (--sanctions-test + RunSanctionsTest).
+2. Çözülemeyen şey: yok — M27.4 %100 tamamlandı (build 0/0, sanctions-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--sanctions-test` ve `--save-load-test` (A==B).
+
+### ÖZET (M27 — Tüm alt görevler tamamlandı — 2026-10-19)
+M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/miting), M27.4 (yaptırım/ticaret savası) tamamlandı. Tüm alt görevlerde `dotnet build` 0/0, headless testler PASS, save-load A==B PASS, commit ve `git push origin gece-calisma` yapıldı. Sonraki adım: M28 Gündem Paneli.
+

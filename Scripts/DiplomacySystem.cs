@@ -137,6 +137,26 @@ public static class DiplomacySystem
         public string EffectText { get; set; } // İnsan okunabilir özet
     }
 
+    /// <summary>
+    /// M27.4: Bir ulke tarafindan baska bir ulkeye uygulanan yaptirim (ticaret, finansal, teknoloji, enerji, silah).
+    /// Yonludur (Initiator -> Target). Iliski ve dünya gerilimine etki eder; sureli veya süresiz olabilir.
+    /// </summary>
+    public class Sanction
+    {
+        public enum Type { Trade, Financial, Tech, Energy, Arms }
+
+        public string Id { get; set; }           // "INITIATOR-TARGET-TYPE-Day" (yonlu, siralama yok)
+        public string InitiatorId { get; set; }
+        public string TargetId { get; set; }
+        public Type SanctionType { get; set; }
+        public int DayStarted { get; set; }      // Oyun gunu (GM.TotalDays)
+        public int DurationDays { get; set; }    // 0 = süresiz
+        public bool Active { get; set; } = true;
+        public int RelationDelta { get; set; }   // Iki yonlu (iki ulkeye de) uygulanan iliski dususu
+        public float TensionEffect { get; set; } // Gerilim artisi (pozitif)
+        public string EffectText { get; set; }   // İnsan okunabilir özet
+    }
+
     // ===== Sabitler =====
     private const int MaxRelation = 100;
     private const int MinRelation = -100;
@@ -158,6 +178,7 @@ public static class DiplomacySystem
     private static readonly List<DiplomacyMeeting> _meetings = new(); // M27.1: geçmiş görüşmalar
     private static readonly List<Agreement> _agreements = new();      // M27.2: imzalanmış anlaşmalar
     private static readonly List<PressEvent> _pressEvents = new();    // M27.3: basın toplantısı / TV konuşması / miting
+    private static readonly List<Sanction> _sanctions = new();        // M27.4: yaptirimlar ve ticaret savasi kaydi
     private static float _worldTension = 0f;
 
     private static GameManager GM => GameManager.Instance;
@@ -1004,6 +1025,94 @@ public static class DiplomacySystem
         return true;
     }
 
+    // ===== M27.4: Yaptirimlar ve Ticaret Savlari =====
+
+    public static IReadOnlyList<Sanction> Sanctions => _sanctions;
+
+    /// <summary>
+    /// Yaptirim uygular (yonlu: Initiator -> Target). Tur bazli iliski dususu ve gerilim artisi.
+    /// Ayni yonlu ayni tur etkinden sadece biri aktif olabilir.
+    /// </summary>
+    public static bool ImposeSanction(string initiatorId, string targetId, Sanction.Type type, int durationDays)
+    {
+        var initiator = CountryDatabase.Get(initiatorId);
+        var target = CountryDatabase.Get(targetId);
+        if (initiator == null || target == null || initiator.IsAnnexed || target.IsAnnexed || initiatorId == targetId)
+            return false;
+
+        if (_sanctions.Any(s => s.Active && s.InitiatorId == initiatorId && s.TargetId == targetId && s.SanctionType == type))
+            return false;
+
+        int relationDelta = type switch
+        {
+            Sanction.Type.Trade => -10,
+            Sanction.Type.Financial => -15,
+            Sanction.Type.Tech => -8,
+            Sanction.Type.Energy => -12,
+            Sanction.Type.Arms => -18,
+            _ => -5
+        };
+        float tensionEffect = type switch
+        {
+            Sanction.Type.Trade => 3f,
+            Sanction.Type.Financial => 5f,
+            Sanction.Type.Tech => 2f,
+            Sanction.Type.Energy => 4f,
+            Sanction.Type.Arms => 6f,
+            _ => 3f
+        };
+
+        // Iki yonlu iliski dususu (yasaklayici ve yasaklanan tarafindan da algilanir)
+        ModifyRelation(initiatorId, targetId, relationDelta);
+        ModifyRelation(targetId, initiatorId, relationDelta);
+
+        if (tensionEffect != 0f) IncreaseTension(tensionEffect);
+
+        _sanctions.Add(new Sanction
+        {
+            Id = $"{initiatorId}-{targetId}-{type}-{GM?.TotalDays ?? 0}",
+            InitiatorId = initiatorId,
+            TargetId = targetId,
+            SanctionType = type,
+            DayStarted = GM?.TotalDays ?? 0,
+            DurationDays = durationDays,
+            Active = true,
+            RelationDelta = relationDelta,
+            TensionEffect = tensionEffect,
+            EffectText = $"Yaptirim: {initiatorId} -> {targetId} ({type}, gun {GM?.TotalDays ?? 0}), iliski {relationDelta:+#;-#;0}, gerilim {tensionEffect:+#;-#;0}"
+        });
+
+        GD.Print($"[Diplomacy] Yaptirim: {initiatorId} -> {targetId} ({type}, day {GM?.TotalDays}, sure={durationDays}) — iliski {relationDelta:+#;-#;0}, gerilim {tensionEffect:+#;-#;0}");
+        return true;
+    }
+
+    /// <summary>Etkin yaptirimlari bir ulkeden itibaren (veya ona yonelik) dondurur.</summary>
+    public static List<Sanction> GetActiveSanctionsFor(string countryId) =>
+        _sanctions.Where(s => s.Active && (s.InitiatorId == countryId || s.TargetId == countryId)).ToList();
+
+    /// <summary>Iki ulke arasinda aktif istkili ticaret yaptirimi varsa ticaret savasi sayilir.</summary>
+    public static bool IsTradeWar(string a, string b) =>
+        _sanctions.Any(s => s.Active && s.InitiatorId == a && s.TargetId == b && s.SanctionType == Sanction.Type.Trade) &&
+        _sanctions.Any(s => s.Active && s.InitiatorId == b && s.TargetId == a && s.SanctionType == Sanction.Type.Trade);
+
+    /// <summary>Yaptirimi pasiflestirir ve iliskinin yarisini geri dondurur.</summary>
+    public static bool LiftSanction(string sanctionId)
+    {
+        var s = _sanctions.FirstOrDefault(x => x.Id == sanctionId && x.Active);
+        if (s == null) return false;
+        s.Active = false;
+
+        int recovery = -s.RelationDelta / 2;
+        if (recovery != 0)
+        {
+            ModifyRelation(s.InitiatorId, s.TargetId, recovery);
+            ModifyRelation(s.TargetId, s.InitiatorId, recovery);
+        }
+
+        GD.Print($"[Diplomacy] Yaptirim kalkirildi: {s.Id}");
+        return true;
+    }
+
     // ===== Yardımcı metodlar =====
 
     private static bool CanDoDiplomacy(string targetId, out CountryData target)
@@ -1124,7 +1233,8 @@ public static class DiplomacySystem
             NavalAccess = _navalAccess.ToArray(),
             Meetings = _meetings.ToArray(),
             Agreements = _agreements.ToArray(),
-            PressEvents = _pressEvents.ToArray()
+            PressEvents = _pressEvents.ToArray(),
+            Sanctions = _sanctions.ToArray()
         };
     }
 
@@ -1167,6 +1277,11 @@ public static class DiplomacySystem
         if (data.PressEvents != null)
             foreach (var p in data.PressEvents) _pressEvents.Add(p);
 
-        GD.Print($"DiplomacySystem: state yüklendi — Faksiyon={_factions.Count}, İlişki={_relations.Count}, Tension={_worldTension:F1}, Görüşme={_meetings.Count}, Anlaşma={_agreements.Count}, Basın={_pressEvents.Count}");
+        // M27.4: yaptirim geçmişini geri yükle
+        _sanctions.Clear();
+        if (data.Sanctions != null)
+            foreach (var s in data.Sanctions) _sanctions.Add(s);
+
+        GD.Print($"DiplomacySystem: state yüklendi — Faksiyon={_factions.Count}, İlişki={_relations.Count}, Tension={_worldTension:F1}, Görüşme={_meetings.Count}, Anlaşma={_agreements.Count}, Basın={_pressEvents.Count}, Yaptırım={_sanctions.Count}");
     }
 }

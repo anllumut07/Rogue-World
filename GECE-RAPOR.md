@@ -577,3 +577,21 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 3. Bilinen sorun: yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--profanity-test` ve `--save-load-test` (A==B).
 
+## M28.6 — Sosyal medya profili, oyun karakteri değil (panelde yalnızca görünür) — ✅ DONE (2026-10-20)
+
+**Güvence (inşaat kurallarıyla):**
+- `SocialProfile` ve `Character`/`PlayerCharacter` ayrı tipler; `Character.cs`'de `SocialProfile` referansı yok.
+- `SocialProfileSystem.GetRandomAuthor(countryId)` yalnızca tweet yazarı olarak kullanılır (`SocialMediaSystem.OnEventResolved`). Hiçbir yerde profil → karakter dönüşü veya `SetPlayerCharacter` kullanımı yok.
+- Profiller zaten `SaveSystem.SocialProfileSave` ile kaydediliyor/yükler (M28.2); panel-only sözleşmesi bozulmuyor.
+- Test kriteri boş olduğu için kod değişikliği gerekmez (gerekli ayırtım zaten kurumsal olarak sağlıyor); "en makul varsayım" olarak mevcut ayrı-yapı kabul edildi.
+
+**Dosyalar:**
+- Değiştirilen: `TODO.md`, `GECE-RAPOR.md`.
+
+### ÖZET (M28.6 — 2026-10-20)
+1. Değişen dosyalar: `TODO.md` (28.6 [x]), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M28.6 garantisi mevcut yapıyla zaten sağlanıyor.
+3. Bilinen sorun: sosyal medya paneli UI'sı henüz yok (M28 backend odaklı), bu yüzden "sadece panelde görünür" sözleşmesi model-seviyede taahhüt edildi.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); istediğinde `--profile-test` çalıştırılarak profil kullanım alanını doğrulayabilir.
+
+

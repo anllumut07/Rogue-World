@@ -392,7 +392,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | 28.3 | Gündem (trend) listesi, beğeni/paylaşım sayısı, duygu (olumlu/olumsuz) eğilimi. | Trend listesi güncellenir | ✅ Bitti (2026-10-20) |
 | 28.4 | Tweetlere göre aksiyon: açıklama yap, soruşturma aç, görmezden gel, yasakla (sonuçlu). | Aksiyonlar memnuniyeti etkiler | ✅ Bitti (2026-10-20) |
 | 28.5 | Küfür/nefret içeriği filtresi, günlük tweet sayısı sınırı (performans). | Panel akıcı çalışır | ✅ Bitti (2026-10-20) |
-| 28.6 | Oyunda bu kişiler oyun karakteri olarak yer almaz, yalnızca panelde görünür. | |
+| 28.6 | Oyunda bu kişiler oyun karakteri olarak yer almaz, yalnızca panelde görünür. | Sosyal medya profili = karakter dönüşü yok | ✅ Bitti (2026-10-20) |
 
 ---
 

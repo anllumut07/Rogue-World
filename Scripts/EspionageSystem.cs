@@ -47,6 +47,18 @@ public static class EspionageSystem
     public class EspionageSave
     {
         public SpySave[] Spies = Array.Empty<SpySave>();
+        public TrainingCourseSave Training = new(); // M29.4: aktif eğitim kursu durumu
+    }
+
+    public class TrainingCourseSave
+    {
+        public string SpyId = "";
+        public int CourseType;          // enum değeri, 0 = yok
+        public int DaysRemaining;       // gün cinsinden kalan süre (hafta*7)
+        public int StartedDay;
+        public int CompletedCount;
+        public int TotalSpentPP;
+        public bool LastSuccess;
     }
 
     private static readonly List<Spy> _spies = new();
@@ -167,6 +179,149 @@ public static class EspionageSystem
         return "Low";
     }
 
+    // ===== M29.4: Eğitim kursları — casus eğitim kursları (dil, kültür, saha) =====
+    // Süre hafta cinsinden (gün = hafta*7), PP maliyeti var, casus kurs sırasında meşguldür,
+    // tamamlama da deterministik nitelik artışı sağlar.
+    public enum TrainingCourseType
+    {
+        None = 0,
+        Language,   // Dil kursu — rastgele bilinen bir dili +15 artırır
+        Culture,    // Kültür eğitimi — CultureKnowledge +20
+        Field,      // Saha eğitimi — Observation +10, ColdBlood +5
+    }
+
+    public class TrainingCourseDef
+    {
+        public TrainingCourseType Type;
+        public string Name;
+        public int DurationWeeks;
+        public int DurationDays => DurationWeeks * 7;
+        public int CostPP;
+    }
+
+    // Tanımlı kurslar: (dil 2 hafta/50 PP, kültür 3 hafta/75 PP, saha 4 hafta/100 PP)
+    private static readonly TrainingCourseDef[] _courses = new[]
+    {
+        new TrainingCourseDef { Type = TrainingCourseType.Language, Name = "Language Course",   DurationWeeks = 2, CostPP = 50 },
+        new TrainingCourseDef { Type = TrainingCourseType.Culture,  Name = "Culture Training",  DurationWeeks = 3, CostPP = 75 },
+        new TrainingCourseDef { Type = TrainingCourseType.Field,    Name = "Field Training",    DurationWeeks = 4, CostPP = 100 },
+    };
+
+    private static TrainingCourseType _courseType = TrainingCourseType.None;
+    private static string _courseSpyId = "";
+    private static int _daysRemaining;
+    private static int _startedDay;
+    private static int _completedCount;
+    private static int _totalSpentPP;
+    private static bool _lastSuccess;
+
+    public static TrainingCourseType CourseType => _courseType;
+    public static string CourseSpyId => _courseSpyId;
+    public static int DaysRemaining => _daysRemaining;
+    public static int StartedDay => _startedDay;
+    public static int CompletedCount => _completedCount;
+    public static int TotalSpentPP => _totalSpentPP;
+    public static bool LastSuccess => _lastSuccess;
+    public static bool IsInTraining => _courseType != TrainingCourseType.None;
+
+    /// <summary>Belirli bir casus meşgul mü?</summary>
+    public static bool IsSpyInTraining(string spyId) => IsInTraining && _courseSpyId == spyId;
+
+    /// <summary>Kurs tanımını döner (geçersiz türse null).</summary>
+    public static TrainingCourseDef GetCourseDef(TrainingCourseType type)
+    {
+        if (type == TrainingCourseType.None) return null;
+        int idx = (int)type - 1; // None=0 hariç, kurslar dizinin 0. indeksinden başlar
+        if (idx < 0 || idx >= _courses.Length) return null;
+        return _courses[idx];
+    }
+
+    /// <summary>Kurs başlatır: spy meşgul değilse, tür geçerliyse başlar; PP düşülmez (çağırıcı tarafından yönetilir).</summary>
+    public static bool StartTrainingCourse(string spyId, TrainingCourseType type, int currentDay)
+    {
+        if (string.IsNullOrEmpty(spyId)) return false;
+        if (IsInTraining) return false; // aynı anda tek kurs
+        if (type == TrainingCourseType.None) return false;
+        if (_spies.All(s => s.Id != spyId)) return false; // bilinmeyen casus
+
+        var def = GetCourseDef(type);
+        if (def == null) return false;
+
+        _courseType = type;
+        _courseSpyId = spyId;
+        _daysRemaining = def.DurationDays;
+        _startedDay = currentDay;
+        _lastSuccess = false;
+        GD.Print($"[EspionageSystem] Kurs başlatıldı: {def.Name} casus={spyId} ({def.DurationDays} gün, {def.CostPP} PP, başlangıç gün {currentDay})");
+        return true;
+    }
+
+    /// <summary>Aktif kursu iptal eder: ilerleme kaybolur, PP iade edilmez.</summary>
+    public static void CancelTrainingCourse()
+    {
+        if (!IsInTraining) return;
+        GD.Print($"[EspionageSystem] Kurs iptal edildi: {GetCourseDef(_courseType).Name} casus={_courseSpyId}");
+        _courseType = TrainingCourseType.None;
+        _courseSpyId = "";
+        _daysRemaining = 0;
+    }
+
+    /// <summary>Günlük tick — aktif kursun süresini azaltır, bitince deterministik nitelik artışı uygular.</summary>
+    public static void DailyTick(int currentDay)
+    {
+        if (!IsInTraining) return;
+
+        _daysRemaining--;
+        if (_daysRemaining > 0) return;
+
+        var def = GetCourseDef(_courseType);
+        var spy = _spies.FirstOrDefault(s => s.Id == _courseSpyId);
+
+        _completedCount++;
+        _totalSpentPP += def.CostPP;
+        _lastSuccess = true;
+
+        if (spy != null)
+        {
+            ApplyTrainingStatChange(spy, def.Type);
+            GD.Print($"[EspionageSystem] KURS TAMAMLANDI: {def.Name} casus={spy.Id} ({spy.Name}) → nitelikler güncellendi (gün {currentDay})");
+        }
+        else
+        {
+            GD.PrintErr($"[EspionageSystem] KURS TAMAMLANDI ama casus bulunamadı: {_courseSpyId} (gün {currentDay})");
+        }
+
+        _courseType = TrainingCourseType.None;
+        _courseSpyId = "";
+        _daysRemaining = 0;
+    }
+
+    private static void ApplyTrainingStatChange(Spy spy, TrainingCourseType type)
+    {
+        switch (type)
+        {
+            case TrainingCourseType.Language:
+                // Rastgele bilinen bir dili +15 artırır; dil yoksa keine işlem.
+                var langs = spy.Languages.Keys.ToArray();
+                if (langs.Length > 0)
+                {
+                    string lang = DeterministicRNG.NextChoice(langs);
+                    spy.Languages[lang] = Math.Clamp(spy.Languages[lang] + 15, 1, 100);
+                    GD.Print($"[EspionageSystem] Dil kursu: {spy.Id} dil={lang} yeni seviye={spy.Languages[lang]}");
+                }
+                break;
+            case TrainingCourseType.Culture:
+                spy.CultureKnowledge = Math.Clamp(spy.CultureKnowledge + 20, 0, 100);
+                GD.Print($"[EspionageSystem] Kültür eğitimi: {spy.Id} CultureKnowledge={spy.CultureKnowledge}");
+                break;
+            case TrainingCourseType.Field:
+                spy.Observation = Math.Clamp(spy.Observation + 10, 0, 100);
+                spy.ColdBlood = Math.Clamp(spy.ColdBlood + 5, 0, 100);
+                GD.Print($"[EspionageSystem] Saha eğitimi: {spy.Id} Observation={spy.Observation} ColdBlood={spy.ColdBlood}");
+                break;
+        }
+    }
+
     private static readonly string[] _regions = {
         "Western Europe", "Eastern Europe", "Southern Europe", "Northern Europe",
         "Middle East", "North Africa", "East Asia", "South Asia", "Southeast Asia",
@@ -232,7 +387,17 @@ public static class EspionageSystem
                 CultureKnowledge = s.CultureKnowledge, RegionExperience = s.RegionExperience,
                 RegionExperienceLevel = s.RegionExperienceLevel, Education = s.Education,
                 Loyalty = s.Loyalty, Observation = s.Observation, ColdBlood = s.ColdBlood,
-            }).ToArray()
+            }).ToArray(),
+            Training = new TrainingCourseSave
+            {
+                SpyId = _courseSpyId,
+                CourseType = (int)_courseType,
+                DaysRemaining = _daysRemaining,
+                StartedDay = _startedDay,
+                CompletedCount = _completedCount,
+                TotalSpentPP = _totalSpentPP,
+                LastSuccess = _lastSuccess,
+            },
         };
     }
 
@@ -254,13 +419,32 @@ public static class EspionageSystem
             }
             _nextSpyNum = _spies.Count + 1;
         }
-        GD.Print($"Espionage: state yüklendi — casus={_spies.Count}");
+
+        if (data?.Training != null)
+        {
+            _courseType = (TrainingCourseType)Math.Clamp(data.Training.CourseType, (int)TrainingCourseType.None, _courses.Length);
+            _courseSpyId = data.Training.SpyId ?? "";
+            _daysRemaining = data.Training.DaysRemaining;
+            _startedDay = data.Training.StartedDay;
+            _completedCount = data.Training.CompletedCount;
+            _totalSpentPP = data.Training.TotalSpentPP;
+            _lastSuccess = data.Training.LastSuccess;
+        }
+
+        GD.Print($"Espionage: state yüklendi — casus={_spies.Count} kurs={_courseType} kalan_gun={_daysRemaining}");
     }
 
     public static void ResetForNewGame()
     {
         _spies.Clear();
         _nextSpyNum = 1;
+        _courseType = TrainingCourseType.None;
+        _courseSpyId = "";
+        _daysRemaining = 0;
+        _startedDay = 0;
+        _completedCount = 0;
+        _totalSpentPP = 0;
+        _lastSuccess = false;
         GD.Print("Espionage: yeni oyun için sıfırlandı.");
     }
 }

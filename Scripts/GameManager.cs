@@ -131,6 +131,7 @@ public partial class GameManager : Node
         bool tweetActionTest = false;       // M28.4: tweet eylemi + memnuniyet etkisi testi (--tweet-action-test)
         bool profanityTest = false;         // M28.5: küfür/nefret filtresi + günlük tweet sınırı testi (--profanity-test)
         bool espionageTest = false;         // M29.1: casusluk v2 — casus niteliği modeli testi (--espionage-test)
+        bool spyTrainingTest = false;       // M29.4: casusluk v2 — eğitim kursları testi (--spy-training-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -226,6 +227,8 @@ public partial class GameManager : Node
                 profanityTest = true;
             else if (arg == "--espionage-test")
                 espionageTest = true;
+            else if (arg == "--spy-training-test")
+                spyTrainingTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -506,6 +509,8 @@ public partial class GameManager : Node
             RunProfanityTest();
         if (espionageTest)
             RunEspionageTest();
+        if (spyTrainingTest)
+            RunSpyTrainingTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -679,6 +684,9 @@ public partial class GameManager : Node
 
         // M25.3: Eğitim modülü günlük ilerleme (süre, başarı/başarısızlık çözümü).
         if (HasPlayer) EducationSystem.DailyTick(TotalDays, PlayerCharacter);
+
+        // M29.4: Casus eğitim kursu günlük ilerleme (süre, bitince nitelik artışı).
+        if (HasPlayer) EspionageSystem.DailyTick(TotalDays);
 
         // M25.5: Kariyer olayları günlük denetimi (skandal, fırsat, mentor kaybı, hastalık).
         if (HasPlayer)
@@ -2062,6 +2070,99 @@ public partial class GameManager : Node
 
         ok = deterministic && rangesOk && cardOk && affinityOk && spyAffOk && capRangeOk && capAffinityEffect && riskOk && warnOk && warnJpnOk && saveLoadOk && resetOk;
         GD.Print(ok ? "[EspionageTest] SONUÇ: PASS ✓" : "[EspionageTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(ok ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    // M29.4: Casusluk v2 — eğitim kursları testi (--spy-training-test).
+    // Kurs başlatma, meşguliyet, günlük ticks, bitişte nitelik artışı, Save/Load A==B, ResetForNewGame doğrular.
+    private void RunSpyTrainingTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M29.4: CASUSLUK v2 — EĞİTİM KURSLARI TESTİ (--spy-training-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        bool ok = true;
+
+        // 1. Kurs tanımları: süre (hafta) ve PP maliyeti beklenildiği gibi.
+        var langDef = EspionageSystem.GetCourseDef(EspionageSystem.TrainingCourseType.Language);
+        var culDef = EspionageSystem.GetCourseDef(EspionageSystem.TrainingCourseType.Culture);
+        var fldDef = EspionageSystem.GetCourseDef(EspionageSystem.TrainingCourseType.Field);
+        bool defsOk = langDef != null && culDef != null && fldDef != null
+            && langDef.DurationWeeks == 2 && langDef.CostPP == 50
+            && culDef.DurationWeeks == 3 && culDef.CostPP == 75
+            && fldDef.DurationWeeks == 4 && fldDef.CostPP == 100;
+        GD.Print($"[SpyTrainingTest] kurs_tanımları={defsOk} dil={langDef.DurationWeeks}hafta/{langDef.CostPP}PP kültür={culDef.DurationWeeks}hafta/{culDef.CostPP}PP saha={fldDef.DurationWeeks}hafta/{fldDef.CostPP}PP");
+
+        // 2. Deterministik casus üretimi.
+        DeterministicRNG.InitializeForNewGame(11223344);
+        var s1 = EspionageSystem.GenerateSpy("GER");
+        var s2 = EspionageSystem.GenerateSpy("FRA");
+        GD.Print($"[SpyTrainingTest] casuslar={s1.Id}({s1.Name}) {s2.Id}({s2.Name})");
+
+        // 3. Kurs başlatma: s1'e dil kursu (14 gün, 50 PP).
+        bool started = EspionageSystem.StartTrainingCourse(s1.Id, EspionageSystem.TrainingCourseType.Language, 0);
+        bool inTraining = EspionageSystem.IsInTraining && EspionageSystem.IsSpyInTraining(s1.Id);
+        int days = EspionageSystem.DaysRemaining;
+        bool startOk = started && inTraining && days == 14;
+        GD.Print($"[SpyTrainingTest] basladi={started} mesgul={inTraining} kalan_gun={days} basarili={startOk}");
+
+        // 3b. Aynı anda ikinci kurs başlatılamaz; bilinmeyen casusa başlatılamaz.
+        bool doubleStart = EspionageSystem.StartTrainingCourse(s2.Id, EspionageSystem.TrainingCourseType.Culture, 0);
+        bool unknownStart = EspionageSystem.StartTrainingCourse("spy-nonexistent", EspionageSystem.TrainingCourseType.Field, 0);
+        bool concurrencyOk = !doubleStart && !unknownStart && EspionageSystem.IsSpyInTraining(s1.Id);
+        GD.Print($"[SpyTrainingTest] cift_baslatma_reddedildi={!doubleStart} bilinmeyen_reddedildi={!unknownStart} tek_aktif={concurrencyOk}");
+
+        // Dil seviyeleri öncesi kopyası.
+        var langsBefore = s1.Languages.ToDictionary(kv => kv.Key, kv => kv.Value);
+
+        // 4. Günlük tick'ler — 14. günde tamamlanmalı, bir dil +15.
+        for (int i = 1; i <= 14; i++)
+            EspionageSystem.DailyTick(i);
+        bool completed = !EspionageSystem.IsInTraining && EspionageSystem.CompletedCount == 1 && EspionageSystem.LastSuccess;
+        bool totalSpentOk = EspionageSystem.TotalSpentPP == 50;
+        bool langChanged = false;
+        foreach (var kv in s1.Languages)
+        {
+            if (langsBefore.TryGetValue(kv.Key, out var before) && kv.Value == before + 15)
+                langChanged = true;
+        }
+        bool langOk = s1.Languages.Count == langsBefore.Count && (s1.Languages.Count == 0 || langChanged);
+        GD.Print($"[SpyTrainingTest] tamamlandi={completed} toplam_PP={EspionageSystem.TotalSpentPP} dil_degisti={langOk} dil_sayisi_ayni={s1.Languages.Count == langsBefore.Count}");
+
+        // 5. İkinci kurs: s2'ye kültür kursu (21 gün), CultureKnowledge +20.
+        bool started2 = EspionageSystem.StartTrainingCourse(s2.Id, EspionageSystem.TrainingCourseType.Culture, 20);
+        int culBefore = s2.CultureKnowledge;
+        for (int i = 21; i <= 41; i++)
+            EspionageSystem.DailyTick(i);
+        bool culOk = !EspionageSystem.IsInTraining && EspionageSystem.CompletedCount == 2
+            && s2.CultureKnowledge == Math.Clamp(culBefore + 20, 0, 100)
+            && EspionageSystem.TotalSpentPP == 50 + 75 && started2;
+        GD.Print($"[SpyTrainingTest] kültür_tamamlandı={!EspionageSystem.IsInTraining} completed_count={EspionageSystem.CompletedCount} CK {culBefore}→{s2.CultureKnowledge} toplam_PP={EspionageSystem.TotalSpentPP}");
+
+        // 6. Save/Load A==B (eğitim durumu dahil).
+        var data1 = EspionageSystem.GetSaveData();
+        EspionageSystem.LoadSaveData(data1);
+        var data2 = EspionageSystem.GetSaveData();
+        bool saveLoadOk = data1.Spies.Length == data2.Spies.Length
+            && data1.Training.SpyId == data2.Training.SpyId
+            && data1.Training.CourseType == data2.Training.CourseType
+            && data1.Training.DaysRemaining == data2.Training.DaysRemaining
+            && data1.Training.CompletedCount == data2.Training.CompletedCount
+            && data1.Training.TotalSpentPP == data2.Training.TotalSpentPP;
+        GD.Print($"[SpyTrainingTest] save_load_a_b={saveLoadOk} completed={data2.Training.CompletedCount} pp={data2.Training.TotalSpentPP}");
+
+        // 7. ResetForNewGame temizler (eğitim durumu dahil).
+        EspionageSystem.ResetForNewGame();
+        bool resetOk = EspionageSystem.SpyCount == 0 && !EspionageSystem.IsInTraining
+            && EspionageSystem.CompletedCount == 0 && EspionageSystem.TotalSpentPP == 0;
+        GD.Print($"[SpyTrainingTest] reset={resetOk}");
+
+        ok = defsOk && startOk && concurrencyOk && completed && totalSpentOk && langOk && culOk && saveLoadOk && resetOk;
+        GD.Print(ok ? "[SpyTrainingTest] SONUÇ: PASS ✓" : "[SpyTrainingTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");
     }

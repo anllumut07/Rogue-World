@@ -1459,3 +1459,27 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 2. Çözülemeyen şey: yok — M29.3 %100 tamamlandı (build 0/0, espionage-test PASS, save-load-test A==B PASS).
 3. Bilinen sorun: casus paneli UI'sı yok; model-seviyede yakalanma metoduyle taahhüt edildi.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--espionage-test` ve `--save-load-test` çalıştırılmalı.
+
+### M29.4: Eğitim kursları (dil kursu, kültür eğitimi, saha eğitimi) — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/EspionageSystem.cs`: `TrainingCourseType` enum (None=0, Language=1, Culture=2, Field=3), `TrainingCourseDef[]` (dil=2 hafta/50 PP, kültür=3 hafta/75 PP, saha=4 hafta/100 PP). `StartTrainingCourse(spyId, type, currentDay)` — aynı anda tek kurs, bilinmeyen casus reddedilir. `CancelTrainingCourse()`. `DailyTick(currentDay)` — günlük decrement, bitince deterministik nitelik artışı (dil: rastgele bilinen dil +15 clamp [1,100]; kültür: CultureKnowledge +20; saha: Observation +10, ColdBlood +5), PP toplanır, `CompletedCount`/`LastSuccess` güncellenir. `GetCourseDef(type)`, `IsSpyInTraining(spyId)`, `IsInTraining`.
+- `EspionageSave` / `TrainingCourseSave` DTO'larına `Training` alanı eklendi; `GetSaveData()` eğitim durumunu seriler, `LoadSaveData()` geri yükler (CourseType clamp [0, _courses.Length]), `ResetForNewGame()` eğitim durumunu sıfırlar.
+- `Scripts/GameManager.cs`: `spyTrainingTest` field, `--spy-training-test` arg parsing, `RunSpyTrainingTest()` (kurs tanımları, başlatma, aynı anda ikinci kurs/bilinmeyen casus reddedilir, 14 gün tick ile dil kursu tamamlanır + dil +15, kültür kursu +20 CultureKnowledge, toplam PP toplanır, Save/Load A==B eğitim durumu dahil, ResetForNewGame temizler); `DailyTick()`'ye `EspionageSystem.DailyTick(TotalDays)` çağrısı eklendi (HasPlayer koruması ile).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--spy-training-test`: **SONUÇ: PASS ✓** (test-logs/spy_training_test.log) — kurs tanımları, başlatma, eş-zamanlılık engeli, dil+saha+kültür nitelik artışı, toplam PP, save-load A==B, reset temizler.
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** — M29.4 Espionage eğitim state'i serileştirmesi determinizmi bozmuyor (test-logs/save_load_test.log).
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/EspionageSystem.cs`, `Scripts/GameManager.cs`, `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**Sonraki adım:** M29.5 Casus kiralama havuzu (farklı kültür/diaspora kökenli, maliyet).
+
+### ÖZET (M29.4 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/EspionageSystem.cs` (kurs sistemi + Save/Load/Reset), `Scripts/GameManager.cs` (`--spy-training-test` + DailyTick entegrasyonu), `TODO.md` (29.4 [x]), `PROGRESS.md` (M29.4 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M29.4 %100 tamamlandı (build 0/0, spy-training-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: casusluk paneli UI'sı yok; model-seviyede eğitim metodlarıyla taahhüt edildi.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--spy-training-test` ve `--save-load-test` çalıştırılmalı.
+

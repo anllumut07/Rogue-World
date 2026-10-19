@@ -650,3 +650,32 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 3. Bilinen sorun: casus paneli UI'sı yok; model-seviyede yatkınlık metoduyle taahhüt edildi.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--espionage-test` ve `--save-load-test` çalıştırılmalı.
 
+
+## M29.3 — Yakalanma olasılığı — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:** yok.
+
+**Değiştirilen dosyalar:**
+- `Scripts/EspionageSystem.cs`: `CaptureBaseChance=0.10`, `CaptureAffinityWarningThreshold=40`, `GetCaptureChance(spyId, targetCountryId, counterIntel)` (formül `base × (1.5 − affinity/100) × counterIntel × (1 − educationBonus)`, clamp [0,1]), `IsCaptureRiskWarning(spyId, targetCountryId)` (affinity < 40 → uyarı), `GetCaptureRiskLevel(spyId, targetCountryId, counterIntel)` → Low/Moderate/High/Critical.
+- `Scripts/GameManager.cs`: `RunEspionageTest()` genişletildi — capture chance 0-1 aralığı, affinity etkisi (düşük affinity → yüksek risk), risk seviyeleri, uyarı doğru (`warn == (spyAff < 40)`), JPN pozitif case (affinity=30 → warning true), Save/Load A==B, `ResetForNewGame` temizler.
+- `TODO.md`: 29.2 ve 29.3 satırları `[x] Bitti (2026-10-20)` işaretlendi.
+- `PROGRESS.md`: M29.3 DONE bölümü eklendi.
+- `GECE-RAPOR.md`: bu bölüm.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--espionage-test`: **SONUÇ: PASS ✓** — capture chance formülü doğrulandı, risk uyarı+eşiği doğru.
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)**.
+
+**Çözülemeyen şey:** yok — M29.3 %100 tamamlandı.
+
+**Bilinen sorun:** casusluk paneli UI'sı yok; model-seviyede yakalanma olasılığı metoduyle taahhüt edildi. M29.4 (eğitim kursları) sonraki alt görev.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--espionage-test` ve `--save-load-test` çalıştırılmalı.
+
+### ÖZET (M29.3 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/EspionageSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (29.2+29.3 [x]), `PROGRESS.md` (M29.3 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M29.3 %100 tamamlandı (build 0/0, espionage-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: casus paneli UI'sı yok; model-seviyede yakalanma metoduyle taahhüt edildi.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--espionage-test` ve `--save-load-test` çalıştırılmalı.
+

@@ -2020,6 +2020,23 @@ public partial class GameManager : Node
         bool spyAffOk = spyAff >= 0 && spyAff <= 100;
         GD.Print($"[EspionageTest] casus_yatkinlik={spyAffOk} deger={spyAff}");
 
+        // 3d. Yakalanma olasılığı formülü: base × (1.5 − affinity/100) × counterIntel × (1 − edu/100), [0,1].
+        double capLow = EspionageSystem.GetCaptureChance(s1.Id, "DEU", 0.5);   // affinity yüksek → düşük risk
+        double capHigh = EspionageSystem.GetCaptureChance(s1.Id, "FRA", 0.5);  // affinity düşük → yüksek risk
+        bool capRangeOk = capLow >= 0.0 && capLow <= 1.0 && capHigh >= 0.0 && capHigh <= 1.0;
+        bool capAffinityEffect = capHigh > capLow; // düşük affinity = daha yüksek yakalanma riski
+        string risk = EspionageSystem.GetCaptureRiskLevel(s1.Id, "FRA", 0.5);
+        bool riskOk = risk is "Low" or "Moderate" or "High" or "Critical";
+        GD.Print($"[EspionageTest] yakalanma={capRangeOk} low={capLow:F3} high={capHigh:F3} affinity_etkisi={capAffinityEffect} risk={risk}");
+
+        // 3e. Düşük yatkınlıkta uyarı (affinity < 40). spyAff=50 (anglo→FRA) → uyarı yok; JPN affinity=30 → uyarı var.
+        bool warn = EspionageSystem.IsCaptureRiskWarning(s1.Id, "FRA");
+        bool warnOk = warn == (spyAff < 40);
+        int spyAffJpn = EspionageSystem.GetAffinityForSpy(s1.Id, "JPN");
+        bool warnJpn = EspionageSystem.IsCaptureRiskWarning(s1.Id, "JPN");
+        bool warnJpnOk = warnJpn == (spyAffJpn < 40);
+        GD.Print($"[EspionageTest] yakalanma_uyarisi={warn} (beklenen={spyAff < 40}) dogruluk={warnOk} | JPN affin={spyAffJpn} uyar={warnJpn} dogruluk={warnJpnOk}");
+
         // 4. Save/Load A==B.
         var data1 = EspionageSystem.GetSaveData();
         EspionageSystem.LoadSaveData(data1);
@@ -2043,7 +2060,7 @@ public partial class GameManager : Node
         bool resetOk = EspionageSystem.SpyCount == 0;
         GD.Print($"[EspionageTest] reset={resetOk}");
 
-        ok = deterministic && rangesOk && cardOk && affinityOk && spyAffOk && saveLoadOk && resetOk;
+        ok = deterministic && rangesOk && cardOk && affinityOk && spyAffOk && capRangeOk && capAffinityEffect && riskOk && warnOk && warnJpnOk && saveLoadOk && resetOk;
         GD.Print(ok ? "[EspionageTest] SONUÇ: PASS ✓" : "[EspionageTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");

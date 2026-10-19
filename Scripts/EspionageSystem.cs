@@ -123,6 +123,50 @@ public static class EspionageSystem
         return GetAffinity(s.BirthCulture, targetCountryId);
     }
 
+    // ===== M29.3: Yakalanma olasılığı =====
+    // Formül: base × (1.5 − yatkınlık/100) × karşıİstihbarat × (1 − eğitimBonusu)
+    // eğitimBonusu = Education / 100 (0-1). Sonuç [0, 1] clamp'lenir.
+    // Düşük yatkınlık (< 40) → yakalanma riski uyarısı.
+    private const double CaptureBaseChance = 0.10;  // %10 taban
+    private const double CaptureAffinityWarningThreshold = 40;
+
+    /// <summary>Casusun hedef ülkede yakalanma olasılığı (0-1, %100 tabanlı olasılık değil oran).</summary>
+    public static double GetCaptureChance(string spyId, string targetCountryId, double counterIntel)
+    {
+        var s = _spies.FirstOrDefault(s => s.Id == spyId);
+        if (s == null) return 1.0; // bilinmeyen casus = maksimum risk
+        if (counterIntel < 0) counterIntel = 0;
+        if (counterIntel > 1) counterIntel = 1;
+
+        int affinity = GetAffinity(s.BirthCulture, targetCountryId);
+        double educationBonus = Math.Clamp(s.Education / 100.0, 0.0, 1.0);
+
+        double chance = CaptureBaseChance
+            * (1.5 - affinity / 100.0)
+            * counterIntel
+            * (1.0 - educationBonus);
+
+        return Math.Clamp(chance, 0.0, 1.0);
+    }
+
+    /// <summary>Düşük yatkınlık nedeniyle yakalanma riski uyarısı gösterilsin mi?</summary>
+    public static bool IsCaptureRiskWarning(string spyId, string targetCountryId)
+    {
+        var s = _spies.FirstOrDefault(s => s.Id == spyId);
+        if (s == null) return true;
+        return GetAffinity(s.BirthCulture, targetCountryId) < CaptureAffinityWarningThreshold;
+    }
+
+    /// <summary>Risk seviyesi: Low / Moderate / High / Critical.</summary>
+    public static string GetCaptureRiskLevel(string spyId, string targetCountryId, double counterIntel)
+    {
+        double p = GetCaptureChance(spyId, targetCountryId, counterIntel) * 100.0;
+        if (p >= 40) return "Critical";
+        if (p >= 20) return "High";
+        if (p >= 8) return "Moderate";
+        return "Low";
+    }
+
     private static readonly string[] _regions = {
         "Western Europe", "Eastern Europe", "Southern Europe", "Northern Europe",
         "Middle East", "North Africa", "East Asia", "South Asia", "Southeast Asia",

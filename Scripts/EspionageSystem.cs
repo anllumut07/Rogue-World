@@ -48,6 +48,7 @@ public static class EspionageSystem
     {
         public SpySave[] Spies = Array.Empty<SpySave>();
         public TrainingCourseSave Training = new(); // M29.4: aktif eğitim kursu durumu
+        public RentalPoolSave RentalPool = new(); // M29.5: kiralama havuzu durumu
     }
 
     public class TrainingCourseSave
@@ -59,6 +60,52 @@ public static class EspionageSystem
         public int CompletedCount;
         public int TotalSpentPP;
         public bool LastSuccess;
+    }
+
+    // ===== M29.5: Casus kiralama havuzu — farklı kültür/diaspora kökenli kiralık casuslar =====
+    // Havuzdaki her casusun ayrı bir kiralama maliyeti (PP) vardır. Kiralandığında casus
+    // aktif casus listesine (_spies) geçer ve havuzdan çıkarılarak yenilenir.
+    public class RentalSpy
+    {
+        public string Id = "";
+        public string Name = "";
+        public string BirthCulture = "";        // diaspora kılığı (LeaderSystem.GetCultureKey anahtarı)
+        public Dictionary<string, int> Languages = new(); // dil → seviye 0-100
+        public int CultureKnowledge;
+        public string RegionExperience = "";
+        public int RegionExperienceLevel;
+        public int Education;
+        public int Loyalty;
+        public int Observation;
+        public int ColdBlood;
+        public int HireCostPP;
+        public bool Available = true;
+    }
+
+    public class RentalSpySave
+    {
+        public string Id = "";
+        public string Name = "";
+        public string BirthCulture = "";
+        public string[] LanguageIds = Array.Empty<string>();
+        public int[] LanguageLevels = Array.Empty<int>();
+        public int CultureKnowledge;
+        public string RegionExperience = "";
+        public int RegionExperienceLevel;
+        public int Education;
+        public int Loyalty;
+        public int Observation;
+        public int ColdBlood;
+        public int HireCostPP;
+        public bool Available;
+    }
+
+    public class RentalPoolSave
+    {
+        public RentalSpySave[] Spies = Array.Empty<RentalSpySave>();
+        public int NextRentalSpyNum = 1;
+        public int LastRefreshDay = 0;
+        public int TotalHiredPP = 0;
     }
 
     private static readonly List<Spy> _spies = new();
@@ -215,6 +262,20 @@ public static class EspionageSystem
     private static int _totalSpentPP;
     private static bool _lastSuccess;
 
+    // ===== M29.5: Kiralama havuzu durumu =====
+    public const int RentalPoolSize = 4;             // aynı anda havuzdaki kiralık casus sayısı
+    public const int RentalRefreshIntervalDays = 30; // havuz yenileme aralığı (oyun günü)
+    private const int RentalBaseCostPP = 50;          // taban kiralama maliyeti (PP)
+
+    private static readonly List<RentalSpy> _rentalPool = new();
+    private static int _nextRentalSpyNum = 1;
+    private static int _lastRefreshDay = 0;
+    private static int _totalHiredPP = 0;
+
+    public static int RentalPoolCount => _rentalPool.Count(s => s.Available);
+    public static IReadOnlyList<RentalSpy> RentalPool => _rentalPool;
+    public static int TotalHiredPP => _totalHiredPP;
+
     public static TrainingCourseType CourseType => _courseType;
     public static string CourseSpyId => _courseSpyId;
     public static int DaysRemaining => _daysRemaining;
@@ -294,6 +355,9 @@ public static class EspionageSystem
         _courseType = TrainingCourseType.None;
         _courseSpyId = "";
         _daysRemaining = 0;
+
+        // M29.5: kiralama havuzu yenileme kontrolü (her gün ticks'te değerlendirilir, aralık bazlı gerçekleşir).
+        RefreshRentalPoolIfNeeded(currentDay);
     }
 
     private static void ApplyTrainingStatChange(Spy spy, TrainingCourseType type)
@@ -320,6 +384,109 @@ public static class EspionageSystem
                 GD.Print($"[EspionageSystem] Saha eğitimi: {spy.Id} Observation={spy.Observation} ColdBlood={spy.ColdBlood}");
                 break;
         }
+    }
+
+    // ===== M29.5: Kiralama havuzu mantığı =====
+
+    /// <summary>Havuzu başlatır: hedef boyuta kadar kiralık casus üretir (yeni oyun / senaryo başlangıcı).</summary>
+    public static void InitializeRentalPool(int currentDay)
+    {
+        _rentalPool.Clear();
+        for (int i = 0; i < RentalPoolSize; i++)
+            _rentalPool.Add(GenerateRentalSpy());
+        _lastRefreshDay = currentDay;
+        GD.Print($"[EspionageSystem] Kiralama havuzu başlatıldı: {RentalPoolCount} casus (gün {currentDay})");
+    }
+
+    /// <summary>Yeterli süre geçtiyse havuzu yeniler: kiralanmayan casusları çıkarır, yeniilleri doldurur.</summary>
+    public static void RefreshRentalPoolIfNeeded(int currentDay)
+    {
+        if (currentDay - _lastRefreshDay < RentalRefreshIntervalDays) return;
+
+        // Kiralanmayan (zaten havuzda kalan) casusları temizle, kiralanmışları zaten çıkarıldı.
+        _rentalPool.RemoveAll(s => !s.Available);
+        while (_rentalPool.Count < RentalPoolSize)
+            _rentalPool.Add(GenerateRentalSpy());
+        _lastRefreshDay = currentDay;
+        GD.Print($"[EspionageSystem] Kiralama havuzu yenilendi: {RentalPoolCount} casus (gün {currentDay})");
+    }
+
+    private static RentalSpy GenerateRentalSpy()
+    {
+        // Diaspora: casusun doğum kültürü rastgele bir havuzdan (oyuncu ülkesine bağlı değil).
+        var cultures = _namePools.Keys.ToList();
+        string culture = DeterministicRNG.NextChoice(cultures);
+        var pool = _namePools[culture];
+
+        var spy = new RentalSpy
+        {
+            Id = $"rental-{_nextRentalSpyNum++}",
+            Name = $"{DeterministicRNG.NextChoice(pool.First)} {DeterministicRNG.NextChoice(pool.Last)}",
+            BirthCulture = culture,
+            Languages = GenerateLanguages(),
+            CultureKnowledge = DeterministicRNG.NextInt(0, 101),
+            RegionExperience = DeterministicRNG.NextChoice(_regions),
+            RegionExperienceLevel = DeterministicRNG.NextInt(0, 101),
+            Education = DeterministicRNG.NextInt(0, 101),
+            Loyalty = DeterministicRNG.NextInt(0, 101),
+            Observation = DeterministicRNG.NextInt(0, 101),
+            ColdBlood = DeterministicRNG.NextInt(0, 101),
+        };
+        // Maliyet: istatistik ortalamasına dayalı deterministik PP (50-150 arası).
+        int avgStats = (spy.Education + spy.Observation + spy.ColdBlood + spy.CultureKnowledge) / 4;
+        spy.HireCostPP = RentalBaseCostPP + avgStats;
+        spy.Available = true;
+        GD.Print($"[EspionageSystem] Kiralık casus üretildi: {spy.Name} ({spy.Id}, kültür={culture}, maliyet={spy.HireCostPP} PP)");
+        return spy;
+    }
+
+    /// <summary>Kiralık casusu kiralar: PP düşülür, casus aktif listeye eklenir, havuzdan çıkarılır.</summary>
+    /// <returns>Kiralanan casus (aktif listedeki Spy) veya null (geçersiz id / yetersiz PP / zaten kiralanmış).</returns>
+    public static Spy HireSpy(string rentalSpyId, int currentDay)
+    {
+        if (string.IsNullOrEmpty(rentalSpyId)) return null;
+        var rental = _rentalPool.FirstOrDefault(s => s.Id == rentalSpyId);
+        if (rental == null || !rental.Available) return null;
+
+        var player = GameManager.Instance?.PlayerCountryData;
+        if (player == null) return null;
+        if (player.PoliticalPower < rental.HireCostPP)
+        {
+            GD.PrintErr($"[EspionageSystem] Kiralama reddedildi: {rental.Id} yetersiz PP (gerekli={rental.HireCostPP}, mevcut={player.PoliticalPower:F0})");
+            return null;
+        }
+
+        player.PoliticalPower -= rental.HireCostPP;
+        rental.Available = false;
+        _rentalPool.Remove(rental);
+        _totalHiredPP += rental.HireCostPP;
+
+        var spy = new Spy
+        {
+            Id = $"spy-{_nextSpyNum++}",
+            Name = rental.Name,
+            BirthCulture = rental.BirthCulture,
+            Languages = new Dictionary<string, int>(rental.Languages),
+            CultureKnowledge = rental.CultureKnowledge,
+            RegionExperience = rental.RegionExperience,
+            RegionExperienceLevel = rental.RegionExperienceLevel,
+            Education = rental.Education,
+            Loyalty = rental.Loyalty,
+            Observation = rental.Observation,
+            ColdBlood = rental.ColdBlood,
+        };
+        _spies.Add(spy);
+        GD.Print($"[EspionageSystem] Casus kiralandı: {spy.Name} ({spy.Id}) ← {rental.Id} ({rental.BirthCulture}, {rental.HireCostPP} PP, gün {currentDay})");
+        return spy;
+    }
+
+    /// <summary>Kiralık casus kartı görünümü (metin özeti).</summary>
+    public static string GetRentalSpyCard(string rentalSpyId)
+    {
+        var s = _rentalPool.FirstOrDefault(s => s.Id == rentalSpyId);
+        if (s == null) return "Kiralık casus bulunamadı.";
+        var langs = string.Join(", ", s.Languages.Select(kv => $"{kv.Key}={kv.Value}"));
+        return $"[RentalSpyCard] {s.Name} ({s.Id}) | BirthCulture={s.BirthCulture} | Languages={langs} | CultureKnowledge={s.CultureKnowledge} | Region={s.RegionExperience} ({s.RegionExperienceLevel}) | Education={s.Education} | Loyalty={s.Loyalty} | Observation={s.Observation} | ColdBlood={s.ColdBlood} | HireCost={s.HireCostPP} PP";
     }
 
     private static readonly string[] _regions = {
@@ -398,6 +565,21 @@ public static class EspionageSystem
                 TotalSpentPP = _totalSpentPP,
                 LastSuccess = _lastSuccess,
             },
+            RentalPool = new RentalPoolSave
+            {
+                Spies = _rentalPool.Select(s => new RentalSpySave
+                {
+                    Id = s.Id, Name = s.Name, BirthCulture = s.BirthCulture,
+                    LanguageIds = s.Languages.Keys.ToArray(), LanguageLevels = s.Languages.Values.ToArray(),
+                    CultureKnowledge = s.CultureKnowledge, RegionExperience = s.RegionExperience,
+                    RegionExperienceLevel = s.RegionExperienceLevel, Education = s.Education,
+                    Loyalty = s.Loyalty, Observation = s.Observation, ColdBlood = s.ColdBlood,
+                    HireCostPP = s.HireCostPP, Available = s.Available,
+                }).ToArray(),
+                NextRentalSpyNum = _nextRentalSpyNum,
+                LastRefreshDay = _lastRefreshDay,
+                TotalHiredPP = _totalHiredPP,
+            },
         };
     }
 
@@ -431,7 +613,30 @@ public static class EspionageSystem
             _lastSuccess = data.Training.LastSuccess;
         }
 
-        GD.Print($"Espionage: state yüklendi — casus={_spies.Count} kurs={_courseType} kalan_gun={_daysRemaining}");
+        if (data?.RentalPool != null)
+        {
+            _rentalPool.Clear();
+            if (data.RentalPool.Spies != null)
+            {
+                foreach (var t in data.RentalPool.Spies)
+                {
+                    _rentalPool.Add(new RentalSpy
+                    {
+                        Id = t.Id, Name = t.Name, BirthCulture = t.BirthCulture,
+                        Languages = t.LanguageIds.Zip(t.LanguageLevels, (k, v) => new { k, v }).ToDictionary(x => x.k, x => x.v),
+                        CultureKnowledge = t.CultureKnowledge, RegionExperience = t.RegionExperience,
+                        RegionExperienceLevel = t.RegionExperienceLevel, Education = t.Education,
+                        Loyalty = t.Loyalty, Observation = t.Observation, ColdBlood = t.ColdBlood,
+                        HireCostPP = t.HireCostPP, Available = t.Available,
+                    });
+                }
+            }
+            _nextRentalSpyNum = data.RentalPool.NextRentalSpyNum;
+            _lastRefreshDay = data.RentalPool.LastRefreshDay;
+            _totalHiredPP = data.RentalPool.TotalHiredPP;
+        }
+
+        GD.Print($"Espionage: state yüklendi — casus={_spies.Count} kurs={_courseType} kalan_gun={_daysRemaining} kiralik_havuz={_rentalPool.Count}");
     }
 
     public static void ResetForNewGame()
@@ -445,6 +650,13 @@ public static class EspionageSystem
         _completedCount = 0;
         _totalSpentPP = 0;
         _lastSuccess = false;
+
+        // M29.5: kiralama havuzunu sıfırla.
+        _rentalPool.Clear();
+        _nextRentalSpyNum = 1;
+        _lastRefreshDay = 0;
+        _totalHiredPP = 0;
+
         GD.Print("Espionage: yeni oyun için sıfırlandı.");
     }
 }

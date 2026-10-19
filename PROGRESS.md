@@ -1483,3 +1483,27 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 3. Bilinen sorun: casusluk paneli UI'sı yok; model-seviyede eğitim metodlarıyla taahhüt edildi.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--spy-training-test` ve `--save-load-test` çalıştırılmalı.
 
+### M29.5: Casus kiralama havuzu (farklı kültür/diaspora kökenli, PP maliyeti) — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/EspionageSystem.cs`: `RentalSpy`, `RentalSpySave`, `RentalPoolSave` sınıfları eklendi. `RentalPoolSize=4`, `RentalRefreshIntervalDays=30`, `RentalBaseCostPP=50` sabitleri. `GenerateRentalSpy()` — rastgele (diaspora) doğum kültürü, deterministik istatistikler ve `HireCostPP = 50 + ortalama_stat` (50-150 PP). `InitializeRentalPool(currentDay)` — yeni oyunda havuzu doldurur. `RefreshRentalPoolIfNeeded(currentDay)` — her 30 günde bir kiralanmayan casusları temizleyip hedef boyuta getirir (`DailyTick` ile çağrılır). `HireSpy(rentalSpyId, currentDay)` — oyuncu PP'sinden maliyet düşülür, casus aktif `_spies` listesine eklenir, havuzdan çıkarılır; yetersiz PP / bilinmeyen / zaten kiralanmış → null. `GetRentalSpyCard(rentalSpyId)` — kart metni. `EspionageSave`'e `RentalPool` alanı eklendi; `GetSaveData()`/`LoadSaveData()` havuz durumunu seriler, `ResetForNewGame()` temizler.
+- `Scripts/GameManager.cs`: `spyRentalTest` field, `--spy-rental-test` arg parsing, `RunSpyRentalTest()` (havuz boyutu, kiralama+PP düşme+aktif listeye geçiş, çift/bilinmeyen kiralama reddi, yetersiz PP reddi, Save/Load A==B, 30. günde yenileme, ResetForNewGame temizler); `EspionageSystem.InitializeRentalPool(TotalDays)` yeni oyunda çağrılıyor.
+- `Scripts/SaveSystem.cs`: değişiklik yok (`Espionage = EspionageSystem.GetSaveData()` / `EspionageSystem.LoadSaveData(save.Espionage)` zaten `RentalPool` alanını kapsıyor).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--spy-rental-test`: **SONUÇ: PASS ✓** (test-logs/spy_rental_test.log) — havuz başlatma, kiralama (PP düşer, havuzdan çıkar, aktive listeye geçer), yetersiz PP reddi, save-load A==B, havuz yenileme, reset temizler.
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** — M29.5 Espionage havuz state'i serileştirmesi determinizmi bozmuyor (test-logs/save_load_test.log).
+- Regresyon: `--espionage-test` PASS, `--spy-training-test` PASS.
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/EspionageSystem.cs`, `Scripts/GameManager.cs`, `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**Sonraki adım:** M29.6 Karşı istihbarat, yakalanınca diplomatik sonuç, casus değişimi.
+
+### ÖZET (M29.5 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/EspionageSystem.cs` (kiralama havuzu + Save/Load/Reset), `Scripts/GameManager.cs` (`--spy-rental-test` + InitializeRentalPool entegrasyonu), `TODO.md` (29.5 [x]), `PROGRESS.md` (M29.5 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M29.5 %100 tamamlandı (build 0/0, spy-rental-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: casusluk paneli UI'sı yok; model-seviyede kiralama metodlarıyla taahhüt edildi.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--spy-rental-test` ve `--save-load-test` çalıştırılmalı.
+

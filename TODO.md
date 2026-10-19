@@ -404,7 +404,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | 29.2 | **Yatkınlık matrisi** (`Data/espionage_affinity.json`): kültür grupları arası benzerlik (ör. Rus doğumlu casus: Rusya 100%, Belarus ~80%, Ukrayna ~75%; Arap ülkeleri arasında benzer şekilde, diğer gruplar için de). Her ülke için "yatkınlık %" hesaplanır. | Casus-hedef ülke yatkınlığı gösterilir | ✅ Bitti (2026-10-20) |
 | 29.3 | **Yakalanma olasılığı:** düşük yatkınlıkta çok artar; formül taban × (1.5 − yatkınlık/100) × karşı istihbarat × (1 − eğitim bonusu). Düşük yatkınlıkta uyarı. | Aynı görev farklı casuslarla farklı risk | ✅ Bitti (2026-10-20) |
 | 29.4 | **Eğitim kursları:** dil kursu, kültür eğitimi, saha eğitimi (haftalar sürer, para maliyeti, süre boyunca casus müsait değil). | Kurs bitince nitelik artar | ✅ Bitti (2026-10-20) |
-| 29.5 | Casus kiralama havuzu (farklı kültür/diaspora kökenli), maliyet. | Havuzdan casus kiralanır |
+| 29.5 | Casus kiralama havuzu (farklı kültür/diaspora kökenli), maliyet. | Havuzdan casus kiralanır | ✅ Bitti (2026-10-20) |
 | 29.6 | Karşı istihbarat, yakalanınca diplomatik sonuç, casus değişimi. | Yakalanma ilişkiyi etkiler |
 
 ---

@@ -132,6 +132,7 @@ public partial class GameManager : Node
         bool profanityTest = false;         // M28.5: küfür/nefret filtresi + günlük tweet sınırı testi (--profanity-test)
         bool espionageTest = false;         // M29.1: casusluk v2 — casus niteliği modeli testi (--espionage-test)
         bool spyTrainingTest = false;       // M29.4: casusluk v2 — eğitim kursları testi (--spy-training-test)
+        bool spyRentalTest = false;         // M29.5: casusluk v2 — kiralama havuzu testi (--spy-rental-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -229,6 +230,8 @@ public partial class GameManager : Node
                 espionageTest = true;
             else if (arg == "--spy-training-test")
                 spyTrainingTest = true;
+            else if (arg == "--spy-rental-test")
+                spyRentalTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -511,6 +514,8 @@ public partial class GameManager : Node
             RunEspionageTest();
         if (spyTrainingTest)
             RunSpyTrainingTest();
+        if (spyRentalTest)
+            RunSpyRentalTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -929,6 +934,9 @@ public partial class GameManager : Node
 
         // M29.1: Casusluk v2 — casus listesini yeni oyun için sıfırla.
         EspionageSystem.ResetForNewGame();
+
+        // M29.5: Casus kiralama havuzunu yeni oyun için başlat.
+        EspionageSystem.InitializeRentalPool(TotalDays);
 
         GD.Print($"GameManager: Yeni oyun — senaryo: {ScenarioSystem.ActiveName}, başlangıç: {StartDate:yyyy-MM-dd}, oyuncu ülkesi ve kilit sıfırlandı");
 
@@ -2163,6 +2171,92 @@ public partial class GameManager : Node
 
         ok = defsOk && startOk && concurrencyOk && completed && totalSpentOk && langOk && culOk && saveLoadOk && resetOk;
         GD.Print(ok ? "[SpyTrainingTest] SONUÇ: PASS ✓" : "[SpyTrainingTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(ok ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    // M29.5: Casusluk v2 — kiralama havuzu testi (--spy-rental-test).
+    // Havuz başlatma, kiralama (PP düşer, aktive listeye geçer, havuzdan çıkar),
+    // yetersiz PP reddi, Save/Load A==B, havuz yenileme ve ResetForNewGame doğrular.
+    private void RunSpyRentalTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M29.5: CASUSLUK v2 — KIRALAMA HAVUZU TESTİ (--spy-rental-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        bool ok = true;
+
+        // Deterministik tohum (havuz üretimi tekrarlanabilir olsun).
+        DeterministicRNG.InitializeForNewGame(987654321);
+
+        // Oyuncu PP'sini yeterli seviyeye ayarla (test için sabit bakiye).
+        var player = GameManager.Instance.PlayerCountryData;
+        player.PoliticalPower = 1000;
+        double ppBefore = player.PoliticalPower;
+
+        // 1. Havuz başlatma: RentalPoolSize adet müsait kiralık casus.
+        EspionageSystem.ResetForNewGame();
+        EspionageSystem.InitializeRentalPool(0);
+        int poolSize = EspionageSystem.RentalPoolCount;
+        GD.Print($"[SpyRentalTest] havuz_boyutu={poolSize} beklenir={EspionageSystem.RentalPoolSize}");
+        bool poolOk = poolSize == EspionageSystem.RentalPoolSize
+            && EspionageSystem.RentalPool.All(s => s.Available);
+
+        var first = EspionageSystem.RentalPool.FirstOrDefault();
+        int hireCost = first.HireCostPP;
+        var hired = EspionageSystem.HireSpy(first.Id, 0);
+        double ppAfter = player.PoliticalPower;
+        bool hireOk = hired != null
+            && hired.Name == first.Name
+            && EspionageSystem.SpyCount == 1
+            && EspionageSystem.RentalPoolCount == EspionageSystem.RentalPoolSize - 1
+            && ppAfter == ppBefore - hireCost;
+        GD.Print($"[SpyRentalTest] kiralama={hireOk} casus={hired?.Name} maliyet={hireCost} PP {ppBefore:F0}→{ppAfter:F0} havuz_kalan={EspionageSystem.RentalPoolCount} aktif={EspionageSystem.SpyCount}");
+
+        // 2b. Zaten kiralanmış / bilinmeyen id → null.
+        bool doubleHire = EspionageSystem.HireSpy(first.Id, 0) == null;
+        bool unknownHire = EspionageSystem.HireSpy("rental-nonexistent", 0) == null;
+        GD.Print($"[SpyRentalTest] cift_kiralama_reddedildi={doubleHire} bilinmeyen_reddedildi={unknownHire}");
+
+        // 3. Yetersiz PP → kiralama reddedilir, PP değişmez.
+        var second = EspionageSystem.RentalPool.FirstOrDefault(s => s.Available);
+        int secondCost = second.HireCostPP;
+        player.PoliticalPower = 0;
+        bool poorHire = EspionageSystem.HireSpy(second.Id, 0) == null;
+        player.PoliticalPower = ppAfter; // geri yükle
+        bool poorOk = poorHire && player.PoliticalPower == ppAfter;
+        GD.Print($"[SpyRentalTest] yetersiz_pp_reddedildi={poorOk} gerekli={secondCost} mevcut=0");
+
+        // 4. Save/Load A==B (havuz durumu dahil).
+        var data1 = EspionageSystem.GetSaveData();
+        EspionageSystem.LoadSaveData(data1);
+        var data2 = EspionageSystem.GetSaveData();
+        bool saveLoadOk = data1.RentalPool.Spies.Length == data2.RentalPool.Spies.Length
+            && data1.RentalPool.NextRentalSpyNum == data2.RentalPool.NextRentalSpyNum
+            && data1.RentalPool.LastRefreshDay == data2.RentalPool.LastRefreshDay
+            && data1.RentalPool.TotalHiredPP == data2.RentalPool.TotalHiredPP
+            && data1.RentalPool.Spies.All(s1 => data2.RentalPool.Spies.Any(s2 => s2.Id == s1.Id && s2.Available == s1.Available));
+        GD.Print($"[SpyRentalTest] save_load_a_b={saveLoadOk} havuz={data2.RentalPool.Spies.Length} toplam_PP={data2.RentalPool.TotalHiredPP}");
+
+        // 5. Havuz yenileme: 30. günde yeni casuslar eklenerek hedef boyuta dönülür.
+        int beforeRefresh = EspionageSystem.RentalPoolCount;
+        EspionageSystem.RefreshRentalPoolIfNeeded(30);
+        int afterRefresh = EspionageSystem.RentalPoolCount;
+        bool refreshOk = afterRefresh == EspionageSystem.RentalPoolSize;
+        GD.Print($"[SpyRentalTest] yenileme={refreshOk} once={beforeRefresh} son={afterRefresh} aralik=30");
+
+        // 6. ResetForNewGame temizler (havuz + aktif casuslar + harcanan PP).
+        EspionageSystem.ResetForNewGame();
+        bool resetOk = EspionageSystem.RentalPoolCount == 0
+            && EspionageSystem.SpyCount == 0
+            && EspionageSystem.TotalHiredPP == 0;
+        GD.Print($"[SpyRentalTest] reset={resetOk} havuz={EspionageSystem.RentalPoolCount} aktif={EspionageSystem.SpyCount} toplam_PP={EspionageSystem.TotalHiredPP}");
+
+        ok = poolOk && hireOk && doubleHire && unknownHire && poorOk && saveLoadOk && refreshOk && resetOk;
+        GD.Print(ok ? "[SpyRentalTest] SONUÇ: PASS ✓" : "[SpyRentalTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");
     }

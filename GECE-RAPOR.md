@@ -679,3 +679,32 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 3. Bilinen sorun: casus paneli UI'sı yok; model-seviyede yakalanma metoduyle taahhüt edildi.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--espionage-test` ve `--save-load-test` çalıştırılmalı.
 
+### M29.4: Eğitim kursları (dil kursu, kültür eğitimi, saha eğitimi) — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/EspionageSystem.cs`: `TrainingCourseType` enum (None=0, Language=1, Culture=2, Field=3), `TrainingCourseDef[]` (dil=2 hafta/50 PP, kültür=3 hafta/75 PP, saha=4 hafta/100 PP). `StartTrainingCourse(spyId, type, currentDay)` — aynı anda tek kurs, bilinmeyen casus reddedilir. `CancelTrainingCourse()`. `DailyTick(currentDay)` — günlük decrement, bitince deterministik nitelik artışı, PP toplanır. `GetCourseDef(type)`, `IsSpyInTraining(spyId)`.
+- `EspionageSave` / `TrainingCourseSave` DTO'larına `Training` alanı eklendi; `GetSaveData()`/`LoadSaveData()` eğitim durumunu seriler, `ResetForNewGame()` sıfırlar.
+- `Scripts/GameManager.cs`: `spyTrainingTest` field, `--spy-training-test` arg parsing, `RunSpyTrainingTest()`; `DailyTick()`'ye `EspionageSystem.DailyTick(TotalDays)` çağrısı eklendi (HasPlayer koruması ile).
+
+**Testler:** `dotnet build` 0/0; `--spy-training-test` PASS ✓; `--save-load-test` PASS ✓ (A == B).
+
+### M29.5: Casus kiralama havuzu (farklı kültür/diaspora kökenli, PP maliyeti) — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/EspionageSystem.cs`: `RentalSpy`, `RentalSpySave`, `RentalPoolSave` sınıfları. `RentalPoolSize=4`, `RentalRefreshIntervalDays=30`, `RentalBaseCostPP=50`. `GenerateRentalSpy()` — rastgele diaspora kültürü, deterministik istatistikler, `HireCostPP = 50 + ortalama_stat` (50-150 PP). `InitializeRentalPool(currentDay)`, `RefreshRentalPoolIfNeeded(currentDay)` (30 günde bir, `DailyTick` ile çağrılır), `HireSpy(rentalSpyId, currentDay)` — oyuncu PP'sinden düşülür, casus aktif listeye geçer, havuzdan çıkar; yetersiz PP/bilinmeyen/zaten kiralanmış → null. `EspionageSave`'e `RentalPool` alanı; `GetSaveData()`/`LoadSaveData()`/`ResetForNewGame()` entegrasyonu.
+- `Scripts/GameManager.cs`: `spyRentalTest` field, `--spy-rental-test` arg parsing, `RunSpyRentalTest()`; `EspionageSystem.InitializeRentalPool(TotalDays)` yeni oyunda çağrılıyor.
+
+**Testler:** `dotnet build` 0/0; `--spy-rental-test` PASS ✓; `--save-load-test` PASS ✓ (A == B); regresyon `--espionage-test` PASS, `--spy-training-test` PASS.
+
+### ÖZET (M29.4 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/EspionageSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (29.4 [x]), `PROGRESS.md` (M29.4 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M29.4 %100 tamamlandı (build 0/0, spy-training-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: casusluk paneli UI'sı yok; model-seviyede eğitim metodlarıyla taahhüt edildi.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--spy-training-test` ve `--save-load-test` çalıştırılmalı.
+
+### ÖZET (M29.5 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/EspionageSystem.cs` (kiralama havuzu + Save/Load/Reset), `Scripts/GameManager.cs` (`--spy-rental-test` + InitializeRentalPool entegrasyonu), `TODO.md` (29.5 [x]), `PROGRESS.md` (M29.5 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M29.5 %100 tamamlandı (build 0/0, spy-rental-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: casusluk paneli UI'sı yok; model-seviyede kiralama metodlarıyla taahhüt edildi.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--spy-rental-test` ve `--save-load-test` çalıştırılmalı.
+

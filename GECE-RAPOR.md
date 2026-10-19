@@ -594,4 +594,31 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 3. Bilinen sorun: sosyal medya paneli UI'sı henüz yok (M28 backend odaklı), bu yüzden "sadece panelde görünür" sözleşmesi model-seviyede taahhüt edildi.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); istediğinde `--profile-test` çalıştırılarak profil kullanım alanını doğrulayabilir.
 
+## M29.1 — Casus Niteliği Modeli — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:** `Scripts/EspionageSystem.cs` — `Spy` (doğum kültürü, diller 0-100, kültür bilgisi, bölge deneyimi, eğitim, sadakat, gözlem, soğukkanlılık), `SpySave`/`EspionageSave` DTO'ları, `GenerateSpy(string countryId)` (DeterministicRNG, `LeaderSystem.GetCultureKey`, `new Random` yok), `GetSpyCard(spyId)` metin özeti, `GetSaveData`/`LoadSaveData`/`ResetForNewGame`.
+
+**Değiştirilen dosyalar:**
+- `Scripts/SaveSystem.cs`: `SaveFile.Espionage` alanı; `WriteSave` + `LoadGameInternal` bind (M28 pattern, `IncludeFields=true`).
+- `Scripts/GameManager.cs`: `espionageTest` field, `--espionage-test` arg parsing, `RunEspionageTest()`; `ResetForNewGame()`'ye `EspionageSystem.ResetForNewGame()` eklendi.
+- `TODO.md`: M29.1 satırına Durum sütunu eklendi, `[x] Bitti (2026-10-20)` işaretlendi.
+- `PROGRESS.md`: M29.1 DONE bölümü eklendi.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--espionage-test`: **SONUÇ: PASS ✓** (test-logs/espionage_test.log) — deterministik üretim (aynı tohum → aynı casus), tüm nitelik 0-100, `GetSpyCard` boş değil + adı içerir, Save/Load A==B, `ResetForNewGame` temizler.
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** — Espionage state serileştirmesi determinizmi bozmuyor (test-logs/save_load_test.log).
+
+**Çözülemeyen şey:** yok — M29.1 %100 tamamlandı.
+
+**Bilinen sorun:** casusluk paneli UI'sı henüz yok (M29 backend-odaklı), casus kartı şu an metin özetiyle (`GetSpyCard`); M29.2+ (yatkınlık matrisi, yakalanma olasılığı, kiralama havuzu) sonraki alt görevler.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--espionage-test` ve `--save-load-test` çalıştırılmalı.
+
+### ÖZET (M29.1 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/EspionageSystem.cs` (yeni), `Scripts/SaveSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (29.1 [x]), `PROGRESS.md` (M29.1 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M29.1 %100 tamamlandı (build 0/0, espionage-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: casus paneli UI'sı yok; model-seviyede `GetSpyCard` metin özetiyle taahhüt edildi.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--espionage-test` ve `--save-load-test` çalıştırılmalı.
+
 

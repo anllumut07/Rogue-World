@@ -1391,3 +1391,23 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Değiştirilen: `Scripts/SocialMediaSystem.cs`, `Scripts/GameManager.cs`, `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
 
 **Sonraki adım:** M28.6 (paneldeki kişilerin oyun karakteri ayrımı) veya M29 Casusluk v2.
+
+### M29.1: Casus niteliği modeli (doğum kültürü, diller, kültür bilgisi, bölge deneyimi, eğitim, sadakat, gözlem, soğukkanlılık) — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:**
+- `Scripts/EspionageSystem.cs`: `Spy` (Id, Name, BirthCulture, Languages 0-100, CultureKnowledge, RegionExperience/Level, Education, Loyalty, Observation, ColdBlood), `SpySave`/`EspionageSave` DTO'ları. `GenerateSpy(string countryId)` — `LeaderSystem.GetCultureKey` ile doğum kültürü, `DeterministicRNG` ile tüm nitelikler 0-100 (1-3 dil, `new Random` yok), `GetSpyCard(spyId)` metin özeti. `GetSaveData()`/`LoadSaveData()`/`ResetForNewGame()` kaydet-yükle-sıfırla döngüsü.
+
+**Değişiklikler:**
+- `Scripts/SaveSystem.cs`: `SaveFile.Espionage` DTO alanı eklendi; `WriteSave` bind + `LoadGameInternal` bind eklendi (M28 pattern ile uyumlu, `IncludeFields=true` alan tabanlı serileştirme).
+- `Scripts/GameManager.cs`: `espionageTest` field, `--espionage-test` arg parsing, `RunEspionageTest()` (deterministik üretim A==B, tüm nitelik 0-100 aralıkta, `GetSpyCard` boş değil/adı içerir, Save/Load A==B, `ResetForNewGame` temizler); `ResetForNewGame()`'ye `EspionageSystem.ResetForNewGame()` eklendi.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--espionage-test`: **SONUÇ: PASS ✓** (test-logs/espionage_test.log) — deterministik üretim, aralıklar 0-100, kart özeti, save-load A==B, reset temizler.
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** — M29.1 Espionage state serileştirmesi determinizmi bozmuyor (test-logs/save_load_test.log).
+
+**Dosyalar:**
+- Yeni: `Scripts/EspionageSystem.cs`.
+- Değiştirilen: `Scripts/SaveSystem.cs`, `Scripts/GameManager.cs`, `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**Sonraki adım:** M29.2 Yatkınlık matrisi (`Data/espionage_affinity.json`).

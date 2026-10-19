@@ -130,6 +130,7 @@ public partial class GameManager : Node
         bool trendTest = false;             // M28.3: trend listesi + duygu eğilimi testi (--trend-test)
         bool tweetActionTest = false;       // M28.4: tweet eylemi + memnuniyet etkisi testi (--tweet-action-test)
         bool profanityTest = false;         // M28.5: küfür/nefret filtresi + günlük tweet sınırı testi (--profanity-test)
+        bool espionageTest = false;         // M29.1: casusluk v2 — casus niteliği modeli testi (--espionage-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -223,6 +224,8 @@ public partial class GameManager : Node
                 tweetActionTest = true;
             else if (arg == "--profanity-test")
                 profanityTest = true;
+            else if (arg == "--espionage-test")
+                espionageTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -501,6 +504,8 @@ public partial class GameManager : Node
             RunTweetActionTest();
         if (profanityTest)
             RunProfanityTest();
+        if (espionageTest)
+            RunEspionageTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -913,6 +918,9 @@ public partial class GameManager : Node
 
         // M26.4: Beklenmedik olay durumu sıfırlanır (yeni oyun → eski aktif/geçmiş olaylar silinir).
         UnexpectedEventSystem.ResetForNewGame();
+
+        // M29.1: Casusluk v2 — casus listesini yeni oyun için sıfırla.
+        EspionageSystem.ResetForNewGame();
 
         GD.Print($"GameManager: Yeni oyun — senaryo: {ScenarioSystem.ActiveName}, başlangıç: {StartDate:yyyy-MM-dd}, oyuncu ülkesi ve kilit sıfırlandı");
 
@@ -1947,6 +1955,82 @@ public partial class GameManager : Node
         bool result = blockedDetected && cleanPasses && caseInsensitive && censoredOk && limitWorks && blockedTweetSkipped;
         GD.Print(result ? "[ProfanityTest] SONUÇ: PASS ✓" : "[ProfanityTest] SONUÇ: FAIL ✗");
         GetTree().Quit(result ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    // M29.1: Casusluk v2 — casus niteliği modeli testi (--espionage-test).
+    // Deterministik üretim (aynı tohum → aynı casus), nitelik aralıkları 0-100,
+    // GetSpyCard özeti ve Save/Load A==B doğrular.
+    private void RunEspionageTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M29.1: CASUSLUK v2 — CASUS NİTELİĞİ MODELİ TESTİ (--espionage-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        bool ok = true;
+
+        // 1. Deterministik üretim: aynı tohum → aynı casus özellikleri.
+        DeterministicRNG.InitializeForNewGame(987654321);
+        var s1 = EspionageSystem.GenerateSpy("GER");
+        DeterministicRNG.InitializeForNewGame(987654321);
+        var s2 = EspionageSystem.GenerateSpy("GER");
+        bool deterministic = s1.Name == s2.Name
+            && s1.BirthCulture == s2.BirthCulture
+            && s1.CultureKnowledge == s2.CultureKnowledge
+            && s1.RegionExperience == s2.RegionExperience
+            && s1.RegionExperienceLevel == s2.RegionExperienceLevel
+            && s1.Education == s2.Education
+            && s1.Loyalty == s2.Loyalty
+            && s1.Observation == s2.Observation
+            && s1.ColdBlood == s2.ColdBlood
+            && s1.Languages.Count == s2.Languages.Count
+            && !s1.Languages.Keys.Except(s2.Languages.Keys).Any();
+        GD.Print($"[EspionageTest] deterministik={deterministic} ad={s1.Name} kültür={s1.BirthCulture}");
+
+        // 2. Tüm 0-100 nitelikleri aralıkta.
+        bool rangesOk = s1.CultureKnowledge >= 0 && s1.CultureKnowledge <= 100
+            && s1.RegionExperienceLevel >= 0 && s1.RegionExperienceLevel <= 100
+            && s1.Education >= 0 && s1.Education <= 100
+            && s1.Loyalty >= 0 && s1.Loyalty <= 100
+            && s1.Observation >= 0 && s1.Observation <= 100
+            && s1.ColdBlood >= 0 && s1.ColdBlood <= 100
+            && s1.Languages.Values.All(v => v >= 0 && v <= 100);
+        GD.Print($"[EspionageTest] araliklar_0_100={rangesOk}");
+
+        // 3. GetSpyCard boş olmayan özet döndürür ve adı içerir.
+        string card = EspionageSystem.GetSpyCard(s1.Id);
+        bool cardOk = !string.IsNullOrEmpty(card) && card.Contains(s1.Name);
+        GD.Print($"[EspionageTest] kart={cardOk}");
+
+        // 4. Save/Load A==B.
+        var data1 = EspionageSystem.GetSaveData();
+        EspionageSystem.LoadSaveData(data1);
+        var data2 = EspionageSystem.GetSaveData();
+        bool saveLoadOk = data1.Spies.Length == data2.Spies.Length;
+        if (saveLoadOk && data1.Spies.Length > 0)
+        {
+            var a = data1.Spies[0];
+            var b = data2.Spies[0];
+            saveLoadOk = a.Id == b.Id && a.Name == b.Name && a.BirthCulture == b.BirthCulture
+                && a.CultureKnowledge == b.CultureKnowledge && a.RegionExperience == b.RegionExperience
+                && a.RegionExperienceLevel == b.RegionExperienceLevel && a.Education == b.Education
+                && a.Loyalty == b.Loyalty && a.Observation == b.Observation && a.ColdBlood == b.ColdBlood
+                && a.LanguageIds.Length == b.LanguageIds.Length
+                && !a.LanguageIds.Except(b.LanguageIds).Any();
+        }
+        GD.Print($"[EspionageTest] save_load_a_b={saveLoadOk} casus={EspionageSystem.SpyCount}");
+
+        // 5. ResetForNewGame temizler.
+        EspionageSystem.ResetForNewGame();
+        bool resetOk = EspionageSystem.SpyCount == 0;
+        GD.Print($"[EspionageTest] reset={resetOk}");
+
+        ok = deterministic && rangesOk && cardOk && saveLoadOk && resetOk;
+        GD.Print(ok ? "[EspionageTest] SONUÇ: PASS ✓" : "[EspionageTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");
     }
 

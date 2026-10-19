@@ -87,6 +87,7 @@ public static class SaveSystem
         public UnexpectedEventSystem.UnexpectedEventSave UnexpectedEvents { get; set; } // M26.4: beklenmedik olaylar (aktif + geçmiş kayıt)
         public SocialMediaSave SocialMedia { get; set; } // M28.1: gündem/tweet kayıtları
         public SocialProfileSave SocialProfile { get; set; } // M28.2: kurgusal sosyal medya profilleri
+        public EspionageSystem.EspionageSave Espionage { get; set; } // M29.1: casusluk v2 — casus nitelik kayıtları
     }
 
     // ===== Economy DTOs =====
@@ -455,6 +456,7 @@ public static class SaveSystem
             UnexpectedEvents = UnexpectedEventSystem.GetSaveData(), // M26.4: beklenmedik olaylar (aktif + geçmiş kayıt)
             SocialMedia = SocialMediaSystem.GetSaveData(), // M28.1: gündem/tweet kayıtları
             SocialProfile = SocialProfileSystem.GetSaveData(), // M28.2: kurgusal sosyal medya profilleri
+            Espionage = EspionageSystem.GetSaveData(), // M29.1: casusluk v2 — casus nitelik kayıtları
         };
 
         EnsureSavesDir();
@@ -617,6 +619,9 @@ public static class SaveSystem
 
             // M28.2: kurgusal sosyal medya profilleri — kayıtta varsa geri yüklenir
             SocialProfileSystem.LoadSaveData(save.SocialProfile);
+
+            // M29.1: casusluk v2 — casus nitelik kayıtları — kayıtta varsa geri yüklenir
+            EspionageSystem.LoadSaveData(save.Espionage);
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

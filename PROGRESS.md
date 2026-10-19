@@ -1235,3 +1235,20 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Değiştirilen: `Data/unexpected_events.json`, `Scripts/UnexpectedEventSystem.cs`
 
 **Sonraki adım:** M27 Lider Diplomasisi ve Basın.
+
+### M27.1: İkili Görüşme, Devlet Ziyareti, Zirve, Hat Görüşmesi — ✅ DONE (2026-10-19)
+
+**Değişiklikler:**
+- `Scripts/DiplomacySystem.cs`: `DiplomacyMeeting` modeli (enum Type: PhoneCall/BilateralMeeting/StateVisit/Summit; HostId/TargetId/MeetingType/Day/RelationDelta/TensionEffect); `HoldMeeting(hostId, targetId, type)` — baz etki = Clamp((Diplomacy+Charisma)/20, 2, 8) × tür katsayısı (PhoneCall/Bilateral=1, StateVisit=2, Summit=3), sınır 1..15; iki yönlü `ModifyRelation`; Zirve tension -2, Devlet Ziyareti tension -1; kayıt `_meetings` listesine eklenir; `Meetings` property; `GetSaveData`/`LoadSaveData` Meetings alanına eklendi.
+- `Scripts/SaveSystem.cs`: `DiplomacySave.DiplomacyMeeting[] Meetings` DTO eklendi.
+- `Scripts/GameManager.cs`: `--diplomacy-test` arg parsing; `RunDiplomacyTest()` — GER, hedef ülke, tüm 4 görüşme türünü dener, ilişki artışı, 4+ görüşme kaydı, tension azaltması doğrulanır; `GetTree().Quit(pass?0:1)`.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--diplomacy-test`: **SONUÇ: PASS ✓** (test-logs/diplomacy_test.log).
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** (test-logs/save_load_test.log) — DiplomacyState (ilişkiler, faksiyonlar, garantiler, görüşmalar) kaydedilir/yükler, determinizm korunuyor.
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/DiplomacySystem.cs`, `Scripts/SaveSystem.cs`, `Scripts/GameManager.cs`.
+
+**Sonraki adım:** M27.2 Anlaşmalar (ticaret, savunma, vize, enerji, iklim).

@@ -77,6 +77,22 @@ public static class DiplomacySystem
         public List<(Term, string)> Terms { get; set; } = new(); // stateId for TransferState
     }
 
+    /// <summary>
+    /// M27.1: Lider görüşması / devlet ziyareti / zirve / hat görüşmesi kaydı.
+    /// İlişki puanına ve dünya gerilimine kalıcı (normalize dönüşüne kadar) etki eder.
+    /// </summary>
+    public class DiplomacyMeeting
+    {
+        public enum Type { BilateralMeeting, StateVisit, Summit, PhoneCall }
+
+        public string HostId { get; set; }
+        public string TargetId { get; set; }
+        public Type MeetingType { get; set; }
+        public int Day { get; set; }            // Oyun günü (GM.TotalDays)
+        public int RelationDelta { get; set;}   // Uygulanan iki yönlü ilişki değişimi
+        public float TensionEffect { get; set; } // Gerilim etkisi (negatif = azaltma)
+    }
+
     // ===== Sabitler =====
     private const int MaxRelation = 100;
     private const int MinRelation = -100;
@@ -95,6 +111,7 @@ public static class DiplomacySystem
     private static readonly List<string> _militaryAccess = new();     // "A->B"
     private static readonly List<string> _navalAccess = new();        // "A->B"
     private static readonly List<DiplomaticAction> _pendingActions = new();
+    private static readonly List<DiplomacyMeeting> _meetings = new(); // M27.1: geçmiş görüşmalar
     private static float _worldTension = 0f;
 
     private static GameManager GM => GameManager.Instance;
@@ -701,6 +718,66 @@ public static class DiplomacySystem
         return true;
     }
 
+    // ===== M27.1: Lider görüşması / devlet ziyareti / zirve / hat görüşmesi =====
+
+    /// <summary>İki lider arasında bir görüşme gerçekleştirir ve iki yönlü ilişkiye etki eder.</summary>
+    public static bool HoldMeeting(string hostId, string targetId, DiplomacyMeeting.Type type)
+    {
+        var host = CountryDatabase.Get(hostId);
+        var target = CountryDatabase.Get(targetId);
+        if (host == null || target == null || host.IsAnnexed || target.IsAnnexed || hostId == targetId)
+            return false;
+
+        var hostLeader = LeaderSystem.GetLeader(hostId);
+        int dip = hostLeader?.Diplomacy ?? 50;
+        int cha = hostLeader?.Charisma ?? 50;
+
+        // Baz etki: lider diplomasi + karizma ortalaması → deterministik +2..+8 arası.
+        int baseDelta = Math.Clamp((dip + cha) / 20, 2, 8);
+
+        // Tür katsayısı (zirve en etkili, telefon görüşmesi en zayıf)
+        int typeMult = type switch
+        {
+            DiplomacyMeeting.Type.PhoneCall => 1,
+            DiplomacyMeeting.Type.BilateralMeeting => 1,
+            DiplomacyMeeting.Type.StateVisit => 2,
+            DiplomacyMeeting.Type.Summit => 3,
+            _ => 1
+        };
+
+        int delta = Math.Clamp(baseDelta * typeMult, 1, 15);
+
+        // İki yönlü ilişki değişikliği
+        ModifyRelation(hostId, targetId, delta);
+        ModifyRelation(targetId, hostId, delta);
+
+        // Zirve/devlet ziyareti gerilimi hafifçe azaltır
+        float tensionEffect = type switch
+        {
+            DiplomacyMeeting.Type.Summit => -2f,
+            DiplomacyMeeting.Type.StateVisit => -1f,
+            _ => 0f
+        };
+        if (tensionEffect != 0f)
+            IncreaseTension(tensionEffect);
+
+        _meetings.Add(new DiplomacyMeeting
+        {
+            HostId = hostId,
+            TargetId = targetId,
+            MeetingType = type,
+            Day = GM?.TotalDays ?? 0,
+            RelationDelta = delta,
+            TensionEffect = tensionEffect
+        });
+
+        GD.Print($"[Diplomacy] Görüşme: {hostId} ↔ {targetId} ({type}, gün {GM?.TotalDays}, " +
+                 $"ilişki {delta:+#;-#;0}, tension {tensionEffect:+#;-#;0})");
+        return true;
+    }
+
+    public static IReadOnlyList<DiplomacyMeeting> Meetings => _meetings;
+
     // ===== Yardımcı metodlar =====
 
     private static bool CanDoDiplomacy(string targetId, out CountryData target)
@@ -818,7 +895,8 @@ public static class DiplomacySystem
             Guarantees = _guarantees.ToArray(),
             NonAggressionPacts = _nonAggressionPacts.ToArray(),
             MilitaryAccess = _militaryAccess.ToArray(),
-            NavalAccess = _navalAccess.ToArray()
+            NavalAccess = _navalAccess.ToArray(),
+            Meetings = _meetings.ToArray()
         };
     }
 
@@ -845,6 +923,12 @@ public static class DiplomacySystem
             foreach (var a in data.NavalAccess) _navalAccess.Add(a);
         _worldTension = data.WorldTension;
         _initialized = true;
-        GD.Print($"DiplomacySystem: state yüklendi — Faksiyon={_factions.Count}, İlişki={_relations.Count}, Tension={_worldTension:F1}");
+
+        // M27.1: görüşma geçmişini geri yükle
+        _meetings.Clear();
+        if (data.Meetings != null)
+            foreach (var m in data.Meetings) _meetings.Add(m);
+
+        GD.Print($"DiplomacySystem: state yüklendi — Faksiyon={_factions.Count}, İlişki={_relations.Count}, Tension={_worldTension:F1}, Görüşme={_meetings.Count}");
     }
 }

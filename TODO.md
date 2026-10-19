@@ -374,9 +374,9 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 ### 📋 Milestone 27: Lider Diplomasisi ve Basın
 
-| Alt Görev | Açıklama | Test Kriteri |
-|-----------|----------|--------------|
-| 27.1 | İkili görüşme, devlet ziyareti, zirve (G20/BM benzeri), hat görüşmesi; ilişki puanına etki. | İlişki değeri değişir |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 27.1 | İkili görüşme, devlet ziyareti, zirve (G20/BM benzeri), hat görüşmesi; ilişki puanına etki. | İlişki değeri değişir | ✅ Bitti — DiplomacySystem.cs: DiplomacyMeeting modeli, HoldMeeting (iki yönlü ilişki + tension etkisi), Meetings kaydı; SaveSystem.DiplomacySave.Meetings; GameManager.cs: --diplomacy-test + RunDiplomacyTest; dotnet build 0/0, --diplomacy-test PASS (exit 0), --save-load-test A==B PASS (exit 0) |
 | 27.2 | Anlaşmalar: ticaret, savunma, vize, enerji, iklim. | Anlaşma yapılır, etkisi görülür |
 | 27.3 | Basın toplantısı, TV konuşması, miting; ton seçimi (sert/uzlaşmacı/popülist), etkiler ve risk. | Konuşma göstergeleri etkiler |
 | 27.4 | Yaptırımlar ve ticaret savaşları (verme/alma). | Yaptırım ekonomiye yansır |

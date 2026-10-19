@@ -121,6 +121,7 @@ public partial class GameManager : Node
         bool disasterTest = false;          // M26.1: afet sistemi testi (--disaster-test)
         bool interventionTest = false;      // M26.3: müdahale sistemi testi (--intervention-test)
         bool unexpectedEventTest = false;   // M26.4: beklenmedik olay sistemi testi (--unexpected-events-test)
+        bool diplomacyTest = false;         // M27: lider diploması testi (--diplomacy-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -196,6 +197,8 @@ public partial class GameManager : Node
                 interventionTest = true;
             else if (arg == "--unexpected-events-test")
                 unexpectedEventTest = true;
+            else if (arg == "--diplomacy-test")
+                diplomacyTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -432,6 +435,11 @@ public partial class GameManager : Node
         // kaydet/yükle dönüşümünde aktif olay sayısı korunur; başarısızlıkta Quit(1)).
         if (unexpectedEventTest)
             RunUnexpectedEventTest();
+
+        // M27: Lider diploması testi (toplantı, anlaşmanın ilişkiyi etkiliyor mu,
+        // gerilim değişiyor mu, kaydet/yüklede A==B korunur; başarısızlıkta Quit(1)).
+        if (diplomacyTest)
+            RunDiplomacyTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -1190,6 +1198,72 @@ public partial class GameManager : Node
 
         bool pass = ok && ministerAfter == Math.Clamp(ministerBefore + 2, 0, 100);
         GD.Print(pass ? "[CabinetMeetingTest] SONUÇ: PASS ✓" : "[CabinetMeetingTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(pass ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M27: Lider diploması testi — görüşme (HoldMeeting) iki yönlü ilişkiye etki eder,
+    /// zirve/devlet ziyareti dünya gerilimini azaltır, görüşme kaydı oluşturulur.
+    /// Normal oyunda ASLA çalışmaz (--diplomacy-test).
+    /// </summary>
+    private void RunDiplomacyTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M27: LIDER DİPLOMASI TESTİ (--diplomacy-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        string playerId = PlayerCountryId;
+
+        // Hedef ülke: oyuncu dışı, işgal edilmemiş ilk ülke
+        string targetId = null;
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c.Id != playerId && !c.IsAnnexed) { targetId = c.Id; break; }
+        }
+        if (targetId == null)
+        {
+            GD.Print("[DiplomacyTest] Uygun hedef ülke bulunamadı — test atlanıyor");
+            GD.Print("=========================================");
+            return;
+        }
+
+        int relationBefore = DiplomacySystem.GetRelation(playerId, targetId);
+        float tensionBefore = DiplomacySystem.WorldTension;
+        int meetingsBefore = DiplomacySystem.Meetings.Count;
+        GD.Print($"[DiplomacyTest] {playerId} → {targetId}: ilişki öncesi={relationBefore}, tension öncesi=%{tensionBefore:F1}");
+
+        // Tüm görüşme türlerini dene
+        var types = new[]
+        {
+            DiplomacySystem.DiplomacyMeeting.Type.PhoneCall,
+            DiplomacySystem.DiplomacyMeeting.Type.BilateralMeeting,
+            DiplomacySystem.DiplomacyMeeting.Type.StateVisit,
+            DiplomacySystem.DiplomacyMeeting.Type.Summit
+        };
+        bool allOk = true;
+        foreach (var type in types)
+        {
+            bool ok = DiplomacySystem.HoldMeeting(playerId, targetId, type);
+            GD.Print($"[DiplomacyTest] HoldMeeting({type}): {(ok ? "OK" : "FAIL")}");
+            if (!ok) allOk = false;
+        }
+
+        int relationAfter = DiplomacySystem.GetRelation(playerId, targetId);
+        float tensionAfter = DiplomacySystem.WorldTension;
+        int meetingsAfter = DiplomacySystem.Meetings.Count;
+        GD.Print($"[DiplomacyTest] ilişki sonrası={relationAfter} (delta={relationAfter - relationBefore}), tension sonrası=%{tensionAfter:F1} (delta={tensionAfter - tensionBefore:+#;-#;0}), görüşme={meetingsBefore}→{meetingsAfter}");
+
+        // İlişki artmış, en az 4 görüşme kaydı olmuş, zirve/devlet ziyareti tension azaltmış olmalı
+        bool relationImproved = relationAfter > relationBefore;
+        bool meetingsRecorded = meetingsAfter >= meetingsBefore + 4;
+        bool tensionReduced = tensionAfter <= tensionBefore; // StateVisit(-1) + Summit(-2) azaltır
+        bool pass = allOk && relationImproved && meetingsRecorded && tensionReduced;
+
+        GD.Print(pass ? "[DiplomacyTest] SONUÇ: PASS ✓" : "[DiplomacyTest] SONUÇ: FAIL ✗");
         GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");
     }

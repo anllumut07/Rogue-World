@@ -191,6 +191,10 @@ public static class SaveLoadTest
         int socialTweets = SocialMediaSystem.TweetCount;
         sb.AppendLine($"SosyalMedya: tweet={socialTweets}");
 
+        // --- M28.2: Kurgusal Sosyal Medya Profilleri ---
+        int socialProfiles = SocialProfileSystem.ProfileCount;
+        sb.AppendLine($"SosyalProfiller: profile={socialProfiles}");
+
         // --- M17A: Casus Belli ---
         int activeJustifications = CasusBelliSystem.Justifications.Count(j => !j.IsConsumed && j.BuildDaysLeft == 0 && j.UltimatumDaysLeft == 0);
         int buildingJustifications = CasusBelliSystem.Justifications.Count(j => !j.IsConsumed && j.BuildDaysLeft > 0);

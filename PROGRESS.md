@@ -1323,4 +1323,23 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Yeni: `Scripts/SocialMediaSystem.cs`.
 - Değiştirilen: `Scripts/EventSystem.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/GameManager.cs`.
 
-**Sonraki adım:** M28.2 Rastgele kurgusal profiller (ad-soyad ülke kültürüne göre, avatar: renkli baş harf, türler: vatandaş/gazeteci/muhalefet/resmî/bot).
+### M28.2: Rastgele Kurgusal Profiller — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/SocialProfileSystem.cs` (yeni): `ProfileType` enum (Citizen, Journalist, Opposition, Official, Bot), `SocialProfile` sınıfı (Id, Name, Handle, Type, CountryId, AvatarColor, Followers, Verified), `EnsureProfilesFor(countryId)` — 8 profil/ülke (3 citizen, 2 journalist, 1 opposition, 1 official, 1 bot), ad-soyad `Data/names/*.json` havuzlarından ülke kültürüne göre (LeaderSystem.GetCultureKey), avatar `#RRGGBB` hex, `GetRandomAuthor(countryId)` deterministik yazar rotasyonu, `GetSaveData`/`LoadSaveData`/`ResetForNewGame`, LokalRng (xorshift64*, global DeterministicRNG'i kirletmez).
+- `Scripts/LeaderSystem.cs`: `GetCultureKey(countryId)` eklendi — `_cultureMap.GetValueOrDefault(countryId, "anglo")`, 14-kültür haritası SocialProfileSystem tarafından yeniden kullanılır.
+- `Scripts/SocialMediaSystem.cs`: hardcoded `_authors` dizisi kaldırıldı, `SocialProfileSystem.EnsureProfilesFor(playerId)` + `GetRandomAuthor(playerId)` ile değiştirildi, `_nextTweetNum` korundu, Tweet.Id formatı `tweet-{day}-{num}`.
+- `Scripts/GameManager.cs`: `profileTest` field, `--profile-test` arg parsing, `RunProfileTest()` — GER/FRA/RUS/JPN/TUR/USA/IRN/BRA için 8 profil/ülke, isim (2+ kelime), handle (@-önekli, benzersiz), avatar (#RRGGBB), geçerli enum türü, yazar seçimi non-empty; `GetTree().Quit(pass?0:1)`.
+- `Scripts/SaveSystem.cs`: `SocialProfileSave` DTO (`SocialProfile[] Profiles`), `SaveFile.SocialProfile` alanı, WriteSave/LoadGameInternal bağlama.
+- `Scripts/SaveLoadTest.cs`: `BuildSummaryCore` Diplomatisi özetine `SosyalProfiller: profile=N` satırı eklendi (A==B karşılaştırmasında görünür).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--profile-test`: **SONUÇ: PASS ✓** (64 profil, 8 ülke, tüm doğrulamalar geçti — test-logs/profile_test.log).
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** — SosyalProfiller sayısı özetinde görünür, determinizm korunuyor (test-logs/save_load_test.log).
+
+**Dosyalar:**
+- Yeni: `Scripts/SocialProfileSystem.cs`.
+- Değiştirilen: `Scripts/LeaderSystem.cs`, `Scripts/SocialMediaSystem.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`.
+
+**Sonraki adım:** M28.3 Gündem (trend) listesi, beğeni/paylaşım, duygu eğilimi.

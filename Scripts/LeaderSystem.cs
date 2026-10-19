@@ -419,6 +419,13 @@ public static class LeaderSystem
         }
     }
 
+    // ISO A3 ülke kodu → isim havuzu (kültür) anahtarı. Eşleşmeyen ülkeler Anglo'ya düşer.
+    // SocialProfileSystem (M28.2) bu adı kullanarak aynı kültürel havuzdan profil üretir.
+    public static string GetCultureKey(string countryId)
+    {
+        return _cultureMap.GetValueOrDefault(countryId, "anglo");
+    }
+
     // İdeology → rejim tipi eşlemesi (klasik senaryo dosyaları için)
     private static string IdeologyToRegime(string ideology)
     {

@@ -487,3 +487,28 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 3. Bilinen sorun: yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--social-test` ve `--save-load-test` (A==B).
 
+## M28.2 — Rastgele Kurgusal Profiller — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/SocialProfileSystem.cs` (yeni): `ProfileType` enum (Citizen, Journalist, Opposition, Official, Bot), `SocialProfile` (Id, Name, Handle, Type, CountryId, AvatarColor, Followers, Verified), `EnsureProfilesFor(countryId)` — 8 profil/ülke, ad-soyad `Data/names/*.json` ülke kültürüne göre, avatar `#RRGGBB`, `GetRandomAuthor(countryId)` deterministik, `GetSaveData`/`LoadSaveData`/`ResetForNewGame`, LokalRng (xorshift64*).
+- `Scripts/LeaderSystem.cs`: `GetCultureKey(countryId)` — 14-kültür haritası yeniden kullanılabilir.
+- `Scripts/SocialMediaSystem.cs`: hardcoded `_authors` kaldırıldı, `SocialProfileSystem` entegrasyonu.
+- `Scripts/GameManager.cs`: `--profile-test` + `RunProfileTest()` (GER/FRA/RUS/JPN/TUR/USA/IRN/BRA, 64 profil doğrulaması).
+- `Scripts/SaveSystem.cs`: `SocialProfileSave` DTO + `SaveFile.SocialProfile` bağlama.
+- `Scripts/SaveLoadTest.cs`: `SosyalProfiller: profile=N` özet satırı.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--profile-test`: **PASS ✓** (64 profil, 8 ülke/kültür, isim+handle+avatar+tür+yazar doğrulamaları).
+- `--save-load-test`: **PASS ✓ (A == B)** — SosyalProfiller sayısı özetinde, determinizm korunuyor.
+
+**Dosyalar:**
+- Yeni: `Scripts/SocialProfileSystem.cs`.
+- Değiştirilen: `Scripts/LeaderSystem.cs`, `Scripts/SocialMediaSystem.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`.
+
+### ÖZET (M28.2 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/SocialProfileSystem.cs` (yeni), `Scripts/LeaderSystem.cs` (GetCultureKey), `Scripts/SocialMediaSystem.cs` (entegre), `Scripts/GameManager.cs` (--profile-test), `Scripts/SaveSystem.cs` (SocialProfileSave DTO), `Scripts/SaveLoadTest.cs` (profile sayısı özeti).
+2. Çözülemeyen şey: yok — M28.2 %100 tamamlandı (build 0/0, profile-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--profile-test` ve `--save-load-test` (A==B).
+

@@ -33,20 +33,6 @@ public static class SocialMediaSystem
     private static readonly List<Tweet> _tweets = new();
     private static int _nextTweetNum = 1;
 
-    private static readonly (string Name, string Handle)[] _authors = new[]
-    {
-        ("Alex Carter", "@carter_news"),
-        ("Maria Gonzalez", "@gonzalez_reports"),
-        ("James Wilson", "@wilson_world"),
-        ("Fatima Al-Sayed", "@fatima_dispatch"),
-        ("Lars Müller", "@lars_europe"),
-        ("Wei Zhang", "@wei_asia"),
-        ("Sarah Johnson", "@sarah_pulse"),
-        ("Dimitri Volkov", "@dimitri_east"),
-    };
-
-    // ===== Olay çözüldüğünde çağrılır (EventSystem.OnEventOptionChosen'dan) =====
-
     public static void OnEventResolved(EventSystem.GameEvent evt, int optionIndex)
     {
         if (evt == null) return;
@@ -83,7 +69,9 @@ public static class SocialMediaSystem
         string content = FillTemplate(template, countryName, targetName, evt.Name ?? "?", date);
         Sentiment sentiment = SentimentFor(category);
 
-        var author = _authors[(int)(DeterministicRNG.NextDouble() * _authors.Length)];
+        // Yazar: kurgusal profil havuzu (ülke kültürüne göre); yoksa sabit yedek.
+        SocialProfileSystem.EnsureProfilesFor(playerId);
+        var author = SocialProfileSystem.GetRandomAuthor(playerId);
 
         var tweet = new Tweet
         {

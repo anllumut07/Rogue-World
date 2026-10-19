@@ -86,6 +86,7 @@ public static class SaveSystem
         public InterventionSystem.InterventionSave Interventions { get; set; } // M26.3: müdahaleler (aktif + geçmiş kayıt)
         public UnexpectedEventSystem.UnexpectedEventSave UnexpectedEvents { get; set; } // M26.4: beklenmedik olaylar (aktif + geçmiş kayıt)
         public SocialMediaSave SocialMedia { get; set; } // M28.1: gündem/tweet kayıtları
+        public SocialProfileSave SocialProfile { get; set; } // M28.2: kurgusal sosyal medya profilleri
     }
 
     // ===== Economy DTOs =====
@@ -243,6 +244,13 @@ public static class SaveSystem
     {
         public SocialMediaSystem.Tweet[] Tweets { get; set; }
     }
+
+    // ===== M28.2: Kurgusal Sosyal Medya Profili DTO =====
+    public class SocialProfileSave
+    {
+        public SocialProfileSystem.SocialProfile[] Profiles { get; set; }
+    }
+
     public class CountryEventStateSave
     {
         public string CountryId { get; set; }
@@ -446,6 +454,7 @@ public static class SaveSystem
             Interventions = InterventionSystem.GetSaveData(), // M26.3: müdahaleler (aktif + geçmiş kayıt)
             UnexpectedEvents = UnexpectedEventSystem.GetSaveData(), // M26.4: beklenmedik olaylar (aktif + geçmiş kayıt)
             SocialMedia = SocialMediaSystem.GetSaveData(), // M28.1: gündem/tweet kayıtları
+            SocialProfile = SocialProfileSystem.GetSaveData(), // M28.2: kurgusal sosyal medya profilleri
         };
 
         EnsureSavesDir();
@@ -605,6 +614,9 @@ public static class SaveSystem
 
             // M28.1: gündem/tweet kayıtları — kayıtta varsa geri yüklenir
             SocialMediaSystem.LoadSaveData(save.SocialMedia);
+
+            // M28.2: kurgusal sosyal medya profilleri — kayıtta varsa geri yüklenir
+            SocialProfileSystem.LoadSaveData(save.SocialProfile);
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

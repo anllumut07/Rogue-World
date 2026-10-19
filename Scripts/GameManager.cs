@@ -126,6 +126,7 @@ public partial class GameManager : Node
         bool pressTest = false;             // M27.3: basın etkinliği testi (--press-test)
         bool sanctionsTest = false;         // M27.4: yaptirim / ticaret savasi testi (--sanctions-test)
         bool socialTest = false;            // M28.1: olay → tweet üreteci testi (--social-test)
+        bool profileTest = false;           // M28.2: kurgusal profil sistemi testi (--profile-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -211,6 +212,8 @@ public partial class GameManager : Node
                 sanctionsTest = true;
             else if (arg == "--social-test")
                 socialTest = true;
+            else if (arg == "--profile-test")
+                profileTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -473,6 +476,12 @@ public partial class GameManager : Node
         // ids benzersiz, kaydet/yüklede A==B korunur; başarısızlıkta Quit(1)).
         if (socialTest)
             RunSocialMediaTest();
+
+        // M28.2: Kurgusal profil sistemi testi (ülke kültürüne göre ad-soyad, avatar rengi,
+        // türler: citizen/journalist/opposition/official/bot, yazar seçimi deterministik;
+        // başarısızlıkta Quit(1)).
+        if (profileTest)
+            RunProfileTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -1605,6 +1614,64 @@ public partial class GameManager : Node
         bool pass = allOk && tweetsGenerated && contentsNonEmpty && idsUnique;
         GD.Print($"[SocialTest] üretilen={generated}, beklenen>={testEvents.Length}, içerik_dolu={contentsNonEmpty}, id_benzersiz={idsUnique}");
         GD.Print(pass ? "[SocialTest] SONUÇ: PASS ✓" : "[SocialTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(pass ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M28.2: Kurgusal profil sistemi testi — ülke kültürüne göre ad-soyad üretilir,
+    /// avatar rengi atanır, türler (citizen/journalist/opposition/official/bot) doğru,
+    /// handles benzersiz, yazar seçimi deterministik. Normal oyunda ASLA çalışır (--profile-test).
+    /// </summary>
+    private void RunProfileTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M28.2: KURGUSAL PROFİL SİSTEM TESTİ (--profile-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        string playerId = PlayerCountryId;
+
+        // Farklı kültürlerde profil üretimini dene (GER/anglo, FRA/latin, RUS/slavic,
+        // JPN/east_asian, TUR/turkish, USA/anglo, IRN/iranian, BRA/latin).
+        var testCountries = new[] { "GER", "FRA", "RUS", "JPN", "TUR", "USA", "IRN", "BRA" };
+        int totalProfiles = 0;
+        bool allOk = true;
+
+        foreach (var cid in testCountries)
+        {
+            SocialProfileSystem.EnsureProfilesFor(cid);
+            var profiles = SocialProfileSystem.GetProfiles(cid);
+            int count = profiles.Count;
+            totalProfiles += count;
+
+            bool namesOk = profiles.All(p => !string.IsNullOrEmpty(p.Name) && p.Name.Split(' ').Length >= 2);
+            bool handlesOk = profiles.All(p => !string.IsNullOrEmpty(p.Handle) && p.Handle.StartsWith("@"));
+            bool handlesUnique = profiles.Select(p => p.Handle).Distinct().Count() == count;
+            bool avatarsOk = profiles.All(p => !string.IsNullOrEmpty(p.AvatarColor) && p.AvatarColor.StartsWith("#"));
+            bool typesOk = profiles.All(p => Enum.IsDefined(typeof(SocialProfileSystem.ProfileType), p.Type));
+
+            var sample = profiles.FirstOrDefault();
+            GD.Print($"[ProfileTest] {cid}: profil={count}, isim_dolu={namesOk}, handle_dolu_benzersiz={handlesOk && handlesUnique}, " +
+                     $"avatar_rengi={avatarsOk}, turler_gecerli={typesOk}, örnek={sample?.Name} ({sample?.Handle}, {sample?.Type}, {sample?.Followers} takipçi, verified={sample?.Verified})");
+
+            if (count == 0 || !namesOk || !(handlesOk && handlesUnique) || !avatarsOk || !typesOk)
+                allOk = false;
+        }
+
+        // Yazar seçimi deterministik ve boş olmamalı (oyuncu ülkesinden örnek).
+        var a1 = SocialProfileSystem.GetRandomAuthor(playerId);
+        var a2 = SocialProfileSystem.GetRandomAuthor(playerId);
+        bool authorOk = !string.IsNullOrEmpty(a1.Name) && !string.IsNullOrEmpty(a1.Handle)
+                     && !string.IsNullOrEmpty(a2.Name) && !string.IsNullOrEmpty(a2.Handle);
+        GD.Print($"[ProfileTest] Yazar örnek 1: {a1.Name} ({a1.Handle})");
+        GD.Print($"[ProfileTest] Yazar örnek 2: {a2.Name} ({a2.Handle})");
+
+        bool pass = allOk && authorOk && totalProfiles > 0;
+        GD.Print($"[ProfileTest] toplam_profil={totalProfiles}, yazar_dolu={authorOk}");
+        GD.Print(pass ? "[ProfileTest] SONUÇ: PASS ✓" : "[ProfileTest] SONUÇ: FAIL ✗");
         GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");
     }

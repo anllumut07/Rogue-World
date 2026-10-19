@@ -7,6 +7,7 @@ Her zaman Türkçe cevap ver.
 - TÜM headless testler `tools\run-test.ps1` ile çalıştırılır: `powershell -File tools\run-test.ps1 --disaster-test` (veya `--save-load-test`, `--intervention-test`, vb.).
 - "Godot editörü yok / headless çalıştırılamadı / kurulu değil" cümleleri **yasaktır** — Godot onaylanmış, testler çalışıyor.
 - Alt görev tamam sayılmaz: `dotnet build` (0 hata) + ilgili `--…-test` (tools\run-test.ps1 ile) + save-load testi (A==B) geçmeli.
+- **Otonom mod durdurma emniyeti:** `tools/stop-guard.ps1` (Stop hook, `.claude/settings.local.json`): durdurma `STOP.txt`, bitiş zamanı (2026-10-20 10:00) veya sayaç > 400 dışında engellenir. Alt görev bitince hemen sıradakine geç; STOP.txt yoksa onay beklenmez.
 
 ## 1. Proje
 - **Oyun:** Rogue World, HOI4 / Age of History benzeri grand strateji oyunu.

@@ -1,0 +1,88 @@
+{
+  "UnexpectedEvents": [
+    {
+      "Id": "financial_crisis",
+      "Name": "Financial Crisis",
+      "Type": "FinancialCrisis",
+      "BaseProbabilityPerDay": 0.002,
+      "DurationDays": 14,
+      "Description": "Banks tightened credit, the stock market crashed and lending rates spiked. Economic output and the budget deficit are seriously affected.",
+      "IndicatorEffects": { "gdp": -12, "public_debt": 8, "budget_deficit": -3, "unemployment": 5, "inflation": 3 },
+      "SatisfactionImpacts": { "business": -8, "workers": -4, "urban": -4 },
+      "StabilityImpact": -5,
+      "WarSupportImpact": 0
+    },
+    {
+      "Id": "terror_attack",
+      "Name": "Terror Attack",
+      "Type": "TerrorAttack",
+      "BaseProbabilityPerDay": 0.001,
+      "DurationDays": 7,
+      "Description": "A terror attack caused heavy civilian and material casualties. Security concerns and militarization are rising.",
+      "IndicatorEffects": { "crime_rate": 10, "gdp": -3 },
+      "SatisfactionImpacts": { "military": 5, "urban": -5, "rural": -2 },
+      "StabilityImpact": -8,
+      "WarSupportImpact": 3
+    },
+    {
+      "Id": "cyber_attack",
+      "Name": "Cyber Attack",
+      "Type": "CyberAttack",
+      "BaseProbabilityPerDay": 0.0015,
+      "DurationDays": 5,
+      "Description": "Critical infrastructure and state systems were hit by a cyber attack. Energy and financial systems are affected.",
+      "IndicatorEffects": { "energy": -8, "gdp": -5, "budget_deficit": -1 },
+      "SatisfactionImpacts": { "urban": -5, "business": -5 },
+      "StabilityImpact": -3,
+      "WarSupportImpact": 0
+    },
+    {
+      "Id": "energy_crisis",
+      "Name": "Energy Crisis",
+      "Type": "EnergyCrisis",
+      "BaseProbabilityPerDay": 0.002,
+      "DurationDays": 10,
+      "Description": "Energy supply shortages are pressuring industry and heating. Prices and inflation are rising.",
+      "IndicatorEffects": { "energy": -15, "gdp": -5, "inflation": 4 },
+      "SatisfactionImpacts": { "workers": -5, "urban": -5, "rural": -3 },
+      "StabilityImpact": -4,
+      "WarSupportImpact": 0
+    },
+    {
+      "Id": "industrial_accident",
+      "Name": "Industrial Accident",
+      "Type": "IndustrialAccident",
+      "BaseProbabilityPerDay": 0.0015,
+      "DurationDays": 7,
+      "Description": "A serious accident at an industrial facility. Environment and health indicators are negatively affected.",
+      "IndicatorEffects": { "environment": -8, "health": -4, "gdp": -2 },
+      "SatisfactionImpacts": { "workers": -6, "rural": -4, "urban": -3 },
+      "StabilityImpact": -3,
+      "WarSupportImpact": 0
+    },
+    {
+      "Id": "assassination_attempt",
+      "Name": "Assassination Attempt",
+      "Type": "AssassinationAttempt",
+      "BaseProbabilityPerDay": 0.0005,
+      "DurationDays": 14,
+      "Description": "An assassination attempt was made on a high-ranking official. Political instability and military visibility are rising.",
+      "IndicatorEffects": { "judicial_independence": -3, "media_freedom": -2 },
+      "SatisfactionImpacts": { "military": 4, "religious": -2, "secular": -2 },
+      "StabilityImpact": -10,
+      "WarSupportImpact": 3
+    },
+    {
+      "Id": "leak_scandal",
+      "Name": "Leak Scandal",
+      "Type": "LeakScandal",
+      "BaseProbabilityPerDay": 0.001,
+      "DurationDays": 10,
+      "Description": "The leak of official documents is damaging the government's reputation. Corruption perception and media polarization are rising.",
+      "IndicatorEffects": { "corruption": 8, "media_freedom": 5, "judicial_independence": -2 },
+      "SatisfactionImpacts": { "business": -3, "urban": -5, "secular": 3, "religious": -3 },
+      "StabilityImpact": -5,
+      "WarSupportImpact": 0
+    }
+  ]
+}

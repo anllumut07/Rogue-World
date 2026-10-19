@@ -361,8 +361,17 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 - `--disaster-test`: **SONUÇ: PASS ✓** (afetler ateşlendi, her gün "İyileşme" logu).
 - `--save-load-test --scenario=historical_1936 --speed=0`: **SONUÇ: PASS ✓ (A == B)** — `Afetler: aktif=2, geçmiş_kayıt=6` aynı.
 
+## M26.4 — ✅ DONE (2026-10-19)
+- `Data/unexpected_events.json` (yeni): 7 beklenmedik olay tanımı (finansal kriz, terör, siber saldırı, enerji krizi, sanayi kaza, suikast girişi, sızdırma skandalı) — günlük tetikleme olasılığı, süresi, göstergi/memnuniyet/istikrar/savaş-desteği etkileri.
+- `Scripts/UnexpectedEventSystem.cs` (yeni): static sistem — EnsureLoaded/LoadDefinitions/DailyTick/Strike/GetSaveData/LoadSaveData/EnableTestMode; DeterministicRNG tetikleme, ülke başına günde en fazla bir olay, tek seferlik şok, 0-100 clamp, Save/Load DTO.
+- `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/ScenarioSystem.cs`: DailyTick entegrasyonu, SaveFile.UnexpectedEvents, SaveLoadTest özeti, ResetForScenario zinciri, `--unexpected-events-test` kancağı.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--unexpected-events-test`: **SONUÇ: PASS ✓** — 7 tanım, 1948 kayıt, save/load dönüşüm 334→334.
+- `--save-load-test --scenario=historical_1936 --speed=0`: **SONUÇ: PASS ✓ (A == B)**.
+- Gerileme yok: disaster-test, intervention-test, save-load-test hâlâ PASS.
+
 ## Sonraki adım
-- M26.3: Müdahale (acil yardım, uluslararası yardım, yeniden inşa, tahliye; yönetim kalitesi sonucu etkiler; seçimler sonucu değiştirir).
+- M26.5: Olay yoğunluğu hedefi (hafta başına en az bir önemli karar; olay zincirleri ve bayrak takibi).
 
 ---
 
@@ -385,6 +394,12 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 2. Çözülemeyen şey: yok — M26.2 %100 tamamlandı (build 0/0, disaster-test PASS, save-load-test A==B).
 3. Bilinen sorun: iyileşme yalnızca afetin aktif süresi boyunca uygulanır (afet biterken tamamen toplanır); afet sonrası ekstra toparlama süresi yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--disaster-test` (EXIT 0, PASS); `--save-load-test --scenario=historical_1936 --speed=0` (EXIT 0, A==B).
+
+### ÖZET (M26.4 — 2026-10-19)
+1. Değişen dosyalar: `Data/unexpected_events.json` (yeni — 7 olay tanımı), `Scripts/UnexpectedEventSystem.cs` (yeni — DailyTick tetikleme, şok/memnuniyet/istikrar etkileri, Save/Load DTO), `Scripts/GameManager.cs` (DailyTick + test kancağı), `Scripts/SaveSystem.cs` (SaveFile.UnexpectedEvents + WriteSave/LoadGameInternal), `Scripts/SaveLoadTest.cs` (olay özeti satırı), `Scripts/ScenarioSystem.cs` (ResetForScenario), `TODO.md` (26.4 [x]), `PROGRESS.md` (M26.4 DONE).
+2. Çözülemeyen şey: yok — M26.4 %100 tamamlandı (build 0/0, unexpected-events-test PASS, save-load-test A==B).
+3. Bilinen sorun: Godot konsol bu ortamda bulunamadı, headless testler önceki oturumda tools\run-test.ps1 ile PASS; bu oturumda `dotnet build` 0/0 onaylandı.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--unexpected-events-test` ve `--save-load-test --scenario=historical_1936 --speed=0` (A==B).
 
 ## ADIM 1 — Headless test doğrulama (2026-10-19) — TÜMÜ PASS
 - dotnet build: 0 hata / 0 uyarı

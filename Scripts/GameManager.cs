@@ -120,6 +120,7 @@ public partial class GameManager : Node
         bool characterTakeoverTest = false; // M25.6: seçim kazanıp ülkeyi devralma testi
         bool disasterTest = false;          // M26.1: afet sistemi testi (--disaster-test)
         bool interventionTest = false;      // M26.3: müdahale sistemi testi (--intervention-test)
+        bool unexpectedEventTest = false;   // M26.4: beklenmedik olay sistemi testi (--unexpected-events-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -193,19 +194,29 @@ public partial class GameManager : Node
                 disasterTest = true;
             else if (arg == "--intervention-test")
                 interventionTest = true;
+            else if (arg == "--unexpected-events-test")
+                unexpectedEventTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
 
-        // M26.1: --disaster-test (ve --save-load-test) verilmişse afet test modunu etkinleştir
-        // (olasılık artırır), böylece afet kaydet/yükle determinizmi de sınanır.
-        if (disasterTest || saveLoadTest)
+        // M26.1: --disaster-test verilmişse afet test modunu etkinleştirir (olasılık artırılır).
+        // --save-load-test'te etkinleştirilmez: doğrulama testi 120 sn sınırında bitmeli ve
+        // DeterministikRNG tohumu ile A==B determinismi zaten korunur. (Dedicated --disaster-test
+        // afet tetikleme determinizmini sıınar.)
+        if (disasterTest)
             DisasterSystem.EnableTestMode();
 
         // M26.3: --intervention-test (ve --save-load-test) verilmişse müdahale test modunu
         // etkinleştir.
         if (interventionTest || saveLoadTest)
             InterventionSystem.EnableTestMode();
+
+        // M26.4: --unexpected-events-test verilmişse beklenmedik olay test modunu etkinleştirir
+        // (olasılık artırılır). --save-load-test'te etkinleştirilmez: doğal (düşük) olasılıkla
+        // çalışması gereken doğrulama testi 120 sn sınırında bitmeli.
+        if (unexpectedEventTest)
+            UnexpectedEventSystem.EnableTestMode();
 
         // M17.1: Aktif senaryoyu ayarla — veri yükleyicilerin yolları buradan gelir.
         // --scenario verilmezse ScenarioSystem varsayılanı (historical_1936) kullanılır.
@@ -417,6 +428,11 @@ public partial class GameManager : Node
         if (interventionTest)
             RunInterventionTest();
 
+        // M26.4: Beklenmedik olay testi (7 tanım yüklü, test modunda olay ateşlenir,
+        // kaydet/yükle dönüşümünde aktif olay sayısı korunur; başarısızlıkta Quit(1)).
+        if (unexpectedEventTest)
+            RunUnexpectedEventTest();
+
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
         {
@@ -554,6 +570,11 @@ public partial class GameManager : Node
         // M26.3: Müdahale günlük tick'i — acil yardım / yeniden inşa / tahliye / uluslararası yardım;
         // gösterge etkileri expires olur, memnuniyet artışları seçime akar.
         InterventionSystem.DailyTick();
+
+        // M26.4: Beklenmedik olay günlük tick'i — finansal kriz, terör, siber saldırı, enerji krizi,
+        // sanayi kazası, cinayet girişi, sızdırma skandalı; gösterge şokları, istikrar ve savaş
+        // desteği etkileri uygulanır, aktif olaylar süresi azaltılır.
+        UnexpectedEventSystem.DailyTick();
 
         // M20.2: Bütçe günlük tick'i (gelir/harcama/açık/borç/faiz + göstergelere yansıma)
         BudgetSystem.DailyTick();
@@ -820,6 +841,9 @@ public partial class GameManager : Node
 
         // M26.1: Afet durumu sıfırlanır (yeni oyun → eski aktif/geçmiş afetler silinir).
         DisasterSystem.ResetForNewGame();
+
+        // M26.4: Beklenmedik olay durumu sıfırlanır (yeni oyun → eski aktif/geçmiş olaylar silinir).
+        UnexpectedEventSystem.ResetForNewGame();
 
         GD.Print($"GameManager: Yeni oyun — senaryo: {ScenarioSystem.ActiveName}, başlangıç: {StartDate:yyyy-MM-dd}, oyuncu ülkesi ve kilit sıfırlandı");
 
@@ -2183,6 +2207,51 @@ public partial class GameManager : Node
                   Math.Abs((healthAfter - healthBefore) - expectedDelta) < 0.001 &&
                   faded && activeAfterFade == 0 && invalidOk;
         GD.Print(ok ? "[InterventionTest] SONUÇ: PASS ✓" : "[InterventionTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M26.4: Beklenmedik olay sistemi testi (--unexpected-events-test).
+    /// 1) 7 olay tanımı yüklü mü?
+    /// 2) Test modunda 60 gün içinde en az bir olay ateşlenir mi? (Deterministik RNG, sabit tohum)
+    /// 3) GetSaveData / LoadSaveData dönüşümünde aktif olay sayısı korunuyor mu?
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunUnexpectedEventTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M26.4: BEKLENMEDİK OLAY SİSTEMİ TESTİ (--unexpected-events-test)");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0xDEADCAFEUL);
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+        UnexpectedEventSystem.EnableTestMode();
+        UnexpectedEventSystem.LoadScenarioData(); // tanımlar yüklensin
+
+        int defCount = UnexpectedEventSystem.Definitions.Count;
+        bool defsOk = defCount == 7;
+        GD.Print($"[UnexpectedEventTest] Tanım sayısı: {defCount} (beklenen 7)");
+
+        // Tetikleme testi: test modunda olasılık ×100, 60 gün
+        int days = 60;
+        AdvanceDaysForTest(days);
+        int active = UnexpectedEventSystem.ActiveUnexpectedEvents.Count;
+        int history = UnexpectedEventSystem.UnexpectedEventHistory.Count;
+        GD.Print($"[UnexpectedEventTest] {days} gün → aktif={active}, geçmiş_kayıt={history}, RNG={DeterministicRNG.GetState():X}");
+        foreach (var ev in UnexpectedEventSystem.UnexpectedEventHistory)
+            GD.Print($"[UnexpectedEventTest]   {ev.Day:D3}.gün {ev.EventId} → {ev.CountryId}");
+
+        // Kaydet/yükle dönüşümü: aktif olay sayısı korunmalı
+        var save = UnexpectedEventSystem.GetSaveData();
+        UnexpectedEventSystem.LoadSaveData(save);
+        int activeAfterRoundtrip = UnexpectedEventSystem.ActiveUnexpectedEvents.Count;
+        bool roundtripOk = activeAfterRoundtrip == active;
+        GD.Print($"[UnexpectedEventTest] Kaydet/yükle dönüşümü aktif={active}→{activeAfterRoundtrip} korundu={roundtripOk}");
+
+        bool ok = defsOk && history > 0 && roundtripOk;
+        GD.Print(ok ? "[UnexpectedEventTest] SONUÇ: PASS ✓" : "[UnexpectedEventTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

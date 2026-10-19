@@ -84,6 +84,7 @@ public static class SaveSystem
         public EducationSystem.EducationSave Education { get; set; } // M25.3: eğitim modül durumu
         public DisasterSystem.DisasterSave Disasters { get; set; } // M26.1: afetler (aktif + geçmiş kayıt)
         public InterventionSystem.InterventionSave Interventions { get; set; } // M26.3: müdahaleler (aktif + geçmiş kayıt)
+        public UnexpectedEventSystem.UnexpectedEventSave UnexpectedEvents { get; set; } // M26.4: beklenmedik olaylar (aktif + geçmiş kayıt)
     }
 
     // ===== Economy DTOs =====
@@ -432,6 +433,7 @@ public static class SaveSystem
             Education = EducationSystem.GetSaveData(), // M25.3: eğitim modül durumu
             Disasters = DisasterSystem.GetSaveData(), // M26.1: afetler (aktif + geçmiş kayıt)
             Interventions = InterventionSystem.GetSaveData(), // M26.3: müdahaleler (aktif + geçmiş kayıt)
+            UnexpectedEvents = UnexpectedEventSystem.GetSaveData(), // M26.4: beklenmedik olaylar (aktif + geçmiş kayıt)
         };
 
         EnsureSavesDir();
@@ -585,6 +587,9 @@ public static class SaveSystem
 
             // M26.3: müdahaleler — kayıtta varsa geri yüklenir
             InterventionSystem.LoadSaveData(save.Interventions);
+
+            // M26.4: beklenmedik olaylar — kayıtta varsa geri yüklenir
+            UnexpectedEventSystem.LoadSaveData(save.UnexpectedEvents);
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

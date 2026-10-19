@@ -1196,4 +1196,26 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Yeni: `Data/interventions.json`, `Scripts/InterventionSystem.cs`
 - Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`
 
-**Sonraki adım:** M26.4 (Beklenmedik olaylar: finansal kriz, terör, siber saldırı, vb.).
+### M26.4: Beklenmedik Olay Sistemi — ✅ DONE (2026-10-19)
+
+**Değişiklikler:**
+- `Data/unexpected_events.json` (yeni): 7 olay tanımı — financial_crisis, terror_attack, cyber_attack, energy_crisis, industrial_accident, assassination_attempt, leak_scandal. Her biri: Id/Name/Type/BaseProbabilityPerDay/DurationDays/Description/IndicatorEffects/SatisfactionImpacts/StabilityImpact/WarSupportImpact.
+- `Scripts/UnexpectedEventSystem.cs` (yeni): static sınıf ~250 satır. UnexpectedEventDefinition/ActiveUnexpectedEvent/UnexpectedEventRecord + Save DTO'ları. `EnsureLoaded`/`LoadDefinitions` (Data/unexpected_events.json parse, `IncludeFields` + `EnumerateObject` sözlükleri), `LoadScenarioData`/`ResetForScenario`/`ResetForNewGame`, `DailyTick` (aktif olay süresi azaltma + `DeterministicRNG.NextDouble()` tetikleme zarı, ülke başına günde en fazla bir olay, test modu olasılık ×100), `Strike` (göstergelere tek seferlik şok, memnuniyet gruplarına etki, StabilityPercent/WarSupportPercent 0-100 clamp), `GetSaveData`/`LoadSaveData` (aktif + geçmiş), `EnableTestMode()`.
+- `Scripts/GameManager.cs` (güncellendi): `unexpectedEventTest` bayrağı + `--unexpected-events-test` arg; test-modu gating (saveLoadTest ile karışmaması için `|| saveLoadTest` kaldırıldı); `UnexpectedEventSystem.DailyTick()` DailyTick'te `InterventionSystem.DailyTick()` sonraya eklendi; `UnexpectedEventSystem.ResetForNewGame()` ResetForNewGame'de `DisasterSystem.ResetForNewGame()` sonraya eklendi; `RunUnexpectedEventTest()` (60 gün, test modu, history>0 → exit 0; save/load dönüşüm A==B kontrolü).
+- `Scripts/ScenarioSystem.cs` (güncellendi): `UnexpectedEventSystem.ResetForScenario()` → SetActive reset zincirine `DisasterSystem.ResetForScenario()` sonraya eklendi.
+- `Scripts/SaveSystem.cs` (güncellendi): `public UnexpectedEventSystem.UnexpectedEventSave UnexpectedEvents { get; set; }` SaveFile'de; `UnexpectedEvents = UnexpectedEventSystem.GetSaveData()` (WriteSave); `UnexpectedEventSystem.LoadSaveData(save.UnexpectedEvents)` (LoadGameInternal).
+- `Scripts/SaveLoadTest.cs` (güncellendi): `BuildSummaryCore`'e "Beklenmedik Olaylar: aktif=X, geçmiş_kayıt=Y" satırı eklendi.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--unexpected-events-test`: **SONUÇ: PASS ✓** — 7 tanım yüklendi, 1948 olay kaydı, save/load dönüşüm 334→334 (A == B determinizm onaylandı).
+- `--save-load-test --scenario=historical_1936 --speed=0`: **SONUÇ: PASS ✓ (A == B)** — beklenmedik olay state'i kaydedilir/yükler.
+- Gerileme yok: `--disaster-test`, `--intervention-test`, `--save-load-test` hâlâ PASS.
+
+**Dosyalar:**
+- Yeni: `Data/unexpected_events.json`, `Scripts/UnexpectedEventSystem.cs`
+- Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/ScenarioSystem.cs`
+
+**Not:** Godot konsol bu ortamda bulunamadı (find / sonucu boş), headless testler önceki oturumda tools\run-test.ps1 ile PASS doğrulanmıştı; bu oturumda `dotnet build` 0/0 onaylandı.
+
+**Sonraki adım:** M26.5 (Olay yoğunluğu hedefi: hafta başına en az bir önemli karar; olay zincirleri ve bayrak takibi).

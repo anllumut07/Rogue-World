@@ -223,6 +223,12 @@ public static class SaveLoadTest
         int interventionHistory = interventionSave?.History?.Length ?? 0;
         sb.AppendLine($"Müdahaleler: aktif={interventionActive}, geçmiş_kayıt={interventionHistory}");
 
+        // --- M26.4: Beklenmedik olaylar ---
+        var unexpectedEventSave = UnexpectedEventSystem.GetSaveData();
+        int unexpectedEventActive = unexpectedEventSave?.Active?.Length ?? 0;
+        int unexpectedEventHistory = unexpectedEventSave?.History?.Length ?? 0;
+        sb.AppendLine($"Beklenmedik Olaylar: aktif={unexpectedEventActive}, geçmiş_kayıt={unexpectedEventHistory}");
+
         // --- M20.2: Bütçe ---
         var budgetSave = BudgetSystem.GetSaveData();
         int budgetCountries = budgetSave?.Countries?.Length ?? 0;

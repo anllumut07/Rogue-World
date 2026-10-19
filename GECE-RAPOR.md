@@ -554,3 +554,26 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 3. Bilinen sorun: yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--tweet-action-test` ve `--save-load-test` (A==B).
 
+## M28.5 — Küfür/nefret içeriği filtresi + günlük tweet sayısı sınırı — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Data/profanity_words.json` (yeni): 8 engelli İngilizce kelime listesi (küfür/nefret örneği).
+- `Scripts/SocialMediaSystem.cs`: `EnsureProfanityLoaded()` (JSON'dan kelime listesini yükler), `ContainsBlocked(text)` (büyük/küçük harf duyarsız, kelime sınırı bazlı), `Censor(text)` ('***' ile maskeleme), `MaxTweetsPerDay` (varsayılan 10, aynı-gün üst sınırı). `OnEventResolved`'de günlük sınır ve içerik filtresi kontrolü eklendi; sınır aşıldıysa veya içerik engelliyse tweet eklenmez.
+- `Scripts/GameManager.cs`: `profanityTest` field, `--profanity-test` arg parsing, `RunProfanityTest()` (engelli/temiz/büyük-küçük/censor + günlük sınır + engelli-tweet-engeli assertions) + `MakeTestEvent` yardımcı metodu.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--profanity-test`: **PASS ✓** (kelime listesi 8, engelli_tespit=True, temiz_geçti=True, büyük_küçük=True, censorlendi=True, günlük_sınır=True eklenen=2/sınır=2, engelli_tweet_engellendi=True).
+- `--save-load-test`: **PASS ✓ (A == B)** — M28.5 yeni kalıcı durum taşımadığı için (sınır kaydedilen Tweet.Günden türetilir, kelime listesi statik yapılandırma) determinizm bozulmadı.
+- `--tweet-action-test`: **PASS ✓** — M28.4 regresyon yok.
+
+**Dosyalar:**
+- Yeni: `Data/profanity_words.json`.
+- Değiştirilen: `Scripts/SocialMediaSystem.cs`, `Scripts/GameManager.cs`, `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
+
+### ÖZET (M28.5 — 2026-10-20)
+1. Değişen dosyalar: `Data/profanity_words.json` (yeni — 8 engelli kelime), `Scripts/SocialMediaSystem.cs` (EnsureProfanityLoaded, ContainsBlocked, Censor, MaxTweetsPerDay, OnEventResolved filtreleme), `Scripts/GameManager.cs` (--profanity-test + RunProfanityTest), `TODO.md` (28.5 [x]), `PROGRESS.md` (M28.5 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M28.5 %100 tamamlandı (build 0/0, profanity-test PASS, save-load-test A==B PASS, tweet-action-test regresionsüz PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--profanity-test` ve `--save-load-test` (A==B).
+

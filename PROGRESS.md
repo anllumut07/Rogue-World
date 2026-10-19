@@ -1373,4 +1373,21 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Dosyalar:**
 - Değiştirilen: `Scripts/SocialMediaSystem.cs`, `Scripts/GameManager.cs`.
 
-**Sonraki adım:** M28.5 Küfür/nefret içeriği filtresi + günlük tweet sayısı sınırı.
+### M28.5: Küfür/nefret içeriği filtresi + günlük tweet sayısı sınırı — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Data/profanity_words.json` (yeni): 8 engelli İngilizce kelime listesi (küfür/nefret örneği).
+- `Scripts/SocialMediaSystem.cs`: `EnsureProfanityLoaded()` (JSON'dan kelime listesini yükler), `ContainsBlocked(text)` (büyük/küçük harf duyarsız, kelime sınırı bazlı), `Censor(text)` ('***' ile maskeleme), `MaxTweetsPerDay` (varsayılan 10, aynı-gün üst sınırı). `OnEventResolved`'de günlük sınır ve içerik filtresi kontrolü eklendi; sınır aşıldıysa veya içerik engelliyse tweet eklenmez.
+- `Scripts/GameManager.cs`: `profanityTest` field, `--profanity-test` arg parsing, `RunProfanityTest()` (engelli/temiz/büyük-küçük/censor + günlük sınır + engelli-tweet-engeli assertions) + `MakeTestEvent` yardımcı metodu.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--profanity-test`: **SONUÇ: PASS ✓** (test-logs/profanity_test.log) — kelime listesi 8, engelli_tespit=True, temiz_geçti=True, büyük_küçük=True, censorlendi=True, günlük_sınır=True (eklenen=2/sınır=2), engelli_tweet_engellendi=True.
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** — M28.5 yeni kalıcı durum taşımadığı için (sınır kaydedilen Tweet.Günden türetilir, kelime listesi statik yapılandırma) determinizm bozulmadı (test-logs/save_load_test.log).
+- `--tweet-action-test`: **SONUÇ: PASS ✓** — M28.4 geriye dönük uyum, OnEventResolved değişikliği regresyon oluşturmuyor.
+
+**Dosyalar:**
+- Yeni: `Data/profanity_words.json`.
+- Değiştirilen: `Scripts/SocialMediaSystem.cs`, `Scripts/GameManager.cs`, `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**Sonraki adım:** M28.6 (paneldeki kişilerin oyun karakteri ayrımı) veya M29 Casusluk v2.

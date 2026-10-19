@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 /// <summary>
 /// M28.1: Gündem Paneli — Olay → tweet üreteci.
@@ -39,11 +40,22 @@ public static class SocialMediaSystem
     private static readonly List<Tweet> _tweets = new();
     private static int _nextTweetNum = 1;
 
+    // ===== M28.5: Küfür/nefret içeriği filtresi =====
+    private static readonly string ProfanityPath = "res://Data/profanity_words.json";
+    private static readonly HashSet<string> _blockedWords = new(StringComparer.OrdinalIgnoreCase);
+    private static bool _profanityLoaded;
+
+    // ===== M28.5: Günlük tweet sayısı sınırı (performans) =====
+    /// <summary>Aynı günde üretilen tweet sayısının üst sınırı (performans koruması).</summary>
+    public static int MaxTweetsPerDay { get; set; } = 10;
+
     public static void OnEventResolved(EventSystem.GameEvent evt, int optionIndex)
     {
         if (evt == null) return;
         var gm = GameManager.Instance;
         if (gm == null || !gm.HasPlayer) return;
+
+        EnsureProfanityLoaded();
 
         string playerId = gm.PlayerCountryId;
         var playerData = CountryDatabase.Get(playerId);
@@ -92,6 +104,22 @@ public static class SocialMediaSystem
             Likes = (int)(DeterministicRNG.NextDouble() * 5000),
             Shares = (int)(DeterministicRNG.NextDouble() * 500),
         };
+
+        // M28.5: Günlük tweet sınırı — aynı güne üst sınırdan fazla tweet eklenmez (performans).
+        int todayCount = _tweets.Count(t => t.Day == gm.TotalDays);
+        if (todayCount >= MaxTweetsPerDay)
+        {
+            GD.Print($"[SocialMedia] Günlük tweet sınırı aşıldı (gün={gm.TotalDays}, limit={MaxTweetsPerDay}), tweet eklenmedi.");
+            return;
+        }
+
+        // M28.5: Küfür/nefret filtresi — engelli içerikli tweet panelde görünmez.
+        if (ContainsBlocked(content))
+        {
+            GD.Print($"[SocialMedia] Tweet filtrelendi (küfür/nefret içeriği): {content}");
+            return;
+        }
+
         _tweets.Add(tweet);
 
         GD.Print($"[SocialMedia] Tweet üretildi: {tweet.AuthorHandle} → {content}");
@@ -346,5 +374,59 @@ public static class SocialMediaSystem
         _tweets.Clear();
         _nextTweetNum = 1;
         GD.Print("SocialMedia: yeni oyun için sıfırlandı.");
+    }
+
+    // ===== M28.5: Küfür/nefret içeriği filtresi =====
+
+    public static void EnsureProfanityLoaded()
+    {
+        if (_profanityLoaded) return;
+        _profanityLoaded = true;
+        try
+        {
+            if (!Godot.FileAccess.FileExists(ProfanityPath))
+            {
+                GD.PrintErr($"[SocialMedia] Kelime listesi yok: {ProfanityPath}");
+                return;
+            }
+            string json = Godot.FileAccess.GetFileAsString(ProfanityPath);
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("BlockedWords", out var arr))
+            {
+                foreach (var item in arr.EnumerateArray())
+                {
+                    var w = item.GetString();
+                    if (!string.IsNullOrEmpty(w)) _blockedWords.Add(w);
+                }
+            }
+            GD.Print($"[SocialMedia] Küfür/nefret kelime listesi yüklendi: {_blockedWords.Count} kelime.");
+        }
+        catch (Exception e)
+        {
+            GD.PrintErr($"[SocialMedia] Kelime listesi yükleme HATA: {e.Message}");
+        }
+    }
+
+    /// <summary>İçerikte engelli bir kelime geçiyorsa true (büyük/küçük harf duyarsız, kelime sınırı bazlı).</summary>
+    public static bool ContainsBlocked(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        foreach (var w in text.Split(' ', '.', ',', '!', '?', ':', ';', '-', '\'', '"', '(', ')', '\t'))
+        {
+            if (!string.IsNullOrEmpty(w) && _blockedWords.Contains(w)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Engelli kelimeleri '***' ile masalar.</summary>
+    public static string Censor(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        string result = text;
+        foreach (var bw in _blockedWords)
+        {
+            result = Regex.Replace(result, $@"\b{Regex.Escape(bw)}\b", "***", RegexOptions.IgnoreCase);
+        }
+        return result;
     }
 }

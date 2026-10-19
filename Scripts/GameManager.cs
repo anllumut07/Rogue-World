@@ -129,6 +129,7 @@ public partial class GameManager : Node
         bool profileTest = false;           // M28.2: kurgusal profil sistemi testi (--profile-test)
         bool trendTest = false;             // M28.3: trend listesi + duygu eğilimi testi (--trend-test)
         bool tweetActionTest = false;       // M28.4: tweet eylemi + memnuniyet etkisi testi (--tweet-action-test)
+        bool profanityTest = false;         // M28.5: küfür/nefret filtresi + günlük tweet sınırı testi (--profanity-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -220,6 +221,8 @@ public partial class GameManager : Node
                 trendTest = true;
             else if (arg == "--tweet-action-test")
                 tweetActionTest = true;
+            else if (arg == "--profanity-test")
+                profanityTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -496,6 +499,8 @@ public partial class GameManager : Node
         // M28.4: Tweet eylemi + memnuniyet etkisi testi (--tweet-action-test).
         if (tweetActionTest)
             RunTweetActionTest();
+        if (profanityTest)
+            RunProfanityTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -1896,6 +1901,67 @@ public partial class GameManager : Node
         GD.Print(result ? "[TweetActionTest] SONUÇ: PASS ✓" : "[TweetActionTest] SONUÇ: FAIL ✗");
         GetTree().Quit(result ? 0 : 1);
         GD.Print("=========================================");
+    }
+
+    /// <summary>M28.5: Küfür/nefret içeriği filtresi + günlük tweet sayısı sınırı. Normal oyunda ASLA çalışır (--profanity-test).</summary>
+    private void RunProfanityTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M28.5: KÜFÜR/NEFRET FİLTRESİ + GÜNLÜK SINIR TESTİ (--profanity-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        string playerId = PlayerCountryId;
+        SocialProfileSystem.EnsureProfilesFor(playerId);
+
+        // 1. Kelime listesi yüklensin; filtre engelli/temiz/büyük-küçük ve censor işlemlerini doğru yapsın.
+        SocialMediaSystem.EnsureProfanityLoaded();
+        bool blockedDetected = SocialMediaSystem.ContainsBlocked("This user is an idiot and runs a scam.");
+        bool cleanPasses = !SocialMediaSystem.ContainsBlocked("Germany is now at war with France.");
+        bool caseInsensitive = SocialMediaSystem.ContainsBlocked("STUPID content here.");
+        string censored = SocialMediaSystem.Censor("You are stupid and spread hate.");
+        bool censoredOk = censored.Contains("***");
+        GD.Print($"[ProfanityTest] engelli_tespit={blockedDetected} temiz_geçti={cleanPasses} büyük_küçük={caseInsensitive} censorlendi={censoredOk}");
+
+        // 2. Günlük tweet sınırı: aynı günde üst sınırdan fazla tweet eklenemez (performans).
+        int savedLimit = SocialMediaSystem.MaxTweetsPerDay;
+        SocialMediaSystem.MaxTweetsPerDay = 2;
+        int before = SocialMediaSystem.TweetCount;
+        SocialMediaSystem.OnEventResolved(MakeTestEvent("pf_war", "PF War", "FRA"), 0);
+        SocialMediaSystem.OnEventResolved(MakeTestEvent("pf_annex", "PF Annex", ""), 0);
+        SocialMediaSystem.OnEventResolved(MakeTestEvent("pf_peace", "PF Peace", ""), 0);
+        int after = SocialMediaSystem.TweetCount;
+        bool limitWorks = (after - before) == 2;
+        GD.Print($"[ProfanityTest] günlük_sınır={limitWorks} eklenen={after - before} (sınır=2)");
+        SocialMediaSystem.MaxTweetsPerDay = savedLimit;
+
+        // 3. Küfürlü içerikli tweet eklenmez.
+        int before2 = SocialMediaSystem.TweetCount;
+        SocialMediaSystem.OnEventResolved(MakeTestEvent("pf_bad", "idiot event", ""), 0);
+        int after2 = SocialMediaSystem.TweetCount;
+        bool blockedTweetSkipped = after2 == before2;
+        GD.Print($"[ProfanityTest] engelli_tweet_engellendi={blockedTweetSkipped} önce={before2} sonra={after2}");
+
+        bool result = blockedDetected && cleanPasses && caseInsensitive && censoredOk && limitWorks && blockedTweetSkipped;
+        GD.Print(result ? "[ProfanityTest] SONUÇ: PASS ✓" : "[ProfanityTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(result ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    private static EventSystem.GameEvent MakeTestEvent(string id, string name, string declareWar)
+    {
+        return new EventSystem.GameEvent
+        {
+            Id = id,
+            Name = name,
+            Description = "test",
+            Options = new List<EventSystem.EventOption>
+            {
+                new EventSystem.EventOption { Label = "Accept", Effects = new EventSystem.EventEffects { DeclareWar = declareWar } }
+            }
+        };
     }
 
     private void RunConstitutionTest()

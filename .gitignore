@@ -28,5 +28,8 @@ test-logs/
 *.err
 DURUM-RAPORU.md
 
+# Claude Code local settings (hook yapılandırması, gizli/anlık) — commitlenmez
+.claude/settings.local.json
+
 # Headless test scratch outputs — never commit
 *_out*.txt

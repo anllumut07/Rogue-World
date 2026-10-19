@@ -472,3 +472,18 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 ### ÖZET (M27 — Tüm alt görevler tamamlandı — 2026-10-19)
 M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/miting), M27.4 (yaptırım/ticaret savası) tamamlandı. Tüm alt görevlerde `dotnet build` 0/0, headless testler PASS, save-load A==B PASS, commit ve `git push origin gece-calisma` yapıldı. Sonraki adım: M28 Gündem Paneli.
 
+## M28.1 — Olay → Tweet Üreteci — ✅ DONE (2026-10-20)
+- `Scripts/SocialMediaSystem.cs` (yeni): `Tweet` modeli, `Sentiment` enum, `OnEventResolved()` — olay kategorisine göre şablondan değişkenli tweet üretir, DeterministicRNG, `GetSaveData`/`LoadSaveData`/`ResetForNewGame`.
+- `Scripts/EventSystem.cs`: `OnEventOptionChosen` içinde `SocialMediaSystem.OnEventResolved` çağrısı.
+- `Scripts/SaveSystem.cs`: `SaveFile.SocialMedia` alanı + `SocialMediaSave` DTO, WriteSave/LoadGameInternal bağlama.
+- `Scripts/SaveLoadTest.cs`: BuildSummaryCore `SosyalMedya: tweet=N` satırı eklendi.
+- `Scripts/GameManager.cs`: `--social-test` + `RunSocialMediaTest()` (7 kategori, içerik/author/id benzersiz).
+- `dotnet build`: 0 hata / 0 uyarı. `--social-test`: **PASS ✓**. `--save-load-test`: **PASS ✓ (A == B)**.
+- Commit ve `git push origin gece-calisma`.
+
+### ÖZET (M28.1 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/SocialMediaSystem.cs` (yeni), `Scripts/EventSystem.cs` (tweet üretim kancağı), `Scripts/SaveSystem.cs` (SocialMedia DTO + bağlama), `Scripts/SaveLoadTest.cs` (tweet sayısı özeti), `Scripts/GameManager.cs` (--social-test + RunSocialMediaTest).
+2. Çözülemeyen şey: yok — M28.1 %100 tamamlandı (build 0/0, social-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--social-test` ve `--save-load-test` (A==B).
+

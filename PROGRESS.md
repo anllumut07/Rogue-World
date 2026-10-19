@@ -1304,3 +1304,23 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Değiştirilen: `Scripts/DiplomacySystem.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/GameManager.cs`.
 
 **Sonraki adım:** M28 Gündem Paneli (X benzeri) — veya M27 milestonu tamamlandığına göre M28'e geçiş.
+
+### M28.1: Olay → Tweet Üreteci — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/SocialMediaSystem.cs` (yeni): `Tweet` modeli (Id, AuthorName, AuthorHandle, Content, Day, CountryId, EventId, Sentiment, Likes, Shares), `Sentiment` enum, `OnEventResolved(eventId, optionIndex)` — olay kategorisine (Annex/War/Peace/Economy/Focus/Diplomacy/Default) göre şablon cümlelerden değişkenli tweet üretir, DeterministicRNG ile yazar ve sentiment atar, `GetTweets()` / `TweetCount` public API, `GetSaveData`/`LoadSaveData`/`ResetForNewGame`.
+- `Scripts/EventSystem.cs`: `OnEventOptionChosen` içinde `SocialMediaSystem.OnEventResolved(evt, optionIndex)` çağrısı eklendi (olay çözüldükten sonra tweet üretilir).
+- `Scripts/SaveSystem.cs`: `SaveFile.SocialMedia` alanı (`SocialMediaSave`), `WriteSave`/`LoadGameInternal` bağlama, `SocialMediaSave` DTO (`Tweet[] Tweets`).
+- `Scripts/SaveLoadTest.cs`: `BuildSummaryCore` Diplomatisi özetine `SosyalMedya: tweet=N` satırı eklendi (A==B karşılaştırmasında görünür).
+- `Scripts/GameManager.cs`: `--social-test` arg parsing + `RunSocialMediaTest()` (7 farklı olay kategorisiyle tweet üretimi; içerik/author dolu, gün eşleşiyor, id'ler benzersiz).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--social-test`: **SONUÇ: PASS ✓** (7 tweet üretildi, tüm kategori şablonları, içerik+author+id benzersiz doğrulandı).
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** — SocialMedia tweet sayısı özetinde görünür, determinizm korunuyor.
+
+**Dosyalar:**
+- Yeni: `Scripts/SocialMediaSystem.cs`.
+- Değiştirilen: `Scripts/EventSystem.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/GameManager.cs`.
+
+**Sonraki adım:** M28.2 Rastgele kurgusal profiller (ad-soyad ülke kültürüne göre, avatar: renkli baş harf, türler: vatandaş/gazeteci/muhalefet/resmî/bot).

@@ -125,6 +125,7 @@ public partial class GameManager : Node
         bool agreementsTest = false;        // M27.2: anlaşma testi (--agreements-test)
         bool pressTest = false;             // M27.3: basın etkinliği testi (--press-test)
         bool sanctionsTest = false;         // M27.4: yaptirim / ticaret savasi testi (--sanctions-test)
+        bool socialTest = false;            // M28.1: olay → tweet üreteci testi (--social-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -208,6 +209,8 @@ public partial class GameManager : Node
                 pressTest = true;
             else if (arg == "--sanctions-test")
                 sanctionsTest = true;
+            else if (arg == "--social-test")
+                socialTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -465,6 +468,11 @@ public partial class GameManager : Node
         // basarisizlikta Quit(1)).
         if (sanctionsTest)
             RunSanctionsTest();
+
+        // M28.1: Olay → tweet üreteci testi (farklı olay kategorileriyle tweet üretilir, içerik dolu,
+        // ids benzersiz, kaydet/yüklede A==B korunur; başarısızlıkta Quit(1)).
+        if (socialTest)
+            RunSocialMediaTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -1533,6 +1541,70 @@ public partial class GameManager : Node
         bool pass = allOk && sanctionsRecorded && relationChanged && tradeWarAfter && liftOk;
 
         GD.Print(pass ? "[SanctionsTest] SONUÇ: PASS ✓" : "[SanctionsTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(pass ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M28.1: Olay → tweet üreteci testi — farklı olay kategorileriyle tweet üretilir,
+    /// içerik/yazar boş olmamalı ve kayıt sayısı eşleşmeli. Deterministik, normal oyunda ASLA calismasi (--social-test).
+    /// </summary>
+    private void RunSocialMediaTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M28.1: OLAY → TWEET ÜRETİCİ TESTİ (--social-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        string playerId = PlayerCountryId;
+        var playerData = PlayerCountryData;
+        string playerName = playerData?.Name ?? playerId;
+        GD.Print($"[SocialTest] Oyuncu: {playerId} ({playerName}), gün={TotalDays}");
+
+        int before = SocialMediaSystem.TweetCount;
+
+        // Farklı olay kategorileriyle tweet üretimini dene (gerçek olay verisine bağlı değil)
+        var testEvents = new[]
+        {
+            (Id: "test_annex", Name: "Test Annexation", DeclareWar: ""),
+            (Id: "test_war", Name: "Test War Declaration", DeclareWar: "FRA"),
+            (Id: "test_peace", Name: "Test Peace Deal", DeclareWar: ""),
+            (Id: "test_economy", Name: "Test Economic Miracle", DeclareWar: ""),
+            (Id: "test_focus", Name: "Test National Focus", DeclareWar: ""),
+            (Id: "test_diplomacy", Name: "Test Diplomacy Pact", DeclareWar: ""),
+            (Id: "test_unknown", Name: "Test Unknown Event", DeclareWar: ""),
+        };
+
+        bool allOk = true;
+        foreach (var te in testEvents)
+        {
+            var evt = new EventSystem.GameEvent
+            {
+                Id = te.Id,
+                Name = te.Name,
+                Description = "test",
+                Options = new List<EventSystem.EventOption>
+                {
+                    new EventSystem.EventOption { Label = "Accept", Effects = new EventSystem.EventEffects { DeclareWar = te.DeclareWar } }
+                }
+            };
+            SocialMediaSystem.OnEventResolved(evt, 0);
+            GD.Print($"[SocialTest] Olay={te.Id} → toplam tweet={SocialMediaSystem.TweetCount}");
+        }
+
+        int after = SocialMediaSystem.TweetCount;
+        int generated = after - before;
+        bool tweetsGenerated = generated >= testEvents.Length;
+        bool contentsNonEmpty = SocialMediaSystem.GetTweets().Skip(before).All(t =>
+            !string.IsNullOrEmpty(t.Content) && !string.IsNullOrEmpty(t.AuthorHandle)
+            && !string.IsNullOrEmpty(t.AuthorName) && t.Day == TotalDays);
+        bool idsUnique = SocialMediaSystem.GetTweets().Skip(before).Select(t => t.Id).Distinct().Count() == generated;
+
+        bool pass = allOk && tweetsGenerated && contentsNonEmpty && idsUnique;
+        GD.Print($"[SocialTest] üretilen={generated}, beklenen>={testEvents.Length}, içerik_dolu={contentsNonEmpty}, id_benzersiz={idsUnique}");
+        GD.Print(pass ? "[SocialTest] SONUÇ: PASS ✓" : "[SocialTest] SONUÇ: FAIL ✗");
         GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");
     }

@@ -329,6 +329,9 @@ public static class EventSystem
 
         GD.Print($"[Event] Seçim: {evt.Name} → {option.Label}");
 
+        // M28.1: Olay sonucu gündeme tweetler üretilir (deterministik, kayıtlı)
+        SocialMediaSystem.OnEventResolved(evt, optionIndex);
+
         // Oyunu devam ettir (kaydedilmiş hıza)
         GM?.ResumeFromEvent();
     }

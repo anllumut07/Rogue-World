@@ -85,6 +85,7 @@ public static class SaveSystem
         public DisasterSystem.DisasterSave Disasters { get; set; } // M26.1: afetler (aktif + geçmiş kayıt)
         public InterventionSystem.InterventionSave Interventions { get; set; } // M26.3: müdahaleler (aktif + geçmiş kayıt)
         public UnexpectedEventSystem.UnexpectedEventSave UnexpectedEvents { get; set; } // M26.4: beklenmedik olaylar (aktif + geçmiş kayıt)
+        public SocialMediaSave SocialMedia { get; set; } // M28.1: gündem/tweet kayıtları
     }
 
     // ===== Economy DTOs =====
@@ -235,6 +236,12 @@ public static class SaveSystem
     public class EventSave
     {
         public CountryEventStateSave[] States { get; set; }
+    }
+
+    // ===== M28.1: Sosyal Medya / Gündem DTO =====
+    public class SocialMediaSave
+    {
+        public SocialMediaSystem.Tweet[] Tweets { get; set; }
     }
     public class CountryEventStateSave
     {
@@ -438,6 +445,7 @@ public static class SaveSystem
             Disasters = DisasterSystem.GetSaveData(), // M26.1: afetler (aktif + geçmiş kayıt)
             Interventions = InterventionSystem.GetSaveData(), // M26.3: müdahaleler (aktif + geçmiş kayıt)
             UnexpectedEvents = UnexpectedEventSystem.GetSaveData(), // M26.4: beklenmedik olaylar (aktif + geçmiş kayıt)
+            SocialMedia = SocialMediaSystem.GetSaveData(), // M28.1: gündem/tweet kayıtları
         };
 
         EnsureSavesDir();
@@ -594,6 +602,9 @@ public static class SaveSystem
 
             // M26.4: beklenmedik olaylar — kayıtta varsa geri yüklenir
             UnexpectedEventSystem.LoadSaveData(save.UnexpectedEvents);
+
+            // M28.1: gündem/tweet kayıtları — kayıtta varsa geri yüklenir
+            SocialMediaSystem.LoadSaveData(save.SocialMedia);
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

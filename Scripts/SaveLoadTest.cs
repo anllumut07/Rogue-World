@@ -187,6 +187,10 @@ public static class SaveLoadTest
         int sanctions = DiplomacySystem.Sanctions.Count;
         sb.AppendLine($"Diplomasi: faksiyon={factions}, ilişki={relations}, garanti={guarantees}, anlaşma={agreements}, basın={pressEvents}, yaptırım={sanctions}");
 
+        // --- M28.1: Sosyal Medya / Gündem ---
+        int socialTweets = SocialMediaSystem.TweetCount;
+        sb.AppendLine($"SosyalMedya: tweet={socialTweets}");
+
         // --- M17A: Casus Belli ---
         int activeJustifications = CasusBelliSystem.Justifications.Count(j => !j.IsConsumed && j.BuildDaysLeft == 0 && j.UltimatumDaysLeft == 0);
         int buildingJustifications = CasusBelliSystem.Justifications.Count(j => !j.IsConsumed && j.BuildDaysLeft > 0);

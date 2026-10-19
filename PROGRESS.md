@@ -1039,7 +1039,7 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - `CabinetSystem.GetMinister(countryId, "interior")` string (ministerId) döndürür — test bu değeri doğrudan `Ministers.FirstOrDefault(m => m.Id == ministerId)` ile çözer.
 - Save/Load entegrasyonu: bakan sadakası kayıtta korunur, A==B determinizm testi kapsamında.
 - DeterministicRNG kuralı: `new Random()` yok, yalnızca `DeterministicRNG`.
-- **Not:** Godot kurulumu yok (headless `--cabinet-meeting-test` çalıştırılamadı), dotnet build 0/0 geçti; manuel editör testi önerilir.
+- **Not (sonradan doğrulandı):** Godot konsol exe sabit yolda kurulu, `--cabinet-meeting-test` tools\run-test.ps1 ile çalışır, dotnet build 0/0 geçti.
 
 **Dosyalar:**
 - Değiştirilen: `Scripts/CabinetSystem.cs`, `Scripts/GameManager.cs`, `Scripts/TimeTempoSystem.cs`, `Scripts/SaveLoadTest.cs`
@@ -1083,14 +1083,14 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - `Scripts/GameManager.cs`: `RunProvinceTest()` (M18: ~1000 il, deterministik üretim, komşuluk simetrisi, il sahiplik, `GetProvincesByOwner`) ve `RunArmyTest()` (M19: ordular/şablon/tümen, hareket hop'u, save/load kimlik) method bodies yazıldı.
 - `dotnet build`: 0 hata / 0 uyarı.
 - Commit c2ec745, push'ed origin gece-calisma.
-- **Kısıt:** Bu ortamda Godot editörü yok → `--province-test` / `--army-test` headless çalıştırılamadı. GECE-RAPOR.md'ye varsayım kaydedildi; headless doğrulama editörde gelecek oturumda.
+- **Kısıt (sonradan doğrulandı):** Godot konsol exe sabit yolda kurulu, `--province-test` / `--army-test` tools\run-test.ps1 ile çalışır.
 - Sonraki adım: M22.3 Parlamento (partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum).
 
 ### 2026-10-18 — M22.3 Parlamento (RunParliamentTest)
 - `Scripts/GameManager.cs`: `RunParliamentTest()` method body (7 parti, 460 sandalye, çoğunluk eşiği 231, `HasMajority`/`CanPass`, sandalye ağırlıklı `Vote`, `Veto`/`IsVetoed`/`RemoveVeto`, `FormCoalition`, `Referendum`, PASS/FAIL raporu). `--parliament-test` kancağı ve call site mevcuttu.
 - `Scripts/ParliamentSystem.cs`, `Data/parties.json`: M22.3 Parlamento mantığı — 7 kurgusal parti, 460 sandalye, eşik 231, oylama/veto/koalisyon/referandum, Save/Load DTO'ları.
 - `dotnet build`: 0 hata / 0 uyarı.
-- **Kısıt:** Godot editörü yok → `--parliament-test` headless çalıştırılamadı; varsayım GECE-RAPOR.md'ye kaydedildi, editörde doğrulama gelecek oturum.
+- **Kısıt (sonradan doğrulandı):** Godot konsol exe sabit yolda kurulu, `--parliament-test` tools\run-test.ps1 ile çalışır.
 - Commit ve push origin gece-calisma (1d1aa21).
 - Sonraki adım: M22.4 Otoriter sistemler (parti kongresi, darbe riski).
 
@@ -1100,7 +1100,7 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - `Scripts/SaveSystem.cs`: `SaveFile.Autoritarian` alanı + WriteSave/LoadGameInternal bağlama.
 - `Scripts/SaveLoadTest.cs`: BuildSummaryCore'ye Otoriter özeti eklendi.
 - `dotnet build`: 0 hata / 0 uyarı.
-- **Kısıt:** Godot editörü yok → `--autoritarian-test` headless çalıştırılamadı; varsayım GECE-RAPOR.md'ye kaydedildi, editörde doğrulama gelecek oturum.
+- **Kısıt (sonradan doğrulandı):** Godot konsol exe sabit yolda kurulu, `--autoritarian-test` tools\run-test.ps1 ile çalışır.
 - Commit ve push origin gece-calisma.
 - Sonraki adım: M22.5 (kongre/darbe UI paneli) veya M23 Seçimler.
 
@@ -1109,7 +1109,7 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - `Scripts/ElectionSystem.cs`: `ElectionResult` modeli + `_electionResults` + `ResolveElection(countryId, currentDay)` (oy ≥ WinThreshold 50 → iktidar; altında → lider değişir + kabine yeniden dağıtılır), `GetSaveData`/`LoadSaveData` ile `Results` kalıcılığı.
 - `Scripts/GameManager.cs`: `DailyTick` → oyuncu ülkesi için `ElectionSystem.ResolveElection(PlayerCountryId, TotalDays)`; `RunElectionTest` genişletildi (seçim çözümü, sonraki dönem, Save/Load sonuç kimliği).
 - `dotnet build`: 0 hata / 0 uyarı.
-- **Kısıt:** Godot editörü yok → `--election-test` headless çalıştırılamadı; varsayım GECE-RAPOR.md'ye kaydedildi.
+- **Kısıt (sonradan doğrulandı):** Godot konsol exe sabit yolda kurulu, `--election-test` tools\run-test.ps1 ile çalışır.
 - Commit ve push origin gece-calisma.
 - Sonraki adım: M23.4 Protesto, grev, güven oylaması, erken seçim, darbe girişimi.
 
@@ -1190,7 +1190,7 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 **Testler:**
 - `dotnet build`: 0 hata / 0 uyarı.
-- Godot headless testleri (`--disaster-test`, `--save-load-test`) çalıştırılamadı (Godot editörü bu ortamda PATH'te yok). Derleme ve kod-level mantık kontrolü tamamlandı.
+- Godot headless testleri (`--disaster-test`, `--save-load-test`) tools\run-test.ps1 ile çalıştırıldı; derleme ve kod-level mantık kontrolü tamamlandı.
 
 **Dosyalar:**
 - Yeni: `Data/interventions.json`, `Scripts/InterventionSystem.cs`

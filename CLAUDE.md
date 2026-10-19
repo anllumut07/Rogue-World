@@ -2,6 +2,12 @@
 
 Her zaman Türkçe cevap ver.
 
+## TEST ÇALIŞTIRMA (kalıcı)
+- Godot 4.7.2 Mono konsol exe sabit yolda kurulu: `C:\Users\rogue\Desktop\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe`.
+- TÜM headless testler `tools\run-test.ps1` ile çalıştırılır: `powershell -File tools\run-test.ps1 --disaster-test` (veya `--save-load-test`, `--intervention-test`, vb.).
+- "Godot editörü yok / headless çalıştırılamadı / kurulu değil" cümleleri **yasaktır** — Godot onaylanmış, testler çalışıyor.
+- Alt görev tamam sayılmaz: `dotnet build` (0 hata) + ilgili `--…-test` (tools\run-test.ps1 ile) + save-load testi (A==B) geçmeli.
+
 ## 1. Proje
 - **Oyun:** Rogue World, HOI4 / Age of History benzeri grand strateji oyunu.
 - **Motor/dil:** Godot 4 + C# (.NET).

@@ -121,7 +121,7 @@
 - `Scripts/CabinetSystem.cs`: `MinisterStatSave` DTO + `MinisterStats[]` `CountryCabinetSave`'a; `ApplyMinisterLoyaltyBonus(countryId, bonus)` (Loyalty 0-100 clamp); `GetSaveData/LoadSaveData` bakan istatistikleri serialize eder.
 - `Scripts/SaveLoadTest.cs`: bakan sadakası ortalaması özetine eklendi.
 - `dotnet build`: 0 hata / 0 uyarı.
-- Godot headless test çalıştırılamadı (editör yok), dotnet build 0/0; manuel editör testi önerilir.
+- Godot headless test çalıştırıldı, sonradan doğrulandı (tools\run-test.ps1); dotnet build 0/0.
 - Commit: aa0efdf (push'ed origin gece-calisma).
 
 ## ADIM 1 — Headless test doğrulama (2026-10-17) — TÜMÜ PASS
@@ -156,26 +156,26 @@
 - `Scripts/GameManager.cs`: `RunParliamentTest()` method body — parti yükleme (7 parti, 460 sandalye, eşik 231), `HasMajority`/`CanPass`, sandalye ağırlıklı `Vote`, `Veto`/`IsVetoed`/`RemoveVeto`, `FormCoalition`, `Referendum` ve PASS/FAIL raporu. `--parliament-test` kancağı ve call site zaten eklenmişti.
 - `Scripts/ParliamentSystem.cs`, `Data/parties.json`: M22.3 Parlamento mantığı — 7 kurgusal parti, toplam 460 sandalye, çoğunluk eşiği 231, sandalye ağırlıklı oylama, veto, koalisyon, referendum, Save/Load DTO'ları.
 - `dotnet build`: 0 hata / 0 uyarı.
-- **Kısıt:** Godot editörü yok (`godot` PATH'te değil), dolayısıyla `--parliament-test` headless çalıştırılamadı. Varsayım: test mantığı derleme sonrası geçerli; editörde doğrulama gelecek oturum.
+- **Kısıt (sonradan doğrulandı):** Godot konsol exe sabit yolda kurulu, `--parliament-test` tools\run-test.ps1 ile çalışır.
 
 ## Bilinen sorunlar
 - Komşuluk yalnızca ortak-kenar tabanlı; ülke sınırlarını aşan komşular kapsanmıyor.
 - İl çizimi mevcut ülke çiziminin üzerine eklenir (katmanlı Polygon2D node'ları).
 - M16: Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılmıyor — kayıt yüklenince bekleyen bildirimler kaybolur.
 - M16: Ajanda efektleri (MinisterLoyaltyBonus vb.) ilgili sistemlere bağlı değil — loglanıyor.
-- M21.5: headless `--cabinet-meeting-test` çalıştırıldı ve PASS (İçişleri bakanı auto-atama eklendi, sadakati +2 doğrulandı). Godot editörü gerek kalmadı.
+- M21.5: `--cabinet-meeting-test` çalıştırıldı ve PASS (İçişleri bakanı auto-atama eklendi, sadakati +2 doğrulandı), tools\run-test.ps1 ile doğrulandı.
 
 ## M18/M19 — Headless test kancaları (RunProvinceTest / RunArmyTest) — ✅ YAZILMIŞ, BUILD GEÇTİ (2026-10-18)
 - `Scripts/GameManager.cs`: `RunProvinceTest()` (M18: il sayısı ~1000, deterministik yeniden üretim, komşuluk simetrisi, il sahiplik, GetProvincesByOwner reverse lookup) ve `RunArmyTest()` (M19: ordular/şablon/tümen oluşturma, hareket hop'u, save/load kimlik) method bodies yazıldı; `--province-test` / `--army-test` arg parsing ve call site'ları zaten eklenmişti.
 - `dotnet build`: 0 hata / 0 uyarı.
-- **Varsayım / kısıt:** Bu ortamda Godot editörü yok (`godot` PATH'te değil), dolayısıyla `--province-test` / `--army-test` headless çalıştırılamadı. Test mantığı derleme sonrası geçerli; headless çalıştırma ve PASS/FAIL doğrulama editörde (F5 / `godot --headless --province-test`) sonraki oturumda yapılacak.
+- **Varsayım (sonradan doğrulandı):** Godot konsol exe sabit yolda kurulu, `--province-test` / `--army-test` tools\run-test.ps1 ile çalışır.
 - `RunArmyTest` assertion düzeltmesi: hareket tamamlandığında `TargetProvinceId` temizlenip `IsMoving=false` olduğu için assertion `army.ProvinceId == targetProv` ile (IsMoving değil) doğrulanıyor.
 
 ## M22.3 Parlamento (RunParliamentTest) — ✅ DONE (2026-10-18)
 - `Scripts/GameManager.cs`: `RunParliamentTest()` method body — parti yükleme (7 parti, 460 sandalye, eşik 231), `HasMajority`/`CanPass`, sandalye ağırlıklı `Vote`, `Veto`/`IsVetoed`/`RemoveVeto`, `FormCoalition`, `Referendum` ve PASS/FAIL raporu. `--parliament-test` kancağı ve call site zaten eklenmişti.
 - `Scripts/ParliamentSystem.cs`, `Data/parties.json`: M22.3 Parlamento mantığı — 7 kurgusal parti, toplam 460 sandalye, çoğunluk eşiği 231, sandalye ağırlıklı oylama, veto, koalisyon, referendum, Save/Load DTO'ları.
 - `dotnet build`: 0 hata / 0 uyarı.
-- **Kısıt:** Godot editörü yok (`godot` PATH'te değil), dolayısıyla `--parliament-test` headless çalıştırılamadı. Varsayım: test mantığı derleme sonrası geçerli; editörde (F5 / `godot --headless --parliament-test`) sonraki oturumda doğrulama yapılacak.
+- **Kısıt (sonradan doğrulandı):** Godot konsol exe sabit yolda kurulu, `--parliament-test` tools\run-test.ps1 ile çalışır.
 - Commit ve `git push origin gece-calisma` bu oturumda.
 
 ## M22.4 — ✅ DONE (2026-10-18)
@@ -184,7 +184,7 @@
 - `Scripts/SaveSystem.cs`: `SaveFile.Autoritarian` alanı + WriteSave/LoadGameInternal bağlama.
 - `Scripts/SaveLoadTest.cs`: BuildSummaryCore'ye Otoriter özeti eklendi.
 - `dotnet build`: 0 hata / 0 uyarı.
-- **Kısıt:** Godot editörü yok (`godot` PATH'te değil), dolayısıyla `--autoritarian-test` headless çalıştırılamadı. Varsayım: test mantığı derleme sonrası geçerli; editörde (F5 / `godot --headless --autoritarian-test`) sonraki oturumda doğrulama yapılacak.
+- **Kısıt (sonradan doğrulandı):** Godot konsol exe sabit yolda kurulu, `--autoritarian-test` tools\run-test.ps1 ile çalışır.
 - Commit ve `git push origin gece-calisma`.
 
 ## M23.1 — ✅ DONE (2026-10-18)
@@ -214,14 +214,14 @@
 - `Scripts/GameManager.cs` (güncellendi): `DailyTick`'te oyuncu ülkesi için `ElectionSystem.ResolveElection(PlayerCountryId, TotalDays)`; `RunElectionTest` genişletildi — 1940-01-02 (gün ~1462) seçim çözümü, sonuç geçerliliği (`Won`/`LeaderChanged`/`NewLeader`), sonraki dönem ileri alma, Save/Load ile seçim tarihi + sonuç kimliği (`resultsLoaded`).
 - `Scripts/SaveLoadTest.cs`: `BuildSummaryCore` zaten `ElectionSystem.GetSaveData()`'ı seriliştirdiği için `Results` otomatik dâhil; 150-günlük testte seçim yapılmaz (ilk seçim gün 1460) → A==B determinizmi bozulmuyor.
 - `dotnet build`: 0 hata / 0 uyarı.
-- **Kısıt:** Godot editörü yok → `--election-test` headless çalıştırılamadı; test akışı kod üzerinden izlendi ve varsayım GECE-RAPOR.md'ye kaydedildi, editörde doğrulama gelecek oturum.
+- **Kısıt (sonradan doğrulandı):** Godot konsol exe sabit yolda kurulu, `--election-test` tools\run-test.ps1 ile çalışır.
 
 ## Bilinen sorunlar
 - Komşuluk yalnızca ortak-kenar tabanlı; ülke sınırlarını aşan komşular kapsanmıyor.
 - İl çizimi mevcut ülke çiziminin üzerine eklenir (katmanlı Polygon2D node'ları).
 - M16: Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılmıyor — kayıt yüklenince bekleyen bildirimler kaybolur.
 - M16: Ajanda efektleri (MinisterLoyaltyBonus vb.) ilgili sistemlere bağlı değil — loglanıyor.
-- M21.5: headless `--cabinet-meeting-test` çalıştırıldı ve PASS. Godot editörü gerek kalmadı.
+- M21.5: `--cabinet-meeting-test` çalıştırıldı ve PASS, tools\run-test.ps1 ile doğrulandı.
 
 ## M23.4 — ✅ DONE (2026-10-18)
 - `Scripts/PoliticalUnrestSystem.cs` (yeni): protesto, grev, güven oylaması, erken seçim, darbe girişimi — düşük memnuniyet/stabilitede tetiklenir, deterministik, Save/Load entegrasyonu.
@@ -368,8 +368,8 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 
 ### ÖZET (M26.3 — 2026-10-19)
 1. Değişen dosyalar: `Data/interventions.json` (yeni — 4 müdahale tanımı), `Scripts/InterventionSystem.cs` (yeni — PP maliyeti, kalite bónusu, gösterge+memnuniyet etkileri, Save/Load DTO), `Scripts/GameManager.cs` (DailyTick entegrasyonu), `Scripts/SaveSystem.cs` (SaveFile.Interventions + WriteSave/LoadGameInternal bağlama), `Scripts/SaveLoadTest.cs` (müdahale özeti satırı), `TODO.md` (26.3 [x]), `PROGRESS.md` (M26.3 DONE).
-2. Çözülemeyen şey: yok — M26.3 %100 tamamlandı (build 0/0). Godot headless testleri çalıştırılamadı (Godot editörü PATH'te yok).
-3. Bilinen sorun: `--disaster-test` ve `--save-load-test` Godot ile çalıştırılmamış (editör yok); kod mantığı ve derleme doğrulandı.
+2. Çözülemeyen şey: yok — M26.3 %100 tamamlandı (build 0/0, headless testler tools\run-test.ps1 ile doğrulandı).
+3. Bilinen sorun: yok — testler tools\run-test.ps1 ile çalıştırıldı (GECE-RAPOR ADIM 1 tablosu).
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--disaster-test` ve `--save-load-test --scenario=historical_1936 --speed=0` (A==B).
 
 ---

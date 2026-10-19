@@ -217,6 +217,12 @@ public static class SaveLoadTest
         int disasterHistory = disasterSave?.History?.Length ?? 0;
         sb.AppendLine($"Afetler: aktif={disasterActive}, geçmiş_kayıt={disasterHistory}");
 
+        // --- M26.3: Müdahaleler ---
+        var interventionSave = InterventionSystem.GetSaveData();
+        int interventionActive = interventionSave?.Active?.Length ?? 0;
+        int interventionHistory = interventionSave?.History?.Length ?? 0;
+        sb.AppendLine($"Müdahaleler: aktif={interventionActive}, geçmiş_kayıt={interventionHistory}");
+
         // --- M20.2: Bütçe ---
         var budgetSave = BudgetSystem.GetSaveData();
         int budgetCountries = budgetSave?.Countries?.Length ?? 0;

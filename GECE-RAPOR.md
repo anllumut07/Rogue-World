@@ -366,6 +366,14 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 
 ---
 
+### ÖZET (M26.3 — 2026-10-19)
+1. Değişen dosyalar: `Data/interventions.json` (yeni — 4 müdahale tanımı), `Scripts/InterventionSystem.cs` (yeni — PP maliyeti, kalite bónusu, gösterge+memnuniyet etkileri, Save/Load DTO), `Scripts/GameManager.cs` (DailyTick entegrasyonu), `Scripts/SaveSystem.cs` (SaveFile.Interventions + WriteSave/LoadGameInternal bağlama), `Scripts/SaveLoadTest.cs` (müdahale özeti satırı), `TODO.md` (26.3 [x]), `PROGRESS.md` (M26.3 DONE).
+2. Çözülemeyen şey: yok — M26.3 %100 tamamlandı (build 0/0). Godot headless testleri çalıştırılamadı (Godot editörü PATH'te yok).
+3. Bilinen sorun: `--disaster-test` ve `--save-load-test` Godot ile çalıştırılmamış (editör yok); kod mantığı ve derleme doğrulandı.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--disaster-test` ve `--save-load-test --scenario=historical_1936 --speed=0` (A==B).
+
+---
+
 ### ÖZET (M26.1 — 2026-10-19)
 1. Değişen dosyalar: `Data/disasters.json` (yeni), `Scripts/DisasterSystem.cs` (yeni), `Scripts/GameManager.cs` (DailyTick + test modu kancağı), `Scripts/SaveSystem.cs` (SaveFile.Disasters), `Scripts/SaveLoadTest.cs` (afet özeti), `Scripts/ScenarioSystem.cs` (ResetForScenario), `TODO.md` (26.1 [x]), `PROGRESS.md` (M26.1 DONE).
 2. Çözülemeyen şey: yok — M26.1 %100 tamamlandı (build 0/0, disaster-test PASS, save-load-test A==B).

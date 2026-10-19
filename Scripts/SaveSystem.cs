@@ -83,6 +83,7 @@ public static class SaveSystem
         public MilitaryCareerSystem.MilitaryCareerSave MilitaryCareer { get; set; } // M25.2: asker kariyer durumu
         public EducationSystem.EducationSave Education { get; set; } // M25.3: eğitim modül durumu
         public DisasterSystem.DisasterSave Disasters { get; set; } // M26.1: afetler (aktif + geçmiş kayıt)
+        public InterventionSystem.InterventionSave Interventions { get; set; } // M26.3: müdahaleler (aktif + geçmiş kayıt)
     }
 
     // ===== Economy DTOs =====
@@ -430,6 +431,7 @@ public static class SaveSystem
             MilitaryCareer = MilitaryCareerSystem.GetSaveData(), // M25.2: asker kariyer durumu
             Education = EducationSystem.GetSaveData(), // M25.3: eğitim modül durumu
             Disasters = DisasterSystem.GetSaveData(), // M26.1: afetler (aktif + geçmiş kayıt)
+            Interventions = InterventionSystem.GetSaveData(), // M26.3: müdahaleler (aktif + geçmiş kayıt)
         };
 
         EnsureSavesDir();
@@ -580,6 +582,9 @@ public static class SaveSystem
 
             // M26.1: afetler — kayıtta varsa geri yüklenir
             DisasterSystem.LoadSaveData(save.Disasters);
+
+            // M26.3: müdahaleler — kayıtta varsa geri yüklenir
+            InterventionSystem.LoadSaveData(save.Interventions);
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

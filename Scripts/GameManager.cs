@@ -538,6 +538,10 @@ public partial class GameManager : Node
         // M26.1: Afet günlük tick'i — bölgeye özel olasılık/şiddet, gösterge şokları.
         DisasterSystem.DailyTick();
 
+        // M26.3: Müdahale günlük tick'i — acil yardım / yeniden inşa / tahliye / uluslararası yardım;
+        // gösterge etkileri expires olur, memnuniyet artışları seçime akar.
+        InterventionSystem.DailyTick();
+
         // M20.2: Bütçe günlük tick'i (gelir/harcama/açık/borç/faiz + göstergelere yansıma)
         BudgetSystem.DailyTick();
 

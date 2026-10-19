@@ -1,0 +1,52 @@
+{
+  "Interventions": [
+    {
+      "Id": "emergency_aid",
+      "Name": "Emergency Aid",
+      "Type": "EmergencyAid",
+      "CostPP": 20,
+      "DurationDays": 3,
+      "RelevantMinistryId": "interior",
+      "ManagementQualityStat": "Honesty",
+      "Description": "Immediate relief supplies and medical aid to the affected population.",
+      "IndicatorEffects": { "health": 1.0, "population": 0.5 },
+      "SatisfactionBoosts": { "workers": 3.0, "urban": 3.0 }
+    },
+    {
+      "Id": "international_aid",
+      "Name": "International Aid",
+      "Type": "InternationalAid",
+      "CostPP": 10,
+      "DurationDays": 5,
+      "RelevantMinistryId": "foreign",
+      "ManagementQualityStat": "Loyalty",
+      "Description": "Request aid from friendly nations and international organizations.",
+      "IndicatorEffects": { "gdp": 1.0, "health": 0.5 },
+      "SatisfactionBoosts": { "business": 2.0 }
+    },
+    {
+      "Id": "reconstruction",
+      "Name": "Reconstruction",
+      "Type": "Reconstruction",
+      "CostPP": 40,
+      "DurationDays": 7,
+      "RelevantMinistryId": "economy",
+      "ManagementQualityStat": "Skill",
+      "Description": "Rebuild damaged infrastructure and restore economic activity.",
+      "IndicatorEffects": { "gdp": 2.0, "environment": 1.0 },
+      "SatisfactionBoosts": { "workers": 2.0, "business": 2.0 }
+    },
+    {
+      "Id": "evacuation",
+      "Name": "Evacuation",
+      "Type": "Evacuation",
+      "CostPP": 30,
+      "DurationDays": 2,
+      "RelevantMinistryId": "interior",
+      "ManagementQualityStat": "Skill",
+      "Description": "Move civilians out of the danger zone to reduce casualties.",
+      "IndicatorEffects": { "population": 1.0, "health": 0.5 },
+      "SatisfactionBoosts": { "rural": 4.0, "urban": 2.0 }
+    }
+  ]
+}

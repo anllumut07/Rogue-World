@@ -1174,3 +1174,26 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Değiştirilen: `Scripts/DisasterSystem.cs`
 
 **Sonraki adım:** M26.3 (Müdahale: acil yardım, uluslararası yardım, yeniden inşa, tahliye).
+
+### M26.3: Müdahale Sistemi — ✅ DONE (2026-10-19)
+
+**Değişiklikler:**
+- `Data/interventions.json` (yeni, önceki oturum): 4 müdahale tanımı — emergency_aid (Interior/Honesty, health+population, workers+urban), international_aid (Foreign/Loyalty, gdp+health, business), reconstruction (Economy/Skill, gdp+environment, workers+business), evacuation (Interior/Skill, population+health, rural+urban). Her biri: Id/Name/Type/CostPP/DurationDays/RelevantMinistryId/ManagementQualityStat/Description/IndicatorEffects/SatisfactionBoosts.
+- `Scripts/InterventionSystem.cs` (yeni): static sınıf ~220 satır. InterventionDefinition/ActiveIntervention/InterventionRecord/InterventionSave DTO'ları. `EnsureLoaded` (Data/interventions.json parse, `IncludeFields` + `EnumerateObject`), `LoadScenarioData`/`ResetForScenario`/`ResetForNewGame`, `DailyTick` (aktif müdahale süresi azaltma + gösterge etkilerinin `DurationDays` boyunca doğrusal expires olması — afet iyileşmesinin tam tersi), `CanApply` (ülke geçerli, annex değil, PP yeterli), `ApplyIntervention` (PP düşür, ilgili bakanın ManagementQualityStat'ına göre kalite bónusu `(stat-50)/100 → çarpan 0.5-1.5`, gösterge + memnuniyet etkilerini kalite bónulu uygula, aktif+geçmiş kaydı), `GetSaveData`/`LoadSaveData` (aktif + geçmiş), public API `Definitions`/`ActiveInterventions`/`InterventionHistory`.
+- `Scripts/GameManager.cs` (güncellendi): `InterventionSystem.DailyTick()` DailyTick'te `DisasterSystem.DailyTick()` sonraya eklendi (göstergeler ve memnuniyet seçime gitmeden önce güncellenir).
+- `Scripts/SaveSystem.cs` (güncellendi): `public InterventionSystem.InterventionSave Interventions { get; set; }` SaveFile'de; `Interventions = InterventionSystem.GetSaveData()` (WriteSave); `InterventionSystem.LoadSaveData(save.Interventions)` (LoadGameInternal).
+- `Scripts/SaveLoadTest.cs` (güncellendi): `BuildSummaryCore`'e "Müdahaleler: aktif=X, geçmiş_kayıt=Y" satırı eklendi.
+
+**Kalite bónusu mantığı:** İlgili bakanlık atanmamışsa bónus=0 (çarpan=1.0). Atanmışsa bakanın Skill/Honesty/Loyalty/Popularity stat'ına göre `(stat-50)/100` → etki çarpanı 0.5...1.5. Yüksek kalite = daha güçlü gösterge/memnuniyet etkisi.
+
+**Memnuniyet → seçim zinciri:** SatisfactionBoosts doğrudan PublicSatisfactionSystem.SetSatisfaction'e yazar → ElectionSystem.ResolveElection'in oy tahmininde (maksimum grup memnuniyeti ortalaması) yansıır → seçim sonucu değişebilir.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- Godot headless testleri (`--disaster-test`, `--save-load-test`) çalıştırılamadı (Godot editörü bu ortamda PATH'te yok). Derleme ve kod-level mantık kontrolü tamamlandı.
+
+**Dosyalar:**
+- Yeni: `Data/interventions.json`, `Scripts/InterventionSystem.cs`
+- Değiştirilen: `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`
+
+**Sonraki adım:** M26.4 (Beklenmedik olaylar: finansal kriz, terör, siber saldırı, vb.).

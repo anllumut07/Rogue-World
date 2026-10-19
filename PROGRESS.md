@@ -1269,4 +1269,20 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Dosyalar:**
 - Değiştirilen: `Scripts/DiplomacySystem.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/GameManager.cs`.
 
-**Sonraki adım:** M27.3 Basın toplantısı, TV konuşması, miting; ton seçimi (sert/uzlaşmacı/popülist).
+### M27.3: Basın Toplantısı, TV Konuşması, Miting — ✅ DONE (2026-10-19)
+
+**Değişiklikler:**
+- `Scripts/DiplomacySystem.cs`: `PressEvent` modeli (enum Type: PressConference/TVSpeech/Rally; enum Tone: Hardline/Conciliatory/Populist; CountryId/EventType/Tone/Day/RelationDelta/TensionEffect/StabilityEffect/WarSupportEffect/Success/EffectText); `_pressEvents` listesi ve `PressEvents` property; `HoldPressEvent(countryId, type, tone)` — ton bazlı taban etkiler + tür katsayısı (PressConference 1.0, TVSpeech 1.2, Rally 1.3); deterministik başarı/geri-etki (%80 başarı, DeterministicRNG.NextBool(0.8)); geri-etki'de pozitifler ters çevrilir/negatifler şiddetlenir; tüm diğer ülkelere iki yönlü `ModifyRelation`; Stability/WarSupport 0-100 clamp; tension artırılır; kayıt + GD.Print log; `GetSaveData`/`LoadSaveData` PressEvents alanına eklendi. (`enum Tone` / `ToneValue` çakışması düzeltildi → `ToneValue` property).
+- `Scripts/SaveSystem.cs`: `DiplomacySave.PressEvent[] PressEvents` DTO eklendi.
+- `Scripts/SaveLoadTest.cs`: BuildSummaryCore Diplomasi özetine basın etkinliği sayısı eklendi (A==B karşılaştırmasında görünür).
+- `Scripts/GameManager.cs`: `--press-test` arg parsing; `RunPressTest()` — GER, hedef ülke, 3 (tür,ton) kombinasyonu denenir, ilişki/istikrar/savaş desteği/tension değişimi doğrulanır, 3+ etkinlik kaydı kontrol edilir, herhangi bir göstergede değişiklik kontrol edilir; `GetTree().Quit(pass?0:1)`.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--press-test`: **SONUÇ: PASS ✓** (test-logs/press_test.log).
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** (test-logs/save_load_test.log) — DiplomacyState (basın etkinlikleri dahil) kaydedilir/yükler, determinizm korunuyor.
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/DiplomacySystem.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/GameManager.cs`.
+
+**Sonraki adım:** M27.4 Yaptırımlar ve Ticaret Savaşları (verme/alma).

@@ -441,3 +441,17 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 
 **Sonraki adım:** M27.3 Basın toplantısı, TV konuşması, miting; ton seçimi (sert/uzlaşmacı/popülist).
 
+## M27.3: Basın Toplantısı, TV Konuşması, Miting — ✅ DONE (2026-10-19)
+- `Scripts/DiplomacySystem.cs`: `PressEvent` modeli (Type: PressConference/TVSpeech/Rally; Tone: Hardline/Conciliatory/Populist), `HoldPressEvent` (ton bazlı taban etkiler × tür katsayısı, deterministik %80 başarı/geri-etki, tüm diğer ülkelere iki yönlü ModifyRelation, Stability/WarSupport 0-100 clamp, tension artırılır), `_pressEvents` kaydı + `PressEvents` property, `GetSaveData`/`LoadSaveData`. `enum Tone` / `Tone` property çakışması düzeltildi → property `ToneValue`.
+- `Scripts/SaveSystem.cs`: `DiplomacySave.PressEvent[] PressEvents` DTO.
+- `Scripts/SaveLoadTest.cs`: BuildSummaryCore Diplomasi özetine basın etkinliği sayısı eklendi.
+- `Scripts/GameManager.cs`: `--press-test` + `RunPressTest()` (GER, 3 (tür,ton) kombinasyonu, ilişki/istikrar/savaş desteği/tension değişimi, 3+ kayıt kontrolü).
+- `dotnet build`: 0 hata / 0 uyarı. `--press-test`: **PASS ✓**. `--save-load-test`: **PASS ✓ (A == B)**.
+- Commit ve `git push origin gece-calisma` (bu oturumda).
+
+### ÖZET (M27.3 — 2026-10-19)
+1. Değişen dosyalar: `Scripts/DiplomacySystem.cs` (PressEvent modeli, HoldPressEvent, ToneValue düzeltmesi), `Scripts/SaveSystem.cs` (PressEvents DTO), `Scripts/SaveLoadTest.cs` (basın sayısı özeti), `Scripts/GameManager.cs` (--press-test + RunPressTest).
+2. Çözülemeyen şey: yok — M27.3 %100 tamamlandı (build 0/0, press-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--press-test` ve `--save-load-test` (A==B).
+

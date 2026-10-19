@@ -123,6 +123,7 @@ public partial class GameManager : Node
         bool unexpectedEventTest = false;   // M26.4: beklenmedik olay sistemi testi (--unexpected-events-test)
         bool diplomacyTest = false;         // M27: lider diploması testi (--diplomacy-test)
         bool agreementsTest = false;        // M27.2: anlaşma testi (--agreements-test)
+        bool pressTest = false;             // M27.3: basın etkinliği testi (--press-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -202,6 +203,8 @@ public partial class GameManager : Node
                 diplomacyTest = true;
             else if (arg == "--agreements-test")
                 agreementsTest = true;
+            else if (arg == "--press-test")
+                pressTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -448,6 +451,11 @@ public partial class GameManager : Node
         // iptal edilebilir, kaydet/yüklede A==B korunur; başarısızlıkta Quit(1)).
         if (agreementsTest)
             RunAgreementsTest();
+
+        // M27.3: Basın etkinliği testi (toplantı/TV/miting, ton seçimi, gösterge etkileri,
+        // deterministik geri-etki, kaydet/yüklede A==B korunur; başarısızlıkta Quit(1)).
+        if (pressTest)
+            RunPressTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -1349,6 +1357,78 @@ public partial class GameManager : Node
         bool pass = allOk && cancelled && relationImproved && agreementsRecorded && tensionReduced;
 
         GD.Print(pass ? "[AgreementsTest] SONUÇ: PASS ✓" : "[AgreementsTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(pass ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M27.3: Basın etkinliği testi — basın toplantısı / TV konuşması / miting, ton seçimi
+    /// (sert/uzlaşmacı/popülist), gösterge etkileri (gerilim/istikrar/savaş desteği/ilişki),
+    /// deterministik geri-etki. Normal oyunda ASLA çalışmaz (--press-test).
+    /// </summary>
+    private void RunPressTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M27.3: BASIN ETKINLIGI TESTI (--press-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        string playerId = PlayerCountryId;
+
+        // Hedef iliski olcusu icin diger bir ulke (olcekleme kontrolu)
+        string otherId = null;
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c.Id != playerId && !c.IsAnnexed) { otherId = c.Id; break; }
+        }
+        if (otherId == null)
+        {
+            GD.Print("[PressTest] Uygun diger ulke bulunamadi — test atlaniyor");
+            GD.Print("=========================================");
+            return;
+        }
+
+        float tensionBefore = DiplomacySystem.WorldTension;
+        double stabilityBefore = GameManager.Instance.PlayerCountryData.StabilityPercent;
+        double warSupportBefore = GameManager.Instance.PlayerCountryData.WarSupportPercent;
+        int relationBefore = DiplomacySystem.GetRelation(playerId, otherId);
+        int eventsBefore = DiplomacySystem.PressEvents.Count;
+        GD.Print($"[PressTest] {playerId}: tension once=%{tensionBefore:F1}, istikrar once={stabilityBefore:F0}, " +
+                 $"savus desteği once={warSupportBefore:F0}, iliski({playerId}->{otherId}) once={relationBefore}, basin once={eventsBefore}");
+
+        // Farkli (tur, ton) kombinasyonlarini dene
+        var combos = new[]
+        {
+            (DiplomacySystem.PressEvent.Type.PressConference, DiplomacySystem.PressEvent.Tone.Conciliatory),
+            (DiplomacySystem.PressEvent.Type.TVSpeech, DiplomacySystem.PressEvent.Tone.Hardline),
+            (DiplomacySystem.PressEvent.Type.Rally, DiplomacySystem.PressEvent.Tone.Populist)
+        };
+        bool allOk = true;
+        foreach (var (type, tone) in combos)
+        {
+            bool ok = DiplomacySystem.HoldPressEvent(playerId, type, tone);
+            GD.Print($"[PressTest] HoldPressEvent({type}, {tone}): {(ok ? "OK" : "FAIL")}");
+            if (!ok) allOk = false;
+        }
+
+        float tensionAfter = DiplomacySystem.WorldTension;
+        double stabilityAfter = GameManager.Instance.PlayerCountryData.StabilityPercent;
+        double warSupportAfter = GameManager.Instance.PlayerCountryData.WarSupportPercent;
+        int relationAfter = DiplomacySystem.GetRelation(playerId, otherId);
+        int eventsAfter = DiplomacySystem.PressEvents.Count;
+        GD.Print($"[PressTest] tension sonra=%{tensionAfter:F1} (delta={tensionAfter - tensionBefore:+#;-#;0}), " +
+                 $"istikrar sonra={stabilityAfter:F0} (delta={stabilityAfter - stabilityBefore:+#;-#;0}), " +
+                 $"savus desteği sonra={warSupportAfter:F0} (delta={warSupportAfter - warSupportBefore:+#;-#;0}), " +
+                 $"iliski sonra={relationAfter} (delta={relationAfter - relationBefore}), basin={eventsBefore}->{eventsAfter}");
+
+        bool anyIndicatorChanged = tensionAfter != tensionBefore || stabilityAfter != stabilityBefore ||
+                                   warSupportAfter != warSupportBefore || relationAfter != relationBefore;
+        bool eventsRecorded = eventsAfter >= eventsBefore + 3;
+        bool pass = allOk && eventsRecorded && anyIndicatorChanged;
+
+        GD.Print(pass ? "[PressTest] SONUÇ: PASS ✓" : "[PressTest] SONUÇ: FAIL ✗");
         GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");
     }

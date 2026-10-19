@@ -114,6 +114,29 @@ public static class DiplomacySystem
         public string Key => $"{CountryA}-{CountryB}-{AgreementType}";
     }
 
+    /// <summary>
+    /// M27.3: Tek ülkeden yapılmış basın toplantısı / TV konuşması / miting.
+    /// Ton (sert/uzlaşmacı/popülist) ve etkinlik türüne bağlı olarak dünya gerilimi,
+    /// istikrar, savaş desteği ve diğer ülkelere olan ilişkileri değiştirir;
+    /// deterministik geri-etki riski bulunur.
+    /// </summary>
+    public class PressEvent
+    {
+        public enum Type { PressConference, TVSpeech, Rally }
+        public enum Tone { Hardline, Conciliatory, Populist }
+
+        public string CountryId { get; set; }
+        public Type EventType { get; set; }
+        public Tone ToneValue { get; set; }
+        public int Day { get; set; }           // Oyun günü (GM.TotalDays)
+        public int RelationDelta { get; set; } // Diğer tüm ülkelere uygulanan iki yönlü olmayan genel etki
+        public float TensionEffect { get; set; }
+        public int StabilityEffect { get; set; }
+        public int WarSupportEffect { get; set; }
+        public bool Success { get; set; }      // false = geri-etki (backfire)
+        public string EffectText { get; set; } // İnsan okunabilir özet
+    }
+
     // ===== Sabitler =====
     private const int MaxRelation = 100;
     private const int MinRelation = -100;
@@ -134,6 +157,7 @@ public static class DiplomacySystem
     private static readonly List<DiplomaticAction> _pendingActions = new();
     private static readonly List<DiplomacyMeeting> _meetings = new(); // M27.1: geçmiş görüşmalar
     private static readonly List<Agreement> _agreements = new();      // M27.2: imzalanmış anlaşmalar
+    private static readonly List<PressEvent> _pressEvents = new();    // M27.3: basın toplantısı / TV konuşması / miting
     private static float _worldTension = 0f;
 
     private static GameManager GM => GameManager.Instance;
@@ -881,6 +905,105 @@ public static class DiplomacySystem
     public static List<Agreement> GetActiveAgreementsFor(string countryId) =>
         _agreements.Where(x => x.Active && (x.CountryA == countryId || x.CountryB == countryId)).ToList();
 
+    // ===== M27.3: Basın toplantısı / TV konuşması / miting =====
+
+    public static IReadOnlyList<PressEvent> PressEvents => _pressEvents;
+
+    /// <summary>Ülke lideri bir basın etkinliği düzenler; ton ve türe bağlı göstergelere etki eder.</summary>
+    public static bool HoldPressEvent(string countryId, PressEvent.Type type, PressEvent.Tone tone)
+    {
+        var country = CountryDatabase.Get(countryId);
+        if (country == null || country.IsAnnexed) return false;
+
+        // Ton bazlı taban etkiler (İngilizce UI etiketleri, Türkçe yorum)
+        int relationDelta = tone switch
+        {
+            PressEvent.Tone.Hardline => -5,
+            PressEvent.Tone.Conciliatory => +6,
+            PressEvent.Tone.Populist => -8,
+            _ => 0
+        };
+        float tensionEffect = tone switch
+        {
+            PressEvent.Tone.Hardline => +6f,
+            PressEvent.Tone.Conciliatory => -4f,
+            PressEvent.Tone.Populist => +3f,
+            _ => 0f
+        };
+        int stabilityEffect = tone switch
+        {
+            PressEvent.Tone.Hardline => -4,
+            PressEvent.Tone.Conciliatory => +3,
+            PressEvent.Tone.Populist => +7,
+            _ => 0
+        };
+        int warSupportEffect = tone switch
+        {
+            PressEvent.Tone.Hardline => +8,
+            PressEvent.Tone.Conciliatory => -2,
+            PressEvent.Tone.Populist => +6,
+            _ => 0
+        };
+
+        // Tür katsayısı (miting en public / en güçlü etki)
+        float typeMult = type switch
+        {
+            PressEvent.Type.PressConference => 1.0f,
+            PressEvent.Type.TVSpeech => 1.2f,
+            PressEvent.Type.Rally => 1.3f,
+            _ => 1.0f
+        };
+
+        relationDelta = (int)Math.Round(relationDelta * typeMult);
+        tensionEffect = (float)Math.Round(tensionEffect * typeMult, 1);
+        stabilityEffect = (int)Math.Round(stabilityEffect * typeMult);
+        warSupportEffect = (int)Math.Round(warSupportEffect * typeMult);
+
+        // Deterministik başarı / geri-etki (%80 başarı)
+        bool success = DeterministicRNG.NextBool(0.8);
+        if (!success)
+        {
+            // Geri-etki: pozitifler ters çevrilir, negatifler şiddetlenir
+            relationDelta = -Math.Abs(relationDelta) - 4;
+            tensionEffect += 4f;
+            stabilityEffect -= 6;
+            warSupportEffect = -Math.Abs(warSupportEffect);
+        }
+
+        // Diğer tüm ülkelere genel ilişki etkisi (tek yönlü, ülke -> diğerleri)
+        foreach (var other in CountryDatabase.All())
+        {
+            if (other.Id == countryId || other.IsAnnexed) continue;
+            ModifyRelation(countryId, other.Id, relationDelta);
+        }
+
+        // Gösterge etkileri (0-100 clamp)
+        country.StabilityPercent = Math.Clamp(country.StabilityPercent + stabilityEffect, 0, 100);
+        country.WarSupportPercent = Math.Clamp(country.WarSupportPercent + warSupportEffect, 0, 100);
+        if (tensionEffect != 0f) IncreaseTension(tensionEffect);
+
+        string effectText = success
+            ? $"Success ({tone}): relation {relationDelta:+#;-#;0}, tension {tensionEffect:+#;-#;0}, stability {stabilityEffect:+#;-#;0}, war support {warSupportEffect:+#;-#;0}"
+            : $"BACKFIRE ({tone}): relation {relationDelta:+#;-#;0}, tension {tensionEffect:+#;-#;0}, stability {stabilityEffect:+#;-#;0}, war support {warSupportEffect:+#;-#;0}";
+
+        _pressEvents.Add(new PressEvent
+        {
+            CountryId = countryId,
+            EventType = type,
+            ToneValue = tone,
+            Day = GM?.TotalDays ?? 0,
+            RelationDelta = relationDelta,
+            TensionEffect = tensionEffect,
+            StabilityEffect = stabilityEffect,
+            WarSupportEffect = warSupportEffect,
+            Success = success,
+            EffectText = effectText
+        });
+
+        GD.Print($"[Diplomacy] Press event: {countryId} ({type}, {tone}, day {GM?.TotalDays}, success={success}) — {effectText}");
+        return true;
+    }
+
     // ===== Yardımcı metodlar =====
 
     private static bool CanDoDiplomacy(string targetId, out CountryData target)
@@ -1000,7 +1123,8 @@ public static class DiplomacySystem
             MilitaryAccess = _militaryAccess.ToArray(),
             NavalAccess = _navalAccess.ToArray(),
             Meetings = _meetings.ToArray(),
-            Agreements = _agreements.ToArray()
+            Agreements = _agreements.ToArray(),
+            PressEvents = _pressEvents.ToArray()
         };
     }
 
@@ -1038,6 +1162,11 @@ public static class DiplomacySystem
         if (data.Agreements != null)
             foreach (var a in data.Agreements) _agreements.Add(a);
 
-        GD.Print($"DiplomacySystem: state yüklendi — Faksiyon={_factions.Count}, İlişki={_relations.Count}, Tension={_worldTension:F1}, Görüşme={_meetings.Count}, Anlaşma={_agreements.Count}");
+        // M27.3: basın etkinliği geçmişini geri yükle
+        _pressEvents.Clear();
+        if (data.PressEvents != null)
+            foreach (var p in data.PressEvents) _pressEvents.Add(p);
+
+        GD.Print($"DiplomacySystem: state yüklendi — Faksiyon={_factions.Count}, İlişki={_relations.Count}, Tension={_worldTension:F1}, Görüşme={_meetings.Count}, Anlaşma={_agreements.Count}, Basın={_pressEvents.Count}");
     }
 }

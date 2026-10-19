@@ -421,3 +421,23 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 
 -- Commit ve `git push origin gece-calisma` bu oturumda.
 
+
+## M27.1 — Lider Görüşması / Zirve — ✅ DONE (2026-10-19)
+- `Scripts/DiplomacySystem.cs`: `DiplomacyMeeting` modeli (Type: PhoneCall/BilateralMeeting/StateVisit/Summit), `HoldMeeting(hostId, targetId, type)` — baz etki Clamp((Diplomacy+Charisma)/20, 2, 8) × tür katsayısı (PhoneCall/Bilateral=1, StateVisit=2, Summit=3), sınır 1..15; iki yönlü `ModifyRelation`; Zirve tension -2, Devlet Ziyareti tension -1; `Meetings` kaydı + `Meetings` property; `GetSaveData`/`LoadSaveData`.
+- `Scripts/SaveSystem.cs`: `DiplomacySave.DiplomacyMeeting[] Meetings` DTO.
+- `Scripts/GameManager.cs`: `--diplomacy-test` + `RunDiplomacyTest()` (GER, 4 görüşme türü, ilişki artışı, 4+ kayıt, tension azaltma).
+- `dotnet build`: 0 hata / 0 uyarı. `--diplomacy-test`: **PASS ✓**. `--save-load-test`: **PASS ✓ (A == B)**.
+- Commit + `git push origin gece-calisma`.
+
+## M27.2 — Anlaşmalar (Ticaret, Savunma, Vize, Enerji, İklim) — ✅ DONE (2026-10-19)
+- `Scripts/DiplomacySystem.cs`: `Agreement` modeli (Type: Trade/Defense/Visa/Energy/Climate), `SignAgreement(countryA, countryB, type, durationDays)` — A<B sıralı kimlik, tür bazlı ilişki deltası (Ticaret 6, Savunma 8, Vize 4, Enerji 5, İklim 3), İklim tension -1, Savunma karşılıklı garanti; `CancelAgreement(id)`; `GetActiveAgreementsFor(countryId)`; `Agreements` property; `GetSaveData`/`LoadSaveData`.
+- `Scripts/SaveSystem.cs`: `DiplomacySave.DiplomacySystem.Agreement[] Agreements` DTO.
+- `Scripts/SaveLoadTest.cs`: BuildSummaryCore Diplomasi özetine anlaşma sayısı eklendi.
+- `Scripts/GameManager.cs`: `--agreements-test` + `RunAgreementsTest()` (GER, 5 anlaşma türü imzalı, 1 iptal, ilişki artışı, 5+ kayıt, tension azaltma, iptal doğrulama).
+- `dotnet build`: 0 hata / 0 uyarı. `--agreements-test`: **PASS ✓**. `--save-load-test`: **PASS ✓ (A == B)**.
+- Commit + `git push origin gece-calisma`.
+
+**Bilinen sorunlar:** yok (M27.1+M27.2 testleri ve A==B determinizm geçti).
+
+**Sonraki adım:** M27.3 Basın toplantısı, TV konuşması, miting; ton seçimi (sert/uzlaşmacı/popülist).
+

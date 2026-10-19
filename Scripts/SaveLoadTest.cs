@@ -182,7 +182,8 @@ public static class SaveLoadTest
         int factions = DiplomacySystem.Factions.Count;
         int relations = DiplomacySystem.Relations.Count;
         int guarantees = DiplomacySystem.Guarantees.Count;
-        sb.AppendLine($"Diplomasi: faksiyon={factions}, ilişki={relations}, garanti={guarantees}");
+        int agreements = DiplomacySystem.Agreements.Count;
+        sb.AppendLine($"Diplomasi: faksiyon={factions}, ilişki={relations}, garanti={guarantees}, anlaşma={agreements}");
 
         // --- M17A: Casus Belli ---
         int activeJustifications = CasusBelliSystem.Justifications.Count(j => !j.IsConsumed && j.BuildDaysLeft == 0 && j.UltimatumDaysLeft == 0);

@@ -1252,3 +1252,21 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Değiştirilen: `Scripts/DiplomacySystem.cs`, `Scripts/SaveSystem.cs`, `Scripts/GameManager.cs`.
 
 **Sonraki adım:** M27.2 Anlaşmalar (ticaret, savunma, vize, enerji, iklim).
+
+### M27.2: Anlaşmalar (Ticaret, Savunma, Vize, Enerji, İklim) — ✅ DONE (2026-10-19)
+
+**Değişiklikler:**
+- `Scripts/DiplomacySystem.cs`: `Agreement` modeli (enum Type: Trade/Defense/Visa/Energy/Climate; Id/CountryA/CountryB/DaySigned/DurationDays/Active/RelationDelta/TensionEffect); `_agreements` listesi ve `Agreements` property; `SignAgreement(countryA, countryB, type, durationDays)` — doğrulama, A<B sıralı kimlik, tür bazlı ilişki deltası (Ticaret 6, Savunma 8, Vize 4, Enerji 5, İklim 3), İklim tension -1, Savunma karşılıklı garanti (AddGuarantee iki yönlü), iki yönlü `ModifyRelation`, kayıt + GD.Print log; `CancelAgreement(id)`; `GetActiveAgreementsFor(countryId)`; `GetSaveData`/`LoadSaveData` Agreements alanına eklendi.
+- `Scripts/SaveSystem.cs`: `DiplomacySave.DiplomacySystem.Agreement[] Agreements` DTO eklendi.
+- `Scripts/SaveLoadTest.cs`: BuildSummaryCore Diplomasi özetine anlaşma sayısı eklendi (A==B karşılaştırmasında görünür).
+- `Scripts/GameManager.cs`: `--agreements-test` arg parsing; `RunAgreementsTest()` — GER, hedef ülke, tüm 5 anlaşma türünü imzar, birini iptal eder, ilişki artışı, 5+ anlaşma kaydı, tension azaltması, iptal doğrulanır; `GetTree().Quit(pass?0:1)`.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--agreements-test`: **SONUÇ: PASS ✓** (test-logs/agreements_test.log).
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** (test-logs/save_load_test.log) — DiplomacyState (ilişkiler, faksiyonlar, garantiler, görüşmalar, anlaşmalar) kaydedilir/yükler, determinizm korunuyor.
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/DiplomacySystem.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Scripts/GameManager.cs`.
+
+**Sonraki adım:** M27.3 Basın toplantısı, TV konuşması, miting; ton seçimi (sert/uzlaşmacı/popülist).

@@ -188,6 +188,7 @@ public static class SaveSystem
         public string[] MilitaryAccess { get; set; }
         public string[] NavalAccess { get; set; }
         public DiplomacySystem.DiplomacyMeeting[] Meetings { get; set; } // M27.1: görüşma geçmişi
+        public DiplomacySystem.Agreement[] Agreements { get; set; }       // M27.2: anlaşma geçmişi
     }
 
     // ===== Casus Belli DTOs (M17A) =====

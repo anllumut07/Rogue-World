@@ -93,6 +93,27 @@ public static class DiplomacySystem
         public float TensionEffect { get; set; } // Gerilim etkisi (negatif = azaltma)
     }
 
+    /// <summary>
+    /// M27.2: İki ülke arasında imzalanan kalıcı anlaşma (ticaret, savunma, vize, enerji, iklim).
+    /// İlişkiye ve türe bağlı diğer göstergelere süresiz veya süresi biter etki eder.
+    /// </summary>
+    public class Agreement
+    {
+        public enum Type { Trade, Defense, Visa, Energy, Climate }
+
+        public string Id { get; set; }           // "A-B-TYPE-Day" (sıralı A<B)
+        public Type AgreementType { get; set; }
+        public string CountryA { get; set; }
+        public string CountryB { get; set; }
+        public int DaySigned { get; set; }       // Oyun günü (GM.TotalDays)
+        public int DurationDays { get; set; }    // 0 = süresiz
+        public bool Active { get; set; } = true;
+        public int RelationDelta { get; set; }   // Uygulanan iki yönlü ilişki değişimi
+        public float TensionEffect { get; set; } // Gerilim etkisi (negatif = azaltma)
+
+        public string Key => $"{CountryA}-{CountryB}-{AgreementType}";
+    }
+
     // ===== Sabitler =====
     private const int MaxRelation = 100;
     private const int MinRelation = -100;
@@ -112,6 +133,7 @@ public static class DiplomacySystem
     private static readonly List<string> _navalAccess = new();        // "A->B"
     private static readonly List<DiplomaticAction> _pendingActions = new();
     private static readonly List<DiplomacyMeeting> _meetings = new(); // M27.1: geçmiş görüşmalar
+    private static readonly List<Agreement> _agreements = new();      // M27.2: imzalanmış anlaşmalar
     private static float _worldTension = 0f;
 
     private static GameManager GM => GameManager.Instance;
@@ -778,6 +800,87 @@ public static class DiplomacySystem
 
     public static IReadOnlyList<DiplomacyMeeting> Meetings => _meetings;
 
+    // ===== M27.2: Anlaşmalar (ticaret, savunma, vize, enerji, iklim) =====
+
+    public static IReadOnlyList<Agreement> Agreements => _agreements;
+
+    /// <summary>İki ülke arasında bir anlaşma imzalar ve etkilerini uygular.</summary>
+    public static bool SignAgreement(string countryA, string countryB, Agreement.Type type, int durationDays)
+    {
+        var a = CountryDatabase.Get(countryA);
+        var b = CountryDatabase.Get(countryB);
+        if (a == null || b == null || a.IsAnnexed || b.IsAnnexed || countryA == countryB)
+            return false;
+
+        // Aynı türde aktif anlaşma arasında tekrar imzalanmasın
+        if (_agreements.Any(x => x.Active &&
+             ((x.CountryA == countryA && x.CountryB == countryB) || (x.CountryA == countryB && x.CountryB == countryA)) &&
+             x.AgreementType == type))
+            return false;
+
+        // A<B sıralı kimlik
+        string first = string.Compare(countryA, countryB, StringComparison.Ordinal) < 0 ? countryA : countryB;
+        string second = string.Compare(countryA, countryB, StringComparison.Ordinal) < 0 ? countryB : countryA;
+        string id = $"{first}-{second}-{type}-{GM?.TotalDays ?? 0}";
+
+        // Tür bazlı etkiler
+        int relationDelta = type switch
+        {
+            Agreement.Type.Trade => 6,
+            Agreement.Type.Defense => 8,
+            Agreement.Type.Visa => 4,
+            Agreement.Type.Energy => 5,
+            Agreement.Type.Climate => 3,
+            _ => 2
+        };
+        float tensionEffect = type == Agreement.Type.Climate ? -1f : 0f;
+
+        // İki yönlü ilişkiye etki
+        ModifyRelation(countryA, countryB, relationDelta);
+        ModifyRelation(countryB, countryA, relationDelta);
+
+        // Savunma anlaşması: karşılıklı garanti
+        if (type == Agreement.Type.Defense)
+        {
+            AddGuarantee(countryA, countryB);
+            AddGuarantee(countryB, countryA);
+        }
+
+        if (tensionEffect != 0f)
+            IncreaseTension(tensionEffect);
+
+        _agreements.Add(new Agreement
+        {
+            Id = id,
+            AgreementType = type,
+            CountryA = countryA,
+            CountryB = countryB,
+            DaySigned = GM?.TotalDays ?? 0,
+            DurationDays = durationDays,
+            Active = true,
+            RelationDelta = relationDelta,
+            TensionEffect = tensionEffect
+        });
+
+        GD.Print($"[Diplomacy] Anlaşma: {countryA} ↔ {countryB} ({type}, gün {GM?.TotalDays}, " +
+                 $"ilişki {relationDelta:+#;-#;0}, tension {tensionEffect:+#;-#;0}, süre {(durationDays == 0 ? "süresiz" : durationDays + " gün")})");
+        return true;
+    }
+
+    /// <summary>Bir anlaşmayı iptal eder (etkileri geri alınmaz, ilişki kalıcıdır).</summary>
+    public static bool CancelAgreement(string agreementId)
+    {
+        var agr = _agreements.FirstOrDefault(x => x.Id == agreementId);
+        if (agr == null || !agr.Active) return false;
+        agr.Active = false;
+        GD.Print($"[Diplomacy] Anlaşma iptal edildi: {agreementId}");
+        return true;
+    }
+
+    /// <summary>Bir ülkeye ait aktif anlaşmaları döndürür.</summary>
+    public static List<Agreement> GetActiveAgreementsFor(string countryId) =>
+        _agreements.Where(x => x.Active && (x.CountryA == countryId || x.CountryB == countryId)).ToList();
+
     // ===== Yardımcı metodlar =====
 
     private static bool CanDoDiplomacy(string targetId, out CountryData target)
@@ -896,7 +999,8 @@ public static class DiplomacySystem
             NonAggressionPacts = _nonAggressionPacts.ToArray(),
             MilitaryAccess = _militaryAccess.ToArray(),
             NavalAccess = _navalAccess.ToArray(),
-            Meetings = _meetings.ToArray()
+            Meetings = _meetings.ToArray(),
+            Agreements = _agreements.ToArray()
         };
     }
 
@@ -929,6 +1033,11 @@ public static class DiplomacySystem
         if (data.Meetings != null)
             foreach (var m in data.Meetings) _meetings.Add(m);
 
-        GD.Print($"DiplomacySystem: state yüklendi — Faksiyon={_factions.Count}, İlişki={_relations.Count}, Tension={_worldTension:F1}, Görüşme={_meetings.Count}");
+        // M27.2: anlaşma geçmişini geri yükle
+        _agreements.Clear();
+        if (data.Agreements != null)
+            foreach (var a in data.Agreements) _agreements.Add(a);
+
+        GD.Print($"DiplomacySystem: state yüklendi — Faksiyon={_factions.Count}, İlişki={_relations.Count}, Tension={_worldTension:F1}, Görüşme={_meetings.Count}, Anlaşma={_agreements.Count}");
     }
 }

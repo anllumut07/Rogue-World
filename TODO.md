@@ -377,7 +377,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
 | 27.1 | İkili görüşme, devlet ziyareti, zirve (G20/BM benzeri), hat görüşmesi; ilişki puanına etki. | İlişki değeri değişir | ✅ Bitti — DiplomacySystem.cs: DiplomacyMeeting modeli, HoldMeeting (iki yönlü ilişki + tension etkisi), Meetings kaydı; SaveSystem.DiplomacySave.Meetings; GameManager.cs: --diplomacy-test + RunDiplomacyTest; dotnet build 0/0, --diplomacy-test PASS (exit 0), --save-load-test A==B PASS (exit 0) |
-| 27.2 | Anlaşmalar: ticaret, savunma, vize, enerji, iklim. | Anlaşma yapılır, etkisi görülür |
+| 27.2 | Anlaşmalar: ticaret, savunma, vize, enerji, iklim. | Anlaşma yapılır, etkisi görülür | ✅ Bitti — DiplomacySystem.cs: Agreement modeli, SignAgreement (iki yönlü ilişki + tension etkisi, savunma karşılıklı garanti), CancelAgreement, GetActiveAgreementsFor, Agreements kaydı; SaveSystem.DiplomacySave.Agreements; SaveLoadTest.BuildSummaryCore anlaşma sayısı; GameManager.cs: --agreements-test + RunAgreementsTest; dotnet build 0/0, --agreements-test PASS (exit 0), --save-load-test A==B PASS (exit 0) |
 | 27.3 | Basın toplantısı, TV konuşması, miting; ton seçimi (sert/uzlaşmacı/popülist), etkiler ve risk. | Konuşma göstergeleri etkiler |
 | 27.4 | Yaptırımlar ve ticaret savaşları (verme/alma). | Yaptırım ekonomiye yansır |
 

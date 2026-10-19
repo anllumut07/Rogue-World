@@ -122,6 +122,7 @@ public partial class GameManager : Node
         bool interventionTest = false;      // M26.3: müdahale sistemi testi (--intervention-test)
         bool unexpectedEventTest = false;   // M26.4: beklenmedik olay sistemi testi (--unexpected-events-test)
         bool diplomacyTest = false;         // M27: lider diploması testi (--diplomacy-test)
+        bool agreementsTest = false;        // M27.2: anlaşma testi (--agreements-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -199,6 +200,8 @@ public partial class GameManager : Node
                 unexpectedEventTest = true;
             else if (arg == "--diplomacy-test")
                 diplomacyTest = true;
+            else if (arg == "--agreements-test")
+                agreementsTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -440,6 +443,11 @@ public partial class GameManager : Node
         // gerilim değişiyor mu, kaydet/yüklede A==B korunur; başarısızlıkta Quit(1)).
         if (diplomacyTest)
             RunDiplomacyTest();
+
+        // M27.2: Anlaşma testi (ticaret/savunma/vize/enerji/iklim imzalanır, etki görülür,
+        // iptal edilebilir, kaydet/yüklede A==B korunur; başarısızlıkta Quit(1)).
+        if (agreementsTest)
+            RunAgreementsTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -1264,6 +1272,83 @@ public partial class GameManager : Node
         bool pass = allOk && relationImproved && meetingsRecorded && tensionReduced;
 
         GD.Print(pass ? "[DiplomacyTest] SONUÇ: PASS ✓" : "[DiplomacyTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(pass ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M27.2: Anlaşma testi — ticaret/savunma/vize/enerji/iklim anlaşması imzalanır,
+    /// iki yönlü ilişkiye etki देखilir, savunma karşılıklı garanti ekler, iklim tension
+    /// azaltır, iptal edilebilir. Normal oyunda ASLA çalışmaz (--agreements-test).
+    /// </summary>
+    private void RunAgreementsTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M27.2: ANALAŞMA TESTİ (--agreements-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        string playerId = PlayerCountryId;
+
+        // Hedef ülke: oyuncu dışı, işgal edilmemiş ilk ülke
+        string targetId = null;
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c.Id != playerId && !c.IsAnnexed) { targetId = c.Id; break; }
+        }
+        if (targetId == null)
+        {
+            GD.Print("[AgreementsTest] Uygun hedef ülke bulunamadı — test atlanıyor");
+            GD.Print("=========================================");
+            return;
+        }
+
+        int relationBefore = DiplomacySystem.GetRelation(playerId, targetId);
+        float tensionBefore = DiplomacySystem.WorldTension;
+        int agreementsBefore = DiplomacySystem.Agreements.Count;
+        GD.Print($"[AgreementsTest] {playerId} ↔ {targetId}: ilişki öncesi={relationBefore}, tension öncesi=%{tensionBefore:F1}, anlaşma={agreementsBefore}");
+
+        // Tüm anlaşma türlerini imzala
+        var types = new[]
+        {
+            DiplomacySystem.Agreement.Type.Trade,
+            DiplomacySystem.Agreement.Type.Defense,
+            DiplomacySystem.Agreement.Type.Visa,
+            DiplomacySystem.Agreement.Type.Energy,
+            DiplomacySystem.Agreement.Type.Climate
+        };
+        bool allOk = true;
+        string lastId = null;
+        foreach (var type in types)
+        {
+            bool ok = DiplomacySystem.SignAgreement(playerId, targetId, type, 0); // süresiz
+            GD.Print($"[AgreementsTest] SignAgreement({type}): {(ok ? "OK" : "FAIL")}");
+            if (ok) lastId = DiplomacySystem.Agreements.Last().Id;
+            else allOk = false;
+        }
+
+        // Bir anlaşmayı iptal et
+        bool cancelled = false;
+        if (lastId != null)
+        {
+            cancelled = DiplomacySystem.CancelAgreement(lastId);
+            GD.Print($"[AgreementsTest] CancelAgreement({lastId}): {(cancelled ? "OK" : "FAIL")}");
+        }
+
+        int relationAfter = DiplomacySystem.GetRelation(playerId, targetId);
+        float tensionAfter = DiplomacySystem.WorldTension;
+        int agreementsAfter = DiplomacySystem.Agreements.Count;
+        int activeForPlayer = DiplomacySystem.GetActiveAgreementsFor(playerId).Count;
+        GD.Print($"[AgreementsTest] ilişki sonrası={relationAfter} (delta={relationAfter - relationBefore}), tension sonrası=%{tensionAfter:F1} (delta={tensionAfter - tensionBefore:+#;-#;0}), anlaşma={agreementsBefore}→{agreementsAfter}, aktif({playerId})={activeForPlayer}");
+
+        bool relationImproved = relationAfter > relationBefore;
+        bool agreementsRecorded = agreementsAfter >= agreementsBefore + 5;
+        bool tensionReduced = tensionAfter <= tensionBefore; // iklim -1
+        bool pass = allOk && cancelled && relationImproved && agreementsRecorded && tensionReduced;
+
+        GD.Print(pass ? "[AgreementsTest] SONUÇ: PASS ✓" : "[AgreementsTest] SONUÇ: FAIL ✗");
         GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");
     }

@@ -532,3 +532,25 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 3. Bilinen sorun: yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--trend-test` ve `--save-load-test` (A==B).
 
+## M28.4 — Tweetlere göre aksiyon + toplum grubu memnuniyeti etkisi — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/SocialMediaSystem.cs`: `TweetAction` enum (None/Statement/Investigation/Ignore/Ban), `Tweet.Action`/`Tweet.ActionDay` alanları, `RespondToTweet(tweetId, action)` — aynı tweete tek seferlik, bilinmeyen tweet reddedilir, `ApplySatisfactionEffects` ile grup memnuniyetine deterministik delta (±0.25 jitter).
+- `Scripts/GameManager.cs`: `--tweet-action-test` kancağı + `RunTweetActionTest()` (6 tweet, 4 eylem, tekrarlı/yok-tweet reddi, eylem+gün doğrulama, memnuniyet delta asserti, save/load kalıcılığı).
+- `Scripts/SocialMediaSystem.cs` (GetSaveData/LoadSaveData): `Action`/`ActionDay` serileştirildi.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--tweet-action-test`: **PASS ✓** (tweet=6, tüm respondOk=true, tekrarlı engellendi, yok-tweet engellendi, eylem/gün doğru, workers/business/youth/military/religious/secular değişti, eylemler_kalici=True).
+- `--save-load-test`: **PASS ✓ (A == B)** — M28.4 determinizm korunuyor.
+- `--trend-test`/`--social-test`/`--profile-test`: hâlâ PASS (gerileme yok).
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/SocialMediaSystem.cs`, `Scripts/GameManager.cs`, `TODO.md`, `PROGRESS.md`.
+
+### ÖZET (M28.4 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/SocialMediaSystem.cs` (TweetAction, RespondToTweet, ApplySatisfactionEffects, Save/Load Action/ActionDay), `Scripts/GameManager.cs` (--tweet-action-test + RunTweetActionTest), `TODO.md` (28.4 [x]), `PROGRESS.md` (M28.4 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M28.4 %100 tamamlandı (build 0/0, tweet-action-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--tweet-action-test` ve `--save-load-test` (A==B).
+

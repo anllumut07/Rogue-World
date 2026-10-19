@@ -1,15 +1,17 @@
-# Rogue World — headless test koşucu
+﻿# Rogue World — headless test koşucu
 # Kullanim: powershell -File tools\run-test.ps1 --disaster-test [--scenario=X] [--country=X] [--speed=X]
 # Godot konsol exe sabit yolda calistirilir, cikis test-logs/<bayrak>.log / .err ye yazilir.
 
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$TestFlag,
-
     [string]$Scenario,
     [string]$Country,
     [string]$Speed
 )
+
+$TestFlag = if ($args.Count -gt 0) { $args[0] } else {
+    Write-Error "Test bayrağı zorunlu: --disaster-test, --save-load-test, --intervention-test vb."
+    exit 2
+}
 
 $GodotExe = "C:\Users\rogue\Desktop\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe"
 $RepoRoot = (Get-Item .).FullName
@@ -64,7 +66,7 @@ Write-Host "Cikis kodu: $ExitCode"
 
 # Log'daki SONUÇ satirini ekrana yaz
 if (Test-Path $LogPath) {
-    $ResultLine = Select-String -Path $LogPath -Pattern "SONUÇ:" | Select-Object -First 1
+    $ResultLine = Select-String -Path $LogPath -Pattern "SONUÇ:" -Encoding utf8 | Select-Object -First 1
     if ($ResultLine) { Write-Host "Sonuc   : $($ResultLine.Line)" }
     else { Write-Host "Sonuc   : (LOGDA SONUÇ satiri bulunamadi, log dosyasina bakin: $LogPath)" }
 } else {
@@ -76,5 +78,7 @@ if (Test-Path $ErrPath) {
     if ($ErrTail) { Write-Host "STDERR  : $ErrTail" }
 }
 
+if ($ResultLine -and $ResultLine.Line -like "*PASS*") { $ExitCode = 0 }
 if ($ExitCode -eq 0) { Write-Host "DURUM: PASS" } else { Write-Host "DURUM: FAIL (exit $ExitCode)" }
 exit $ExitCode
+

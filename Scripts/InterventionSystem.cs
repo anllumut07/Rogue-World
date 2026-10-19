@@ -81,6 +81,14 @@ public static class InterventionSystem
 
     private static GameManager GM => GameManager.Instance;
 
+    /// <summary>
+    /// --intervention-test kancası: müdahale testi modunu etkinleştirir.
+    /// Müdahaleler elle uygulandığından (ApplyIntervention üzerinden) bu yöntem
+    /// DisasterSystem.EnableTestMode ile API simetrisi içindir; gelecekte
+    /// tetikleme olasılığı artırmak için kullanılabilir.
+    /// </summary>
+    public static void EnableTestMode() { }
+
     // ===== Yükleme =====
 
     private static void EnsureLoaded()
@@ -160,21 +168,10 @@ public static class InterventionSystem
 
         int currentDay = GM.TotalDays;
 
-        // 1) Aktif müdahalelerin süresini azalt, süresi dolanı kaldır
-        for (int i = _active.Count - 1; i >= 0; i--)
-        {
-            var iv = _active[i];
-            iv.DaysLeft--;
-            if (iv.DaysLeft <= 0)
-            {
-                GD.Print($"[Intervention] Müdahale bitti: {iv.InterventionId} ({iv.CountryId}, başlangıç gün {iv.Day})");
-                _active.RemoveAt(i);
-            }
-        }
-
-        // 2) Aktif müdahalelerin gösterge etkilerinin günlük olarak expires olması (fade).
+        // 1) Aktif müdahalelerin gösterge etkilerinin günlük olarak expires olması (fade).
         // Her aktif müdahale, sunduğu pozitif shock'ı DurationDays boyunca doğrusal olarak geri alır;
         // müdahale süresi dolunca etki tamamen geçer (afet iyileşmesinin tam tersi).
+        // Önce fade uygulanır, sonra süresi dolanlar kaldırılır — böylece son gün de fade'dan geçer.
         foreach (var iv in _active)
         {
             var def = _definitions.FirstOrDefault(d => d.Id == iv.InterventionId);
@@ -190,6 +187,18 @@ public static class InterventionSystem
                 double next = cur - (shock * rate); // etkiyi yavaşça geri al
                 StatisticsSystem.SetValue(iv.CountryId, indicator, next);
                 GD.Print($"[Intervention] Etki azalır: {iv.InterventionId} ({iv.CountryId}) {indicator} {cur:+#;-#} → {next:+#;-#} (kalite={iv.QualityBonus:+0.00;-0.00}, kalan gün {iv.DaysLeft}/{duration})");
+            }
+        }
+
+        // 2) Aktif müdahalelerin süresini azalt, süresi dolanı kaldır (fade sonrası).
+        for (int i = _active.Count - 1; i >= 0; i--)
+        {
+            var iv = _active[i];
+            iv.DaysLeft--;
+            if (iv.DaysLeft <= 0)
+            {
+                GD.Print($"[Intervention] Müdahale bitti: {iv.InterventionId} ({iv.CountryId}, başlangıç gün {iv.Day})");
+                _active.RemoveAt(i);
             }
         }
     }

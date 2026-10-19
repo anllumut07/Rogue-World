@@ -119,6 +119,7 @@ public partial class GameManager : Node
         bool careerEventsTest = false;    // M25.5: kariyer olayları (skandal, fırsat, mentor kaybı, hastalık)
         bool characterTakeoverTest = false; // M25.6: seçim kazanıp ülkeyi devralma testi
         bool disasterTest = false;          // M26.1: afet sistemi testi (--disaster-test)
+        bool interventionTest = false;      // M26.3: müdahale sistemi testi (--intervention-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -190,6 +191,8 @@ public partial class GameManager : Node
                 characterTakeoverTest = true;
             else if (arg == "--disaster-test")
                 disasterTest = true;
+            else if (arg == "--intervention-test")
+                interventionTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -198,6 +201,11 @@ public partial class GameManager : Node
         // (olasılık artırır), böylece afet kaydet/yükle determinizmi de sınanır.
         if (disasterTest || saveLoadTest)
             DisasterSystem.EnableTestMode();
+
+        // M26.3: --intervention-test (ve --save-load-test) verilmişse müdahale test modunu
+        // etkinleştir.
+        if (interventionTest || saveLoadTest)
+            InterventionSystem.EnableTestMode();
 
         // M17.1: Aktif senaryoyu ayarla — veri yükleyicilerin yolları buradan gelir.
         // --scenario verilmezse ScenarioSystem varsayılanı (historical_1936) kullanılır.
@@ -403,6 +411,11 @@ public partial class GameManager : Node
             RunCharacterTakeoverTest();
         if (disasterTest)
             RunDisasterTest();
+
+        // M26.3: Müdahale testi (müdahale uygulanır mı, süre sonunda etki doğrusal söner,
+        // bakan kalitesi çarpanı doğru mu; başarısızlıkta Quit(1)).
+        if (interventionTest)
+            RunInterventionTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -2104,6 +2117,72 @@ public partial class GameManager : Node
 
         bool ok = history > 0; // test modunda en az bir afet ateşlenmeli
         GD.Print(ok ? "[DisasterTest] SONUÇ: PASS ✓" : "[DisasterTest] SONUÇ: FAIL ✗ (hiç afet ateşlenmedi)");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M26.3: Müdahale sistemi testi (--intervention-test).
+    /// 1) Müdahale uygulanır mı (ApplyIntervention true, PP düşer)?
+    /// 2) İlgili bakanın yönetim kalitesi çarpanı doğru mu? (DEU içişleri → Clara Neumann Honesty 90 → ×1.4)
+    /// 3) Gösterge etkisi DurationDays boyunca doğrusal olarak söner mi?
+    /// 4) Başarısızlıkta (geçersiz ID) Quit(1)?
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunInterventionTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M26.3: MÜDHALE SİSTEMİ TESTİ (--intervention-test)");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0xDEADCAFEUL);
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+        InterventionSystem.EnableTestMode();
+        InterventionSystem.LoadScenarioData(); // tanımlar yüklensin
+
+        const string countryId = "GER";
+        const string interventionId = "emergency_aid";
+        var def = InterventionSystem.Definitions.FirstOrDefault(d => d.Id == interventionId);
+        bool defOk = def != null && def.CostPP > 0 && def.DurationDays > 0;
+        GD.Print($"[InterventionTest] Tanım: {(defOk ? "OK" : "YOK")} ({interventionId})");
+
+        // İçişleri bakanı atanacak: Clara Neumann (Honesty 90) → çarpan (90-50)/100+1 = 1.4
+        CabinetSystem.AssignMinister(countryId, "interior", "min_deu_justice_1");
+        var minister = CabinetSystem.Ministers.FirstOrDefault(m => m.Id == "min_deu_justice_1");
+        double expectedMult = 1.0 + ((minister?.Honesty ?? 50) - 50.0) / 100.0;
+        GD.Print($"[InterventionTest] Bakan={minister?.Name ?? "-"} Honesty={minister?.Honesty ?? 50} beklenenÇarpan={expectedMult:F2}");
+
+        double healthBefore = StatisticsSystem.GetValue(countryId, "health");
+        double ppBefore = CountryDatabase.Get(countryId).PoliticalPower;
+
+        bool applied = InterventionSystem.ApplyIntervention(countryId, interventionId, TotalDays);
+        bool ppDeducted = Math.Abs(CountryDatabase.Get(countryId).PoliticalPower - (ppBefore - def.CostPP)) < 0.001;
+        int activeAfter = InterventionSystem.ActiveInterventions.Count;
+        int historyAfter = InterventionSystem.InterventionHistory.Count;
+        double healthAfter = StatisticsSystem.GetValue(countryId, "health");
+        double expectedDelta = def.IndicatorEffects["health"] * expectedMult;
+        GD.Print($"[InterventionTest] Uygulandı={applied} PP düştü={ppDeducted} ({(ppBefore - def.CostPP):F1}) " +
+                 $"aktif={activeAfter} geçmiş={historyAfter} health={healthBefore:F2}→{healthAfter:F2} (beklenen delta={expectedDelta:F2})");
+
+        // Süre boyunca etkinin doğrusal olarak sönmesi. Yalnızca InterventionSystem.DailyTick()
+        // çalıştırılır (AdvanceDaysForTest değil), böylece Statistics/Formula vb. sistemlerin
+        // günlük dalgalanması müdahale etkisini karıştırmaz.
+        for (int i = 0; i < def.DurationDays; i++)
+            InterventionSystem.DailyTick();
+        int activeAfterFade = InterventionSystem.ActiveInterventions.Count;
+        double healthAfterFade = StatisticsSystem.GetValue(countryId, "health");
+        bool faded = Math.Abs((healthAfter - healthAfterFade) - expectedDelta) < 0.001;
+        GD.Print($"[InterventionTest] {def.DurationDays} gün sonrası aktif={activeAfterFade} health={healthAfterFade:F2} (sonra={healthAfter:F2}) sönme={faded}");
+
+        // Başarısızlık: geçersiz ID → false
+        bool invalidOk = !InterventionSystem.ApplyIntervention(countryId, "bölmeyici_id", TotalDays);
+        GD.Print($"[InterventionTest] Geçersiz ID reddedildi={invalidOk}");
+
+        bool ok = defOk && applied && ppDeducted && activeAfter == 1 && historyAfter == 1 &&
+                  Math.Abs((healthAfter - healthBefore) - expectedDelta) < 0.001 &&
+                  faded && activeAfterFade == 0 && invalidOk;
+        GD.Print(ok ? "[InterventionTest] SONUÇ: PASS ✓" : "[InterventionTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

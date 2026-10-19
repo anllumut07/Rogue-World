@@ -386,3 +386,17 @@ Tüm `--...-test` kancaları `GetTree().Quit(pass ? 0 : 1)` ile kendi kendine ka
 3. Bilinen sorun: iyileşme yalnızca afetin aktif süresi boyunca uygulanır (afet biterken tamamen toplanır); afet sonrası ekstra toparlama süresi yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--disaster-test` (EXIT 0, PASS); `--save-load-test --scenario=historical_1936 --speed=0` (EXIT 0, A==B).
 
+## ADIM 1 — Headless test doğrulama (2026-10-19) — TÜMÜ PASS
+- dotnet build: 0 hata / 0 uyarı
+- `--disaster-test --speed=5` (historical_1936): **SONUÇ: PASS ✓** — afet sistemi (M26.1/M26.2)
+- `--intervention-test --speed=5` (historical_1936): **SONUÇ: PASS ✓** — müdahale sistemi (M26.3), fade-before-remove onaylandı
+- `--save-load-test --scenario=modern_world --speed=5`: **SONUÇ: PASS ✓ (A == B)** — modern senaryo save/load (M26 entegrasyonu dahil)
+
+| Bayrak | Süre | PASS/FAIL |
+|--------|------|-----------|
+| disaster-test | ~64s | PASS |
+| intervention-test | ~4s | PASS |
+| save-load-test modern_world | ~20s | PASS |
+
+-- Commit ve `git push origin gece-calisma` bu oturumda.
+

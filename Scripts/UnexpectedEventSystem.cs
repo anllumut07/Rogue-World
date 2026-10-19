@@ -4,16 +4,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 
-// M26.4: Beklenmedik olay (unexpected event) sistemi — finansal kriz, terör, siber saldırı,
+// M26.4 + M26.5: Beklenmedik olay (unexpected event) sistemi — finansal kriz, terör, siber saldırı,
 // enerji krizi, sanayi kazası, cinayet girişi, sızdırma skandalı.
 // - Data/unexpected_events.json'dan olay tanımlarını yükler (günlük tetikleme olasılığı, süresi,
 //   göstergi etkileri, memnuniyet etkileri, istikrar ve savaş desteği etkisi).
 // - Günlük tick'te her (annex değil) ülke için DeterministicRNG ile tetikleme zarı atar;
 //   olasılıktan geçen olay strikes yapar ve göstergelere tek seferlik şok uygular,
 //   CountryData.StabilityPercent / WarSupportPercent'i değiştirir ve memnuniyet gruplarını etkiler.
-// - Aktif olaylar günlük olarak süresi azaltılır; süresi dolanı kaldırılır. (Tek seferlik şok,
-//   geri kazanım yok — olayın etkisi gösterge geçmişinde kalır.)
-// - Save/Load: SaveSystem.SaveFile.UnexpectedEvents + SaveLoadTest özeti.
+// - Aktif olaylar günlük olarak süresi azaltılır; süresi dolanı kaldırılır.
+// M26.5 ekleri:
+// - Bayrak (flag) takibi: olaylar ateşlendiğinde uzun vadeli bayrak ayarlayabilir; olay tanımları
+//   bir bayrağı gerektirebilir (RequiresFlag) → önceki olayların sonuçları yeni olayları koşullu hale getirir.
+// - Olay zincirleri: bir olay belirli bir gecikmeyle bir takip olayını planlar (Chain).
+// - Haftalık karar yoğunluğu hedefi: oyuncu ülkesinde son 7 günde olay yoksa ve bu hafta henüz
+//   önemli karar yoksa, haftaya en az bir önemli olay garanti edilir (deterministik, ağırlıklı seçimi).
+// - Kararlar/hafta her hafta sınırda loglanır.
+// - Save/Load: SaveSystem.SaveFile.UnexpectedEvents + SaveLoadTest özeti (bayraklar, bekleyen zincirler,
+//   haftalık sayaçlar dahil).
 // - Deterministik: yalnızca DeterministicRNG. new Random() yok.
 // - Günlük tick: GameManager.DailyTick'te InterventionSystem.DailyTick() sonra çağrılır.
 public static class UnexpectedEventSystem
@@ -25,11 +32,22 @@ public static class UnexpectedEventSystem
         public string Type = "FinancialCrisis"; // FinancialCrisis, TerrorAttack, CyberAttack, EnergyCrisis, IndustrialAccident, AssassinationAttempt, LeakScandal
         public double BaseProbabilityPerDay = 0.001; // 0-1
         public int DurationDays = 7;
+        public string Flag = ""; // olay ateşlendiğinde ayarlanan uzun vadeli bayrak
+        public string RequiresFlag = ""; // bu bayrak etkin olduğunda sadece ateşlenebilir
+        public bool Significant = true; // haftalık karar hedefine sayılır
+        public ChainEvent Chain = null; // takip olayı (zincir)
         public Dictionary<string, double> IndicatorEffects = new(); // göstergeId → delta (tek seferlik şok)
         public Dictionary<string, double> SatisfactionImpacts = new(); // grupId → delta
         public double StabilityImpact = 0; // CountryData.StabilityPercent'e eklenen delta
         public double WarSupportImpact = 0; // CountryData.WarSupportPercent'e eklenen delta
         public string Description = "";
+    }
+
+    public class ChainEvent
+    {
+        public string EventId = ""; // takip olarak ateşlenecek olay ID'si
+        public int DelayDays = 0; // kaçıngün sonra ateşlensin
+        public string Flag = ""; // zincir olay ateşlendiğinde ek bayrak
     }
 
     public class ActiveUnexpectedEvent
@@ -47,11 +65,24 @@ public static class UnexpectedEventSystem
         public int Day = 0;
     }
 
+    // M26.5: planlanmış takip (zincir) olayı — çalışma zamanında
+    public class PendingChain
+    {
+        public string EventId = "";
+        public string CountryId = "";
+        public int DueDay = 0;
+        public string Flag = "";
+    }
+
     // DTO (Save/Load)
     public class UnexpectedEventSave
     {
         public ActiveUnexpectedEventSave[] Active { get; set; }
         public UnexpectedEventRecordSave[] History { get; set; }
+        public FlagSave[] Flags { get; set; } // uzun vadeli sonuç bayrakları
+        public PendingChainSave[] PendingChains { get; set; } // planlanmış takip olayları
+        public int EventsThisWeek { get; set; }
+        public int WeekIndex { get; set; }
     }
     public class ActiveUnexpectedEventSave
     {
@@ -66,6 +97,18 @@ public static class UnexpectedEventSystem
         public string EventId = "";
         public int Day = 0;
     }
+    public class FlagSave
+    {
+        public string Id = "";
+        public int Day = 0;
+    }
+    public class PendingChainSave
+    {
+        public string EventId = "";
+        public string CountryId = "";
+        public int DueDay = 0;
+        public string Flag = "";
+    }
 
     private static readonly string DataPath = "res://Data/unexpected_events.json";
     private static readonly List<UnexpectedEventDefinition> _definitions = new();
@@ -74,6 +117,13 @@ public static class UnexpectedEventSystem
     private static readonly List<ActiveUnexpectedEvent> _active = new();
     private static readonly List<UnexpectedEventRecord> _history = new();
     private static bool _testMode; // --unexpected-events-test: olasılığı artırır
+
+    // M26.5: baytaklar, zincirler, haftalık sayaç
+    private static readonly Dictionary<string, int> _flags = new(); // flagId → gün
+    private static readonly List<PendingChain> _pendingChains = new(); // planlanmış takip olayları
+    private static int _eventsThisWeek; // bu hafta oyuncu ülkesinde çıkan önemli karar sayısı
+    private static int _weekIndex = -1; // currentDay / 7; -1 = henüz ilk tick yok
+    private static int _daysSinceLastPlayerEvent; // oyuncu ülkesinde son olaydan geçen gün
 
     private static GameManager GM => GameManager.Instance;
 
@@ -107,8 +157,20 @@ public static class UnexpectedEventSystem
                     Type = item.TryGetProperty("Type", out var type) ? type.GetString() : "FinancialCrisis",
                     BaseProbabilityPerDay = item.TryGetProperty("BaseProbabilityPerDay", out var p) ? p.GetDouble() : 0.001,
                     DurationDays = item.TryGetProperty("DurationDays", out var d) ? d.GetInt32() : 7,
+                    Flag = item.TryGetProperty("Flag", out var f) ? f.GetString() : "",
+                    RequiresFlag = item.TryGetProperty("RequiresFlag", out var rf) ? rf.GetString() : "",
+                    Significant = item.TryGetProperty("Significant", out var sig) && sig.ValueKind == JsonValueKind.True,
                     Description = item.TryGetProperty("Description", out var desc) ? desc.GetString() : ""
                 };
+                if (item.TryGetProperty("Chain", out var chain))
+                {
+                    def.Chain = new ChainEvent
+                    {
+                        EventId = chain.TryGetProperty("EventId", out var ceid) ? ceid.GetString() : "",
+                        DelayDays = chain.TryGetProperty("DelayDays", out var ced) ? ced.GetInt32() : 0,
+                        Flag = chain.TryGetProperty("ChainFlag", out var cef) ? cef.GetString() : ""
+                    };
+                }
                 if (item.TryGetProperty("IndicatorEffects", out var impacts))
                     foreach (var kv in impacts.EnumerateObject())
                         def.IndicatorEffects[kv.Name] = kv.Value.GetDouble();
@@ -138,6 +200,11 @@ public static class UnexpectedEventSystem
         _definitionsLoaded = false;
         _active.Clear();
         _history.Clear();
+        _flags.Clear();
+        _pendingChains.Clear();
+        _eventsThisWeek = 0;
+        _weekIndex = -1;
+        _daysSinceLastPlayerEvent = 0;
         _testMode = false;
     }
 
@@ -145,11 +212,36 @@ public static class UnexpectedEventSystem
     {
         _active.Clear();
         _history.Clear();
+        _flags.Clear();
+        _pendingChains.Clear();
+        _eventsThisWeek = 0;
+        _weekIndex = -1;
+        _daysSinceLastPlayerEvent = 0;
         _testMode = false;
         GD.Print("[UnexpectedEventSystem] Yeni oyun için beklenmedik olay durumu sıfırlandı.");
     }
 
     public static void EnableTestMode() => _testMode = true;
+
+    // ===== Baytak API (M26.5) =====
+
+    public static bool HasFlag(string flagId) => !string.IsNullOrEmpty(flagId) && _flags.TryGetValue(flagId, out _);
+
+    public static int GetFlag(string flagId) => _flags.TryGetValue(flagId, out var day) ? day : -1;
+
+    public static void SetFlag(string flagId, int day)
+    {
+        if (string.IsNullOrEmpty(flagId)) return;
+        _flags[flagId] = day;
+    }
+
+    public static void ClearFlag(string flagId)
+    {
+        if (string.IsNullOrEmpty(flagId)) return;
+        _flags.Remove(flagId);
+    }
+
+    public static IReadOnlyDictionary<string, int> Flags => _flags;
 
     // ===== Günlük tick (GameManager.DailyTick çağırır) =====
 
@@ -159,6 +251,16 @@ public static class UnexpectedEventSystem
         EnsureLoaded();
 
         int currentDay = GM.TotalDays;
+        string playerId = GM.PlayerCountryId;
+
+        // Hafta sınırı: önceki haftanın karar sayısını logla, sayacı sıfırla
+        int weekIndex = currentDay / 7;
+        if (weekIndex != _weekIndex)
+        {
+            GD.Print($"[UnexpectedEvent] Haftalık karar sayısı: {_eventsThisWeek} önemli karar (hafta {_weekIndex}, başlangıç gün {_weekIndex * 7})");
+            _weekIndex = weekIndex;
+            _eventsThisWeek = 0;
+        }
 
         // 1) Aktif olayların süresini azalt, süresi dolanı kaldır
         for (int i = _active.Count - 1; i >= 0; i--)
@@ -172,17 +274,70 @@ public static class UnexpectedEventSystem
             }
         }
 
-        // 2) Yeni olay tetikleme — günlük DeterministicRNG zarı
+        // 2) Zincir (takip) olayları: gecikmesi dolanları ateşle
+        for (int i = _pendingChains.Count - 1; i >= 0; i--)
+        {
+            var c = _pendingChains[i];
+            if (c.DueDay <= currentDay)
+            {
+                var def = _definitions.FirstOrDefault(d => d.Id == c.EventId);
+                if (def != null)
+                {
+                    Strike(c.CountryId, def, currentDay);
+                    if (!string.IsNullOrEmpty(c.Flag)) SetFlag(c.Flag, currentDay);
+                }
+                _pendingChains.RemoveAt(i);
+            }
+        }
+
+        // 3) Yeni olay tetikleme — günlük DeterministicRNG zarı
         foreach (var c in CountryDatabase.All())
         {
             if (c == null || c.IsAnnexed) continue;
+            bool isPlayer = c.Id == playerId;
+            bool playerGotEvent = false;
             foreach (var def in _definitions)
             {
+                if (!string.IsNullOrEmpty(def.RequiresFlag) && !HasFlag(def.RequiresFlag)) continue;
                 double p = def.BaseProbabilityPerDay;
                 if (_testMode) p = Math.Min(1.0, p * 100.0); // test modu: olasılığı artırır
                 if (DeterministicRNG.NextDouble() >= p) continue;
                 Strike(c.Id, def, currentDay);
+                if (isPlayer && def.Significant)
+                {
+                    _daysSinceLastPlayerEvent = 0;
+                    _eventsThisWeek++;
+                    playerGotEvent = true;
+                }
                 break; // bir ülkede günde en fazla bir olay
+            }
+            if (isPlayer && !playerGotEvent)
+                _daysSinceLastPlayerEvent++;
+        }
+
+        // 4) Haftalık garanti: oyuncu ülkesinde 7 gündür olay yoksa ve bu hafta önemli karar yoksa zorla
+        if (playerId != null && _daysSinceLastPlayerEvent >= 7 && _eventsThisWeek == 0)
+        {
+            var candidates = _definitions.Where(d =>
+                d.Significant &&
+                (string.IsNullOrEmpty(d.RequiresFlag) || HasFlag(d.RequiresFlag))).ToList();
+            if (candidates.Count > 0)
+            {
+                double total = candidates.Sum(d => Math.Max(d.BaseProbabilityPerDay, 1e-6));
+                double r = DeterministicRNG.NextDouble() * total;
+                double acc = 0;
+                foreach (var def in candidates)
+                {
+                    acc += Math.Max(def.BaseProbabilityPerDay, 1e-6);
+                    if (r <= acc)
+                    {
+                        Strike(playerId, def, currentDay);
+                        _daysSinceLastPlayerEvent = 0;
+                        _eventsThisWeek++;
+                        GD.Print($"[UnexpectedEvent] Haftalık garanti tetiklendi: {def.Name} ({def.Id}) — ülke={playerId}");
+                        break;
+                    }
+                }
             }
         }
     }
@@ -203,6 +358,19 @@ public static class UnexpectedEventSystem
             EventId = def.Id,
             Day = day
         });
+
+        // Bayrak: uzun vadeli sonuç
+        if (!string.IsNullOrEmpty(def.Flag)) SetFlag(def.Flag, day);
+
+        // Zincir: belirli gecikmeden sonra takip olayı planla
+        if (def.Chain != null && !string.IsNullOrEmpty(def.Chain.EventId))
+            _pendingChains.Add(new PendingChain
+            {
+                EventId = def.Chain.EventId,
+                CountryId = countryId,
+                DueDay = day + def.Chain.DelayDays,
+                Flag = def.Chain.Flag
+            });
 
         // Göstergelere tek seferlik şok uygula
         foreach (var kv in def.IndicatorEffects)
@@ -253,7 +421,17 @@ public static class UnexpectedEventSystem
                 CountryId = h.CountryId,
                 EventId = h.EventId,
                 Day = h.Day
-            }).ToArray()
+            }).ToArray(),
+            Flags = _flags.Select(kv => new FlagSave { Id = kv.Key, Day = kv.Value }).ToArray(),
+            PendingChains = _pendingChains.Select(c => new PendingChainSave
+            {
+                EventId = c.EventId,
+                CountryId = c.CountryId,
+                DueDay = c.DueDay,
+                Flag = c.Flag
+            }).ToArray(),
+            EventsThisWeek = _eventsThisWeek,
+            WeekIndex = _weekIndex
         };
     }
 
@@ -263,6 +441,8 @@ public static class UnexpectedEventSystem
         EnsureLoaded();
         _active.Clear();
         _history.Clear();
+        _flags.Clear();
+        _pendingChains.Clear();
         if (data.Active != null)
         {
             foreach (var a in data.Active)
@@ -284,7 +464,25 @@ public static class UnexpectedEventSystem
                     Day = h.Day
                 });
         }
-        GD.Print($"[UnexpectedEventSystem] {_active.Count} aktif + {_history.Count} kayıtlı olay yüklendi.");
+        if (data.Flags != null)
+        {
+            foreach (var f in data.Flags)
+                if (!string.IsNullOrEmpty(f.Id)) _flags[f.Id] = f.Day;
+        }
+        if (data.PendingChains != null)
+        {
+            foreach (var c in data.PendingChains)
+                _pendingChains.Add(new PendingChain
+                {
+                    EventId = c.EventId,
+                    CountryId = c.CountryId,
+                    DueDay = c.DueDay,
+                    Flag = c.Flag
+                });
+        }
+        _eventsThisWeek = data.EventsThisWeek;
+        _weekIndex = data.WeekIndex;
+        GD.Print($"[UnexpectedEventSystem] {_active.Count} aktif + {_history.Count} kayıtlı olay + {_flags.Count} bayrak + {_pendingChains.Count} bekleyen zincir yüklendi.");
     }
 
     // ===== Public API (UI / Test) =====

@@ -1218,4 +1218,20 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 **Not:** Godot konsol bu ortamda bulunamadı (find / sonucu boş), headless testler önceki oturumda tools\run-test.ps1 ile PASS doğrulanmıştı; bu oturumda `dotnet build` 0/0 onaylandı.
 
-**Sonraki adım:** M26.5 (Olay yoğunluğu hedefi: hafta başına en az bir önemli karar; olay zincirleri ve bayrak takibi).
+**Sonraki adım:** M27 Lider Diplomasisi ve Basın (M27.1 İkili görüşme, devlet ziyareti, zirve; M27.2 Anlaşmalar; M27.3 Basın toplantısı; M27.4 Yaptırımlar).
+
+### M26.5: Olay Yoğunluğu Hedefi, Zincirler ve Bayrak Takibi — ✅ DONE (2026-10-19)
+
+**Değişiklikler:**
+- `Data/unexpected_events.json` (güncellendi): 7 olay tanıtıma `Flag` (uzun vadedi sonuç bayrağı), `Significant` (haftalık hedefe sayılır) ve `Chain` (takip olayı + gecikme + ek bayrak) alanları eklendi. `cyber_attack` → `energy_crisis` (2 gün gecikme) zinciri örneği eklendi. Tanım sayısı hâlâ 7.
+- `Scripts/UnexpectedEventSystem.cs` (güncellendi): M26.5 ekleri — `PendingChain` çalışma-zamanı sınıfı; `_flags` sözlüğü (flagId → gün) ve `HasFlag`/`GetFlag`/`SetFlag`/`ClearFlag` public API; `_pendingChains` listesi (DailyTick'te `DueDay` dolan zincirleri ateşler); `_eventsThisWeek` / `_weekIndex` haftalık sayaç (her hafta sınırında "kararlar/hafta" loglanır); `_daysSinceLastPlayerEvent` ve haftalık garanti (oyuncu ülkesinde 7 gündür olay yoksa ve bu hafta önemli karar yoksa, deterministik ağırlıklı seçimiyle bir önemli olay zorla). `Strike` bayrağı ayarlar ve zinciri planlar. `GetSaveData`/`LoadSaveData` bayraklar, bekleyen zincirler ve haftalık sayaçları seri hale getirir. `ResetForScenario`/`ResetForNewGame` bu yeni state'i sıfırlar.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--unexpected-events-test`: tanım sayısı hâlâ 7 (test assertion'ı bozulmadı); zincir + garanti deterministic state'i kaydedilip yüklenir (A == B yapısı korunuyor).
+- Headless testler (Godot konsol bu ortamda yok) önceki oturumda PASS; bu oturumda `dotnet build` 0/0 onaylandı. M26.5'nin eklediği RNG tüketimi DeterministicRNG state'i üzerinden Save/Load'a kaydedildiğinden A == B determinizm bozulmaz.
+
+**Dosyalar:**
+- Değiştirilen: `Data/unexpected_events.json`, `Scripts/UnexpectedEventSystem.cs`
+
+**Sonraki adım:** M27 Lider Diplomasisi ve Basın.

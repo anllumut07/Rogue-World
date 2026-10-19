@@ -368,7 +368,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | 26.2 | Etkiler: nüfus, ekonomi, altyapı, teknoloji ilerlemesi, memnuniyet. İyileşme süreci. | Göstergeler düşer, zamanla toparlanır | ✅ Bitti |
 | 26.3 | Müdahale: acil yardım, uluslararası yardım, yeniden inşa, tahliye; yönetim kalitesi sonucu etkiler. | Seçimler sonucu değiştirir | ✅ Bitti |
 | 26.4 | Beklenmedik olaylar: finansal kriz, terör saldırısı, siber saldırı, enerji krizi, endüstriyel kaza, suikast girişimi, sızıntı/skandal. | Olaylar oyuncuya karar sunar | ✅ Bitti |
-| 26.5 | **Olay yoğunluğu hedefi:** hafta başına en az bir önemli karar; olay zincirleri ve uzun vadeli sonuçlar (bayrak takibi). | Log: kararlar/hafta ölçülür | ⬜ |
+| 26.5 | **Olay yoğunluğu hedefi:** hafta başına en az bir önemli karar; olay zincirleri ve uzun vadeli sonuçlar (bayrak takibi). | Log: kararlar/hafta ölçülür | ✅ Bitti |
 
 ---
 

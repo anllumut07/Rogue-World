@@ -14,6 +14,10 @@ public static class SocialMediaSystem
 {
     public enum Sentiment { Positive, Negative, Neutral }
 
+    /// <summary>M28.4: Oyuncunun bir tweete verebileceği tepki türü. Her eylemin toplum
+    /// grubu memnuniyetine deterministik bir etkisi vardır.</summary>
+    public enum TweetAction { None, Statement, Investigation, Ignore, Ban }
+
     public class Tweet
     {
         public string Id { get; set; }           // "tweet-{gun}-{no}"
@@ -26,6 +30,8 @@ public static class SocialMediaSystem
         public Sentiment Sentiment { get; set; } = Sentiment.Neutral;
         public int Likes { get; set; }
         public int Shares { get; set; }
+        public TweetAction Action { get; set; } = TweetAction.None; // M28.4: uygulanan tepki (henüz yoksa None)
+        public int ActionDay { get; set; } = -1;                    // M28.4: tepkinin uygulandığı gün (-1 = yok)
     }
 
     private enum Category { War, Annex, Peace, Economy, Focus, Diplomacy, Default }
@@ -89,6 +95,61 @@ public static class SocialMediaSystem
         _tweets.Add(tweet);
 
         GD.Print($"[SocialMedia] Tweet üretildi: {tweet.AuthorHandle} → {content}");
+    }
+
+    // M28.4: Oyuncu bir tweete tepki verir (açıklama / soruşturma / görmezden gel / yasakla).
+    // Eylem aynı tweete yalnızca bir kez uygulanabilir ve ilgili ülkenin toplum grubu
+    // memnuniyetlerini deterministik olarak değiştirir.
+    public static bool RespondToTweet(string tweetId, TweetAction action)
+    {
+        if (string.IsNullOrEmpty(tweetId) || action == TweetAction.None) return false;
+
+        var tweet = _tweets.FirstOrDefault(t => t.Id == tweetId);
+        if (tweet == null || tweet.Action != TweetAction.None) return false;
+
+        var gm = GameManager.Instance;
+        if (gm == null || !gm.HasPlayer) return false;
+
+        tweet.Action = action;
+        tweet.ActionDay = gm.TotalDays;
+
+        ApplySatisfactionEffects(gm.PlayerCountryId, action);
+
+        GD.Print($"[SocialMedia] Tweet eylemi: {tweetId} → {action} (gün {gm.TotalDays}, ülke={gm.PlayerCountryId})");
+        return true;
+    }
+
+    // M28.4: Tweet eyleminin ülke bazlı toplum grubu memnuniyetine deterministik etkisi.
+    // (groupId, bazyDelta) çiftleri; her gruba küçük ±0.25 jitter eklenir.
+    private static void ApplySatisfactionEffects(string countryId, TweetAction action)
+    {
+        var deltas = action switch
+        {
+            TweetAction.Statement => new (string, double)[]
+            {
+                ("youth", 3.0), ("business", 2.0), ("secular", 1.0), ("religious", -1.0)
+            },
+            TweetAction.Investigation => new (string, double)[]
+            {
+                ("military", 5.0), ("youth", 2.0), ("workers", 1.0), ("business", -3.0)
+            },
+            TweetAction.Ignore => new (string, double)[]
+            {
+                ("youth", -2.0), ("workers", -1.0), ("secular", -1.0)
+            },
+            TweetAction.Ban => new (string, double)[]
+            {
+                ("military", 3.0), ("religious", 2.0), ("business", -2.0), ("youth", -5.0), ("secular", -4.0)
+            },
+            _ => Array.Empty<(string, double)>()
+        };
+
+        foreach (var (groupId, delta) in deltas)
+        {
+            double jitter = (DeterministicRNG.NextDouble() * 2.0 - 1.0) * 0.25; // ±0.25
+            double next = PublicSatisfactionSystem.GetSatisfaction(countryId, groupId) + delta + jitter;
+            PublicSatisfactionSystem.SetSatisfaction(countryId, groupId, next);
+        }
     }
 
     // ===== Kategori ve şablon seçimi (deterministik) =====
@@ -248,6 +309,8 @@ public static class SocialMediaSystem
                 Sentiment = t.Sentiment,
                 Likes = t.Likes,
                 Shares = t.Shares,
+                Action = t.Action,
+                ActionDay = t.ActionDay,
             }).ToArray()
         };
     }
@@ -270,6 +333,8 @@ public static class SocialMediaSystem
                     Sentiment = t.Sentiment,
                     Likes = t.Likes,
                     Shares = t.Shares,
+                    Action = t.Action,
+                    ActionDay = t.ActionDay,
                 });
         }
         _nextTweetNum = _tweets.Count + 1;

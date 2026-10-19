@@ -1357,3 +1357,20 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Değiştirilen: `Scripts/SocialMediaSystem.cs`, `Scripts/GameManager.cs`.
 
 **Sonraki adım:** M28.4 Tweetlere göre aksiyon (açıklama yap, soruşturma aç, görmezden gel, yasakla).
+
+### M28.4: Tweet eylemi + toplum grubu memnuniyeti etkisi — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/SocialMediaSystem.cs`: `TweetAction` enum (`None`/`Statement`/`Investigation`/`Ignore`/`Ban`) eklendi; `Tweet` sınıfına `Action` ve `ActionDay` alanları eklendi. `RespondToTweet(string tweetId, TweetAction action)` — aynı tweete tek seferlik eylem, `PublicSatisfactionSystem.SetSatisfaction` üzerinden deterministik grup memnuniyet delta'sı (yorum: Statement=genç+3/is+a2/laik+1/dindar-1, Investigation=asker+5/genç+2/işçi+1/ticaret-3, Ignore=genç-2/işçi-1/laik-1, Ban=asker+3/dindar+2/ticaret-2/genç-5/laik-4; ±0.25 deterministik jitter). `GetSaveData`/`LoadSaveData` `Action`+`ActionDay` kalıcılığını içeriyor.
+- `Scripts/GameManager.cs`: `tweetActionTest` field, `--tweet-action-test` arg parsing, `RunTweetActionTest()` — 6 farklı kategoride tweet üretilir; 4 farklı eylem (Statement/Investigation/Ignore/Ban) uygulanır ve `true` beklenir; tekrarlı eylem (`doubleRespond`) ve yok tweet (`ghostRespond`) `false` döner; eylem + `ActionDay` doğrulanır; memnuniyet fotoğrafı öncesi/sonrası karşılaştırılır (en az bir grup değişir); `SaveSystem.SaveTestFile()`+`LoadTestFile()` sonrası eylemin kalıcı olduğu doğrulanır; `GetTree().Quit(pass?0:1)`.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--tweet-action-test`: **SONUÇ: PASS ✓** (test-logs/tweet_action_test.log) — üretilen=6, tüm eylem OK, tekrarlı engelleniyor, yok-tweet engelleniyor, eylemler_kalici=True, memnuniyet değişimi doğrulandı.
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** — M28.4 Tweet `Action`/`ActionDay` serileştirmesi determinizmi bozmuyor (test-logs/save_load_test.log).
+- `--trend-test`, `--social-test`, `--profile-test`: **SONUÇ: PASS ✓** — M28.1/28.2/28.3 geriye dönük uyum.
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/SocialMediaSystem.cs`, `Scripts/GameManager.cs`.
+
+**Sonraki adım:** M28.5 Küfür/nefret içeriği filtresi + günlük tweet sayısı sınırı.

@@ -128,6 +128,7 @@ public partial class GameManager : Node
         bool socialTest = false;            // M28.1: olay → tweet üreteci testi (--social-test)
         bool profileTest = false;           // M28.2: kurgusal profil sistemi testi (--profile-test)
         bool trendTest = false;             // M28.3: trend listesi + duygu eğilimi testi (--trend-test)
+        bool tweetActionTest = false;       // M28.4: tweet eylemi + memnuniyet etkisi testi (--tweet-action-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -217,6 +218,8 @@ public partial class GameManager : Node
                 profileTest = true;
             else if (arg == "--trend-test")
                 trendTest = true;
+            else if (arg == "--tweet-action-test")
+                tweetActionTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -489,6 +492,10 @@ public partial class GameManager : Node
         // M28.3: Trend listesi + duygu eğilimi testi (--trend-test).
         if (trendTest)
             RunTrendTest();
+
+        // M28.4: Tweet eylemi + memnuniyet etkisi testi (--tweet-action-test).
+        if (tweetActionTest)
+            RunTweetActionTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -1768,6 +1775,125 @@ public partial class GameManager : Node
         GD.Print($"[TrendTest] üretilen={generated}, bekleseen>={testEvents.Length}, trend_sıralı={trendSorted}, " +
                  $"duygu_tam={sentimentCounts}, etkileşim_ok={engagementOk}, içerik_dolu={contentsNonEmpty}");
         GD.Print(result ? "[TrendTest] SONUÇ: PASS ✓" : "[TrendTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(result ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M28.4: Tweet eylemi testi — tweete tepki (Statement / Investigation / Ignore / Ban),
+    /// toplum grubu memnuniyetine deterministik etki, tekrarlı eylem engelleme ve
+    /// kaydet/yüklede eylemin korunması. Normal oyunda ASLA çalışır (--tweet-action-test).
+    /// </summary>
+    private void RunTweetActionTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M28.4: TWEET AKSİYON TESTİ (--tweet-action-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        string playerId = PlayerCountryId;
+        SocialProfileSystem.EnsureProfilesFor(playerId);
+
+        int before = SocialMediaSystem.TweetCount;
+
+        // Farklı kategorilerde tweet üret → eylem yapılabilir tweet havuzu
+        var testEvents = new[]
+        {
+            (Id: "tact_war", Name: "Tact War", DeclareWar: "FRA"),
+            (Id: "tact_annex", Name: "Tact Annex", DeclareWar: ""),
+            (Id: "tact_peace", Name: "Tact Peace", DeclareWar: ""),
+            (Id: "tact_economy", Name: "Tact Economy", DeclareWar: ""),
+            (Id: "tact_focus", Name: "Tact Focus", DeclareWar: ""),
+            (Id: "tact_diplomacy", Name: "Tact Diplomacy", DeclareWar: ""),
+        };
+
+        foreach (var te in testEvents)
+        {
+            var evt = new EventSystem.GameEvent
+            {
+                Id = te.Id,
+                Name = te.Name,
+                Description = "test",
+                Options = new List<EventSystem.EventOption>
+                {
+                    new EventSystem.EventOption { Label = "Accept", Effects = new EventSystem.EventEffects { DeclareWar = te.DeclareWar } }
+                }
+            };
+            SocialMediaSystem.OnEventResolved(evt, 0);
+        }
+
+        var tweets = SocialMediaSystem.GetTweets().Skip(before).ToList();
+        bool tweetsGenerated = tweets.Count >= testEvents.Length;
+        GD.Print($"[TweetActionTest] üretilen tweet={tweets.Count} (beklenen>={testEvents.Length})");
+
+        // Eylem öncesi memnuniyet fotoğrafı (tüm grup)
+        var groupIds = PublicSatisfactionSystem.Groups.Select(g => g.Id).ToList();
+        var satBefore = groupIds.ToDictionary(g => g, g => PublicSatisfactionSystem.GetSatisfaction(playerId, g));
+
+        // Her tweete farklı bir eylem uygula
+        var actions = new[] { SocialMediaSystem.TweetAction.Statement, SocialMediaSystem.TweetAction.Investigation, SocialMediaSystem.TweetAction.Ignore, SocialMediaSystem.TweetAction.Ban };
+        var respondedTweets = new List<SocialMediaSystem.Tweet>();
+        var respondOk = new List<bool>();
+        for (int i = 0; i < actions.Length && i < tweets.Count; i++)
+        {
+            bool ok = SocialMediaSystem.RespondToTweet(tweets[i].Id, actions[i]);
+            respondOk.Add(ok);
+            respondedTweets.Add(tweets[i]);
+            GD.Print($"[TweetActionTest] {tweets[i].Id} → {actions[i]}: {(ok ? "OK" : "FAIL")}");
+        }
+
+        // Aynı tweete ikinci kez eylem → REDDEDİLMELİ
+        bool doubleRespond = SocialMediaSystem.RespondToTweet(respondedTweets[0].Id, SocialMediaSystem.TweetAction.Ban);
+        GD.Print($"[TweetActionTest] tekrarlı eylem engellendi: {!doubleRespond}");
+
+        // Yok tweete eylem → REDDEDİLMELİ
+        bool ghostRespond = SocialMediaSystem.RespondToTweet("tweet-yok-yok", SocialMediaSystem.TweetAction.Statement);
+        GD.Print($"[TweetActionTest] yok-tweet eylem engellendi: {!ghostRespond}");
+
+        // Eylemler uygulanmış mı + ActionDay doğru mu?
+        bool actionsApplied = true;
+        for (int i = 0; i < respondedTweets.Count; i++)
+        {
+            var t = respondedTweets[i];
+            if (t.Action != actions[i] || t.ActionDay != TotalDays) actionsApplied = false;
+            GD.Print($"[TweetActionTest] tweet={t.Id} eylem={t.Action} gün={t.ActionDay} (istenen={actions[i]})");
+        }
+
+        // Memnuniyet sonrası: her eylem en az bir grubu etkilemeli
+        var satAfter = groupIds.ToDictionary(g => g, g => PublicSatisfactionSystem.GetSatisfaction(playerId, g));
+        bool anyChanged = false;
+        foreach (var g in groupIds)
+        {
+            double d = satAfter[g] - satBefore[g];
+            GD.Print($"[TweetActionTest] {g}: {satBefore[g]:F2} → {satAfter[g]:F2} (delta={d:+#.##;-#.##;0})");
+            if (Math.Abs(d) > 0.001) anyChanged = true;
+        }
+
+        // Kaydet / Yükle: eylemin kalıcı olması (M28.4 → M12)
+        SaveSystem.SaveTestFile();
+        bool loaded = SaveSystem.LoadTestFile();
+        var tweetsAfterLoad = SocialMediaSystem.GetTweets().ToList();
+        bool actionsPersisted = true;
+        for (int i = 0; i < respondedTweets.Count; i++)
+        {
+            var t = tweetsAfterLoad.FirstOrDefault(x => x.Id == respondedTweets[i].Id);
+            if (t == null || t.Action != actions[i] || t.ActionDay != respondedTweets[i].ActionDay)
+                actionsPersisted = false;
+        }
+        GD.Print($"[TweetActionTest] kaydet_yukle={loaded} eylemler_kalici={actionsPersisted}");
+
+        bool result = tweetsGenerated
+                    && respondOk.All(ok => ok)
+                    && !doubleRespond
+                    && !ghostRespond
+                    && actionsApplied
+                    && anyChanged
+                    && loaded
+                    && actionsPersisted;
+
+        GD.Print(result ? "[TweetActionTest] SONUÇ: PASS ✓" : "[TweetActionTest] SONUÇ: FAIL ✗");
         GetTree().Quit(result ? 0 : 1);
         GD.Print("=========================================");
     }

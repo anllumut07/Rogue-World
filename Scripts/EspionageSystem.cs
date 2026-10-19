@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 
 /// <summary>
 /// M29: Casusluk v2 — casus niteliği modeli.
@@ -60,6 +61,67 @@ public static class EspionageSystem
         { "turkish",  (new[] { "Mehmet", "Ayşe", "Ali", "Emine", "Mustafa" }, new[] { "Yılmaz", "Kaya", "Demir", "Şahin", "Çelik" }) },
         { "arabic",   (new[] { "Omar", "Layla", "Karim", "Nadia", "Farid" }, new[] { "Al-Farsi", "Nasser", "Mansour", "Rashid", "Salem" }) },
     };
+
+    // ===== M29.2: Yatkınlık matrisi (kültür grubu arası benzerlik %) =====
+    private const string AffinityPath = "res://Data/espionage_affinity.json";
+    private static readonly Dictionary<string, Dictionary<string, int>> _affinity = new(StringComparer.OrdinalIgnoreCase);
+    private static bool _affinityLoaded;
+
+    public static void EnsureAffinityLoaded()
+    {
+        if (_affinityLoaded) return;
+        _affinityLoaded = true;
+        try
+        {
+            if (!Godot.FileAccess.FileExists(AffinityPath))
+            {
+                GD.PrintErr($"[EspionageSystem] Yatkınlık matrisi yok: {AffinityPath}");
+                return;
+            }
+            string json = Godot.FileAccess.GetFileAsString(AffinityPath);
+            using var doc = JsonDocument.Parse(json);
+            foreach (var src in doc.RootElement.EnumerateObject())
+            {
+                var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                foreach (var tgt in src.Value.EnumerateObject())
+                {
+                    if (tgt.Value.ValueKind == JsonValueKind.Number)
+                        map[tgt.Name] = tgt.Value.GetInt32();
+                }
+                _affinity[src.Name] = map;
+            }
+            GD.Print($"[EspionageSystem] Yatkınlık matrisi yüklendi: {_affinity.Count} kaynak kültür.");
+        }
+        catch (Exception e)
+        {
+            GD.PrintErr($"[EspionageSystem] Yatkınlık matrisi yükleme HATA: {e.Message}");
+        }
+    }
+
+    /// <summary>Kaynak kültürden hedef ülkeye yatkınlık % (0-100). Hedef ülkenin kültürü LeaderSystem'den alınır.</summary>
+    public static int GetAffinity(string sourceCulture, string targetCountryId)
+    {
+        EnsureAffinityLoaded();
+        string targetCulture = LeaderSystem.GetCultureKey(targetCountryId);
+        if (_affinity.TryGetValue(sourceCulture, out var map))
+        {
+            if (map.TryGetValue(targetCulture, out var v)) return v;
+            if (map.TryGetValue("default", out var d)) return d;
+        }
+        if (_affinity.TryGetValue("default", out var g))
+        {
+            if (g.TryGetValue("default", out var gv)) return gv;
+        }
+        return 30;
+    }
+
+    /// <summary>Belirli bir casusun hedef ülkeye yatkınlığı % (0-100).</summary>
+    public static int GetAffinityForSpy(string spyId, string targetCountryId)
+    {
+        var s = _spies.FirstOrDefault(s => s.Id == spyId);
+        if (s == null) return 30;
+        return GetAffinity(s.BirthCulture, targetCountryId);
+    }
 
     private static readonly string[] _regions = {
         "Western Europe", "Eastern Europe", "Southern Europe", "Northern Europe",

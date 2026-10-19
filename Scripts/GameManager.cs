@@ -2005,6 +2005,21 @@ public partial class GameManager : Node
         bool cardOk = !string.IsNullOrEmpty(card) && card.Contains(s1.Name);
         GD.Print($"[EspionageTest] kart={cardOk}");
 
+        // 3b. Yatkınlık matrisi: kaynak kültür → hedef ülke affinity % (0-100).
+        EspionageSystem.EnsureAffinityLoaded();
+        int gerDeu = EspionageSystem.GetAffinity("germanic", "DEU"); // aynı kültür = 100
+        int gerFra = EspionageSystem.GetAffinity("germanic", "FRA"); // dış kültür, default = 30
+        int gerSwe = EspionageSystem.GetAffinity("germanic", "SWE"); // nordic yakınlık = 70
+        int turSau = EspionageSystem.GetAffinity("turkish", "SAU"); // Türk-Arap = 60
+        int araTur = EspionageSystem.GetAffinity("arabic", "TUR"); // Arap-Türk = 60
+        bool affinityOk = gerDeu == 100 && gerFra == 30 && gerSwe == 70 && turSau == 60 && araTur == 60;
+        GD.Print($"[EspionageTest] yatkinlik={affinityOk} GER→DEU={gerDeu} GER→FRA={gerFra} GER→SWE={gerSwe} TUR→SAU={turSau} ARB→TUR={araTur}");
+
+        // 3c. Casus üzerinden yatkınlık döner ve 0-100 aralıktadır.
+        int spyAff = EspionageSystem.GetAffinityForSpy(s1.Id, "FRA");
+        bool spyAffOk = spyAff >= 0 && spyAff <= 100;
+        GD.Print($"[EspionageTest] casus_yatkinlik={spyAffOk} deger={spyAff}");
+
         // 4. Save/Load A==B.
         var data1 = EspionageSystem.GetSaveData();
         EspionageSystem.LoadSaveData(data1);
@@ -2028,7 +2043,7 @@ public partial class GameManager : Node
         bool resetOk = EspionageSystem.SpyCount == 0;
         GD.Print($"[EspionageTest] reset={resetOk}");
 
-        ok = deterministic && rangesOk && cardOk && saveLoadOk && resetOk;
+        ok = deterministic && rangesOk && cardOk && affinityOk && spyAffOk && saveLoadOk && resetOk;
         GD.Print(ok ? "[EspionageTest] SONUÇ: PASS ✓" : "[EspionageTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");

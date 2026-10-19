@@ -1,0 +1,81 @@
+{
+  "turkish": {
+    "turkish": 100,
+    "arabic": 60,
+    "iranian": 55,
+    "default": 30
+  },
+  "slavic": {
+    "slavic": 100,
+    "germanic": 45,
+    "default": 30
+  },
+  "germanic": {
+    "germanic": 100,
+    "nordic": 70,
+    "anglo": 65,
+    "default": 30
+  },
+  "anglo": {
+    "anglo": 100,
+    "germanic": 65,
+    "latin": 50,
+    "default": 30
+  },
+  "latin": {
+    "latin": 100,
+    "anglo": 50,
+    "default": 30
+  },
+  "arabic": {
+    "arabic": 100,
+    "turkish": 60,
+    "iranian": 50,
+    "default": 30
+  },
+  "iranian": {
+    "iranian": 100,
+    "arabic": 50,
+    "turkish": 45,
+    "default": 30
+  },
+  "nordic": {
+    "nordic": 100,
+    "germanic": 70,
+    "default": 30
+  },
+  "greek": {
+    "greek": 100,
+    "latin": 55,
+    "slavic": 45,
+    "default": 30
+  },
+  "hungarian": {
+    "hungarian": 100,
+    "slavic": 50,
+    "germanic": 45,
+    "default": 30
+  },
+  "south_asian": {
+    "south_asian": 100,
+    "default": 30
+  },
+  "east_asian": {
+    "east_asian": 100,
+    "southeast_asian": 55,
+    "default": 30
+  },
+  "southeast_asian": {
+    "southeast_asian": 100,
+    "east_asian": 55,
+    "default": 30
+  },
+  "african": {
+    "african": 100,
+    "arabic": 45,
+    "default": 30
+  },
+  "default": {
+    "default": 30
+  }
+}

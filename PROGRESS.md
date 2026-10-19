@@ -1410,4 +1410,24 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Yeni: `Scripts/EspionageSystem.cs`.
 - Değiştirilen: `Scripts/SaveSystem.cs`, `Scripts/GameManager.cs`, `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
 
-**Sonraki adım:** M29.2 Yatkınlık matrisi (`Data/espionage_affinity.json`).
+**Sonraki adım:** M29.3 Yakalanma olasılığı (`formül: taban × (1.5 − yatkınlık/100) × karşı istihbarat × (1 − eğitim bonusu)`).
+
+### M29.2: Yatkınlık matrisi (Data/espionage_affinity.json) — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:**
+- `Data/espionage_affinity.json`: kaynak kültür → hedef kültür → yatkınlık % (0-100). Aynı kültür 100; ilişkili kültürler yüksek (germanic→nordic 70, germanic→anglo 65, turkish→arabic 60, arabic→turkish 60); dış kültür default 30. Yorum satırları yok (standart JSON).
+
+**Değişiklikler:**
+- `Scripts/EspionageSystem.cs`: `EnsureAffinityLoaded()` (JSON yükle, `IncludeFields` yok ama JsonDocument ile parsing), `GetAffinity(sourceCulture, targetCountryId)` (LeaderSystem.GetCultureKey ile hedef kültürü çöz, source→target → default → 30), `GetAffinityForSpy(spyId, targetCountryId)` (casusun kendi kültüründen hesapla).
+- `Scripts/GameManager.cs`: `RunEspionageTest()` genişletildi — affinity assertion (GER→DEU=100, GER→FRA=30, GER→SWE=70, TUR→SAU=60, ARB→TUR=60) + casus üzerinden yatkınlık 0-100 aralığında; `affinityOk` ve `spyAffOk` final `ok` hesaplamasına eklendi.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--espionage-test`: **SONUÇ: PASS ✓** (test-logs/espionage_test.log) — matris yüklendi (15 kaynak kültür), yatkınlık değerleri doğru, casus affinity 0-100.
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)**.
+
+**Dosyalar:**
+- Yeni: `Data/espionage_affinity.json`.
+- Değiştirilen: `Scripts/EspionageSystem.cs`, `Scripts/GameManager.cs`, `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**Sonraki adım:** M29.3 Yakalanma olasılığı.

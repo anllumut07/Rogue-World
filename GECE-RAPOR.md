@@ -622,3 +622,31 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--espionage-test` ve `--save-load-test` çalıştırılmalı.
 
 
+## M29.2 — Yatkınlık Matrisi — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:** `Data/espionage_affinity.json` — kaynak kültür → hedef kültür → yatkınlık % (0-100). Aynı kültür 100; ilişkili kültürler yüksek (germanic→nordic 70, germanic→anglo 65, turkish→arabic 60, arabic→turkish 60); dış kültür default 30. Standart JSON (yorum satırı yok).
+
+**Değiştirilen dosyalar:**
+- `Scripts/EspionageSystem.cs`: `EnsureAffinityLoaded()`, `GetAffinity(sourceCulture, targetCountryId)`, `GetAffinityForSpy(spyId, targetCountryId)`.
+- `Scripts/GameManager.cs`: `RunEspionageTest()` affinity assertion (GER→DEU=100, GER→FRA=30, GER→SWE=70, TUR→SAU=60, ARB→TUR=60) + casus-affinity 0-100 aralığı.
+- `TODO.md`: M29.2 `[x] Bitti (2026-10-20)` işaretlendi.
+- `PROGRESS.md`: M29.2 DONE bölümü eklendi.
+- `GECE-RAPOR.md`: bu bölüm.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--espionage-test`: **SONUÇ: PASS ✓** (test-logs/espionage_test.log) — matris yüklendi (15 kaynak kültür), tüm yatkınlık değerleri doğru, casus affinity 0-100.
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)**.
+
+**Çözülemeyen şey:** yok — M29.2 %100 tamamlandı.
+
+**Bilinen sorun:** casusluk paneli UI'sı yok; M29.3 yakalanma olasılığı sonraki alt görev.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--espionage-test` ve `--save-load-test` çalıştırılmalı.
+
+### ÖZET (M29.2 — 2026-10-20)
+1. Değişen dosyalar: `Data/espionage_affinity.json` (yeni), `Scripts/EspionageSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (29.2 [x]), `PROGRESS.md` (M29.2 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M29.2 %100 tamamlandı (build 0/0, espionage-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: casus paneli UI'sı yok; model-seviyede yatkınlık metoduyle taahhüt edildi.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--espionage-test` ve `--save-load-test` çalıştırılmalı.
+

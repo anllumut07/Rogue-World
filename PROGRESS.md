@@ -2101,4 +2101,16 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 
 **Sonraki adım:** M38.4 (ElectionSystem/ElectionCampaignSystem çift başlatma düzeltmesi).
 
+### M38.4: ElectionSystem/ElectionCampaignSystem çift başlatma düzeltmesi — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/GameManager.cs`: `_Ready()`'dan `ElectionSystem.LoadData()` ve `ElectionCampaignSystem.LoadData()` çağrıları kaldırıldı. Bu sistemler zaten `ResetForNewGame()` → `InitializeAll()` → `LoadData()` yoluyla tek sefer başlatılıyor; `_Ready()`'daki ayrı çağrılar `_Ready()` sonrası `ResetForNewGame()` çağrıldığında çift başlatma ve çift log satırı yol açtı.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--election-test`: PASS ✓ — tek başlatma onaylandı (ElectionSystem/ElectionCampaignSystem log satırları tek sefer), tüm seçim/kampanya/vaat ve save-load doğrulamaları geçti.
+- `--save-load-test`: PASS ✓ (A == B) — seçim/kampanya durumu yükleme sonrası korunuyor.
+
+**Dosyalar:** `Scripts/GameManager.cs`, `TODO.md` (38.4 [x]), `PROGRESS.md` (M38.4 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M38.5 (Kaydet/Yükle regresyonu historical_1936 + modern_world A==B).
+
 

@@ -379,11 +379,9 @@ public partial class GameManager : Node
         // M37.1: Uluslararası örgütler — Data/organizations.json'dan üyelik ve kural tanımları.
         OrganizationSystem.LoadData();
 
-        // M23.1: Seçim takvimi ve oy tahmini.
-        ElectionSystem.LoadData();
-
-        // M23.2: Kampanya aksiyonları (miting, reklam, TV, ittifak, vaat).
-        ElectionCampaignSystem.LoadData();
+        // M23.1/23.2: Seçim ve kampanya verileri ResetForNewGame() -> InitializeAll() -> LoadData() ile tek sefer başlatılır.
+        // Burada LoadData() çağrısı çıkarılıyor çünkü ResetForNewGame() zaten InitializeAll() içinden LoadData() çağırır;
+        // aksi takdirde hem _Ready() hem de ResetForNewGame() üzerinden çift başlatma ve çift log satırı oluşur.
 
         // M25.1: Siyasetçi kariyer yolu — üniversite → parti gençlik → yerel yönetim → milletvekili → bakanlık.
         CareerSystem.Initialize();

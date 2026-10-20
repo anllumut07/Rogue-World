@@ -14,6 +14,12 @@ public partial class SettingsPanel : Control
     private CheckBox _fullscreenCheck;
     private OptionButton _resolutionOption;
 
+    // M13.4: yeni ayar kontrolleri
+    private CheckBox _vsyncCheck;
+    private OptionButton _defaultSpeedOption;
+    private OptionButton _difficultyOption;
+    private CheckBox _ironmanCheck;
+
     // Animasyon için referanslar
     private ColorRect _backdrop;
     private PanelContainer _panel;
@@ -188,6 +194,52 @@ public partial class SettingsPanel : Control
         }
         resolutionRow.AddChild(_resolutionOption);
 
+        // --- VSync onay kutusu ---
+        _vsyncCheck = new CheckBox { Text = "VSync" };
+        vbox.AddChild(_vsyncCheck);
+
+        // --- Varsayılan oyun hızı satırı: etiket + seçim listesi (0=Pause .. 5x) ---
+        var speedRow = new HBoxContainer();
+        speedRow.AddThemeConstantOverride("separation", 12);
+        vbox.AddChild(speedRow);
+
+        var speedLabel = new Label { Text = "Default Speed", CustomMinimumSize = new Vector2(150, 0) };
+        speedRow.AddChild(speedLabel);
+
+        _defaultSpeedOption = new OptionButton
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            FocusMode = Control.FocusModeEnum.None
+        };
+        _defaultSpeedOption.AddItem("0 = Pause");
+        _defaultSpeedOption.AddItem("1x");
+        _defaultSpeedOption.AddItem("2x");
+        _defaultSpeedOption.AddItem("3x");
+        _defaultSpeedOption.AddItem("4x");
+        _defaultSpeedOption.AddItem("5x");
+        speedRow.AddChild(_defaultSpeedOption);
+
+        // --- Zorluk seviyesi satırı: etiket + seçim listesi (Easy/Normal/Hard) ---
+        var difficultyRow = new HBoxContainer();
+        difficultyRow.AddThemeConstantOverride("separation", 12);
+        vbox.AddChild(difficultyRow);
+
+        var difficultyLabel = new Label { Text = "Difficulty", CustomMinimumSize = new Vector2(150, 0) };
+        difficultyRow.AddChild(difficultyLabel);
+
+        _difficultyOption = new OptionButton
+        {
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            FocusMode = Control.FocusModeEnum.None
+        };
+        foreach (var d in Enum.GetValues<SettingsSystem.GameDifficulty>())
+            _difficultyOption.AddItem(d.ToString());
+        difficultyRow.AddChild(_difficultyOption);
+
+        // --- Ironman onay kutusu ---
+        _ironmanCheck = new CheckBox { Text = "Ironman" };
+        vbox.AddChild(_ironmanCheck);
+
         // --- GERİ butonu (sağa hizalı) ---
         var backRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         vbox.AddChild(backRow);
@@ -217,6 +269,12 @@ public partial class SettingsPanel : Control
         _resolutionOption.Select(SettingsSystem.ResolutionIndex);
         // Çözünürlük yalnızca pencere modunda uygulanır -> tam ekranda seçimi kapat.
         _resolutionOption.Disabled = SettingsSystem.Fullscreen;
+
+        // M13.4: yeni ayarları kontrollere yansıt.
+        _vsyncCheck.ButtonPressed = SettingsSystem.VSync;
+        _defaultSpeedOption.Select(SettingsSystem.DefaultSpeed); // 0=pause .. 5 -> item index 0..5
+        _difficultyOption.Select((int)SettingsSystem.Difficulty); // Easy=0, Normal=1, Hard=2
+        _ironmanCheck.ButtonPressed = SettingsSystem.Ironman;
     }
 
     private void ConnectSignals()
@@ -224,6 +282,12 @@ public partial class SettingsPanel : Control
         _volumeSlider.ValueChanged += OnVolumeChanged;
         _fullscreenCheck.Toggled += OnFullscreenToggled;
         _resolutionOption.ItemSelected += OnResolutionSelected;
+
+        // M13.4: yeni ayar kontrolleri sinyalleri
+        _vsyncCheck.Toggled += OnVSyncToggled;
+        _defaultSpeedOption.ItemSelected += OnDefaultSpeedSelected;
+        _difficultyOption.ItemSelected += OnDifficultySelected;
+        _ironmanCheck.Toggled += OnIronmanToggled;
     }
 
     private void OnVolumeChanged(double value)
@@ -247,6 +311,31 @@ public partial class SettingsPanel : Control
         SettingsSystem.SetResolutionIndex(idx); // uygular + kaydeder
         var r = SettingsSystem.Resolutions[idx];
         GD.Print($"SettingsPanel: Resolution = {r.X} x {r.Y}");
+    }
+
+    // M13.4: yeni ayar olay işleyicileri — her biri SettingsSystem üzerinden uygular ve kaydeder.
+    private void OnVSyncToggled(bool pressed)
+    {
+        SettingsSystem.SetVSync(pressed);
+        GD.Print($"SettingsPanel: VSync = {pressed}");
+    }
+
+    private void OnDefaultSpeedSelected(long index)
+    {
+        SettingsSystem.SetDefaultSpeed((int)index);
+        GD.Print($"SettingsPanel: Default Speed = {index}x");
+    }
+
+    private void OnDifficultySelected(long index)
+    {
+        SettingsSystem.SetDifficulty((SettingsSystem.GameDifficulty)index);
+        GD.Print($"SettingsPanel: Difficulty = {index}");
+    }
+
+    private void OnIronmanToggled(bool pressed)
+    {
+        SettingsSystem.SetIronman(pressed);
+        GD.Print($"SettingsPanel: Ironman = {pressed}");
     }
 
     private void Close()

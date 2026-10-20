@@ -1047,3 +1047,25 @@ Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.
 2. Çözülemeyen şey: yok — M13.3 %100 tamamlandı (build 0/0, map-mode-test PASS, save-load-test A==B PASS).
 3. Bilinen sorun: yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--map-mode-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).
+
+## M13.4: Ayarlar Paneli (Settings Panel) — ✅ DONE (2026-10-20)
+
+**Değişen dosyalar:**
+- `Scripts/SettingsSystem.cs` (`using System` eklendi; `VSync`/`DefaultSpeed`/`Difficulty`/`Ironman` alanları, `GameDifficulty` enum, `SaveBlob` + `SettingsSave` DTO'ları, `GetSaveData`/`LoadSaveData`/`ResetForNewGame`, `SetVSync`/`SetDefaultSpeed`/`SetDifficulty`/`SetIronman` setter'ları uygula+kaydet).
+- `Scripts/SettingsPanel.cs` (`BuildUi` 4 yeni kontrol: VSync CheckBox, DefaultSpeed 0=Pause..5x, Difficulty Easy/Normal/Hard, Ironman CheckBox; `SyncFromSettings` yansıtır; `ConnectSignals` 4 sinyal + 4 handler; her handler `SettingsSystem` üzerinden uygular/kaydeder ve GD.Print logu verir).
+- `Scripts/GameManager.cs` (`settingsTest` alanı, `--settings-test` argümanı, `RunSettingsTest()` varsayılanlar/setter'lar/Save-Load-A==B/değer-geri-yükle + `GetTree().Quit(pass?0:1)`).
+- `Scripts/SaveSystem.cs` (`SaveFile.Settings` alanı, `WriteSave` `Settings = SettingsSystem.GetSaveData()`, `LoadGameInternal` `SettingsSystem.LoadSaveData(save.Settings)`).
+
+**Testler:** `dotnet build`: 0 hata / 0 uyarı. `--settings-test`: **SONUÇ: PASS ✓** (çıkış kodu 0). `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)**.
+
+**Çözülemeyen şey:** yok — M13.4 %100 tamamlandı (build 0/0, settings-test PASS, save-load-test A==B PASS).
+
+**Bilinen sorun:** yok.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--settings-test` (PASS); `--save-load-test --scenario=modern_world` (A==B); fare kontrolleri bozulmamalı.
+
+### ÖZET (M13.4 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/SettingsSystem.cs`, `Scripts/SettingsPanel.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (13.4 [x]), `PROGRESS.md` (M13.4 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M13.4 %100 tamamlandı (build 0/0, settings-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--settings-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).

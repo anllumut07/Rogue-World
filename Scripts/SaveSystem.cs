@@ -88,6 +88,7 @@ public static class SaveSystem
         public SocialMediaSave SocialMedia { get; set; } // M28.1: gündem/tweet kayıtları
         public SocialProfileSave SocialProfile { get; set; } // M28.2: kurgusal sosyal medya profilleri
         public EspionageSystem.EspionageSave Espionage { get; set; } // M29.1: casusluk v2 — casus nitelik kayıtları
+        public SettingsSystem.SettingsSave Settings { get; set; } // M13.4: ayarlar kalıcılığı (ses/ekran/oyun)
         public SpaceSystem.SpaceSave Space { get; set; } // M30.1: uzay programı — görev durumları
         public NuclearProgramSystem.NuclearSave Nuclear { get; set; } // M31.2: nükleer program aşamaları
     }
@@ -459,6 +460,7 @@ public static class SaveSystem
             SocialMedia = SocialMediaSystem.GetSaveData(), // M28.1: gündem/tweet kayıtları
             SocialProfile = SocialProfileSystem.GetSaveData(), // M28.2: kurgusal sosyal medya profilleri
             Espionage = EspionageSystem.GetSaveData(), // M29.1: casusluk v2 — casus nitelik kayıtları
+            Settings = SettingsSystem.GetSaveData(), // M13.4: ayarlar kalıcılığı
             Space = SpaceSystem.GetSaveData(), // M30.1: uzay programı — görev durumları
             Nuclear = NuclearProgramSystem.GetSaveData(), // M31.2: nükleer program aşamaları
         };
@@ -626,6 +628,9 @@ public static class SaveSystem
 
             // M29.1: casusluk v2 — casus nitelik kayıtları — kayıtta varsa geri yüklenir
             EspionageSystem.LoadSaveData(save.Espionage);
+
+            // M13.4: ayarlar kalıcılığı — kayıtta varsa geri yüklenir
+            SettingsSystem.LoadSaveData(save.Settings);
 
             // M30.1: uzay programı — görev durumları — kayıtta varsa geri yüklenir
             SpaceSystem.LoadSaveData(save.Space);

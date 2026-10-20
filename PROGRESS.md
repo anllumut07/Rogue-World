@@ -1832,3 +1832,26 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 **Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--map-mode-test` (PASS); `--save-load-test --scenario=modern_world` (A==B); fare kontrolleri (sağ tık sürükleme/tekerlek/WASD/ülke seçimi) bozulmamalı.
 
 **Dosyalar:** Değiştirilen: `Scripts/WorldMap.cs`, `Scripts/GameManager.cs`, `TODO.md` (13.3 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+### M13.4: Ayarlar Paneli (Settings Panel) — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:** yok.
+
+**Değişikler:**
+- `Scripts/SettingsSystem.cs`: `using System` eklendi (Enum kullanımı); `VSync`/`DefaultSpeed`/`Difficulty`/`Ironman` alanları, `GameDifficulty` enum (`Easy`/`Normal`/`Hard`), `SaveBlob` ve `SettingsSave` DTO'ları (Save/Load), `GetSaveData()`/`LoadSaveData(SettingsSave)`/`ResetForNewGame()` — kullanıcı ayarları oyunlar arası kalır ve sıfırlanmaz. `SetVSync`/`SetDefaultSpeed`/`SetDifficulty`/`SetIronman` setter'ları uygular + kaydeder.
+- `Scripts/SettingsPanel.cs`: `BuildUi()` 4 yeni kontrol (`_vsyncCheck` VSync CheckBox, `_defaultSpeedOption` 0=Pause..5x OptionButton, `_difficultyOption` Easy/Normal/Hard OptionButton, `_ironmanCheck` Ironman CheckBox); `SyncFromSettings()` değerleri kontrollere yansıtır; `ConnectSignals()` 4 sinyal bağlanır (`OnVSyncToggled`, `OnDefaultSpeedSelected`, `OnDifficultySelected`, `OnIronmanToggled`); her handler `SettingsSystem` setter'ı üzerinden uygular ve kaydeder, GD.Print logu verir. UI metinleri İngilizce, fare kontrolleri bozulmadı.
+- `Scripts/GameManager.cs`: `settingsTest` alanı, `--settings-test` argümanı, `RunSettingsTest()` — varsayılan değerler, setter'ları (VSync=false, DefaultSpeed=3, Difficulty=Hard, Ironman=true), Save/Load DTO A==B determinizm, değerleri geri yükleme, `GetTree().Quit(pass?0:1)`.
+- `Scripts/SaveSystem.cs`: `SaveFile.Settings` alan, `WriteSave`'de `Settings = SettingsSystem.GetSaveData()`, `LoadGameInternal`'de `SettingsSystem.LoadSaveData(save.Settings)` — kaydet/yükle A==B kapsamında.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--settings-test`: **SONUÇ: PASS ✓** (varsayılanlar, setter'lar, Save/Load A==B, çıkış kodu 0).
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — ayar state'i kayıt/yüklemeyle korundu.
+
+**Çözülemeyen şey:** yok — M13.4 %100 tamamlandı.
+
+**Bilinen sorun:** yok.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--settings-test` (PASS); `--save-load-test --scenario=modern_world` (A==B); fare kontrolleri (sağ tık sürükleme/tekerlek/WASD/ülke seçimi) bozulmamalı.
+
+**Dosyalar:** Değiştirilen: `Scripts/SettingsSystem.cs`, `Scripts/SettingsPanel.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (13.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.

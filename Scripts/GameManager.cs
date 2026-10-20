@@ -85,6 +85,9 @@ public partial class GameManager : Node
     // M13.3: Harita görünüm modu sistemi test durumu (--map-mode-test).
     private bool mapModeTest = false;
 
+    // M13.4: Ayarlar paneli testi durumu (--settings-test).
+    private bool settingsTest = false;
+
     public override void _Ready()
     {
         Instance = this;
@@ -277,6 +280,8 @@ public partial class GameManager : Node
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
                 mapModeTest = true;
+            else if (arg == "--settings-test")
+                settingsTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -613,6 +618,10 @@ public partial class GameManager : Node
         // M13.3: Harita görünüm modu testi — Political/Terrain/Supply/Factories/Resources/AirZones.
         if (mapModeTest)
             RunMapModeTest();
+
+        // M13.4: Ayarlar paneli testi — VSync/Default Speed/Difficulty/Ironman + Save/Load A==B.
+        if (settingsTest)
+            RunSettingsTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -4507,6 +4516,60 @@ public partial class GameManager : Node
         }
 
         GD.Print(ok ? "[MapModeTest] SONUÇ: PASS ✓" : "[MapModeTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M13.4: Ayarlar paneli testi. VSync/Default Speed/Difficulty/Ironman setter'larını ve
+    /// SettingsSave DTO'su üzerinden Save/Load A==B determinizmini doğrular. Normal oyunda
+    /// ASLA çalışmaz (sadece --settings-test ile).
+    /// </summary>
+    private void RunSettingsTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M13.4: AYARLAR PANELİ TESTİ (--settings-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        // 1) Varsayılan değerler
+        ok &= SettingsSystem.VSync == true;
+        ok &= SettingsSystem.DefaultSpeed == 0;
+        ok &= SettingsSystem.Difficulty == SettingsSystem.GameDifficulty.Normal;
+        ok &= SettingsSystem.Ironman == false;
+        GD.Print($"[SettingsTest] Varsayılanlar: VSync={SettingsSystem.VSync}, DefaultSpeed={SettingsSystem.DefaultSpeed}, Difficulty={SettingsSystem.Difficulty}, Ironman={SettingsSystem.Ironman}");
+
+        // 2) Setter'lar
+        SettingsSystem.SetVSync(false);
+        ok &= SettingsSystem.VSync == false;
+
+        SettingsSystem.SetDefaultSpeed(3);
+        ok &= SettingsSystem.DefaultSpeed == 3;
+
+        SettingsSystem.SetDifficulty(SettingsSystem.GameDifficulty.Hard);
+        ok &= SettingsSystem.Difficulty == SettingsSystem.GameDifficulty.Hard;
+
+        SettingsSystem.SetIronman(true);
+        ok &= SettingsSystem.Ironman == true;
+        GD.Print($"[SettingsTest] Setter'lar sonrası: VSync={SettingsSystem.VSync}, DefaultSpeed={SettingsSystem.DefaultSpeed}, Difficulty={SettingsSystem.Difficulty}, Ironman={SettingsSystem.Ironman}");
+
+        // 3) Save/Load DTO A==B determinizmi
+        var saveData = SettingsSystem.GetSaveData();
+        SettingsSystem.LoadSaveData(saveData);
+        ok &= SettingsSystem.VSync == saveData.VSync;
+        ok &= SettingsSystem.DefaultSpeed == saveData.DefaultSpeed;
+        ok &= SettingsSystem.Difficulty == (SettingsSystem.GameDifficulty)Enum.Parse(typeof(SettingsSystem.GameDifficulty), saveData.Difficulty);
+        ok &= SettingsSystem.Ironman == saveData.Ironman;
+        GD.Print($"[SettingsTest] Save/Load A==B: {ok}");
+
+        // 4) Değerleri geri yükle (kullanıcı tercihini bozmasın)
+        SettingsSystem.SetVSync(true);
+        SettingsSystem.SetDefaultSpeed(0);
+        SettingsSystem.SetDifficulty(SettingsSystem.GameDifficulty.Normal);
+        SettingsSystem.SetIronman(false);
+
+        GD.Print(ok ? "[SettingsTest] SONUÇ: PASS ✓" : "[SettingsTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

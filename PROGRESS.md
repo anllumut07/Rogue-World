@@ -1694,6 +1694,18 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 **Dosyalar:** Yeni: `Design/M32_UI_stil_rehberi.md`, `TODO.md` (32.1 [x]).
 
-**Sonraki adım:** M32.2–32.6 (deniz görünümü, arazi dokusu, mini harita, birlik ikonları, ana menü arka planı) — arazi dokusu kaynağı beklenince (milhout engeli).
+**Sonraki adım:** M32.3 (arazi dokusu, arazi dokusu kaynağı beklenince).
 
-**Sonraki adım:** M32 Görsel Kimlik ve Harita Güzelleştirme (isteğe bağlı, explicit onay gerekli).
+### M32.2: Deniz Görünümü — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/WorldMap.cs`: `BuildOceanGradient()` koyu turkuaz paleti (`#082030`→`#0E4A5A`→`#0C3A4A`→`#082030`), `OceanColor` fallback `#0A2B3A`; ülke sınırlarının arkasında geniş şeffaf turkuaz kıyı parıltısı çizgisi (`Country.GlowOutlines`, her ring için); `UpdateBorderWidthsByZoom` parıltı kalınlığını ana sınırla orantılı günceller; `_vignetteTexture` (radial GradientTexture2D) + `BuildVignetteGradient()` + `MapEffects._Draw`'da overlay çizimi (merkez hafif turkuaz parıltı, kenarlar hafif koyu vinyet).
+- `BuildFromGeoJson`: her ülke ring'inden önce parıltı Line2D eklendi (ana sınır üstte kalır).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — M32.2 yalnızca görsel, oyun durumu etkilemez, determinizm korunuyor.
+
+**Dosyalar:** Değiştirilen: `Scripts/WorldMap.cs`, `TODO.md` (32.2 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**Sonraki adım:** M32.3 (arazi dokusu, arazi dokusu kaynağı beklenince).

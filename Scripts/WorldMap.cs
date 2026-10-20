@@ -44,6 +44,7 @@ public partial class WorldMap : Node2D
         public readonly List<Vector2[]> Rings = new();
         public readonly List<Polygon2D> Nodes = new();
         public readonly List<Line2D> Outlines = new();
+        public readonly List<Line2D> GlowOutlines = new(); // M32.2: kıyı parıltısı çizgileri
         public Color MapColor;
         public float SmallestRingArea = float.MaxValue;
         public Vector2 LabelAnchor;
@@ -122,10 +123,11 @@ public partial class WorldMap : Node2D
     private Vector2 _rmbPressPos; // M7.5: RMB basılma noktası (tık vs sürükleme ayrımı)
     private float _goldPulse = 0f;
     private bool _cameraNeedsFit = true; // SubViewport gerçek boyutuna ulaşınca kamerayı oturt
-    private static readonly Color OceanColor = new("0A1628");
+    private static readonly Color OceanColor = new("0A2B3A"); // M32.2: koyu turkuaz
 
     // Görsel iyileştirmeler
     private GradientTexture2D _oceanTexture;
+    private GradientTexture2D _vignetteTexture; // M32.2: vinyet + merkez parlaklığı
     private float _lastBorderZoom = -1f;
 
     // Yumuşak kamera (zoom lerp): hedefe doğru yumuşak yaklaşma
@@ -177,6 +179,17 @@ public partial class WorldMap : Node2D
             FillTo = new Vector2(1f, 0f),
             Gradient = BuildTerminatorGradient(),
         };
+
+        // M32.2: Vinyet + merkez parlaklığı — merkez hafif turkuaz parıltı, kenarlar koyu.
+        _vignetteTexture = new GradientTexture2D
+        {
+            Width = 64,
+            Height = 64,
+            Fill = GradientTexture2D.FillEnum.Radial,
+            FillFrom = new Vector2(0.5f, 0.5f),
+            FillTo = new Vector2(1f, 1f),
+            Gradient = BuildVignetteGradient(),
+        };
         _effects = new MapEffects();
         AddChild(_effects); // BuildFromGeoJson'dan SONRA eklendi → ülkelerin üstüne çizer
 
@@ -199,14 +212,14 @@ public partial class WorldMap : Node2D
         GD.Print($"WorldMap: hazır — kamera zoom={_camera?.Zoom.X:0.00} pos={_camera?.Position}, viewport={GetViewportRect().Size}");
     }
 
-    // Dikey okyanus degradesi: kutuplar (üst/alt) koyu, ekvator (orta) mavi
+    // Dikey okyanus degradesi: koyu turkuaz (kutuplar koyu, ekrangen orta daha canlı turkuaz)
     private static Gradient BuildOceanGradient()
     {
         var g = new Gradient();
-        g.SetColor(0, new Color("#060B12"));
-        g.AddPoint(0.45f, new Color("#10233C"));
-        g.AddPoint(0.75f, new Color("#0C1B30"));
-        g.SetColor(1, new Color("#050A10"));
+        g.SetColor(0, new Color("#082030"));   // kutup: çok koyu turkuaz-navy
+        g.AddPoint(0.45f, new Color("#0E4A5A")); // alt-ekvator: canlı koyu turkuaz
+        g.AddPoint(0.75f, new Color("#0C3A4A")); // üst-ekvator: koyu turkuaz
+        g.SetColor(1, new Color("#082030"));    // kutup: çok koyu turkuaz-navy
         return g;
     }
 
@@ -424,6 +437,13 @@ public partial class WorldMap : Node2D
                 if (!GodotObject.IsInstanceValid(outline)) continue;
                 outline.Width = w;
                 outline.DefaultColor = borderColor;
+            }
+            // M32.2: kıyı parıltısı kalınlığını ana sınırla orantılı tut (daha geniş, şeffaf).
+            float glowW = Mathf.Clamp(w * 3.2f, 1f, 10f);
+            foreach (var glow in c.GlowOutlines)
+            {
+                if (!GodotObject.IsInstanceValid(glow)) continue;
+                glow.Width = glowW;
             }
         }
     }
@@ -777,7 +797,19 @@ public partial class WorldMap : Node2D
             {
                 var body = new Polygon2D { Polygon = ring, Color = country.MapColor };
                 AddChild(body); country.Nodes.Add(body);
-                // İnce başlangıç kalınlığı; zoom'a göre _Process'te güncellenecek
+
+                // M32.2: Kıyı parıltısı — sınırın arkasında geniş, şeffaf turkuaz çizgi.
+                // Ana sınır çizgisinden önce eklendiğinden ana sınır üstte görünür.
+                var glow = new Line2D
+                {
+                    Points = ring,
+                    DefaultColor = new Color(0.3f, 0.8f, 0.9f, 0.20f), // turkuaz parlak, şeffaf
+                    Width = 3.6f,
+                    Closed = true,
+                };
+                AddChild(glow); country.GlowOutlines.Add(glow);
+
+                // İnce ana sınır çizgisi; zoom'a göre _Process'te güncellenecek
                 var outline = new Line2D { Points = ring, DefaultColor = BorderColor, Width = 1.1f, Closed = true };
                 AddChild(outline); country.Outlines.Add(outline);
                 parts++;
@@ -1439,6 +1471,16 @@ public partial class WorldMap : Node2D
         return g;
     }
 
+    // M32.2: Vinyet + merkez parlaklığı — merkez hafif turkuaz parıltı, kenarlar koyu (radial).
+    private static Gradient BuildVignetteGradient()
+    {
+        var g = new Gradient();
+        g.SetColor(0, new Color(0.12f, 0.40f, 0.50f, 0.08f));   // merkez: şeffaf turkuaz parıltı
+        g.AddPoint(0.5f, new Color(0f, 0f, 0f, 0f));            // orta: tam şeffaf
+        g.SetColor(1, new Color(0f, 0f, 0f, 0.30f));            // kenar: hafif koyu vinyet
+        return g;
+    }
+
     // Görsel #7: Harita efekt katmanı — ülkelerin üstünde, etiketlerin altında.
     // WorldMap._Draw'tan değil, ayrı child node'dan çizilir çünkü _Draw ebeveyn
     // node'un çocuklarından ÖNCE çalışır; biz ülke poligonlarının ÜSTÜNE çizmek istiyoruz.
@@ -1549,6 +1591,13 @@ public partial class WorldMap : Node2D
                     wm._terminatorX - bandW / 2f, -1000f,
                     bandW, wm.MapSize.Y + 2000f);
                 DrawTextureRect(wm._terminatorTexture, rect, false);
+            }
+
+            // M32.2: Vinyet + merkez parlaklığı — tüm haritanın üzerine, köşeler koyu, merkez hafif turkuaz.
+            if (wm._vignetteTexture != null)
+            {
+                var bigRect = new Rect2(-1000f, -1000f, wm.MapSize.X + 2000f, wm.MapSize.Y + 2000f);
+                DrawTextureRect(wm._vignetteTexture, bigRect, false);
             }
         }
     }

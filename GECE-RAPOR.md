@@ -962,14 +962,12 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 3. Bilinen sorun: AI nükleer davranış model-seviyesinde; UI paneli yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--ai-nuclear-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).
 
-## M32: Görsel Kimlik ve Harita Güzelleştirme — KİŞİSEL DOKÜMANTASYON TAMAMLANDI, KALAN BLOKE (2026-10-20)
+## M32: Görsel Kimlik ve Harita Güzelleştirme (2026-10-20)
 
 **M32.1 — ✅ DONE:** `Design/M32_UI_stil_rehberi.md` yazıldı. UI stil rehberi: renk paleti, yazı tipleri (OFL), StyleBoxFlat kutu stilleri, font boyutları, animasyon metodları, panel boyutları (1152×648), mouse davranışı kuralları, tek tema kuralı. `Scripts/UITheme.cs` mevcut tema bu rehbere döküldü. `dotnet build` 0/0.
 
-**M32.2–32.6 — BLOKE:** Deniz görünümü, arazi dokusu, mini harita, birlik ikonları, ana menü arka planı — hepsi görsel varlık gerektirir. Bu kurulumda resim üreten model bağlı değil (CLAUDE.md §6). Milestone başlığına göre: "Arazi dokuları (ChatGPT ile üretilen kesintisiz dokular) hazır olunca. Sırası esnektir."
+**M32.2 — ✅ DONE:** `Scripts/WorldMap.cs`: `BuildOceanGradient()` koyu turkuaz paleti (`#082030`→`#0E4A5A`→`#0C3A4A`→`#082030`), `OceanColor` fallback `#0A2B3A`; ülke sınırlarının arkasında geniş şeffaf turkuaz kıyı parıltısı çizgisi (`Country.GlowOutlines`, her ring için); `UpdateBorderWidthsByZoom` parıltı kalınlığını ana sınırla orantılı günceller; `_vignetteTexture` (radial GradientTexture2D) + `BuildVignetteGradient()` + `MapEffects._Draw`'da overlay (merkez hafif turkuaz parıltı, kenarlar hafif koyu vinyet). `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.
 
-**Engellenme nedeni:** Harici kaynak (arazi dokusu) bekleniyor. Uygulanabilir alternatif (kullanıcı onayıyla): prosedürel shader/Godot çizimle deniz görünümü ve arazi dokusu denenebilir.
+**M32.3–32.6 — BLOKE:** Arazi dokusu, mini harita, birlik ikonları, ana menü arka planı — arazi dokusu kaynağı bekleniyor (prosedürel shader/Godot çizimle yapılabilir, kullanıcı onayıyla).
 
-**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); M32.1 için belge incelemesi.
-
-Tüm M1–M31.5 görevleri tamamlandı; M32.2–32.6 engelli.
+Tüm M1–M32.2 görevleri tamamlandı; M32.3–32.6 engelli (arazi dokusu kaynağı).

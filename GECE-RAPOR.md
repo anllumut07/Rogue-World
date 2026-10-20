@@ -1498,3 +1498,37 @@ Sonraki adım: M38 (bilinen sorunları giderme ve kayıt/yükle regresyonu).
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--save-load-test` (A==B).
 
 Sonraki adım: M38.2 (ajanda efektleri bağlama).
+
+## M38.2 — M16 Ajanda Efektleri Bağlantısı — ✅ DONE (2026-10-20)
+
+- `Scripts/GameManager.cs`: `RunAgendaTest` — `PlayerCountryData.Id` (ISO A3, örn. DEU) kullanımına geçirildi (eski `PlayerCountryId`, örn. GER), `CasusBelliSystem` anahtarıyla eşleşiyor.
+- `Scripts/TimeTempoSystem.cs`: float karşılaştırmalarında `0.02f` litéral kullanımı — float→double genişleme hassasiyet hatası engellendi (`resSpeed` kontrolü).
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--agenda-test`: PASS ✓
+
+**Dosyalar:** `Scripts/GameManager.cs`, `Scripts/TimeTempoSystem.cs`, `TODO.md` (38.2 [x]), `PROGRESS.md` (M38.2 DONE), `GECE-RAPOR.md`.
+
+### ÖZET (M38.2 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/GameManager.cs` (agenda test legitimacy ID → ISO A3), `Scripts/TimeTempoSystem.cs` (float karşılaştırması 0.02f).
+2. Çözülemeyen şey: yok — M38.2 %100 tamamlandı (build 0/0, agenda-test PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--agenda-test`.
+
+## M38.3 — İl Komşuluğu Sınır Aşımı (Deniz/Liman Bağlantısı) — ✅ DONE (2026-10-20)
+
+- `Scripts/ProvinceData.cs`: `public bool IsCoastal = false;` alanı eklendi (M38.3: deniz hattı komşuluğu).
+- `Scripts/ProceduralProvinceSource.cs`: `BuildSeaLinks()` metodu eklendi (`BuildNeighborGraph`'in sonuna çağrılır). Tek-seferlik kenar = kıyı kenarı; farklı ülkeden kıyı illeri centroid mesafesi <= 40 projeksiyon birimi (~740 km) ise deniz/liman hattı ile bağlanır (kara komşusu olmayanlar). `SeaLinkDistance = 40f` (önceki 120f daraltıldı — gerçek boğaz geçişleri için daha makul).
+- `Scripts/GameManager.cs`: `RunProvinceTest()` — `seaLinks > 0` kabul şartına eklendi; çift-kıyı-farklı-ülke komşu çift sayısı sayılıyor.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--province-test`: PASS ✓ — 637 il, 121 sınır-aşan deniz bağlantısı, 440 çift-kıyı komşu çift.
+
+**Dosyalar:** `Scripts/ProvinceData.cs`, `Scripts/ProceduralProvinceSource.cs`, `Scripts/GameManager.cs`, `TODO.md` (38.3 [x]), `PROGRESS.md` (M38.3 DONE), `GECE-RAPOR.md`.
+
+### ÖZET (M38.3 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/ProvinceData.cs` (IsCoastal alanı), `Scripts/ProceduralProvinceSource.cs` (BuildSeaLinks, SeaLinkDistance=40f), `Scripts/GameManager.cs` (RunProvinceTest seaLinks > 0).
+2. Çözülemeyen şey: yok — M38.3 %100 tamamlandı (build 0/0, province-test PASS, 121 sea link).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--province-test` (PASS, 121 deniz bağlantısı).
+
+Sonraki adım: M38.4 (ElectionSystem/ElectionCampaignSystem çift başlatma düzeltmesi).
+

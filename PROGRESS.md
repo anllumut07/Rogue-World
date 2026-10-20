@@ -2074,3 +2074,31 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 - `--save-load-test`: **PASS ✓ (A == B)** — bekleyen bildirimler yükleme sonrası korunuyor (bekleyen=4 iki işlemde de aynı).
 - TODO.md 38.1 → [x] Bitti.
 
+
+### M38.2: M16 Ajanda Efektleri Bağlantısı — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/GameManager.cs`: `RunAgendaTest` — `PlayerCountryData.Id` (ISO A3, örn. DEU) kullanımına geçirildi (eski `PlayerCountryId`, örn. GER), `CasusBelliSystem` anahtarıyla eşleşiyor.
+- `Scripts/TimeTempoSystem.cs`: float karşılaştırmalarında `0.02f` litéral kullanımı — float→double genişleme hassasiyet hatası engellendi (`resSpeed` kontrolü).
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--agenda-test`: PASS ✓
+
+**Dosyalar:** `Scripts/GameManager.cs`, `Scripts/TimeTempoSystem.cs`, `TODO.md` (38.2 [x]), `PROGRESS.md` (M38.2 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M38.3 (il komşuluğu sınır aşımı / deniz bağlantısı).
+
+
+### M38.3: İl Komşuluğu Sınır Aşımı (Deniz/Liman Bağlantısı) — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/ProvinceData.cs`: `public bool IsCoastal = false;` alanı eklendi (M38.3: deniz hattı komşuluğu).
+- `Scripts/ProceduralProvinceSource.cs`: `BuildSeaLinks()` metodu eklendi (`BuildNeighborGraph`'in sonuna çağrılır). Tek-seferlik kenar = kıyı kenarı; farklı ülkeden kıyı illeri centroid mesafesi <= 40 projeksiyon birimi (~740 km) ise deniz/liman hattı ile bağlanır (kara komşusu olmayanlar). `SeaLinkDistance = 40f` (önceki 120f daraltıldı — gerçek boğaz geçişleri için daha makul).
+- `Scripts/GameManager.cs`: `RunProvinceTest()` — `seaLinks > 0` kabul şartına eklendi; çift-kıyı-farklı-ülke komşu çift sayısı sayılıyor.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--province-test`: PASS ✓ — 637 il, 121 sınır-aşan deniz bağlantısı, 440 çift-kıyı komşu çift.
+
+**Dosyalar:** `Scripts/ProvinceData.cs`, `Scripts/ProceduralProvinceSource.cs`, `Scripts/GameManager.cs`, `TODO.md` (38.3 [x]), `PROGRESS.md` (M38.3 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M38.4 (ElectionSystem/ElectionCampaignSystem çift başlatma düzeltmesi).
+
+

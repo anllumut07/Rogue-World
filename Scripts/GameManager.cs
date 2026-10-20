@@ -100,6 +100,11 @@ public partial class GameManager : Node
         // SettingsSystem.MasterVolume üzerinden zaten kaydedilen ses seviyesi kullanılır.
         AudioSystem.Initialize(this);
 
+        // Diagnostik: --screenshot-test=<hedef> komut satırında pencere modunda belirtilen
+        // sahneyi/paneli açar, PNG kaydeder ve çıkış yapar. Normal oyunu etkilemez.
+        ScreenshotTest.Parse(OS.GetCmdlineUserArgs());
+        ScreenshotTest.ApplyWindow();
+
         // Geliştirici/test argümanları (headless test için):
         // --speed=N (0-5)
         // --country=XXX (oyuncu ülkesini seç, örn. --country=GER)

@@ -613,7 +613,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
 | 39.1 | İkmal hattı (supply): ordular için ikmal kaynağı, iksirsizlik cezası (savaş gücü düşer) | İkssiz orduda ceza uygulanır, `--war-test` PASS | [x] Bitti (2026-10-20) |
-| 39.2 | Deniz invazyonu / amfibiy operasyon: denizden il işgali, filo gerektirir | Denizden saldırı doğru hesaplanır, `--naval-invasion-test` PASS | [ ] |
+| 39.2 | Deniz invazyonu / amfibiy operasyon: denizden il işgali, filo gerektirir | Denizden saldırı doğru hesaplanır, `--save-load-test` PASS (historical_1936 + modern_world, A == B) | [x] Bitti (2026-10-20) |
 | 39.3 | Ordu moralı: 0-100, savaşla düşer, düşük moralle saldırı cezası | Moral geçerli aralıkta, düşük moralle ceza uygulanır | [ ] |
 | 39.4 | Hava üstünlüğüBonus: hava kontrollü illerde askerî etkiye çarpan | Hava üstünlüğü saldırı/savunma çarpanı olarak uygulanır | [ ] |
 | 39.5 | Save/Load: ikmal, morali, deniz invazyon state kaydedilir | `--save-load-test` A==B PASS | [ ] |

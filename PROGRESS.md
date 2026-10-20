@@ -2143,6 +2143,22 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 
 **Dosyalar:** `Scripts/SupplySystem.cs` (yeni), `Scripts/ArmySystem.cs`, `Scripts/WarSystem.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (39.1 [x]), `PROGRESS.md` (M39.1 DONE), `GECE-RAPOR.md`.
 
-**Sonraki adım:** M39.2 (Deniz invazyonu / amfibiy operasyon).
+**Sonraki adım:** M39.3 (Ordu morali).
+
+### M39.2: Deniz Invazyonu / Amfibiy Operasyon — ✅ DONE (2026-10-20)
+
+- Yeni dosya: `Scripts/NavalInvasionSystem.cs` — statik sınıf, `InvasionState` (Planning/Loading/Transit/Landing/Completed/Failed/Aborted), sabitler (LoadingDays=1, TransitDays=2, LandingDays=1, MaxDivisionsPerNavy=4, StormDelayChance=0.10), `DailyTick()` Planning→Loading→Transit→Landing→Completed deterministik rüzgar gecikmesiyle, `StartNavalInvasion()` (flo Domain=Naval, iki il kıyıda, hedef düşman/boş, savaş veya deniz erişimi, bölükler filoda), `CompleteInvasion()` (bölükleri filoOrdusu ile hedef İL'de birleştirir, filoyu hedef il'e taşır), `AbortInvasion()`, Save/Load DTO (`NavalInvasionSave`/`NavalInvasionEntry`).
+- `Scripts/WorldMap.cs`: `GetProvinceById(string id)` eklendi.
+- `Scripts/SaveSystem.cs`: `NavalInvasionSave`/`NavalInvasionEntry` DTO + `SaveFile.NavalInvasion` alanı; kaydet/yükle çağrıları.
+- `Scripts/GameManager.cs`: `NavalInvasionSystem.Initialize` / `ResetForNewGame` / `DailyTick` entegrasyonu.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` (historical_1936): PASS ✓ (A == B).
+- `--save-load-test --scenario=modern_world`: PASS ✓ (A == B).
+
+**Dosyalar:** `Scripts/NavalInvasionSystem.cs` (yeni), `Scripts/WorldMap.cs`, `Scripts/SaveSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (39.2 [x]), `PROGRESS.md` (M39.2 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M39.3 (Ordu morali).
 
 

@@ -1274,3 +1274,26 @@ Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--save-load-test` (A==B).
 
 **TODO.md:** 35.1, 35.2, 35.4 → `[x]`. 35.3 bekliyor. `git commit` + `git push origin gece-calisma` yapılacak.
+
+## GECE-RAPOR — 2026-10-20 (gece-calisma dalı, otonom, M35.3 tamamlandı)
+
+**STOP.txt kontrolü:** yok — stop kancası engellemez.
+
+**ADIM — M35.3 (Arayüz Kalitesi — mouse regresyon listesi):** Panel açma/kapama mouse davranışları `WorldMap.cs`'de kodla denetlendi; hiçbiri bozulmadı.
+
+**İçerik:**
+- `Scripts/WorldMap.cs`: RMB sürükleme pan (`_Input` 512-543), tekerlek zoom (545-556), WASD pan (`_Process` 400 → `HandleKeyboardPan` 771-784), sol tık ülke seçimi (576-685, `HoveredBlocksMap` 709-727). Overlay backdrop `MouseFilter.Stop` açık panelde harita girişini bloker (istenen), kapalıyken tüm kontroller eski halinde.
+- `PROGRESS.md`: M35.3 regresyon listesi (4 davranış tablosu) eklendi.
+- `TODO.md`: 35.3 → [x].
+
+**Test Sonuçları:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test --scenario=modern_world --speed=5`: **SONUÇ: PASS ✓ (A == B)**.
+
+**ÖZET (M35.3 — 2026-10-20)**
+1. Değişen dosyalar: `TODO.md` (35.3 [x]), `PROGRESS.md` (M35.3 regresyon listesi), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — 35.3 PASS.
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--save-load-test` (A==B).
+
+**TODO.md:** 35.1, 35.2, 35.3, 35.4 → `[x]`. M35 tamamlandı. `git commit` + `git push origin gece-calisma` yapıldı.

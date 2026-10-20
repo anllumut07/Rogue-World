@@ -767,3 +767,24 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 3. Bilinen sorun: casus paneli UI'sı yok; model-seviyede karşı istihbarat/yakalanma metodlarıyla taahhüt edildi.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--counter-intel-test` ve `--save-load-test` çalıştırılmalı.
 
+## M30.2: Uzay Proje Yönetimi — ✅ DONE (2026-10-20)
+
+**Değiştirilen dosyalar:**
+- `Scripts/SpaceSystem.cs`: `SpaceProgramBudgetPP = 1500` + `_remainingBudgetPP` (bütçe havuzu), `LaunchMission` bütçeden düşer, `CanLaunch` bütçe kontrolü, `ActiveMission.RetryCount`, `RetryLaunch()` (Failed/Completed → Available, deneme sayacı++), `EnableTestMode(bool)`, `ForceFailureForTest(bool)`, `RemainingBudgetPP`, `GetRetryCount`, `GetSaveData`/`LoadSaveData`/`ResetForNewGame` yeni alanları (bütçe + deneme kalıcı).
+- `Scripts/GameManager.cs`: `spaceMgmtTest` field, `--space-mgmt-test` arg parsing, `SpaceSystem.EnableTestMode()` çağrısı, `RunSpaceMgmtTest()` metodu (GER, PP=2000, s1 başarılı fırlatma + 30-gün tamamla, zorla başarısızlık+retry, 3. fırlatma garanti başarı + tamamla, bütçe 1500→1350 = 3×50 düşüş doğrulaması, save/load A==B bütçe+deneme, reset → bütçe 1500/s1 Available/s10 Locked, `GetTree().Quit(ok?0:1)`).
+- `SaveSystem.cs`: değişiklik yok — `SaveFile.Space` alan zaten M30.1'de eklenmişti, yeni alanlar (`RemainingBudgetPP`, `RetryCount`) otomatik dahil.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--space-mgmt-test --scenario=modern_world`: **SONUÇ: PASS ✓** — 3 fırlatma × 50 PP = 150 bütçe düşüşü, forced-failure+retry, save_load_a_b=True, retry_kalıcı=True, reset=True, bütçe_sıfırlandı=1500.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — space state (bütçe+deneme) kaydedilir/yükler.
+- Regresyon: build 0/0, mevcut tüm testler etkilenmedi.
+
+**Dosyalar:** Değiştirilen: `Scripts/SpaceSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (30.2 [x]), `PROGRESS.md` (M30.2 DONE), `GECE-RAPOR.md`.
+
+### ÖZET (M30.2 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/SpaceSystem.cs` (bütçe havuzu, retry deneme sayacı, test kancaları), `Scripts/GameManager.cs` (`--space-mgmt-test` + RunSpaceMgmtTest).
+2. Çözülemeyen şey: yok — M30.2 %100 tamamlandı (build 0/0, space-mgmt-test PASS exit 0, save-load-test A==B PASS).
+3. Bilinen sorun: uzay paneli UI'sı henüz yok (M30.2 model-seviyede); M30.3 ödüller (prestij, teknoloji bonusu, memnuniyet; askerî kullanım) sonraki alt görev.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--space-mgmt-test --scenario=modern_world` (PASS) ve `--save-load-test --scenario=modern_world` (A==B).
+

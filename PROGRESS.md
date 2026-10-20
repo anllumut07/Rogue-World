@@ -1554,5 +1554,5 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Yeni: `Data/space_missions.json`, `Scripts/SpaceSystem.cs`.
 - Değiştirilen: `Data/scenarios/modern_world/technologies.json`, `Scripts/CountryData.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (30.1 [x]), `PROGRESS.md` (M30.1 DONE), `GECE-RAPOR.md`.
 
-**Sonraki adım:** M30.2 Uzay proje yönetimi (bütçe, süre, başarısızlık olasılığı, fırlatma tekrarı).
+**Sonraki adım:** M30.3 Uzay programı ödülleri (prestij, teknoloji bonusu, memnuniyet; askerî kullanım).
 

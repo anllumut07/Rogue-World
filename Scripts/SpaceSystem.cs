@@ -37,12 +37,14 @@ public static class SpaceSystem
         public int StartDay = 0;
         public int DaysLeft = 0;
         public bool Success = false;
+        public int RetryCount = 0; // başarısızlık/sonraki fırlatma tekrarı sayacı
     }
 
     // DTO (Save/Load)
     public class SpaceSave
     {
         public ActiveMissionSave[] Missions = Array.Empty<ActiveMissionSave>();
+        public int RemainingBudgetPP = SpaceProgramBudgetPP; // kalan bütçe
     }
 
     public class ActiveMissionSave
@@ -52,6 +54,7 @@ public static class SpaceSystem
         public int StartDay = 0;
         public int DaysLeft = 0;
         public bool Success = false;
+        public int RetryCount = 0;
     }
 
     private static readonly string Path = "Data/space_missions.json";
@@ -59,7 +62,10 @@ public static class SpaceSystem
     private static readonly Dictionary<string, ActiveMission> _missions = new(); // id -> active mission
     private static bool _loaded;
     private static bool _initialized;
-    private static bool _testMode; // --space-test: başarıyı garantiler
+    private static bool _testMode; // --space-test / --space-mgmt-test: başarıyı garantiler
+    public static readonly int SpaceProgramBudgetPP = 1500; // uzay programı bütçesi (PP)
+    private static int _remainingBudgetPP; // kalan bütçe
+    private static bool _forceFailureForTest; // test kancası: her fırlatmayı zorla başarısız yapar
 
     private static GameManager GM => GameManager.Instance;
     private static CountryData Player => GM?.PlayerCountryData;
@@ -96,6 +102,7 @@ public static class SpaceSystem
     {
         EnsureLoaded();
         _missions.Clear();
+        _remainingBudgetPP = SpaceProgramBudgetPP;
         foreach (var kv in _all)
         {
             _missions[kv.Key] = new ActiveMission
@@ -150,6 +157,7 @@ public static class SpaceSystem
         var def = _all[mission.MissionId];
         double successChance = def.BaseSuccessProbability;
         if (_testMode) successChance = 1.0; // test modunda garanti başarı
+        if (_forceFailureForTest) successChance = 0.0; // test kancası: zorla başarısızlık
 
         bool success = DeterministicRNG.NextDouble() < successChance;
         mission.Status = success ? MissionStatus.Completed : MissionStatus.Failed;
@@ -197,6 +205,7 @@ public static class SpaceSystem
         var def = _all[missionId];
         if (Player == null) return false;
         if (Player.PoliticalPower < def.CostPP) return false;
+        if (_remainingBudgetPP < def.CostPP) return false; // bütçe yetersiz
         // Aynı anda tek görev (basit kısıt)
         if (_missions.Values.Any(x => x.Status == MissionStatus.InProgress)) return false;
         return true;
@@ -210,6 +219,7 @@ public static class SpaceSystem
         var def = _all[missionId];
         var mission = _missions[missionId];
         Player.PoliticalPower -= def.CostPP;
+        _remainingBudgetPP -= def.CostPP; // bütçeden düş
         mission.Status = MissionStatus.InProgress;
         mission.StartDay = GameManager.Instance?.TotalDays ?? 0;
         mission.DaysLeft = def.DurationDays;
@@ -221,8 +231,31 @@ public static class SpaceSystem
 
     public static bool IsMissionAvailable(string missionId) => GetMissionStatus(missionId) == MissionStatus.Available;
 
-    // Test kancağı (--space-test)
-    public static void EnableTestMode() => _testMode = true;
+    // Test kancağı (--space-test / --space-mgmt-test). guaranteeSuccess=false → gerçek olasılıkla çalışır.
+    public static void EnableTestMode(bool guaranteeSuccess = true) => _testMode = guaranteeSuccess;
+
+    // Test kancağı: zorla başarısızlık (gerçek/test olasılığı yoksayılır).
+    public static void ForceFailureForTest(bool forced = true) => _forceFailureForTest = forced;
+
+    // Kalan bütçe (UI / test).
+    public static int RemainingBudgetPP => _remainingBudgetPP;
+
+    // Deneme sayacı (UI / test).
+    public static int GetRetryCount(string missionId) => _missions.TryGetValue(missionId, out var m) ? m.RetryCount : -1;
+
+    // Başarısız (veya tamamlanan) bir görevi yeniden kullanılabilir yapar — fırlatma tekrarı.
+    // PP/bütçe yeniden fırlatmada LaunchMission ile ayrı ayrı kesilir; burada sadece görevi tekrar hazır hale getirir.
+    public static bool RetryLaunch(string missionId)
+    {
+        if (!_missions.TryGetValue(missionId, out var m)) return false;
+        if (m.Status != MissionStatus.Failed && m.Status != MissionStatus.Completed) return false;
+        m.Status = MissionStatus.Available;
+        m.DaysLeft = 0;
+        m.Success = false;
+        m.RetryCount++;
+        GD.Print($"[Space] Görev yeniden hazırlandı (retry #{m.RetryCount}): {_all[missionId].Name}");
+        return true;
+    }
 
     // ===== Save/Load =====
 
@@ -237,7 +270,9 @@ public static class SpaceSystem
                 StartDay = m.StartDay,
                 DaysLeft = m.DaysLeft,
                 Success = m.Success,
+                RetryCount = m.RetryCount,
             }).ToArray(),
+            RemainingBudgetPP = _remainingBudgetPP,
         };
     }
 
@@ -246,6 +281,7 @@ public static class SpaceSystem
         if (data == null) return;
         EnsureLoaded();
         _missions.Clear();
+        _remainingBudgetPP = data.RemainingBudgetPP;
         if (data.Missions != null)
         {
             foreach (var s in data.Missions)
@@ -258,6 +294,7 @@ public static class SpaceSystem
                     StartDay = s.StartDay,
                     DaysLeft = s.DaysLeft,
                     Success = s.Success,
+                    RetryCount = s.RetryCount,
                 };
             }
         }
@@ -266,7 +303,7 @@ public static class SpaceSystem
             if (!_missions.ContainsKey(kv.Key))
                 _missions[kv.Key] = new ActiveMission { MissionId = kv.Key, Status = MissionStatus.Locked };
         _initialized = true;
-        GD.Print($"SpaceSystem: state yüklendi — görev={_missions.Count}");
+        GD.Print($"SpaceSystem: state yüklendi — görev={_missions.Count}, bütçe={_remainingBudgetPP}");
     }
 
     public static void ResetForNewGame()
@@ -276,6 +313,8 @@ public static class SpaceSystem
         _loaded = false;
         _initialized = false;
         _testMode = false;
+        _forceFailureForTest = false;
+        _remainingBudgetPP = SpaceProgramBudgetPP;
     }
 
     private static string MissionTechPrereq(ActiveMission m)

@@ -135,6 +135,7 @@ public partial class GameManager : Node
         bool spyRentalTest = false;         // M29.5: casusluk v2 — kiralama havuzu testi (--spy-rental-test)
         bool counterIntelTest = false;      // M29.6: casusluk v2 — karşı istihbarat / yakalanma / değişim testi (--counter-intel-test)
         bool spaceTest = false;             // M30.1: uzay programı testi (--space-test)
+        bool spaceMgmtTest = false;         // M30.2: uzay proje yönetimi testi (--space-mgmt-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -238,6 +239,8 @@ public partial class GameManager : Node
                 counterIntelTest = true;
             else if (arg == "--space-test")
                 spaceTest = true;
+            else if (arg == "--space-mgmt-test")
+                spaceMgmtTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -251,6 +254,10 @@ public partial class GameManager : Node
 
         // M30.1: --space-test verilmişse uzay programı test modunu etkinleştirir (başarı garantilenir).
         if (spaceTest)
+            SpaceSystem.EnableTestMode();
+
+        // M30.2: --space-mgmt-test verilmişse uzay proje yönetimi test modunu etkinleştirir.
+        if (spaceMgmtTest)
             SpaceSystem.EnableTestMode();
 
         // M26.3: --intervention-test (ve --save-load-test) verilmişse müdahale test modunu
@@ -531,6 +538,9 @@ public partial class GameManager : Node
 
         if (spaceTest)
             RunSpaceTest();
+
+        if (spaceMgmtTest)
+            RunSpaceMgmtTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -2433,6 +2443,106 @@ public partial class GameManager : Node
 
         bool ok = s10LockedStart && s1AvailableStart && rocketryResearched && launchOk && missionCompleted && saveLoadOk && resetOk;
         GD.Print(ok ? "[SpaceTest] SONUÇ: PASS ✓" : "[SpaceTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(ok ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M30.2: Uzay proje yönetimi testi — bütçe (PP), süre (gün), başarısızlık olasılığı,
+    /// fırlatma tekrarı (retry) ve save/load kalıcılığı. Normal oyunda ASLA çalışmaz (--space-mgmt-test).
+    /// </summary>
+    private void RunSpaceMgmtTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M30.2: UZAY PROJE YÖNETİMİ TESTİ (--space-mgmt-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 2000;
+        if (Speed == 0) SetSpeed(0);
+
+        bool rocketryResearched = TechnologySystem.GetStatus("rocketry") == TechnologySystem.ResearchStatus.Researched;
+        bool s1AvailableStart = SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.Available;
+        int budgetStart = SpaceSystem.RemainingBudgetPP;
+
+        GD.Print($"[SpaceMgmtTest] rocketry araştırılmış: {rocketryResearched}");
+        GD.Print($"[SpaceMgmtTest] s1 kullanılabilir başlangıç: {s1AvailableStart}");
+        GD.Print($"[SpaceMgmtTest] başlangıç bütçe: {budgetStart}");
+
+        // 1. Başarılı fırlatma (test modu, garanti başarı) — bütçe ve süre kullanılır.
+        SpaceSystem.EnableTestMode(true);
+        bool launch1 = SpaceSystem.LaunchMission("s1_suborbital_probe");
+        GD.Print($"[SpaceMgmtTest] s1 1. fırlatma: {launch1}, durum={SpaceSystem.GetMissionStatus("s1_suborbital_probe")}, bütçe={SpaceSystem.RemainingBudgetPP}");
+
+        int missionDays = 0;
+        while (SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.InProgress && missionDays < 100)
+        {
+            AdvanceDaysForTest(1);
+            missionDays++;
+        }
+        bool completed1 = SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.Completed;
+        GD.Print($"[SpaceMgmtTest] s1 1. fırlatma tamamlandı: {completed1} ({missionDays} gün)");
+
+        // 2. Zorla başarısızlık — gerçek/test olasılık yoksayılır, zorla başarısız.
+        SpaceSystem.ForceFailureForTest(true);
+        SpaceSystem.EnableTestMode(false);
+        bool retry1 = SpaceSystem.RetryLaunch("s1_suborbital_probe");
+        GD.Print($"[SpaceMgmtTest] s1 retry 1: {retry1}, deneme={SpaceSystem.GetRetryCount("s1_suborbital_probe")}");
+        bool launch2 = SpaceSystem.LaunchMission("s1_suborbital_probe");
+        GD.Print($"[SpaceMgmtTest] s1 2. fırlatma: {launch2}, bütçe={SpaceSystem.RemainingBudgetPP}");
+        missionDays = 0;
+        while (SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.InProgress && missionDays < 100)
+        {
+            AdvanceDaysForTest(1);
+            missionDays++;
+        }
+        bool failed2 = SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.Failed;
+        GD.Print($"[SpaceMgmtTest] s1 2. fırlatma başarısız: {failed2} ({missionDays} gün)");
+
+        // 3. Fırlatma tekrarı — tekrar dene, garanti başarı.
+        bool retry2 = SpaceSystem.RetryLaunch("s1_suborbital_probe");
+        GD.Print($"[SpaceMgmtTest] s1 retry 2: {retry2}, deneme={SpaceSystem.GetRetryCount("s1_suborbital_probe")}");
+        SpaceSystem.EnableTestMode(true);
+        SpaceSystem.ForceFailureForTest(false);
+        bool launch3 = SpaceSystem.LaunchMission("s1_suborbital_probe");
+        missionDays = 0;
+        while (SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.InProgress && missionDays < 100)
+        {
+            AdvanceDaysForTest(1);
+            missionDays++;
+        }
+        bool completed3 = SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.Completed;
+        GD.Print($"[SpaceMgmtTest] s1 3. fırlatma (retry sonrası) tamamlandı: {completed3} ({missionDays} gün)");
+
+        // Bütçe kontrolü: 3 fırlatma × 50 PP = 150 düşülmüş olmalı.
+        int budgetAfter = SpaceSystem.RemainingBudgetPP;
+        int budgetDropped = budgetStart - budgetAfter;
+        bool budgetOk = budgetDropped == 150;
+        GD.Print($"[SpaceMgmtTest] bütçe: {budgetStart} → {budgetAfter} (düşüş={budgetDropped}, beklenen=150): {budgetOk}");
+
+        // save/load A==B (bütçe + deneme sayısı dahil).
+        var data1 = SpaceSystem.GetSaveData();
+        SpaceSystem.LoadSaveData(data1);
+        var data2 = SpaceSystem.GetSaveData();
+        bool saveLoadOk = data1.Missions.Length == data2.Missions.Length
+            && data1.RemainingBudgetPP == data2.RemainingBudgetPP
+            && data1.Missions[0].RetryCount == data2.Missions[0].RetryCount
+            && data1.Missions[0].Status == data2.Missions[0].Status;
+        GD.Print($"[SpaceMgmtTest] save_load_a_b={saveLoadOk}, retry_kalici={data1.Missions[0].RetryCount == data2.Missions[0].RetryCount}");
+
+        // reset: yeni oyun → bütçe sıfırlanır, görevler önkoşula göre kilitlenir/kilit açılır.
+        SpaceSystem.ResetForNewGame();
+        SpaceSystem.Initialize();
+        bool resetOk = SpaceSystem.AllMissions.Count == 10
+            && SpaceSystem.RemainingBudgetPP == SpaceSystem.SpaceProgramBudgetPP
+            && SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.Available
+            && SpaceSystem.GetMissionStatus("s10_human_mars") == SpaceSystem.MissionStatus.Locked;
+        GD.Print($"[SpaceMgmtTest] reset={resetOk}, bütçe_sıfırlandı={SpaceSystem.RemainingBudgetPP}");
+
+        bool ok = rocketryResearched && s1AvailableStart && launch1 && completed1
+            && retry1 && launch2 && failed2 && retry2 && launch3 && completed3
+            && budgetOk && saveLoadOk && resetOk;
+        GD.Print(ok ? "[SpaceMgmtTest] SONUÇ: PASS ✓" : "[SpaceMgmtTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");
     }

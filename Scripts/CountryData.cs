@@ -27,6 +27,7 @@ public class CountryData
 
     // Politika
     public double PoliticalPower;        // başlangıç PP
+    public double Prestige;              // uluslararası prestij (uzay programı ödülleri vb.)
     public double StabilityPercent = 60; // 0-100
     public double WarSupportPercent = 30;// 0-100
     public int ResearchSlots = 3;

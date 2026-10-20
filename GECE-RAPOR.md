@@ -732,6 +732,35 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 
 **Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--counter-intel-test` ve `--save-load-test` çalıştırılmalı.
 
+
+## M30.1: Uzay Teknolojileri ve Önkoşulları — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:**
+- `Data/space_missions.json` (yeni): 10 uzay görevi (S1–S10) — önkoşul zinciri rocketry→satellite_technology→space_flight→lunar_mission→mars_mission, maliyet 50–600 PP, süre 30–240 gün, başarı 0.85→0.30, prestij ödülü 5–100.
+- `Scripts/SpaceSystem.cs` (yeni): `MissionDefinition`/`ActiveMission`/`MissionStatus` (Locked/Available/InProgress/Completed/Failed), `SpaceSave`/`ActiveMissionSave` DTO'ları. `EnsureLoaded()` (FileAccess + JsonDocument IncludeFields=true). `GetMissionStatus()` — önkoşul kontrolüyle dinamik Kilitli/Kullanılabilir (tick'e bağımlı değil). `LaunchMission()` PP harcar. `DailyTick(currentDay)` DeterministicRNG ile çözümle; başarıda prestij + TechnologySystem.AddModifier. `EnableTestMode()` (--space-test). GetSaveData/LoadSaveData/ResetForNewGame.
+
+**Değiştirilen dosyalar:**
+- `Data/scenarios/modern_world/technologies.json`: 5 uzay teknolojisi (rocketry→satellite_technology→space_flight→lunar_mission→mars_mission, Category "Space").
+- `Scripts/CountryData.cs`: `public double Prestige;`.
+- `Scripts/GameManager.cs`: `--space-test`, `spaceTest`, `SpaceSystem.EnableTestMode()`, `RunSpaceTest()` (s10 kilitli/s1 kullanılabilir/rocket araştırılmış/launch/30-günlük tamamla/save-load A==B/reset), `DailyTick`→`SpaceSystem.DailyTick`, `SetPlayerCountry`→`SpaceSystem.Initialize`, `ResetForNewGame`→`SpaceSystem.ResetForNewGame`.
+- `Scripts/SaveSystem.cs`: `SaveFile.Space` alan + WriteSave/LoadGameInternal bağlama.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--space-test --scenario=modern_world`: **SONUÇ: PASS ✓** (exit 0) — s10 kilitli, s1 kullanılabilir, rocketry araştırılmış, launch=True, tamamlandı=True (gün=30), save_load_a_b=True, reset=True.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — `SpaceSystem: state yüklendi — görev=10` (space state kaydedilir/yükler).
+- Regresyon: build 0/0, mevcut tüm testler etkilenmedi.
+
+**Dosyalar:** Yeni: `Data/space_missions.json`, `Scripts/SpaceSystem.cs`. Değiştirilen: `Data/scenarios/modern_world/technologies.json`, `Scripts/CountryData.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (30.1 [x]), `PROGRESS.md` (M30.1 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M30.2 Uzay proje yönetimi (bütçe, süre, başarısızlık olasılığı, fırlatma tekrarı).
+
+### ÖZET (M30.1 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/SpaceSystem.cs` (yeni — uzay görevi sistemi), `Data/space_missions.json` (yeni — S1–S10 görevleri), `Data/scenarios/modern_world/technologies.json` (5 uzay teknolojisi eklendi), `Scripts/CountryData.cs` (Prestige alanı), `Scripts/GameManager.cs` (`--space-test` + RunSpaceTest + DailyTick/Initialize/ResetForNewGame bağlama), `Scripts/SaveSystem.cs` (`SaveFile.Space` + WriteSave/LoadGameInternal).
+2. Çözülemeyen şey: yok — M30.1 %100 tamamlandı (build 0/0, space-test PASS exit 0, save-load-test A==B PASS).
+3. Bilinen sorun: uzay paneli UI'sı henüz yok (M30.1 model-seviyede); M30.2'de proje yönetimi eklenecek.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--space-test --scenario=modern_world` (PASS) ve `--save-load-test --scenario=modern_world` (A==B).
+
 ### ÖZET (M29.6 — 2026-10-20)
 1. Değişen dosyalar: `Scripts/EspionageSystem.cs` (yakalanma denetimi + serbest bırakma + Save/Load/Reset), `Scripts/GameManager.cs` (`--counter-intel-test` + DailyTick entegrasyonu), `TODO.md` (29.6 [x]), `PROGRESS.md` (M29.6 DONE), `GECE-RAPOR.md`.
 2. Çözülemeyen şey: yok — M29.6 %100 tamamlandı (build 0/0, counter-intel-test PASS, save-load-test A==B PASS).

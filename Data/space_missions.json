@@ -1,0 +1,122 @@
+[
+  {
+    "Id": "s1_suborbital_probe",
+    "Name": "Suborbital Probe",
+    "Description": "First suborbital sounding rocket to reach the edge of space.",
+    "Level": "S1",
+    "TechPrerequisiteId": "rocketry",
+    "CostPP": 50,
+    "DurationDays": 30,
+    "BaseSuccessProbability": 0.85,
+    "RewardPrestige": 5,
+    "RewardTechBonus": { "research_speed": 0.01 }
+  },
+  {
+    "Id": "s2_first_satellite",
+    "Name": "First Satellite",
+    "Description": "Launch a satellite into low Earth orbit.",
+    "Level": "S2",
+    "TechPrerequisiteId": "satellite_technology",
+    "CostPP": 100,
+    "DurationDays": 45,
+    "BaseSuccessProbability": 0.70,
+    "RewardPrestige": 15,
+    "RewardTechBonus": { "research_speed": 0.02 }
+  },
+  {
+    "Id": "s3_communication_satellite",
+    "Name": "Communication Satellite",
+    "Description": "Deploy a geostationary communications satellite network.",
+    "Level": "S3",
+    "TechPrerequisiteId": "satellite_technology",
+    "CostPP": 120,
+    "DurationDays": 60,
+    "BaseSuccessProbability": 0.65,
+    "RewardPrestige": 10,
+    "RewardTechBonus": {}
+  },
+  {
+    "Id": "s4_lunar_probe",
+    "Name": "Lunar Probe",
+    "Description": "Unmanned flyby and impact probe to the Moon.",
+    "Level": "S4",
+    "TechPrerequisiteId": "space_flight",
+    "CostPP": 150,
+    "DurationDays": 75,
+    "BaseSuccessProbability": 0.55,
+    "RewardPrestige": 20,
+    "RewardTechBonus": { "research_speed": 0.01 }
+  },
+  {
+    "Id": "s5_lunar_lander",
+    "Name": "Lunar Lander",
+    "Description": "Unmanned soft landing on the lunar surface.",
+    "Level": "S5",
+    "TechPrerequisiteId": "lunar_mission",
+    "CostPP": 200,
+    "DurationDays": 90,
+    "BaseSuccessProbability": 0.50,
+    "RewardPrestige": 25,
+    "RewardTechBonus": { "research_speed": 0.01 }
+  },
+  {
+    "Id": "s6_human_orbit",
+    "Name": "Human Orbital Flight",
+    "Description": "First crewed orbital spaceflight.",
+    "Level": "S6",
+    "TechPrerequisiteId": "space_flight",
+    "CostPP": 180,
+    "DurationDays": 75,
+    "BaseSuccessProbability": 0.60,
+    "RewardPrestige": 30,
+    "RewardTechBonus": { "research_speed": 0.02 }
+  },
+  {
+    "Id": "s7_space_station",
+    "Name": "Space Station",
+    "Description": "Permanent crewed station in low Earth orbit.",
+    "Level": "S7",
+    "TechPrerequisiteId": "lunar_mission",
+    "CostPP": 300,
+    "DurationDays": 120,
+    "BaseSuccessProbability": 0.45,
+    "RewardPrestige": 40,
+    "RewardTechBonus": { "research_speed": 0.02 }
+  },
+  {
+    "Id": "s8_moon_landing",
+    "Name": "Moon Landing",
+    "Description": "Crewed lunar landing and return.",
+    "Level": "S8",
+    "TechPrerequisiteId": "lunar_mission",
+    "CostPP": 400,
+    "DurationDays": 150,
+    "BaseSuccessProbability": 0.40,
+    "RewardPrestige": 60,
+    "RewardTechBonus": { "research_speed": 0.03 }
+  },
+  {
+    "Id": "s9_mars_probe",
+    "Name": "Mars Probe",
+    "Description": "Unmanned interplanetary probe to Mars.",
+    "Level": "S9",
+    "TechPrerequisiteId": "mars_mission",
+    "CostPP": 350,
+    "DurationDays": 180,
+    "BaseSuccessProbability": 0.35,
+    "RewardPrestige": 35,
+    "RewardTechBonus": { "research_speed": 0.02 }
+  },
+  {
+    "Id": "s10_human_mars",
+    "Name": "Human Mars Mission",
+    "Description": "Crewed expedition to Mars and return.",
+    "Level": "S10",
+    "TechPrerequisiteId": "mars_mission",
+    "CostPP": 600,
+    "DurationDays": 240,
+    "BaseSuccessProbability": 0.30,
+    "RewardPrestige": 100,
+    "RewardTechBonus": { "research_speed": 0.05 }
+  }
+]

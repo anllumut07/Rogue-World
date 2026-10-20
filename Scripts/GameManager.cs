@@ -134,6 +134,7 @@ public partial class GameManager : Node
         bool spyTrainingTest = false;       // M29.4: casusluk v2 — eğitim kursları testi (--spy-training-test)
         bool spyRentalTest = false;         // M29.5: casusluk v2 — kiralama havuzu testi (--spy-rental-test)
         bool counterIntelTest = false;      // M29.6: casusluk v2 — karşı istihbarat / yakalanma / değişim testi (--counter-intel-test)
+        bool spaceTest = false;             // M30.1: uzay programı testi (--space-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -235,6 +236,8 @@ public partial class GameManager : Node
                 spyRentalTest = true;
             else if (arg == "--counter-intel-test")
                 counterIntelTest = true;
+            else if (arg == "--space-test")
+                spaceTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -245,6 +248,10 @@ public partial class GameManager : Node
         // afet tetikleme determinizmini sıınar.)
         if (disasterTest)
             DisasterSystem.EnableTestMode();
+
+        // M30.1: --space-test verilmişse uzay programı test modunu etkinleştirir (başarı garantilenir).
+        if (spaceTest)
+            SpaceSystem.EnableTestMode();
 
         // M26.3: --intervention-test (ve --save-load-test) verilmişse müdahale test modunu
         // etkinleştir.
@@ -522,6 +529,9 @@ public partial class GameManager : Node
         if (counterIntelTest)
             RunCounterIntelTest();
 
+        if (spaceTest)
+            RunSpaceTest();
+
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
         {
@@ -698,6 +708,9 @@ public partial class GameManager : Node
         // M29.4: Casus eğitim kursu günlük ilerleme (süre, bitince nitelik artışı).
         if (HasPlayer) EspionageSystem.DailyTick(TotalDays);
 
+        // M30.1: Uzay programı günlük ilerleme — süreli görevlerin tamamlanması ve ödüller.
+        if (HasPlayer) SpaceSystem.DailyTick(TotalDays);
+
         // M25.5: Kariyer olayları günlük denetimi (skandal, fırsat, mentor kaybı, hastalık).
         if (HasPlayer)
             data.PoliticalPower = CareerEventSystem.DailyTick(TotalDays, PlayerCharacter, data.PoliticalPower);
@@ -838,6 +851,9 @@ public partial class GameManager : Node
         // Ulusal odak sistemini başlat — ülkeye özel ağaç yüklenir (M9)
         FocusSystem.Initialize(data);
 
+        // Uzay programını başlat — görev tanımları yüklenir ve kilitler hesaplanır (M30.1)
+        SpaceSystem.Initialize();
+
         // Olay sistemini başlat (M10.1) — tetikleyiciler bu ülkede çalışır
         EventSystem.Initialize(data);
 
@@ -939,6 +955,9 @@ public partial class GameManager : Node
 
         // M29.1: Casusluk v2 — casus listesini yeni oyun için sıfırla.
         EspionageSystem.ResetForNewGame();
+
+        // M30.1: Uzay programını yeni oyun için sıfırla.
+        SpaceSystem.ResetForNewGame();
 
         // M29.5: Casus kiralama havuzunu yeni oyun için başlat.
         EspionageSystem.InitializeRentalPool(TotalDays);
@@ -2348,6 +2367,72 @@ public partial class GameManager : Node
 
         ok = assigned && missionTarget == "FRA" && captured && relationDamaged && listed && released && relationImproved && saveLoadOk && resetOk;
         GD.Print(ok ? "[CounterIntelTest] SONUÇ: PASS ✓" : "[CounterIntelTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(ok ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M30.1: Uzay programı testi — önkoşul kilidi, araştırma, görev başlatma/tamamlama,
+    /// save/load A==B ve reset doğrular. Normal oyunda ASLA çalışmaz (--space-test).
+    /// </summary>
+    private void RunSpaceTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M30.1: UZAY PROGRAMI TESTI (--space-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 1000;
+        if (Speed == 0) SetSpeed(0);
+
+        SpaceSystem.EnableTestMode();
+
+        // Kilit mantığı: s10'ın önkoşulu mars_mission (Era 2020, başlangıçta araştırılmadı) → kilitli.
+        // s1'ın önkoşulu rocketry (Era 1990, başlangıçta araştırılmış) → kullanılabilir.
+        bool s10LockedStart = SpaceSystem.GetMissionStatus("s10_human_mars") == SpaceSystem.MissionStatus.Locked;
+        bool s1AvailableStart = SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.Available;
+        bool rocketryResearched = TechnologySystem.GetStatus("rocketry") == TechnologySystem.ResearchStatus.Researched;
+
+        GD.Print($"[SpaceTest] s10 kilitli (mars_mission yok): {s10LockedStart}");
+        GD.Print($"[SpaceTest] s1 kullanılabilir (rocketry var): {s1AvailableStart}");
+        GD.Print($"[SpaceTest] rocketry araştırılmış: {rocketryResearched}");
+
+        // s1 görevini başlat ve tamamla (test modunda garanti başarı, 30 gün).
+        bool launchOk = SpaceSystem.LaunchMission("s1_suborbital_probe");
+        GD.Print($"[SpaceTest] s1 başlatıldı: {launchOk}");
+
+        int missionDays = 0;
+        while (SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.InProgress && missionDays < 100)
+        {
+            AdvanceDaysForTest(1);
+            missionDays++;
+        }
+        var status = SpaceSystem.GetMissionStatus("s1_suborbital_probe");
+        bool missionCompleted = status == SpaceSystem.MissionStatus.Completed;
+        GD.Print($"[SpaceTest] s1 tamamlandı: {missionCompleted} (durum={status}, gün={missionDays})");
+
+        // save/load A==B
+        var data1 = SpaceSystem.GetSaveData();
+        SpaceSystem.LoadSaveData(data1);
+        var data2 = SpaceSystem.GetSaveData();
+        bool saveLoadOk = data1.Missions.Length == data2.Missions.Length
+            && data1.Missions.Length > 0
+            && data1.Missions[0].MissionId == data2.Missions[0].MissionId
+            && data1.Missions[0].Status == data2.Missions[0].Status;
+        GD.Print($"[SpaceTest] save_load_a_b={saveLoadOk}");
+
+        // reset: yeniden başlatıldığında tüm görevler geri yüklenir ve durumlar
+        // güncel önkoşul durumunu yansıtır (rocketry araştırılmış → s1 kullanılabilir,
+        // mars_mission yok → s10 kilitli).
+        SpaceSystem.ResetForNewGame();
+        SpaceSystem.Initialize();
+        bool resetOk = SpaceSystem.AllMissions.Count == 10
+            && SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.Available
+            && SpaceSystem.GetMissionStatus("s10_human_mars") == SpaceSystem.MissionStatus.Locked;
+        GD.Print($"[SpaceTest] reset={resetOk}");
+
+        bool ok = s10LockedStart && s1AvailableStart && rocketryResearched && launchOk && missionCompleted && saveLoadOk && resetOk;
+        GD.Print(ok ? "[SpaceTest] SONUÇ: PASS ✓" : "[SpaceTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");
     }

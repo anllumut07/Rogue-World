@@ -1531,3 +1531,28 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 **Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--counter-intel-test` ve `--save-load-test` çalıştırılmalı.
 
+
+### M30.1: Uzay Teknolojileri ve Önkoşulları — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:**
+- `Data/space_missions.json`: 10 uzay görevi (S1–S10) — `Id, Name, Description, Level, TechPrerequisiteId, CostPP, DurationDays, BaseSuccessProbability, RewardPrestige, RewardTechBonus`. Önkoşul zinciri: s1→rocketry, s2/s3→satellite_technology, s4/s6→space_flight, s5/s7/s8→lunar_mission, s9/s10→mars_mission. Maliyet 50–600 PP, süre 30–240 gün, başarı 0.85→0.30, prestij ödülü 5–100.
+- `Scripts/SpaceSystem.cs`: static sistem — `MissionDefinition`, `ActiveMission`, `MissionStatus` (Locked/Available/InProgress/Completed/Failed), `SpaceSave`/`ActiveMissionSave` DTO'ları. `EnsureLoaded()` (`Data/space_missions.json`, `FileAccess` + `JsonDocument IncludeFields=true`). `GetMissionStatus()` — kilitliyse önkoşul teknolojisi (`TechnologySystem.GetStatus == Researched`) kontrolüyle dinamik olarak `Available`/`Locked` döner (tick'e bağımlı değil). `LaunchMission()` — PP harcar, `InProgress` geçirir, `DaysLeft` başlatır. `DailyTick(currentDay)` — aktif görev süresini azaltır, bitince `DeterministicRNG.NextDouble()` ile başarı/başarısızlık çözer; başarıyla `Player.Prestige += RewardPrestige` + `TechnologySystem.AddModifier`. `EnableTestMode()` başarıyı garantiler (`--space-test`). `GetSaveData`/`LoadSaveData`/`ResetForNewGame`.
+- `Scripts/CountryData.cs`: `public double Prestige;` alanı eklendi.
+
+**Değiştirilen dosyalar:**
+- `Data/scenarios/modern_world/technologies.json`: 5 uzay teknolojisi eklendi — `rocketry` (Era 1990, önkoşul yok), `satellite_technology` (→rocketry), `space_flight` (→satellite_technology), `lunar_mission` (→space_flight), `mars_mission` (→lunar_mission). `Category: "Space"`.
+- `Scripts/GameManager.cs`: `--space-test` arg parsing, `spaceTest` field, `SpaceSystem.EnableTestMode()` çağrısı, `RunSpaceTest()` metodu (s10 kilitli başlangıç doğrulaması, s1 kullanılabilir, rocketry araştırılmış, launch, 30-günlük tamamlanma garanti, save/load A==B, ResetForNewGame → s1 kullanılabilir/s10 kilitli), `DailyTick` → `SpaceSystem.DailyTick(TotalDays)`, `SetPlayerCountry` → `SpaceSystem.Initialize()`, `ResetForNewGame` → `SpaceSystem.ResetForNewGame()`.
+- `Scripts/SaveSystem.cs`: `SaveFile.Space` alanı (`SpaceSystem.SpaceSave`); `WriteSave` → `Space = SpaceSystem.GetSaveData()`; `LoadGameInternal` → `SpaceSystem.LoadSaveData(save.Space)`.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--space-test --scenario=modern_world`: **SONUÇ: PASS ✓** (exit 0) — s10 kilitli, s1 kullanılabilir, rocketry araştırılmış, launch=True, tamamlandı=True (gün=30), save_load_a_b=True, reset=True.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — `SpaceSystem: state yüklendi — görev=10` (space state kaydedilir/yükler).
+- Regresyon: build 0/0, mevcut tüm testler etkilenmedi.
+
+**Dosyalar:**
+- Yeni: `Data/space_missions.json`, `Scripts/SpaceSystem.cs`.
+- Değiştirilen: `Data/scenarios/modern_world/technologies.json`, `Scripts/CountryData.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (30.1 [x]), `PROGRESS.md` (M30.1 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M30.2 Uzay proje yönetimi (bütçe, süre, başarısızlık olasılığı, fırlatma tekrarı).
+

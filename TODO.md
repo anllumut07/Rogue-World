@@ -427,7 +427,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri |
 |-----------|----------|--------------|
-| 30.1 | Uzay teknolojileri ve önkoşulları (teknoloji ağacına bağlı). | Önkoşul yoksa görev kilitli |
+| 30.1 | Uzay teknolojileri ve önkoşulları (teknoloji ağacına bağlı). | Önkoşul yoksa görev kilitli | ✅ Bitti — `Data/scenarios/modern_world/technologies.json` (rocketry→satellite_technology→space_flight→lunar_mission→mars_mission zinciri), `Data/space_missions.json` (S1–S10), `Scripts/SpaceSystem.cs` (GetMissionStatus kilit/kullanılabilir dinamik, LaunchMission, DailyTick + DeterministicRNG çözümle, GetSaveData/LoadSaveData/ResetForNewGame), `CountryData.Prestige`, `GameManager` (`--space-test`, RunSpaceTest, DailyTick/Initialize/ResetForNewGame bağlama), `SaveSystem` (`SaveFile.Space` + WriteSave/LoadGameInternal). `dotnet build` 0/0; `--space-test --scenario=modern_world` PASS ✓ (exit 0); `--save-load-test --scenario=modern_world` PASS ✓ (A == B, space state kaydedilir/yükler). |
 | 30.2 | Proje yönetimi: bütçe, süre, başarısızlık olasılığı, fırlatma tekrarı. | Fırlatma başarılı/başarısız olur |
 | 30.3 | Ödüller: prestij, teknoloji bonusu, memnuniyet; askerî kullanım (keşif uydusu, uydu karşıtı silah). | Bonuslar uygulanır |
 | 30.4 | Uluslararası işbirliği/rekabet. | |

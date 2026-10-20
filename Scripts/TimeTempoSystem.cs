@@ -449,9 +449,46 @@ public static class TimeTempoSystem
                     // M21.5: Kabine toplantısı — atanan bakanların sadakasına bonus uygular
                     CabinetSystem.ApplyMinisterLoyaltyBonus(GameManager.Instance.PlayerCountryId, (int)val);
                     break;
+                case "PopularityBonus":
+                    // M38.2: popülerlik artışı — oyuncu ülkesinin tüm topluluk grubuna uygula
+                    foreach (var group in PublicSatisfactionSystem.Groups)
+                    {
+                        double cur = PublicSatisfactionSystem.GetSatisfaction(data.Id, group.Id);
+                        PublicSatisfactionSystem.SetSatisfaction(data.Id, group.Id, Math.Clamp(cur + val, 0, 100));
+                    }
+                    break;
+                case "LegitimacyBonus":
+                    // M38.2: meşruiyet artışı — Casus Belli sistemi
+                    GD.Print($"[Agenda DEBUG] LegitimacyBonus before={CasusBelliSystem.GetLegitimacy(data.Id):F1} id={data.Id} val={val}");
+                    CasusBelliSystem.ModifyLegitimacy(data.Id, (float)val);
+                    GD.Print($"[Agenda DEBUG] LegitimacyBonus after={CasusBelliSystem.GetLegitimacy(data.Id):F1}");
+                    break;
+                case "RelationBonusAllies":
+                    // M38.2: müttefikler (faksiyon üyeleri) ile ilişki artışı
+                    var faction = DiplomacySystem.GetFactionOf(data.Id);
+                    if (faction != null)
+                    {
+                        foreach (var memberId in faction.MemberIds)
+                        {
+                            if (memberId != data.Id)
+                                DiplomacySystem.ModifyRelation(data.Id, memberId, (int)val);
+                        }
+                    }
+                    break;
+                case "TensionReduction":
+                    // M38.2: dünya gerilimi düşürmesi (val zaten negatif, örn. -5)
+                    DiplomacySystem.IncreaseTension((float)val);
+                    break;
+                case "ResearchSpeedBonus":
+                    // M38.2: araştırma hızı modifikatörü (toplanır)
+                    TechnologySystem.AddModifier("research_speed", (float)val);
+                    break;
+                case "AdminEfficiencyBonus":
+                    // M38.2: yönetim verimliliği modifikatörü (genel modifier deposunda tutulur)
+                    TechnologySystem.AddModifier("admin_efficiency", (float)val);
+                    break;
                 default:
-                    // Diğer efektler (ResearchSpeedBonus, AdminEfficiencyBonus vb.) ilgili sistemlerde ele alınacak
-                    GD.Print($"[Agenda] Etki (sistem entegrasyonu bekliyor): {eff.Key} = {val}");
+                    GD.Print($"[Agenda] Etki (sistem entegrasyonu yok): {eff.Key} = {val}");
                     break;
             }
         }

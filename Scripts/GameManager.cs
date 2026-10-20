@@ -1316,45 +1316,66 @@ public partial class GameManager : Node
         GD.Print("  M16: AJANDA SİSTEM TESTİ");
         GD.Print("=========================================");
 
-        // Oyuncu ülke + PP top-up (aksiyon maliyetleri için)
         if (!HasPlayer)
             SetPlayerCountry("GER");
         if (PlayerCountryData != null)
-            PlayerCountryData.PoliticalPower = 200;
-        if (Speed == 0) SetSpeed(0); // manuel gün ilerletme — pause kalır
+            PlayerCountryData.PoliticalPower = 500; // tüm aksiyon maliyetlerini karşıla
+        if (Speed == 0)
+            SetSpeed(0); // manuel gün ilerletme — pause kalır
 
+        string pid = PlayerCountryData.Id;
         double staBefore = PlayerCountryData.StabilityPercent;
         double wsBefore = PlayerCountryData.WarSupportPercent;
+        double legBefore = CasusBelliSystem.GetLegitimacy(pid);
+        double tenBefore = DiplomacySystem.WorldTension;
+        double satYouthBefore = PublicSatisfactionSystem.GetSatisfaction(pid, "youth");
 
-        // 1) Toplantı (1 gün, 5 PP) → slot 0
+        // 1) meeting(1g) + press(1g) + rally(3g) → 3 eş zamanlı (sınır)
         bool ok1 = TimeTempoSystem.AddActionToSlot(0, "meeting");
-        GD.Print($"[AgendaTest] meeting → slot 0: {(ok1 ? "OK" : "FAIL")}");
-
-        // 2) Basın konuşması (1 gün, 10 PP) → slot 1
         bool ok2 = TimeTempoSystem.AddActionToSlot(1, "press");
-        GD.Print($"[AgendaTest] press → slot 1: {(ok2 ? "OK" : "FAIL")}");
+        bool ok3 = TimeTempoSystem.AddActionToSlot(2, "rally");
+        // 4. aksiyon → reddedilmeli (maks 3 eş zamanlı)
+        bool ok4 = TimeTempoSystem.AddActionToSlot(3, "meeting");
+        GD.Print($"[AgendaTest] meeting/press/rally: {ok1}/{ok2}/{ok3} | 4. aksiyon reddedildi: {!ok4}");
 
-        // 3) Aynı slota ikinci aksiyon → REDDEDİLMELİ
-        bool ok3 = TimeTempoSystem.AddActionToSlot(0, "rally");
-        GD.Print($"[AgendaTest] rally → dolu slot 0: {(ok3 ? "FAIL — kabul edildi!" : "OK — reddedildi")}");
-
-        // 4) Max eş zamanlı aksiyon (3) aşımı → REDDEDİLMELİ
-        bool ok4a = TimeTempoSystem.AddActionToSlot(2, "meeting");
-        bool ok4b = TimeTempoSystem.AddActionToSlot(3, "meeting");
-        GD.Print($"[AgendaTest] 3. ve 4. eş zamanlı aksiyon: {ok4a}/{ok4b} (4. reddedilmeli)");
-
-        GD.Print($"[AgendaTest] Aktif aksiyon: {TimeTempoSystem.ActiveActions.Count}, kullanılan slot: {TimeTempoSystem.SlotsUsedThisWeek}/{TimeTempoSystem.MaxSlotsPerWeekConst}");
-
-        // 5) 3 gün ilerlet — meeting (1g) ve press (1g) tamamlanmalı
+        // 3 gün ilerlet → meeting(1g), press(1g), rally(3g) tamamlanır
         AdvanceDaysForTest(3);
 
-        GD.Print($"[AgendaTest] 3 gün sonra aktif aksiyon: {TimeTempoSystem.ActiveActions.Count} (0 olmalı)");
-        GD.Print($"[AgendaTest] Stability: {staBefore:F1} → {PlayerCountryData.StabilityPercent:F1} (+2 beklenir)");
-        GD.Print($"[AgendaTest] WarSupport: {wsBefore:F1} → {PlayerCountryData.WarSupportPercent:F1} (+1 beklenir)");
+        double staAfter = PlayerCountryData.StabilityPercent;
+        double wsAfter = PlayerCountryData.WarSupportPercent;
+        double legAfter = CasusBelliSystem.GetLegitimacy(pid);
+        double satYouthAfter = PublicSatisfactionSystem.GetSatisfaction(pid, "youth");
+        GD.Print($"[AgendaTest] 3g sonra aktif aksiyon: {TimeTempoSystem.ActiveActions.Count} (0 olmalı)");
+        GD.Print($"[AgendaTest] Stability: {staBefore:F1} → {staAfter:F1} (beklenen +4: meeting1+press1+rally2)");
+        GD.Print($"[AgendaTest] WarSupport: {wsBefore:F1} → {wsAfter:F1} (beklenen +4: press1+rally3)");
+        GD.Print($"[AgendaTest] Legitimacy: {legBefore:F1} → {legAfter:F1} (beklenen +3: press LegitimacyBonus)");
+        GD.Print($"[AgendaTest] Youth memnuniyet: {satYouthBefore:F1} → {satYouthAfter:F1} (beklenen artış: rally PopularityBonus)");
 
-        bool pass = TimeTempoSystem.ActiveActions.Count == 0
-                    && PlayerCountryData.StabilityPercent >= staBefore + 2
-                    && PlayerCountryData.WarSupportPercent >= wsBefore + 1;
+        // 2) summit(7g) + training(5g) → boş slotlara 3, 4 (0-2 haftalık kilitli kalır)
+        bool ok5 = TimeTempoSystem.AddActionToSlot(3, "summit");
+        bool ok6 = TimeTempoSystem.AddActionToSlot(4, "training");
+        GD.Print($"[AgendaTest] summit/training: {ok5}/{ok6}");
+
+        // 7 gün ilerlet → summit(7g) ve training(5g) tamamlanır
+        AdvanceDaysForTest(7);
+
+        float resSpeed = TechnologySystem.GetModifier("research_speed");
+        float adminEff = TechnologySystem.GetModifier("admin_efficiency");
+        double tenAfter = DiplomacySystem.WorldTension;
+        GD.Print($"[AgendaTest] 7g sonra aktif aksiyon: {TimeTempoSystem.ActiveActions.Count} (0 olmalı)");
+        GD.Print($"[AgendaTest] ResearchSpeed modifikatör: {resSpeed:F3} (beklenen 0.02: training)");
+        GD.Print($"[AgendaTest] AdminEfficiency modifikatör: {adminEff:F3} (beklenen 5: training)");
+        GD.Print($"[AgendaTest] WorldTension: {tenBefore:F1} → {tenAfter:F1} (beklenen düşüş veya aynı: summit TensionReduction -5)");
+
+        bool pass = ok1 && ok2 && ok3 && !ok4 && ok5 && ok6
+                    && TimeTempoSystem.ActiveActions.Count == 0
+                    && staAfter >= staBefore + 4
+                    && wsAfter >= wsBefore + 4
+                    && legAfter >= legBefore + 3
+                    && satYouthAfter > satYouthBefore
+                    && resSpeed >= 0.02f
+                    && adminEff >= 5
+                    && tenAfter <= tenBefore;
         GD.Print(pass ? "[AgendaTest] SONUÇ: PASS ✓" : "[AgendaTest] SONUÇ: FAIL ✗");
         GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");

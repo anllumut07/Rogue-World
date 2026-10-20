@@ -108,6 +108,8 @@ public static class CareerEventSystem
         if (_daysBlockedRemaining > 0)
         {
             _daysBlockedRemaining--;
+            // CareerSystem'deki engelleme de aynı oranda azalır.
+            CareerSystem.DailyTick(currentDay, character);
             GD.Print($"[CareerEventSystem] Kariyer engelleme devam ediyor: kalan {_daysBlockedRemaining} gün");
             return playerPoliticalPower;
         }

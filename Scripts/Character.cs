@@ -130,6 +130,7 @@ public partial class Character
             Military = Math.Clamp(mil, 1, 100),
             Economy = Math.Clamp(eco, 1, 100),
             Law = Math.Clamp(law, 1, 100),
+            Recognition = Math.Clamp(30 + rng.NextInt(0, 41), 1, 100),
             SkinTone = skinTones[rng.NextInt(0, skinTones.Length)],
             HairColor = hairColors[rng.NextInt(0, hairColors.Length)],
             ClothingStyle = clothingStyles[rng.NextInt(0, clothingStyles.Length)],

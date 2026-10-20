@@ -134,15 +134,16 @@ public static class CareerSystem
     public static void DailyTick(int currentDay, Character character)
     {
         if (character == null) return;
-        if (_stage == CareerStage.None || _stage == CareerStage.Minister) return;
 
-        // Engelleme süresi azaltılıyor; engeli kaldıysa ilerleme durdurulur.
+        // Engelleme süresi her durumda azalır (aşama yoksa bile).
         if (_blockedDaysRemaining > 0)
         {
             _blockedDaysRemaining--;
             GD.Print($"[CareerSystem] Kariyer engellenme devam ediyor: kalan {_blockedDaysRemaining} gün");
             return;
         }
+
+        if (_stage == CareerStage.None || _stage == CareerStage.Minister) return;
 
         int daysInStage = currentDay - _stageStartedDay;
         if (daysInStage >= 30)

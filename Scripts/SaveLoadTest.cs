@@ -48,6 +48,11 @@ public static class SaveLoadTest
         gm.AdvanceDaysForTest(DaysPhase1);
         GD.Print($"[Test] Faz 1 tamam — Tarih={gm.CurrentDate:yyyy-MM-dd}, Gün={gm.TotalDays}");
 
+        // M38.1: Beklenen bildirimleri kuyruğa ekle (kayıtta korunup yüklenmeli)
+        TimeTempoSystem.QueueImportantNotification("test", "Test bildirimi A", "İlk bekleyen olay");
+        TimeTempoSystem.QueueImportantNotification("test", "Test bildirimi B", "İkinci bekleyen olay");
+        GD.Print($"[Test] Bildirim kuyruğu: {TimeTempoSystem.PendingNotificationCount} bekleyen");
+
         // 5) Kaydet
         GD.Print("[Test] Kayıt yazılıyor (test_save.json)...");
         SaveSystem.SaveTestFile();
@@ -338,6 +343,10 @@ public static class SaveLoadTest
         int orgMemberships = orgSave?.Memberships?.Length ?? 0;
         int orgArt5 = orgSave?.Article5Activations?.Length ?? 0;
         sb.AppendLine($"Örgütler: sayısı={OrganizationSystem.OrganizationCount}, üyelik={orgMemberships}, madde5={orgArt5}");
+
+// --- M38.1: Bildirim kuyruğu (NEXT EVENT öğeleri kayıtta korunur) ---
+        int pendingNotifications = TimeTempoSystem.PendingNotificationCount;
+        sb.AppendLine($"BildirimKuyrugu: bekleyen={pendingNotifications}");
 
 // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;

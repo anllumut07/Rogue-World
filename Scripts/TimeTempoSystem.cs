@@ -144,10 +144,19 @@ public static class TimeTempoSystem
         public int SlotsUsedThisWeek = 0;
         public AgendaSlotSave[] WeeklyAgenda = Array.Empty<AgendaSlotSave>();
         public ActiveAgendaActionSave[] ActiveActions = Array.Empty<ActiveAgendaActionSave>();
+        public NotificationEventSave[] Notifications = Array.Empty<NotificationEventSave>(); // M38.1: bekleyen bildirimler kayıtta korunur
         public bool MonthlyReportPending = false;
         public MonthlyReportDataSave LastMonthlyReport = null;
         public bool AutoPauseRequested = false;
         public string AutoPauseReason = "";
+    }
+
+    public class NotificationEventSave
+    {
+        public string Type = "";
+        public string Title = "";
+        public string Description = "";
+        public long TriggerDateTicks = 0;
     }
 
     public class AgendaSlotSave
@@ -188,6 +197,7 @@ public static class TimeTempoSystem
     public static bool AutoPauseRequested => _autoPauseRequested;
     public static string AutoPauseReason => _autoPauseReason;
     public static bool HasPendingNotifications => _notificationQueue.Count > 0;
+    public static int PendingNotificationCount => _notificationQueue.Count;
 
     /// <summary>Sistemi başlatır (GameManager._Ready'de çağrılır).</summary>
     public static void Initialize()
@@ -607,6 +617,13 @@ public static class TimeTempoSystem
                 TotalDays = a.TotalDays,
                 Effects = new Dictionary<string, object>(a.Effects)
             }).ToArray(),
+            Notifications = _notificationQueue.Select(n => new NotificationEventSave
+            {
+                Type = n.Type,
+                Title = n.Title,
+                Description = n.Description,
+                TriggerDateTicks = n.TriggerDate.Ticks
+            }).ToArray(),
             MonthlyReportPending = _monthlyReportPending,
             LastMonthlyReport = _lastMonthlyReport != null ? new MonthlyReportDataSave
             {
@@ -667,6 +684,23 @@ public static class TimeTempoSystem
 
         _autoPauseRequested = data.AutoPauseRequested;
         _autoPauseReason = data.AutoPauseReason;
+
+        // M38.1: Beklenen bildirim kuyruğunu geri yükle (OnConfirm delegate'i serileştirilemez, null kalır)
+        _notificationQueue.Clear();
+        if (data.Notifications != null)
+        {
+            foreach (var n in data.Notifications)
+            {
+                _notificationQueue.Enqueue(new NotificationEvent
+                {
+                    Type = n.Type,
+                    Title = n.Title,
+                    Description = n.Description,
+                    TriggerDate = new DateTime(n.TriggerDateTicks),
+                    OnConfirm = null
+                });
+            }
+        }
 
         // Hız GameManager tarafından ApplyLoadedRuntime ile ayarlanır
         GD.Print($"[TimeTempo] LoadSaveData: Week={_currentWeekNumber}, ActiveActions={_activeActions.Count}, MonthlyPending={_monthlyReportPending}");

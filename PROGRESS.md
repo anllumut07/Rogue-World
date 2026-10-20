@@ -2064,3 +2064,13 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 - `dotnet build`: 0 hata / 0 uyarı.
 - `--organization-test --scenario=modern_world` PASS; `--save-load-test --scenario=modern_world` PASS (A==B, organization state korunur).
 - TODO.md 37.5 → [x] Bitti.
+
+## Milestone 38: Bilinen Sorunları Giderme ve Kaydet/Yükle Regresyonu — 🔄 DEVAM EDIYOR (2026-10-20)
+
+### M38.1: M16 Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılsın — ✅ DONE (2026-10-20)
+- `Scripts/TimeTempoSystem.cs`: `NotificationEventSave` DTO eklendi; `TimeTempoSave.Notifications` alanı; `GetSaveData()`'da kuyruk serileştirildi (`OnConfirm` delegate hariç), `LoadSaveData()`'da kuyruk geri yüklendi; `PendingNotificationCount` API eklendi.
+- `Scripts/SaveLoadTest.cs`: testten önce 2 test bildirimi kuyruğa eklenir; `BuildSummaryCore()`'ya `BildirimKuyrugu: bekleyen=N` satırı eklendi (A==B karşılaşmasında dahil).
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test`: **PASS ✓ (A == B)** — bekleyen bildirimler yükleme sonrası korunuyor (bekleyen=4 iki işlemde de aynı).
+- TODO.md 38.1 → [x] Bitti.
+

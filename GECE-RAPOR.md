@@ -1478,3 +1478,23 @@ M39 ve M40 detayları orijinal talimatda tam olarak belirtilmemişti; şu seçil
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--organization-test` ve `--save-load-test` (A==B).
 
 Sonraki adım: M38 (bilinen sorunları giderme ve kayıt/yükle regresyonu).
+
+## M38.1 — M16 Bildirim Kuyruğu Kayıtta Korunur — ✅ DONE (2026-10-20)
+
+- `Scripts/TimeTempoSystem.cs`: `NotificationEventSave` DTO eklendi; `TimeTempoSave.Notifications` alanı; `GetSaveData()`'da `_notificationQueue` serileştirildi (`OnConfirm` delegate hariç), `LoadSaveData()`'da kuyruk geri yüklendi (`OnConfirm=null`); `PendingNotificationCount` API eklendi.
+- `Scripts/SaveLoadTest.cs`: testten önce 2 test bildirimi kuyruğa eklenir; `BuildSummaryCore()`'ya `BildirimKuyrugu: bekleyen=N` satırı eklendi (A==B karşılaşmasında dahil).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test`: **PASS ✓ (A == B)** — bekleyen bildirimler yükleme sonrası korunuyor (bekleyen=4 iki işlemde de aynı).
+
+**Dosyalar:**
+- Değiştirilen: `Scripts/TimeTempoSystem.cs`, `Scripts/SaveLoadTest.cs`, `TODO.md` (38.1 [x]), `PROGRESS.md` (M38.1 DONE), `GECE-RAPOR.md`.
+
+### ÖZET (M38.1 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/TimeTempoSystem.cs` (NotificationEventSave DTO, Notifications alanı, serileştirme/geri yükleme, PendingNotificationCount), `Scripts/SaveLoadTest.cs` (test bildirimi kuyruğu + özet satırı), `TODO.md` (38.1 [x]), `PROGRESS.md` (M38.1 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M38.1 %100 tamamlandı (build 0/0, save-load-test A==B PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--save-load-test` (A==B).
+
+Sonraki adım: M38.2 (ajanda efektleri bağlama).

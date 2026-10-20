@@ -6,7 +6,8 @@ param(
     [string]$Scenario,
     [string]$Country,
     [string]$Speed,
-    [string]$Scene
+    [string]$Scene,
+    [switch]$Windowed
 )
 
 $TestFlag = if ($args.Count -gt 0) { $args[0] } else {
@@ -31,7 +32,18 @@ $SafeFlag = $TestFlag.TrimStart("-").Replace("--", "").Replace("-", "_")
 $LogPath  = Join-Path $LogDir "$SafeFlag.log"
 $ErrPath  = Join-Path $LogDir "$SafeFlag.err"
 
-$Args = @("--headless", "--path", ".")
+# Screenshot testi (--screenshot-test) pencere modunda çalışır: kalıcı kapalı sayılamaz.
+$IsScreenshotShot = $TestFlag -like "--screenshot-test*"
+$NeedWindow = $Windowed -or $IsScreenshotShot
+if ($NeedWindow) {
+    $Args = @("--path", ".")
+    if (-not $PSBoundParameters.ContainsKey("Scene")) {
+        # Pencere modunda ekran görüntüsü için varsayılan sahne: oyun sahnesi
+        $Args += "res://Scenes/game.tscn"
+    }
+} else {
+    $Args = @("--headless", "--path", ".")
+}
 if ($PSBoundParameters.ContainsKey("Scene")) { $Args += $Scene }
 $Args += "--"
 $Args += $TestFlag

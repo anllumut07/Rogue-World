@@ -119,6 +119,9 @@ public partial class Game : Control
         _worldMap.CountrySelected += OnCountrySelected;
         _worldMap.CountryDeselected += OnCountryDeselected;
 
+        // --- Diagnostik: --screenshot-test (yalnızca komut satırı) ---
+        if (ScreenshotTest.Enabled) SetupScreenshotShot();
+
         // M13.1: Oyun müziği (prosedürel, döngü).
         AudioSystem.PlayGameMusic();
 
@@ -245,6 +248,56 @@ public partial class Game : Control
             GD.Print($"[TICK] Gün {totalDays} — {GameManager.Instance.GetDateText()}");
         else if (GameManager.IsAvailable)
             GameManager.Instance.DayChanged -= OnDayChangedForDebug; // log spam'i kes
+    }
+
+    // Diagnostik (yalnızca --screenshot-test): hedef sahne/panel açılır, kareler
+    // işlendikten sonra PNG kaydedilir ve süreç kapanır. Normal oyun bu yolu kullanmaz.
+    private void SetupScreenshotShot()
+    {
+        switch (ScreenshotTest.Target)
+        {
+            case ScreenshotTest.ShotTarget.CharacterCreation:
+                CharacterCreationPanel.OpenUnder(this, OnCharacterConfirmed);
+                break;
+            case ScreenshotTest.ShotTarget.StartPath:
+                ShowStartPathChoice();
+                break;
+            case ScreenshotTest.ShotTarget.Cabinet:
+                CabinetPanel.OpenUnder(this);
+                break;
+            case ScreenshotTest.ShotTarget.Statistics:
+                StatisticsPanel.OpenUnder(this);
+                break;
+            case ScreenshotTest.ShotTarget.Election:
+                ElectionPanel.OpenUnder(this);
+                break;
+            case ScreenshotTest.ShotTarget.Organizations:
+                OrganizationPanel.OpenUnder(this);
+                break;
+        }
+
+        int frame = 0;
+        GetTree().ProcessFrame += () =>
+        {
+            frame++;
+            if (frame < 60) return; // harita + panel açılış animasyonu kadar bekle
+            try
+            {
+                var img = GetViewport().GetTexture().GetImage();
+                var rel = ScreenshotTest.OutputPath();
+                var abs = System.IO.Path.Combine(ProjectSettings.GlobalizePath("res://test-logs/screens"),
+                                                 System.IO.Path.GetFileName(rel));
+                var dir = System.IO.Path.GetDirectoryName(abs);
+                if (!System.IO.Directory.Exists(dir)) System.IO.Directory.CreateDirectory(dir);
+                img.SavePng(abs);
+                GD.Print($"[ScreenshotTest] KAYDEDİLDİ: {rel} ({img.GetWidth()}x{img.GetHeight()})");
+            }
+            catch (System.Exception e)
+            {
+                GD.PrintErr($"[ScreenshotTest] HATA: {e.Message}");
+            }
+            GetTree().Quit(0);
+        };
     }
 
     // 30. karede SubViewport + ana pencere görüntüsünü PNG olarak kaydet.

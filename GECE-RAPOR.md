@@ -788,3 +788,24 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 3. Bilinen sorun: uzay paneli UI'sı henüz yok (M30.2 model-seviyede); M30.3 ödüller (prestij, teknoloji bonusu, memnuniyet; askerî kullanım) sonraki alt görev.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--space-mgmt-test --scenario=modern_world` (PASS) ve `--save-load-test --scenario=modern_world` (A==B).
 
+## M30.3: Uzay Programı Ödülleri — ✅ DONE (2026-10-20)
+
+**Değiştirilen dosyalar:**
+- `Data/space_missions.json`: `RewardSatisfaction` ve `MilitaryEffect` alanları eklendi (s1: youth+5, s3: military+5+ReconSatellite, s6: youth+10/military+5, s8: youth+10/military+10, s9: AntiSatelliteWeapon).
+- `Scripts/SpaceSystem.cs`: `MilitaryEffect` enum (None/ReconSatellite/AntiSatelliteWeapon), `_reconSatellites` HashSet + `ReconSatellites`/`ReconSatelliteCount`/`IsReconSatelliteActive` API'leri; `ResolveMission` başarıda prestij (`Player.Prestige += RewardPrestige`), tech bonusu (`TechnologySystem.AddModifier`), memnuniyet (`PublicSatisfactionSystem.GetSatisfaction`/`SetSatisfaction`), askerî etki (ReconSatellite → `_reconSatellites.Add`, AntiSatelliteWeapon → `DiplomacySystem.IncreaseTension(10)`); `SpaceSave.ReconSatellites[]` + `GetSaveData`/`LoadSaveData` serileştirme; `_reconSatellites.Clear()` `ResetForNewGame`'te; `JsonStringEnumConverter` `EnsureLoaded`'de.
+- `Scripts/GameManager.cs`: `spaceRewardTest` field, `--space-reward-test` arg parsing, `SpaceSystem.EnableTestMode()` çağrısı, `RunSpaceRewardTest()` metodu (modern_world/DEU, `EventSystem.EnableAutoChooseTest`, s1 ReconSatellite + s3 Communication Satellite fırlatmaları, prestige+5 ve research_speed +0.01 doğrulaması, recon satellite aktif, save/load A==B, state reset).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--space-reward-test --scenario=modern_world`: **SONUÇ: PASS ✓** (exit 0) — s1/s3 fırlatma, prestij+5, research_speed +0.01, keşif uydusu aktif, save/load A==B.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — space state (ödüller+recon uydusu) kaydedilir/yükler.
+- Regresyon: build 0/0, mevcut tüm testler etkilenmedi.
+
+**Dosyalar:** Değiştirilen: `Data/space_missions.json`, `Scripts/SpaceSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (30.3 [x]), `PROGRESS.md` (M30.3 DONE), `GECE-RAPOR.md`.
+
+### ÖZET (M30.3 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/SpaceSystem.cs` (MilitaryEffect + ReconSatellites + ResolveMission ödüller), `Data/space_missions.json` (RewardSatisfaction/MilitaryEffect s1/s3/s6/s8/s9), `Scripts/GameManager.cs` (`--space-reward-test` + RunSpaceRewardTest).
+2. Çözülemeyen şey: yok — M30.3 %100 tamamlandı (build 0/0, space-reward-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: uzay paneli UI'sı henüz yok (M30.3 model-seviyede); M30.4 uluslararası işbirliği/rekabet sonraki alt görev.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--space-reward-test --scenario=modern_world` (PASS) ve `--save-load-test --scenario=modern_world` (A==B).
+

@@ -1554,5 +1554,40 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Yeni: `Data/space_missions.json`, `Scripts/SpaceSystem.cs`.
 - Değiştirilen: `Data/scenarios/modern_world/technologies.json`, `Scripts/CountryData.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (30.1 [x]), `PROGRESS.md` (M30.1 DONE), `GECE-RAPOR.md`.
 
+**Sonraki adım:** M30.2 Uzay proje yönetimi (bütçe, süre, başarısızlık olasılığı, fırlatma tekrarı).
+
+
+### M30.2: Uzay Proje Yönetimi — ✅ DONE (2026-10-20)
+
+**Değiştirilen dosyalar:**
+- `Scripts/SpaceSystem.cs`: `SpaceProgramBudgetPP = 1500` + `_remainingBudgetPP` bütçe havuzu, `LaunchMission` bütçeden düşer, `CanLaunch` bütçe kontrolü, `ActiveMission.RetryCount`, `RetryLaunch()` (Failed/Completed → Available, deneme sayacı++), `EnableTestMode(bool)`, `ForceFailureForTest(bool)`, `RemainingBudgetPP`, `GetRetryCount`, `GetSaveData`/`LoadSaveData`/`ResetForNewGame` yeni alanları (bütçe + deneme kalıcı).
+- `Scripts/GameManager.cs`: `spaceMgmtTest` field, `--space-mgmt-test` arg parsing, `SpaceSystem.EnableTestMode()` çağrısı, `RunSpaceMgmtTest()` metodu (GER, PP=2000, s1 başarılı fırlatma + 30-gün tamamla, zorla başarısızlık+retry, 3. fırlatma garanti başarı + tamamla, bütçe 1500→1350 = 3×50 düşüş doğrulaması, save/load A==B bütçe+deneme, reset → bütçe 1500/s1 Available/s10 Locked, `GetTree().Quit(ok?0:1)`).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--space-mgmt-test --scenario=modern_world`: **SONUÇ: PASS ✓** — 3 fırlatma × 50 PP = 150 bütçe düşüşü, forced-failure+retry, save_load_a_b=True, retry_kalıcı=True, reset=True, bütçe_sıfırlandı=1500.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — space state (bütçe+deneme) kaydedilir/yükler.
+- Regresyon: build 0/0, mevcut tüm testler etkilenmedi.
+
+**Dosyalar:** Değiştirilen: `Scripts/SpaceSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (30.2 [x]), `PROGRESS.md` (M30.2 DONE), `GECE-RAPOR.md`.
+
 **Sonraki adım:** M30.3 Uzay programı ödülleri (prestij, teknoloji bonusu, memnuniyet; askerî kullanım).
+
+
+### M30.3: Uzay Programı Ödülleri — ✅ DONE (2026-10-20)
+
+**Değiştirilen dosyalar:**
+- `Data/space_missions.json`: `RewardSatisfaction` ve `MilitaryEffect` alanları eklendi (s1: youth+5, s3: military+5+ReconSatellite, s6: youth+10/military+5, s8: youth+10/military+10, s9: AntiSatelliteWeapon); `RewardTechBonus`/`RewardPrestige` zaten M30.1'de.
+- `Scripts/SpaceSystem.cs`: `MilitaryEffect` enum (None/ReconSatellite/AntiSatelliteWeapon), `_reconSatellites` HashSet + `ReconSatellites`/`ReconSatelliteCount`/`IsReconSatelliteActive` API'leri; `ResolveMission` başarıda prestij (`Player.Prestige += RewardPrestige`), tech bonusu (`TechnologySystem.AddModifier`), memnuniyet (`PublicSatisfactionSystem.GetSatisfaction`/`SetSatisfaction`), askerî etki (ReconSatellite → `_reconSatellites.Add`, AntiSatelliteWeapon → `DiplomacySystem.IncreaseTension(10)`); `SpaceSave.ReconSatellites[]` + `GetSaveData`/`LoadSaveData` serileştirme; `_reconSatellites.Clear()` `ResetForNewGame`'te; `JsonStringEnumConverter` `EnsureLoaded`'de.
+- `Scripts/GameManager.cs`: `spaceRewardTest` field, `--space-reward-test` arg parsing, `SpaceSystem.EnableTestMode()` çağrısı, `RunSpaceRewardTest()` metodu (modern_world/DEU, `EventSystem.EnableAutoChooseTest`, s1 ReconSatellite + s3 Communication Satellite fırlatmaları, prestige+5 ve research_speed +0.01 doğrulaması, recon satellite aktif, save/load A==B, state reset), `DailyTick` → `SpaceSystem.DailyTick`.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--space-reward-test --scenario=modern_world`: **SONUÇ: PASS ✓** (exit 0) — s1/s3 fırlatma, prestij+5, research_speed +0.01, keşif uydusu aktif, save/load A==B.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — space state (ödüller+recon uydusu) kaydedilir/yükler.
+- Regresyon: build 0/0, mevcut tüm testler etkilenmedi.
+
+**Dosyalar:** Değiştirilen: `Data/space_missions.json`, `Scripts/SpaceSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (30.3 [x]), `PROGRESS.md` (M30.3 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M30.4 Uluslararası işbirliği/rekabet.
 

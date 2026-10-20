@@ -2007,3 +2007,11 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 **Bilinen sorun:** yok.
 **Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--save-load-test` (A==B); panellerin İngilizce metinle açılması.
 
+### M36: Ana Menü ve Oyuncu Akışı — 36.1 ✅ DONE (2026-10-20)
+36.1 Yeni oyun → ülke/karakter seçimi → oyun → kaydet/yükle → ana menüye dön akışı:
+- Akış zaten eksiksiz kablolu: MainMenu START → ScenarioSelectPanel → GameManager.ResetForNewGame → game.tscn → Game._Ready → WorldMap ülke seçimi → ShowStartPathChoice → CharacterCreationPanel → SetCharacter.
+- Kod değişikliği gerekmedi; doğrulama: `dotnet build` 0 hata / 0 uyarı; `--save-load-test --scenario=modern_world` **SONUÇ: PASS ✓ (A == B)**.
+- TODO.md 36.1 → [x] Bitti.
+
+36.2 İlk açılış rehberi: henüz başlanmadı.
+36.3 Ayarlar menüsü kalıcılığı: henüz başlanmadı.

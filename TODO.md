@@ -572,7 +572,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 36.1 | Yeni oyun → ülke/karakter seçimi → oyun → kaydet/yükle → ana menüye dön akışı | Akış bozulmadan çalışır; her adım test geçer | [ ] |
+| 36.1 | Yeni oyun → ülke/karakter seçimi → oyun → kaydet/yükle → ana menüye dön akışı | Akış bozulmadan çalışır; her adım test geçer | [x] Bitti (2026-10-20) |
 | 36.2 | İlk açılış rehberi (kısa tutorial metni/ipuçları) | Rehber panel açılır; ipuçları görünür | [ ] |
 | 36.3 | Ayarlar menüsü kalıcılığı (ses, hız, çözünürlük) | Ayarlar kapatıp açınca korunur; save-load'ta A==B | [ ] |
 

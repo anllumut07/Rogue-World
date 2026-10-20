@@ -1297,3 +1297,27 @@ Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--save-load-test` (A==B).
 
 **TODO.md:** 35.1, 35.2, 35.3, 35.4 → `[x]`. M35 tamamlandı. `git commit` + `git push origin gece-calisma` yapıldı.
+
+## GECE-RAPOR — 2026-10-20 (gece-calisma dalı, otonom, M36 başlangıcı)
+
+**STOP.txt kontrolü:** yok — stop kancası engellemez.
+
+**ADIM — M36.1 (Ana Menü ve Oyuncu Akışı — yeni oyun → ülke/karakter seçimi → oyun → kaydet/yükle → ana menüye dön):**
+Akış zaten eksiksiz kablolu (MainMenu → ScenarioSelectPanel → GameManager.ResetForNewGame → game.tscn → Game._Ready → WorldMap ülke seçimi → ShowStartPathChoice → CharacterCreationPanel → SetCharacter). Kod değişikliği gerekmedi; doğrulama testiyle onaylandı.
+
+**İçerik:**
+- `TODO.md`: 36.1 → [x] Bitti (2026-10-20).
+- `PROGRESS.md`: M36 bölümü eklendi (36.1 DONE, 36.2/36.3 ⬜).
+- `GECE-RAPOR.md`: bu giriş.
+
+**Test Sonuçları:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)**.
+
+**ÖZET (M36.1 — 2026-10-20)**
+1. Değişen dosyalar: `TODO.md` (36.1 [x]), `PROGRESS.md` (M36 bölümü), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — akış zaten implement edilmişti, doğrulama geçti.
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--save-load-test` (A==B); ana menü → yeni oyun → ülke seçimi → karakter → oyun → pause → MAIN MENU akışı manuel olarak.
+
+**TODO.md:** 36.1 → [x]. 36.2, 36.3 bekliyor. `git commit` + `git push origin gece-calisma` yapılacak.

@@ -137,6 +137,7 @@ public partial class GameManager : Node
         bool spaceTest = false;             // M30.1: uzay programı testi (--space-test)
         bool spaceMgmtTest = false;         // M30.2: uzay proje yönetimi testi (--space-mgmt-test)
         bool spaceRewardTest = false;       // M30.3: uzay ödülleri testi (prestij, tech bonusu, memnuniyet, askeri kullanım)
+        bool techTest = false;              // M31.1: modern silah teknolojisi testi (--tech-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -244,6 +245,8 @@ public partial class GameManager : Node
                 spaceMgmtTest = true;
             else if (arg == "--space-reward-test")
                 spaceRewardTest = true;
+            else if (arg == "--tech-test")
+                techTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -551,6 +554,9 @@ public partial class GameManager : Node
 
         if (spaceRewardTest)
             RunSpaceRewardTest();
+
+        if (techTest)
+            RunTechTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -2654,6 +2660,78 @@ public partial class GameManager : Node
             && launch3 && completed3 && reconActive
             && saveLoadOk && resetOk;
         GD.Print(ok ? "[SpaceRewardTest] SONUÇ: PASS ✓" : "[SpaceRewardTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(ok ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M31.1: Modern silah teknolojisi testi — yeni silah (cruise_missiles) araştırıldığında
+    /// land_attack modifikatörü etkin olur ve bölük etkili saldırı gücü artar (savaş istatistiği
+    /// değişir). Teknoloji durumu kaydet/yüklede A==B korunur. Normal oyunda ASLA çalışmaz (--tech-test).
+    /// </summary>
+    private void RunTechTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M31.1: MODERN SILAH TEKNOLOJİSİ TESTİ (--tech-test)");
+        GD.Print("=========================================");
+
+        // modern_world senaryosu; DEU yüksek TechLevel'e sahip olabilir (startEra 2000+) ve
+        // eski silah zaten otomatik araştırılmış olabilir. railgun_technology (Era 2020,
+        // önkoşul yok) her zaman başlangıçta araştırılmamış, araştırılabilir kalır.
+        ScenarioSystem.SetActive("modern_world");
+        EventSystem.EnableAutoChooseTest(); // headless'te olay popup'larını engelle
+
+        SetPlayerCountry("DEU"); // TechnologySystem'i DEU ile yeniden başlat
+        if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 2000;
+        if (PlayerCountryData != null) PlayerCountryData.ManpowerPool = 200000;
+        if (Speed == 0) SetSpeed(0);
+
+        // Test şablonu: 2 infanteri + 1 artileri → temeldeki saldırı gücü (bölük istatistiği)
+        var tpl = ArmySystem.CreateTemplate("Tech Test Şablonu", new List<string> { "infantry", "infantry", "artillery" });
+        if (tpl == null)
+        {
+            GD.Print("[TechTest] Şablon oluşturulamadı — test atlanıyor");
+            GD.Print("=========================================");
+            GetTree().Quit(1);
+            return;
+        }
+        float baseAttack = tpl.Attack; // 10 + 10 + 30 = 50
+
+        // Yeni silah teknolojisi: railgun_technology (önkoşul yok, Era 2020, başlangıçta araştırılmadı)
+        string techId = "railgun_technology";
+        if (!TechnologySystem.All.ContainsKey(techId))
+        {
+            GD.Print($"[TechTest] {techId} tanımlı değil — test atlanıyor");
+            GD.Print("=========================================");
+            GetTree().Quit(1);
+            return;
+        }
+
+        float modBefore = TechnologySystem.GetModifier("land_attack");
+        float effectiveBefore = baseAttack * (1f + modBefore);
+        GD.Print($"[TechTest] öncesi — land_attack={modBefore:F3}, taban_attack={baseAttack:F0}, etkili_attack={effectiveBefore:F1}");
+
+        // Araştırmayı başlat ve tamamla (test modu yok; DeterministikRNG ile 1 gün = 1 araştırma puanı).
+        bool started = TechnologySystem.StartResearch(techId);
+        GD.Print($"[TechTest] {techId} araştırma başlatıldı: {started}");
+        int cost = TechnologySystem.All[techId].Cost;
+        AdvanceDaysForTest(cost + 5); // araştırma süresi + güvenlik marajı
+
+        bool researched = TechnologySystem.GetStatus(techId) == TechnologySystem.ResearchStatus.Researched;
+        float modAfter = TechnologySystem.GetModifier("land_attack");
+        float effectiveAfter = baseAttack * (1f + modAfter);
+        GD.Print($"[TechTest] sonrası — researched={researched}, land_attack={modAfter:F3}, etkili_attack={effectiveAfter:F1}");
+
+        // Save/Load A==B — teknoloji modifikatörü kalıcı mı?
+        var save = TechnologySystem.GetSaveData();
+        TechnologySystem.LoadSaveData(save);
+        float modLoaded = TechnologySystem.GetModifier("land_attack");
+        bool saveLoadOk = Math.Abs(modLoaded - modAfter) < 0.001f;
+        GD.Print($"[TechTest] save_load_a_b={saveLoadOk}, yüklenen_land_attack={modLoaded:F3}");
+
+        // Test kriteri: yeni silah → modifikatör arttı → etkili saldırı gücü arttı (savaş istatistiği değişti).
+        bool ok = started && researched && modAfter > modBefore && effectiveAfter > effectiveBefore && saveLoadOk;
+        GD.Print(ok ? "[TechTest] SONUÇ: PASS ✓" : "[TechTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");
     }

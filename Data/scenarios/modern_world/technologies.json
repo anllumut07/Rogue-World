@@ -879,5 +879,184 @@
     ],
     "Effects": [],
     "Modifiers": {}
+  },
+  {
+    "Id": "cyber_offensive_operations",
+    "Name": "Cyber Offensive Operations",
+    "Category": "Cyber",
+    "Era": 2000,
+    "Cost": 180,
+    "Description": "Offensive cyber capabilities that disrupt enemy command and logistics.",
+    "Prerequisites": [
+      "cyber_warfare"
+    ],
+    "Effects": [
+      "+5% Land Attack"
+    ],
+    "Modifiers": {
+      "land_attack": 0.05
+    }
+  },
+  {
+    "Id": "autonomous_weapons",
+    "Name": "Autonomous Weapons",
+    "Category": "AI",
+    "Era": 2020,
+    "Cost": 260,
+    "Description": "AI-supported weapon systems that reduce reaction time and increase fire precision.",
+    "Prerequisites": [
+      "artificial_intelligence"
+    ],
+    "Effects": [
+      "+10% Land Attack"
+    ],
+    "Modifiers": {
+      "land_attack": 0.10
+    }
+  },
+  {
+    "Id": "unmanned_ground_vehicles",
+    "Name": "Unmanned Ground Vehicles",
+    "Category": "Unmanned",
+    "Era": 2010,
+    "Cost": 200,
+    "Description": "Insansız kara araçları — riskli görevlerde canlı asker yerine robot kullanım.",
+    "Prerequisites": [
+      "combat_drones"
+    ],
+    "Effects": [
+      "+8% Land Attack"
+    ],
+    "Modifiers": {
+      "land_attack": 0.08
+    }
+  },
+  {
+    "Id": "cruise_missiles",
+    "Name": "Cruise Missiles",
+    "Category": "Missiles",
+    "Era": 2000,
+    "Cost": 200,
+    "Description": "Güdümlü füzeler — uzun menzilli, hassas non-nükleer saldırı kapasitesi.",
+    "Prerequisites": [],
+    "Effects": [
+      "+10% Land Attack"
+    ],
+    "Modifiers": {
+      "land_attack": 0.10
+    }
+  },
+  {
+    "Id": "ballistic_missiles",
+    "Name": "Ballistic Missiles",
+    "Category": "Missiles",
+    "Era": 2010,
+    "Cost": 240,
+    "Description": "Balistik füzeler — stratejik hedeflere yüksek hızlı başarı.",
+    "Prerequisites": [
+      "cruise_missiles"
+    ],
+    "Effects": [
+      "+12% Land Attack"
+    ],
+    "Modifiers": {
+      "land_attack": 0.12
+    }
+  },
+  {
+    "Id": "hypersonic_glide_vehicles",
+    "Name": "Hypersonic Glide Vehicles",
+    "Category": "Hypersonic",
+    "Era": 2020,
+    "Cost": 300,
+    "Description": "Hipersonik süzgun araçlar — düşman savunmasını aşan daha hızlı füzeler.",
+    "Prerequisites": [
+      "ballistic_missiles"
+    ],
+    "Effects": [
+      "+15% Land Attack"
+    ],
+    "Modifiers": {
+      "land_attack": 0.15
+    }
+  },
+  {
+    "Id": "theater_missile_defense",
+    "Name": "Theater Missile Defense",
+    "Category": "Missile Defense",
+    "Era": 2010,
+    "Cost": 230,
+    "Description": "Tiyatro füzе savunu — gelen füzeleri bölge üstesinden geçmeden yakalama.",
+    "Prerequisites": [
+      "integrated_air_defense"
+    ],
+    "Effects": [
+      "+10% Land Defense"
+    ],
+    "Modifiers": {
+      "land_defense": 0.10
+    }
+  },
+  {
+    "Id": "solar_power",
+    "Name": "Solar Power",
+    "Category": "Renewable Energy",
+    "Era": 2000,
+    "Cost": 160,
+    "Description": "Güneş enerjisi — askeri tesisler için yerel, yenilenebilir güç kaynağı.",
+    "Prerequisites": [],
+    "Effects": [
+      "+5% Factory Output"
+    ],
+    "Modifiers": {
+      "factory_output": 0.05
+    }
+  },
+  {
+    "Id": "battery_technology",
+    "Name": "Battery Technology",
+    "Category": "Renewable Energy",
+    "Era": 2010,
+    "Cost": 200,
+    "Description": "Gelişmiş batarya depolama — güneş/rüzgar enerjisini askeri kullanıma hazır hale getirme.",
+    "Prerequisites": [
+      "solar_power"
+    ],
+    "Effects": [
+      "+5% Factory Output"
+    ],
+    "Modifiers": {
+      "factory_output": 0.05
+    }
+  },
+  {
+    "Id": "biotechnology",
+    "Name": "Biotechnology",
+    "Category": "Biotechnology",
+    "Era": 2000,
+    "Cost": 180,
+    "Description": "Biyoteknoloji — askeri tıbbi savunma ve biyolojik koruma.",
+    "Prerequisites": [],
+    "Effects": [
+      "+5% Land Defense"
+    ],
+    "Modifiers": {
+      "land_defense": 0.05
+    }
+  },
+  {
+    "Id": "railgun_technology",
+    "Name": "Railgun Technology",
+    "Category": "Missiles",
+    "Era": 2020,
+    "Cost": 220,
+    "Description": "Ray tabancaları — kimyasal propulsyon olmadan kinetik ateşle yüksek penetrasyon.",
+    "Prerequisites": [],
+    "Effects": [
+      "+20% Land Attack"
+    ],
+    "Modifiers": {
+      "land_attack": 0.20
+    }
   }
 ]

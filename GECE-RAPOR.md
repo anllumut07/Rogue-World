@@ -831,3 +831,24 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 2. Çözülemeyen şey: yok — M30.4 %100 tamamlandı.
 3. Bilinen sorun: uzay paneli UI'sı henüz yok; tension drift nedeniyle kesin delta assert yok (sadece log).
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--space-reward-test --scenario=modern_world` (PASS); `--save-load-test --scenario=modern_world` (A==B).
+
+
+### M31.1: Modern Teknoloji Dalları — ✅ DONE (2026-10-20)
+
+**Varlık:** 8 modern teknoloji dalı (siber, yapay zekâ, insansız aracı, güdümlü füzeler, hipersonik, füze savunması, yenilenebilir enerji, biyoteknoloji) — silah icadından gelen bonuslar savaş istatistiklerine (land attack/defense) yansıyor. `railgun_technology` (Era 2020) test hedefi olarak eklendi.
+
+**Değiştirilen dosyalar:**
+- `Data/scenarios/modern_world/technologies.json`: 11 yeni tech girişi + `Modifiers` (land_attack/land_defense/factory_output).
+- `Scripts/WarSystem.cs`: `ResolveCombatDay` attP/defP teknoloji çarpanı.
+- `Scripts/GameManager.cs`: `--tech-test` bayrağı + `RunTechTest()`.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--tech-test --scenario=modern_world`: PASS ✓ (exit 0).
+- `--save-load-test --scenario=modern_world`: PASS ✓ (A == B).
+
+**ÖZET (M31.1 — 2026-10-20)**
+1. Değişen dosyalar: `Data/scenarios/modern_world/technologies.json` (11 yeni modern tech shubesi), `Scripts/WarSystem.cs` (`land_attack`/`land_defense` çarpanı `ResolveCombatDay`'de), `Scripts/GameManager.cs` (`--tech-test` + `RunTechTest`).
+2. Çözülemeyen şey: yok — M31.1 %100 tamamlandı (build 0/0, tech-test PASS, save-load-test A==B).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--tech-test --scenario=modern_world` (PASS); `--save-load-test --scenario=modern_world` (A==B).

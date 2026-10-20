@@ -438,7 +438,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri |
 |-----------|----------|--------------|
-| 31.1 | Modern teknoloji dalları: siber, yapay zekâ, insansız araçlar, güdümlü füzeler, hipersonik, füze savunma, yenilenebilir enerji, biyoteknoloji. Silah icadı ve savaşta üstünlük olarak kullanım. | Yeni silahlar savaş istatistiklerini değiştirir |
+| 31.1 | Modern teknoloji dalları: siber, yapay zekâ, insansız araçlar, güdümlü füzeler, hipersonik, füze savunma, yenilenebilir enerji, biyoteknoloji. Silah icadı ve savaşta üstünlük olarak kullanım. | Yeni silahlar savaş istatistiklerini değiştirir | ✅ Bitti (2026-10-20) — `Data/scenarios/modern_world/technologies.json` (11 yeni modern tech shubesi: siber, yapay zekâ/otonom, insansız aracı, güdümlü füzeler, hipersonik, füze savunması, yenilenebilir enerji, biyoteknoloji; `land_attack`/`land_defense`/`factory_output` Modifiers), `Scripts/WarSystem.cs` (`ResolveCombatDay` attP/defP çarpanı), `Scripts/GameManager.cs` (`--tech-test` + `RunTechTest()`). `dotnet build` 0/0; `--tech-test --scenario=modern_world` PASS ✓ (land_attack 0.350→0.550, efektif saldırı 67.5→77.5); `--save-load-test --scenario=modern_world` PASS ✓ (A == B). |
 | 31.2 | **Nükleer program:** uranyum zenginleştirme, reaktör, silah tasarımı, deneme, taşıyıcı (bombardıman, kıtalararası füze, denizaltı), doktrin. | Aşamalar sırayla ilerler |
 | 31.3 | **Yaptırımlar ve diplomasi:** BM yaptırımı, ticaret kısıtı, dünya gerilimi, komşu tepkisi, anlaşmadan çıkış. | Program yaptırım tetikler |
 | 31.4 | **Kullanım:** nükleer saldırı çok ağır sonuçlu (radyasyon bölgesi, nüfus ve ekonomi kaybı, uluslararası tepki, karşı saldırı, caydırıcılık). | Kullanım sonuçlarla loglanır |

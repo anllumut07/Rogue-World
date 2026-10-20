@@ -1608,3 +1608,21 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Dosyalar:** Değiştirilen: `Data/space_missions.json`, `Scripts/SpaceSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (30.4 [x]), `PROGRESS.md` (M30.4 DONE), `GECE-RAPOR.md`.
 
 **Sonraki adım:** M31 Teknoloji Genişlemesi ve Nükleer (isteğe bağlı, explicit onay gerekli).
+
+
+### M31.1: Modern Teknoloji Dalları — ✅ DONE (2026-10-20)
+
+**Değiştirilen dosyalar:**
+- `Data/scenarios/modern_world/technologies.json`: 11 yeni modern teknoloji shubesi eklendi (siber, yapay zekâ/otonom, insansız aracı, güdümlü füzeler, hipersonik, füze savunması, yenilenebilir enerji, biyoteknoloji); `Modifiers` dictleri `land_attack`, `land_defense`, `factory_output`.
+- `Scripts/WarSystem.cs`: `ResolveCombatDay`'de general skill çarpanından sonra `attP *= 1f + TechnologySystem.GetModifier("land_attack")`, `defP *= 1f + TechnologySystem.GetModifier("land_defense")`.
+- `Scripts/GameManager.cs`: `techTest` field, `--tech-test` arg parsing, `RunTechTest()` metodu (modern_world/DEU, `railgun_technology` testi, `land_attack` ve etkili saldırı gücü assert'i, save/load A==B).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--tech-test --scenario=modern_world`: **SONUÇ: PASS ✓** (exit 0) — `land_attack` 0.350→0.550, etkili saldırı gücü 67.5→77.5, save/load True.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — `TechnologySystem` durumu kaydedilir/yükler.
+- Regresyon: build 0/0, mevcut tüm testler etkilenmedi.
+
+**Dosyalar:** Değiştirilen: `Data/scenarios/modern_world/technologies.json`, `Scripts/WarSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (31.1 [x]), `PROGRESS.md` (M31.1 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M31.2 Nükleer program.

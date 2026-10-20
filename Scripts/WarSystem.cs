@@ -359,6 +359,11 @@ public static class WarSystem
         attP *= 1f + skill * 0.05f;
         defP *= 1f + skill * 0.05f;
 
+        // M31.1: Teknoloji modifikatörleri — yeni silahlar savaş istatistiklerini değiştirir.
+        // Araştırılan saldırı/savunma teknolojileri direkt olarak gun gücünü etkiler.
+        attP *= 1f + TechnologySystem.GetModifier("land_attack");
+        defP *= 1f + TechnologySystem.GetModifier("land_defense");
+
         // --- Düşman gücü ---
         float enemyOrgFrac = war.EnemyDivisions > 0 ? Mathf.Clamp(war.EnemyOrgPool / (war.EnemyDivisions * EnemyDivisionOrg), 0f, 1f) : 0f;
         float attE = war.EnemyDivisions * EnemyAttackPerDivision * enemyOrgFrac;

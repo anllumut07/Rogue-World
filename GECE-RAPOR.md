@@ -970,6 +970,8 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 
 **M32.3 — ✅ DONE:** `Scripts/WorldMap.cs`: `TerrainLayer` (Node2D) `BuildFromGeoJson`'dan önce eklendi → ülkelerin altında çizilir. 9 enlem biyom bandı (buz, tundra/taiga, çayır, çöl, tropikal orman, simetrik güneye doğru) + FastNoiseLite gürültü doku (256×256, %30 alpha, telenen) overlay'i. `CountryTerrainAlpha = 0.55f` → ülke poligonları yarı saydam, arazi rengi görünür. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.
 
-**M32.4–32.6 — Bekliyor:** Mini harita, birlik ikonları, ana menü arka planı henüz başlanmadı.
+**M32.4 — ✅ DONE:** `Scripts/MiniMapPanel.cs` (yeni): sağ-alt köşede mini harita, ülke poligonları ölçekli çizim, sarı kamera dikdörtgeni, tıklamayla kamera kaydırma, +/- zoom butonları. `Scripts/Game.cs`: `_miniMap` eklendi. `Scripts/WorldMap.cs`: kamera üyeleri `internal`. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.
 
-Tüm M1–M32.3 görevleri tamamlandı; M32.4–32.6 bekliyor.
+**M32.5–32.6 — Bekliyor:** Birlik ikonları, il sınırları, yol/okların görsel cilası; ana menü arka planı henüz başlanmadı.
+
+Tüm M1–M32.4 görevleri tamamlandı; M32.5–32.6 bekliyor.

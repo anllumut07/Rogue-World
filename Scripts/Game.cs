@@ -9,6 +9,7 @@ public partial class Game : Control
     private CountryInfoPanel _infoPanel;
     private CountryMiniCard _miniCard; // M15.1: kilitli oyundaki küçük ülke kartı
     private GameHud _hud;
+    private MiniMapPanel _miniMap; // M32.4: sağ-alt köşede mini harita
     private WorldMap _worldMap; // X/ESC kapatma isteğinde ClearSelection() için
     private bool _isNewGame; // M24.1: yeni oyun mu yoksa yükleme mi?
 
@@ -109,6 +110,10 @@ public partial class Game : Control
         // --- Üst bar: HUD (CanvasLayer overlay) ---
         _hud = new GameHud();
         AddChild(_hud);
+
+        // --- M32.4: Mini harita (her zaman görünür, sağ-alt köşe) ---
+        _miniMap = new MiniMapPanel();
+        AddChild(_miniMap);
 
         // --- Sinyaller ---
         _worldMap.CountrySelected += OnCountrySelected;

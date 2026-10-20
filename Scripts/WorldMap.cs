@@ -116,7 +116,7 @@ public partial class WorldMap : Node2D
 
     private Country _selected;
     private Country _hovered;
-    private Camera2D _camera;
+    internal Camera2D _camera;
     private CanvasLayer _nameLayer;
     private bool _dragging;
     private Vector2 _lastMousePos;
@@ -136,9 +136,9 @@ public partial class WorldMap : Node2D
     private const float CountryTerrainAlpha = 0.55f;
 
     // Yumuşak kamera (zoom lerp): hedefe doğru yumuşak yaklaşma
-    private bool _zoomAnim;
-    private float _targetZoom = 1f;
-    private Vector2 _targetPos = Vector2.Zero;
+    internal bool _zoomAnim;
+    internal float _targetZoom = 1f;
+    internal Vector2 _targetPos = Vector2.Zero;
 
     // Görsel iyileştirme #7: Dönem (era) tonu + gündüz/gece terminatörü
     private float _eraAlpha;
@@ -1077,7 +1077,7 @@ public partial class WorldMap : Node2D
     }
 
     // Pozisyonu harita sınırları içinde tut (lerp hedefi ve anlık pozisyon için)
-    private Vector2 ClampCameraPos(Vector2 pos)
+    internal Vector2 ClampCameraPos(Vector2 pos)
     {
         return new Vector2(
             Mathf.Clamp(pos.X, -400f, MapSize.X + 400f),

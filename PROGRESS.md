@@ -1711,6 +1711,25 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Dosyalar:** Değiştirilen: `Scripts/WorldMap.cs`, `TODO.md` (32.3 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
 
 **Sonraki adım:** M32.4 Mini harita.
+
+---
+
+### M32.4: Mini Harita — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:**
+- `Scripts/MiniMapPanel.cs`: `Node2D` sağ-alt köşede (~210px), `WorldMap.Instance._countries`'ten ülke poligonlarını ölçekli çizer, sarı renkte kamera dikdörtgeni (geçerli viewport) çizer, sol-tık ile dünya koordinatını hesaplayıp `WorldMap._targetPos` ayarlar (kamera kaydırma), `+`/`-` butonlarıyla zoom (`0.25`–`6`). `QueueRedraw()` her karede kamerayı takip eder. `PanelContainer` arkaplan + `Button` kontrolleri, `MouseFilter = Ignore` (butonlara geçiş).
+
+**Değişiklikler:**
+- `Scripts/Game.cs`: `_miniMap` alanı eklendi, `_miniMap = new MiniMapPanel(); AddChild(_miniMap)` HUD'dan sonra.
+- `Scripts/WorldMap.cs`: `_camera`, `_targetZoom`, `_targetPos`, `_zoomAnim` ve `ClampCameraPos` `private`→`internal` (MiniMapPanel erişimi için).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — M32.4 yalnızca görsel, oyun durumu etkilemez, determinizm korunuyor.
+
+**Dosyalar:** Yeni: `Scripts/MiniMapPanel.cs`. Değiştirilen: `Scripts/Game.cs`, `Scripts/WorldMap.cs`, `TODO.md` (32.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**Sonraki adım:** M32.5 Birlik ikonları, il sınırları, yol/okların görsel cilası.
 ### M32.2: Deniz Görünümü — ✅ DONE (2026-10-20)
 
 **Değişiklikler:**

@@ -935,3 +935,29 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 2. Çözülemeyen şey: yok — M31.4 %100 tamamlandı (build 0/0, nuclear-use-test PASS ~3s, save-load-test A==B).
 3. Bilinen sorun: NuclearProgramSystem oyuncuya özel; UI paneli yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--nuclear-use-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).
+
+## M31.5: AI Nükleer Davranış — ✅ DONE (2026-10-20)
+
+**Neden:** M31.4 tamamlandı ve pushed (9bdca15). AI nükleer davranış (deterrence/sanction-reaction multipliers, war-block gate) CountryAI'ya eklendi; GameManager'a `--ai-nuclear-test` kanca eklendi.
+
+**Değişikler:**
+- `Scripts/CountryAI.cs`: `RunDecisions()` deterrence 2.0× (hedef oyuncu + Warheads>0 + Doctrine==Deterrence) ve sanction-reaction 0.6× (hedef AI'yı yaptırıyorsa) çarpanları; `effectiveDefStrength = (int)(defStrength * deterrenceMultiplier * sanctionReactionMultiplier)`; saldırı engeli `attStrength < effectiveDefStrength * 0.8`.
+- `Scripts/GameManager.cs`: `aiNuclearTest` field, `--ai-nuclear-test` arg parsing, `RunAiNuclearTest()` + `WaitForWarWith()` helper; Stage 1 deterrence engeller (29 < 32), Stage 2 deterrence kaldırıldığında saldırı gerçekleşir (29 ≥ 16), DTO round-trip A==B, Quit(pass?0:1).
+- `Scripts/NuclearProgramSystem.cs`: `SetTestWarheads()`, `SetTestCompletedStage()`, `SetTestDoctrine()`, `EnableTestMode()` test-mode-only API.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--ai-nuclear-test`: **PASS ✓** (exit 0) — Stage 1 saldırı engellendi, Stage 2 saldırı gerçekleşti, DTO A==B.
+- `--save-load-test --scenario=modern_world`: **PASS ✓** (A == B).
+
+**Çözülemeyen şey:** yok — M31.5 %100 tamamlandı.
+
+**Bilinen sorun:** AI nükleer davranış model-seviyesinde (UI yok); sadece deterrence/sanction-reaction multipliers uygulanıyor.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--ai-nuclear-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).
+
+### ÖZET (M31.5 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/CountryAI.cs` (deterrence/sanction-reaction çarpanları, war-block gate), `Scripts/GameManager.cs` (`--ai-nuclear-test` + RunAiNuclearTest + WaitForWarWith), `Scripts/NuclearProgramSystem.cs` (test-mode-only SetTestWarheads/SetTestCompletedStage/SetTestDoctrine/EnableTestMode), `TODO.md` (31.5 [x]), `PROGRESS.md` (M31.5 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M31.5 %100 tamamlandı (build 0/0, ai-nuclear-test PASS exit 0, save-load-test A==B).
+3. Bilinen sorun: AI nükleer davranış model-seviyesinde; UI paneli yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--ai-nuclear-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).

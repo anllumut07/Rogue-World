@@ -1670,4 +1670,18 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 **Dosyalar:** Değiştirilen: `Scripts/NuclearProgramSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (31.4 [x]), `PROGRESS.md` (M31.4 DONE), `GECE-RAPOR.md`.
 
-**Sonraki adım:** M31.5 AI Nükleer Davranış (caydırıcılık, yaptırım tepkisi).
+### M31.5: AI Nükleer Davranış — ✅ DONE (2026-10-20)
+
+**Değiştirilen dosyalar:**
+- `Scripts/CountryAI.cs`: `RunDecisions()`'te AI hedef seçiminde deterrence (caydırıcılık) ve sanction-reaction (yaptırım tepkisi) çarpanları; `effectiveDefStrength = (int)(defStrength * deterrenceMultiplier * sanctionReactionMultiplier)`; saldırı engeli `attStrength < effectiveDefStrength * 0.8`.
+- `Scripts/GameManager.cs`: `aiNuclearTest` field, `--ai-nuclear-test` arg parsing, `RunAiNuclearTest()` (DEU oyuncu, deterrence altında saldırı engellenir / kaldırıldığında saldırı gerçekleşir, DTO round-trip A==B, Quit(0/1)), `WaitForWarWith(string attackerId, string defenderId, int maxDays)` yardımcı metodu.
+- `Scripts/NuclearProgramSystem.cs`: `SetTestWarheads()`, `SetTestCompletedStage()`, `SetTestDoctrine()`, `EnableTestMode()` test-mode-only yardımcılar.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--ai-nuclear-test`: **SONUÇ: PASS ✓** (exit 0) — deterrence 2.0× ile saldırı engelleniyor (29 < 32), deterrence kaldırıldığında saldırı gerçekleşiyor (29 ≥ 16), save/load DTO A==B.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — AI nükleer davranış state'i (doktrin, başlık, savaş durumu) dosya kaydet/yüklede korunuyor.
+
+**Dosyalar:** Değiştirilen: `Scripts/CountryAI.cs`, `Scripts/GameManager.cs`, `Scripts/NuclearProgramSystem.cs`, `TODO.md` (31.5 [x]), `PROGRESS.md` (M31.5 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M32 Görsel Kimlik ve Harita Güzelleştirme (isteğe bağlı, explicit onay gerekli).

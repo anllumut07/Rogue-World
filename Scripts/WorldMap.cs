@@ -128,7 +128,12 @@ public partial class WorldMap : Node2D
     // Görsel iyileştirmeler
     private GradientTexture2D _oceanTexture;
     private GradientTexture2D _vignetteTexture; // M32.2: vinyet + merkez parlaklığı
+    private ImageTexture _noiseTexture;        // M32.3: arazi doku gürültüsü (tekrar eden)
+    private TerrainLayer _terrainLayer;        // M32.3: enlem bazlı biyom katmanı (ülkelerin altında)
     private float _lastBorderZoom = -1f;
+
+    // M32.3: Ülke renk katmanı yarı saydam → arazi renginin altında görünür.
+    private const float CountryTerrainAlpha = 0.55f;
 
     // Yumuşak kamera (zoom lerp): hedefe doğru yumuşak yaklaşma
     private bool _zoomAnim;
@@ -149,6 +154,32 @@ public partial class WorldMap : Node2D
         Instance = this;
         _nameLayer = new CanvasLayer { Layer = 1 };
         AddChild(_nameLayer);
+
+        // M32.3: Arazi doku katmanı — ülkelerin ALTINDA çizilir (BuildFromGeoJson'dan önce eklendi).
+        _terrainLayer = new TerrainLayer();
+        AddChild(_terrainLayer);
+
+        // Küçük gürültü doku (FastNoiseLite, tek seferlik üretim, haritaya döşenir).
+        var noise = new FastNoiseLite
+        {
+            Seed = 202401,
+            Frequency = 0.08f,
+            FractalType = FastNoiseLite.FractalTypeEnum.Fbm,
+            FractalOctaves = 4,
+        };
+        var noiseSize = new Vector2I(256, 256);
+        var noiseImg = Image.CreateEmpty(noiseSize.X, noiseSize.Y, false, Image.Format.Rgba8);
+        for (int y = 0; y < noiseSize.Y; y++)
+        {
+            for (int x = 0; x < noiseSize.X; x++)
+            {
+                float n = noise.GetNoise2D(x, y);
+                float g = Mathf.Clamp(n * 0.5f + 0.5f, 0f, 1f); // -1..1 → 0..1 gri tonu
+                noiseImg.SetPixel(x, y, new Color(g, g, g, 1f));
+            }
+        }
+        _noiseTexture = ImageTexture.CreateFromImage(noiseImg);
+        GD.Print($"WorldMap: arazi gürültü doku hazır ({noiseSize.X}x{noiseSize.Y})");
 
         // Okyanus degrade dokusu (kutuplar koyu, ekvator daha mavi)
         _oceanTexture = new GradientTexture2D
@@ -750,6 +781,11 @@ public partial class WorldMap : Node2D
 
             if (c == _selected) target = SelectedColor;
             else if (c == _hovered) target = c.MapColor.Lightened(0.25f);
+            else
+            {
+                // M32.3: ülke renk katmanı yarı saydam — arazi renginin altında görünür.
+                target = new Color(target.R, target.G, target.B, CountryTerrainAlpha);
+            }
             foreach (var node in c.Nodes) if (GodotObject.IsInstanceValid(node)) node.Color = target;
             // Sınır: normal koyu, oyuncu ülkesi → yarı saydam altın vurgu (seçili hariç)
             foreach (var outline in c.Outlines)
@@ -1598,6 +1634,60 @@ public partial class WorldMap : Node2D
             {
                 var bigRect = new Rect2(-1000f, -1000f, wm.MapSize.X + 2000f, wm.MapSize.Y + 2000f);
                 DrawTextureRect(wm._vignetteTexture, bigRect, false);
+            }
+        }
+    }
+
+    // M32.3: Enlem bazlı biyom zonları + döşenmiş gürültü doku alt katmanı.
+    // Ülke poligonlarının ALTINDA çizilir (WorldMap._Ready'de BuildFromGeoJson'dan önce eklenir).
+    public partial class TerrainLayer : Node2D
+    {
+        private bool _terrainLogged;
+
+        public override void _Draw()
+        {
+            var wm = WorldMap.Instance;
+            if (wm == null) return;
+
+            var mapSize = wm.MapSize;
+            float topMargin = 80f;
+            float usableH = mapSize.Y - topMargin * 2f;
+
+            if (!_terrainLogged)
+            {
+                _terrainLogged = true;
+                GD.Print($"WorldMap: arazi katmanı hazır — {mapSize.X:F0}x{mapSize.Y:F0}, biyom bantları + gürültü doku");
+            }
+
+            // Enlem → y dönüşümü (enlem 90 üstte, -90 altta).
+            float LatToY(float lat) => topMargin + (90f - lat) / 180f * usableH;
+
+            // Biyom bantları (enlem aralığı → renk), kuzeyden güneye çizilir.
+            var bands = new (float LatTop, float LatBot, Color Color)[]
+            {
+                (90f, 70f, new Color("#DCE8EE")),   // kuzey kutpu buz
+                (70f, 50f, new Color("#8A9B7E")),   // tundra / taiga
+                (50f, 30f, new Color("#9CAB7E")),   // çayır
+                (30f, 15f, new Color("#C9B48E")),   // çöl (subtropical)
+                (15f, -15f, new Color("#6E8F6E")),  // tropikal orman
+                (-15f, -30f, new Color("#C9B48E")), // çöl
+                (-30f, -50f, new Color("#9CAB7E")), // çayır
+                (-50f, -70f, new Color("#8A9B7E")), // tundra / taiga
+                (-70f, -90f, new Color("#DCE8EE")), // güney kutpu buz
+            };
+
+            foreach (var (latTop, latBot, color) in bands)
+            {
+                float yTop = LatToY(latTop);
+                float yBot = LatToY(latBot);
+                DrawRect(new Rect2(0f, yTop, mapSize.X, yBot - yTop), color);
+            }
+
+            // Döşenmiş gürültü doku overlay'i — araziye doğal varyasyon katar.
+            if (wm._noiseTexture != null)
+            {
+                var bigRect = new Rect2(-1000f, -1000f, mapSize.X + 2000f, mapSize.Y + 2000f);
+                DrawTextureRect(wm._noiseTexture, bigRect, true, new Color(1f, 1f, 1f, 0.30f));
             }
         }
     }

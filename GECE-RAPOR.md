@@ -968,6 +968,8 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 
 **M32.2 — ✅ DONE:** `Scripts/WorldMap.cs`: `BuildOceanGradient()` koyu turkuaz paleti (`#082030`→`#0E4A5A`→`#0C3A4A`→`#082030`), `OceanColor` fallback `#0A2B3A`; ülke sınırlarının arkasında geniş şeffaf turkuaz kıyı parıltısı çizgisi (`Country.GlowOutlines`, her ring için); `UpdateBorderWidthsByZoom` parıltı kalınlığını ana sınırla orantılı günceller; `_vignetteTexture` (radial GradientTexture2D) + `BuildVignetteGradient()` + `MapEffects._Draw`'da overlay (merkez hafif turkuaz parıltı, kenarlar hafif koyu vinyet). `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.
 
-**M32.3–32.6 — BLOKE:** Arazi dokusu, mini harita, birlik ikonları, ana menü arka planı — arazi dokusu kaynağı bekleniyor (prosedürel shader/Godot çizimle yapılabilir, kullanıcı onayıyla).
+**M32.3 — ✅ DONE:** `Scripts/WorldMap.cs`: `TerrainLayer` (Node2D) `BuildFromGeoJson`'dan önce eklendi → ülkelerin altında çizilir. 9 enlem biyom bandı (buz, tundra/taiga, çayır, çöl, tropikal orman, simetrik güneye doğru) + FastNoiseLite gürültü doku (256×256, %30 alpha, telenen) overlay'i. `CountryTerrainAlpha = 0.55f` → ülke poligonları yarı saydam, arazi rengi görünür. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.
 
-Tüm M1–M32.2 görevleri tamamlandı; M32.3–32.6 engelli (arazi dokusu kaynağı).
+**M32.4–32.6 — Bekliyor:** Mini harita, birlik ikonları, ana menü arka planı henüz başlanmadı.
+
+Tüm M1–M32.3 görevleri tamamlandı; M32.4–32.6 bekliyor.

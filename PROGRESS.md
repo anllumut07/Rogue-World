@@ -1694,8 +1694,23 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 **Dosyalar:** Yeni: `Design/M32_UI_stil_rehberi.md`, `TODO.md` (32.1 [x]).
 
-**Sonraki adım:** M32.3 (arazi dokusu, arazi dokusu kaynağı beklenince).
+**Sonraki adım:** M32.3 (arazi dokusu).
 
+---
+
+### M32.3: Arazi Dokusu — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/WorldMap.cs`: `TerrainLayer` (Node2D) child eklendi `BuildFromGeoJson`'dan önce → ülkelerin altında çizilir. `TerrainLayer._Draw`: 9 enlem biyom bandı (90°N→-90°S; buz, tundra/taiga, çayır, çöl, tropikal orman, simetrik güneye doğru) `DrawRect` ile; üzeri `%30` alpha'da telenen FastNoiseLite gürültü doku (256×256, `GetNoise2D` per-pixel, `Image.CreateEmpty` + `ImageTexture.CreateFromImage`). `_noiseTexture` ve `_terrainLayer` alanları; `CountryTerrainAlpha = 0.55f` const → ülke poligonları yarı saydam, arazi rengi görünür. GD.Print log: "WorldMap: arazi katmanı hazır" + "WorldMap: arazi gürültü doku hazır (256x256)".
+- `RefreshOwnershipColors`: ülke rengi `new Color(target.R, target.G, target.B, CountryTerrainAlpha)` ile ayarlanıyor.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — M32.3 yalnızca görsel, oyun durumu etkilemez, determinizm korunuyor.
+
+**Dosyalar:** Değiştirilen: `Scripts/WorldMap.cs`, `TODO.md` (32.3 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**Sonraki adım:** M32.4 Mini harita.
 ### M32.2: Deniz Görünümü — ✅ DONE (2026-10-20)
 
 **Değişiklikler:**

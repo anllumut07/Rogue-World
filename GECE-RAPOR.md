@@ -1544,3 +1544,16 @@ Sonraki adım: M38.4 (ElectionSystem/ElectionCampaignSystem çift başlatma düz
 
 **Sonraki adım:** M38.5 (Kaydet/Yükle regresyonu historical_1936 + modern_world A==B).
 
+## M38.5: Kaydet/Yükle regresyonu historical_1936 + modern_world A==B — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- Hiç kod değişikliği gerekmedi (M38.4'nin kaldırdığı çift başlatma zaten sorunu giderdi; save/load zaten sorunsuz çalışıyordu).
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` (historical_1936): PASS ✓ (A == B).
+- `--save-load-test --scenario=modern_world`: PASS ✓ (A == B).
+- `test-logs/save_load_test.log`: ElectionSystem/ElectionCampaignSystem tek başlatma onaylandı (yalnızca save/load satırları, çift log yok).
+
+**Dosyalar:** `TODO.md` (38.5 [x]), `PROGRESS.md` (M38.5 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M39 — Savaş ve İkmal Sistemi Derinlemesi (ikmal hattı, deniz invazyonu, ordu morali, hava üstünlüğü).
+

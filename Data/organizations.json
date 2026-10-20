@@ -1,0 +1,85 @@
+{
+  "Organizations": [
+    {
+      "Id": "nato",
+      "Name": "North Atlantic Treaty Organization",
+      "Type": "Askeri",
+      "FoundedDate": "1949-04-04",
+      "HeadquartersCountryId": "BEL",
+      "Members": ["USA", "DEU", "GBR", "FRA", "ITA", "CAN", "TUR", "POL", "NLD", "ESP", "NOR", "DNK", "BEL"],
+      "SpecialRules": ["Madde 5 toplu savunma (bir üyeye saldırı = hepsine saldırı)", "Askeri standartizasyon (+%10 askeri verimlilik)", "Ortak altyapı fonları", "Çıkış: 1 yıl bildirim süresi"]
+    },
+    {
+      "Id": "eu",
+      "Name": "European Union",
+      "Type": "Politik",
+      "FoundedDate": "1993-11-01",
+      "HeadquartersCountryId": "BEL",
+      "Members": ["DEU", "FRA", "ITA", "ESP", "NLD", "POL", "SWE", "BEL", "AUT", "DNK", "FIN", "IRL", "PRT", "GRC", "CZE", "HUN", "ROU", "BGR"],
+      "SpecialRules": ["Tek pazar (ticaret +%15)", "Yapısal fonlar (yıllık GSYİH %0.5)", "Hukuki uyum (+%5 istikrar)", "Tek oylama, uzun katılım süreci", "Çıkış: ticaret cezası + fon kaybı (Brexit tarzı)"]
+    },
+    {
+      "Id": "un",
+      "Name": "United Nations",
+      "Type": "Politik",
+      "FoundedDate": "1945-10-24",
+      "HeadquartersCountryId": "USA",
+      "Members": ["USA", "CHN", "RUS", "GBR", "FRA", "DEU", "JPN", "IND", "BRA", "CAN", "AUS", "TUR", "IDN", "MEX", "KOR", "ZAF", "NGA", "EGY", "SAU", "ARG"],
+      "SpecialRules": ["Güvenlik Konseyi veto hakkı (USA, RUS, CHN, FRA, UK)", "Meşruiyet bonusu (+%5 dünya itibar/legitimacy)", "Barış güçleri katkısı", "Herkese açık üyelik"]
+    },
+    {
+      "Id": "brics",
+      "Name": "BRICS",
+      "Type": "Ekonomik",
+      "FoundedDate": "2009-06-16",
+      "HeadquartersCountryId": "CHN",
+      "Members": ["BRA", "RUS", "IND", "CHN", "ZAF"],
+      "SpecialRules": ["Alternatif ticaret rotaları", "Para birimi swap hatları", "Ekonomik işbirliği", "Coğrafya ve ideoloji tabanlı kriterler"]
+    },
+    {
+      "Id": "sco",
+      "Name": "Shanghai Cooperation Organization",
+      "Type": "Karma",
+      "FoundedDate": "2001-06-14",
+      "HeadquartersCountryId": "CHN",
+      "Members": ["CHN", "RUS", "IND", "PAK", "KAZ", "UZB"],
+      "SpecialRules": ["Güvenlik ve ekonomik işbirliği", "Kara region terörle mücadele", "Alternatif ticaret rotaları", "Blok özel kriterleri"]
+    },
+    {
+      "Id": "au",
+      "Name": "African Union",
+      "Type": "Politik",
+      "FoundedDate": "2002-07-09",
+      "HeadquartersCountryId": "ETH",
+      "Members": ["ZAF", "NGA", "EGY", "ETH", "DZA", "KEN", "MAR", "TUN"],
+      "SpecialRules": ["AfCFTA (Kıta Serbest Ticaret Alanı) potansiyeli", "Kıtada barış ve güvenlik", "Blok özel kriterleri"]
+    },
+    {
+      "Id": "asean",
+      "Name": "Association of Southeast Asian Nations",
+      "Type": "Ekonomik",
+      "FoundedDate": "1967-08-08",
+      "HeadquartersCountryId": "IDN",
+      "Members": ["IDN", "THA", "VNM", "PHL", "MYS", "SGP", "KHM", "MMR", "LAO", "BRN", "TLS"],
+      "SpecialRules": ["Bölgesel ticaret özgürleşmesi", "Ekonomik entegrasyon", "Konutsallık ve deniz güvenliği", "Blok özel kriterleri"]
+    },
+    {
+      "Id": "arab_league",
+      "Name": "Arab League",
+      "Type": "Politik",
+      "FoundedDate": "1945-03-22",
+      "HeadquartersCountryId": "EGY",
+      "Members": ["SAU", "EGY", "DZA", "MAR", "IRQ", "SDN", "TUN", "SYR", "JOR", "LBY", "LBN", "YEM", "OMN", "KWT", "QAT", "BHR", "ARE"],
+      "SpecialRules": ["Arap ülkeleri arası politik koordinasyon", "Ortak savunma ve ekonomi teklifleri", "Bölgesel kriz yönetimi", "Blok özel kriterleri"]
+    },
+    {
+      "Id": "opec",
+      "Name": "Organization of the Petroleum Exporting Countries",
+      "Type": "Ekonomik",
+      "FoundedDate": "1960-09-14",
+      "HeadquartersCountryId": "AUT",
+      "Members": ["SAU", "IRQ", "IRN", "KWT", "ARE", "VEN", "NGA", "AGO", "GNQ", "GAB", "TCD", "COG"],
+      "SpecialRules": ["Petrol kota/fiyat koordinasyonu", "Enerji politikası etkisi", "Üye üretim kotaları", "Blok özel kriterleri"]
+    }
+  ]
+}

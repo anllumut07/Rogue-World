@@ -584,7 +584,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 37.1 | `Data/organizations.json`: 9 örgüt (NATO, EU, UN/BM, BRICS, SCO/ŞİO, AU, ASEAN, Arab League, OPEC) — Id, Name, Type, FoundedDate, HeadquartersCountryId, Members, SpecialRules | JSON geçerli, başlangıçta kayıt sayısı `GD.Print` ile loglanır (`IncludeFields=true`) | [ ] |
+| 37.1 | `Data/organizations.json`: 9 örgüt (NATO, EU, UN/BM, BRICS, SCO/ŞİO, AU, ASEAN, Arab League, OPEC) — Id, Name, Type, FoundedDate, HeadquartersCountryId, Members, SpecialRules | JSON geçerli, başlangıçta kayıt sayısı `GD.Print` ile loglanır (`IncludeFields=true`) | [x] |
 | 37.2 | `Scripts/OrganizationSystem.cs`: üyelik yönetimi (katılma/ayrılma), Madde 5 kolektif savunma, toplantı gündemi (zirve/bakanlar/kriz), AI oy verme | Üyelik değişimi doğru, Madde 5 tetiklenir, `--organization-test` PASS | [ ] |
 | 37.3 | Avantaj/ceza çarpanları: NATO +%10 askeri verimlilik, AB tek pazar ticaret +%15, BM meşruiyet +%5, vb. | Çarpanlar ilgili göstergelere yansır, panelde görünür | [ ] |
 | 37.4 | Save/Load entegrasyonu: `SaveFile.Organization` + `SaveLoadTest` özeti | `--save-load-test --scenario=modern_world` A==B PASS, organization state kaydedilir | [ ] |

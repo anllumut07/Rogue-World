@@ -588,7 +588,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | 37.2 | `Scripts/OrganizationSystem.cs`: üyelik yönetimi (katılma/ayrılma), Madde 5 kolektif savunma, toplantı gündemi (zirve/bakanlar/kriz), AI oy verme | Üyelik değişimi doğru, Madde 5 tetiklenir, `--organization-test` PASS | [x] |
 | 37.3 | Avantaj/ceza çarpanları: NATO +%10 askeri verimlilik, AB tek pazar ticaret +%15, BM meşruiyet +%5, vb. | Çarpanlar ilgili göstergelere yansır, panelde görünür | [x] |
 | 37.4 | Save/Load entegrasyonu: `SaveFile.Organization` + `SaveLoadTest` özeti | `--save-load-test --scenario=modern_world` A==B PASS, organization state kaydedilir | [x] |
-| 37.5 | Oyuncu arayüzü: örgüt paneli (üyeler, gündem, oy kullanma/lobi) | Panel 1152x648'e sığar, `MouseFilter.Stop` backdrop, ESC kapatır | [ ] |
+| 37.5 | Oyuncu arayüzü: örgüt paneli (üyeler, gündem, oy kullanma/lobi) | Panel 1152x648'e sığar, `MouseFilter.Stop` backdrop, ESC kapatır | [x] |
 
 ---
 

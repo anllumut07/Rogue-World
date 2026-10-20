@@ -1454,3 +1454,27 @@ M39 ve M40 detayları orijinal talimatda tam olarak belirtilmemişti; şu seçil
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--organization-test` ve `--save-load-test --scenario=modern_world` (A==B).
 
 **TODO.md:** 37.2 [x], 37.3 [x], 37.4 [x]. Sonraki adım: M37.5 oyuncu arayüzü örgüt paneli.
+
+## M37.5 — Oyuncu Arayüzü: Örgüt Paneli — ✅ DONE (2026-10-20)
+
+- `Scripts/OrganizationPanel.cs` (yeni): overlay panel; backdrop `MouseFilter.Stop` FullRect; PanelContainer 860×520; başlık "ORGANIZATIONS"; CLOSE butonu (FadeOut+PopOut→QueueFree); oyuncu ülke özeti üyelikleriyle; ScrollContainer+VBoxContainer içeriği; her örgüt için kart (BuildOrgCard): isim+tür roze, üye sayısı + liste (ilk 8), SpecialRules, M37.3 çarpanları (askeri/ticaret/meşruiyet), JOIN/LEAVE butonu (AddMember/RemoveMember), OY butonu (AIVoteWeight, üye değilse devre dışı), üye olduğunda kişisel çarpan özeti (GetMilitaryEfficiencyMultiplier/GetTradeMultiplier/GetLegitimacyMultiplier). 1152×648-safe, backdrop harita girdisini bloke eder, ESC kapatır.
+- `Scripts/GameHud.cs`: ORGANIZATIONS butonu sağ bölüme eklendi (CABINET'tan sonra), TooltipText "Organizations — memberships, agenda and voting (M37.5)", OrganizationPanel.OpenUnder(this) çağrısı, UITheme.AddHoverScale.
+- `Scripts/OrganizationSystem.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Data/organizations.json`: okundu, değişmedi (M37.2/37.3/37.4 zaten entegre).
+- `TODO.md`: 37.5 → [x]. `PROGRESS.md`: M37.5 DONE bölümü yazıldı.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--organization-test`: **PASS ✓**.
+- `--save-load-test`: **PASS ✓ (A == B)** — Organization state serileştirmesi determinizmi bozmuyor.
+
+**Dosyalar:**
+- Yeni: `Scripts/OrganizationPanel.cs`.
+- Değiştirilen: `Scripts/GameHud.cs`, `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
+
+### ÖZET (M37.5 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/OrganizationPanel.cs` (yeni), `Scripts/GameHud.cs` (ORGANIZATIONS butonu), `TODO.md` (37.5 [x]), `PROGRESS.md` (M37.5 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M37.5 %100 tamamlandı (build 0/0, organization-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--organization-test` ve `--save-load-test` (A==B).
+
+Sonraki adım: M38 (bilinen sorunları giderme ve kayıt/yükle regresyonu).

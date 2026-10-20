@@ -2058,5 +2058,9 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 - `SaveFile.Organization` + `SaveLoadTest` özeti; `--save-load-test --scenario=modern_world` A==B PASS (M37.2 ile birlikte doğrulandı).
 - TODO.md 37.4 → [x] Bitti.
 
-#### M37.5: Oyuncu arayüzü: örgüt paneli — [ ] HENÜZ BAŞLANMADI
-- Panel 1152x648'e sığar, `MouseFilter.Stop` backdrop, ESC kapatır.
+#### M37.5: Oyuncu arayüzü: örgüt paneli — ✅ DONE (2026-10-20)
+- `Scripts/OrganizationPanel.cs` (yeni): CabinetPanel kalıbı — overlay Control, ColorRect backdrop `MouseFilter.Stop`, PanelContainer 860×520, ScrollContainer/VBoxContainer, her org için üye listesi + SpecialRules + M37.3 çarpanları, JOIN/LEAVE + OY butonları, oyuncu ülkesine özel çarpan özeti; `ProcessMode.Always`, `_UnhandledInput` ESC → Close, `UITheme.FadeIn/PopIn`/`FadeOut/PopOut`, `IsOpen` static + `OpenUnder(Node parent)`; 1152×648'e sığar, harita girdisini bloke eder.
+- `Scripts/GameHud.cs`: HUD sağ üstüne `ORGANIZATIONS` butonu eklendi (`OrganizationPanel.OpenUnder(this)`, CABINET yanına).
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--organization-test --scenario=modern_world` PASS; `--save-load-test --scenario=modern_world` PASS (A==B, organization state korunur).
+- TODO.md 37.5 → [x] Bitti.

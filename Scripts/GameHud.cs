@@ -252,6 +252,16 @@ public partial class GameHud : CanvasLayer
         rightSection.AddChild(cabinetBtn);
         UITheme.AddHoverScale(cabinetBtn);
 
+        // ORGANIZATIONS butonu (M37.5): uluslararası örgütler (NATO, AB, BM...) üyelik + gündem + oy
+        var orgBtn = new Button { Text = "ORGANIZATIONS", FocusMode = Control.FocusModeEnum.None, TooltipText = "Organizations — memberships, agenda and voting (M37.5)" };
+        orgBtn.Pressed += () =>
+        {
+            GD.Print("[GameHud] ORGANIZATIONS butonu basıldı — OrganizationPanel.OpenUnder çağrılıyor");
+            OrganizationPanel.OpenUnder(this);
+        };
+        rightSection.AddChild(orgBtn);
+        UITheme.AddHoverScale(orgBtn);
+
         // ELECTION butonu (M23.1): seçim takvimi + oy tahmini paneli
         var electionBtn = new Button { Text = "ELECTION", FocusMode = Control.FocusModeEnum.None, TooltipText = "Elections — calendar and vote prediction" };
         electionBtn.Pressed += () =>

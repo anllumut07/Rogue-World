@@ -1,4 +1,4 @@
-# Rogue World — HOI4-Benzeri Grand Strateji Oyunu
+﻿# Rogue World — HOI4-Benzeri Grand Strateji Oyunu
 
 ## Geliştirme Planı (Adım Adım, Her Adım Test Edilecek)
 
@@ -19,11 +19,11 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 1.1 | `GameManager` (Autoload): tarih (DateTime), toplam gün, hız (0-5), gün tick sinyalleri | Headless: 10 frame'de ~3 gün ilerler, tarih günlüğü yazdırılır | ✅ Bitti |
-| 1.2 | `Scenes/main_menu.tscn` + `Scripts/MainMenu.cs`: START / QUIT butonları | Editörde Play → menü açılır, START tıklandığında oyun sahnesine geçer | ✅ Bitti |
-| 1.3 | `Scenes/game.tscn` + `Scripts/Game.cs`: HUD (tarih etiketi, hız butonları 1x-5x, PAUSE) | Oyun sahnesinde tarih güncellenir, hız butonları çalışır, Space = pause | ✅ Bitti |
-| 1.4 | Ana menüden oyun sahnesine geçiş, tekrar ana menüye dönüş (ESC → PauseMenu) | Editörde test: Menü → Oyun → ESC → Pause Menü → RESUME / MAIN MENU | ✅ Bitti |
-| 1.5 | SettingsSystem: ses, tam ekran, çözünürlük kaydet/yükle | Ayarlar değişir, oyunu kapatıp açınca korunur | ✅ Bitti — `SettingsPanel.cs` + `Scenes/settings_panel.tscn` (ses slider, fullscreen checkbox, çözünürlük OptionButton, BACK); ana menü ve PauseMenu'den açılıyor, değerler `SettingsSystem` üzerinden kaydedilip açılışta panele yansıyor |
+| 1.1 | `GameManager` (Autoload): tarih (DateTime), toplam gün, hız (0-5), gün tick sinyalleri | Headless: 10 frame'de ~3 gün ilerler, tarih günlüğü yazdırılır | ✅ Bitti  [x] Bitti |
+| 1.2 | `Scenes/main_menu.tscn` + `Scripts/MainMenu.cs`: START / QUIT butonları | Editörde Play → menü açılır, START tıklandığında oyun sahnesine geçer | ✅ Bitti  [x] Bitti |
+| 1.3 | `Scenes/game.tscn` + `Scripts/Game.cs`: HUD (tarih etiketi, hız butonları 1x-5x, PAUSE) | Oyun sahnesinde tarih güncellenir, hız butonları çalışır, Space = pause | ✅ Bitti  [x] Bitti |
+| 1.4 | Ana menüden oyun sahnesine geçiş, tekrar ana menüye dönüş (ESC → PauseMenu) | Editörde test: Menü → Oyun → ESC → Pause Menü → RESUME / MAIN MENU | ✅ Bitti  [x] Bitti |
+| 1.5 | SettingsSystem: ses, tam ekran, çözünürlük kaydet/yükle | Ayarlar değişir, oyunu kapatıp açınca korunur | ✅ Bitti — `SettingsPanel.cs` + `Scenes/settings_panel.tscn` (ses slider, fullscreen checkbox, çözünürlük OptionButton, BACK); ana menü ve PauseMenu'den açılıyor, değerler `SettingsSystem` üzerinden kaydedilip açılışta panele yansıyor  [x] Bitti |
 
 ---
 
@@ -32,11 +32,11 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 2.1 | `Data/countries.geo.json` (ülke poligonları, ~180 ülke) + `Data/countries_data.json` (1936 verisi: GDP, nüfus, asker, kaynaklar) | Dosyalar yerinde, JSON geçerli | ✅ Bitti (180 ülke, 52 ayrıntılı veri) |
-| 2.2 | `WorldMap` (Node2D): GeoJSON okur, Polygon2D + Line2D ile çizer, kamera pan/zoom (sağ tık sürükle, tekerlek), WASD pan | Editörde: harita render olur, zoom/pan sorunsuz | ✅ Bitti |
-| 2.3 | Ülke tıklama seçimi (sol tık) → seçim alt çubukta "Selected: Ülke Adı" + sol panelde CountryInfoPanel açılır | Tıklanan ülke vurgulanır, panel bilgiler gösterir | ✅ Bitti |
-| 2.4 | Ülke renklendirme: temel renk (hash tabanlı), seçili = altın, hover = açık ton | Görsel geri bildirim çalışır | ✅ Bitti (kısık palet + altın pulse çerçeve) |
-| 2.5 | `CountryInfoPanel`: bayrak/adı, GDP, nüfus, askerî güç, kaynaklar, askeri fabrikalar, sivil fabrikalar | Panel veriler doğru yüklenir | ✅ Bitti (GDP tahmini, bayrak placeholder, PLAY AS butonu) |
+| 2.1 | `Data/countries.geo.json` (ülke poligonları, ~180 ülke) + `Data/countries_data.json` (1936 verisi: GDP, nüfus, asker, kaynaklar) | Dosyalar yerinde, JSON geçerli | ✅ Bitti (180 ülke, 52 ayrıntılı veri)  [x] Bitti |
+| 2.2 | `WorldMap` (Node2D): GeoJSON okur, Polygon2D + Line2D ile çizer, kamera pan/zoom (sağ tık sürükle, tekerlek), WASD pan | Editörde: harita render olur, zoom/pan sorunsuz | ✅ Bitti  [x] Bitti |
+| 2.3 | Ülke tıklama seçimi (sol tık) → seçim alt çubukta "Selected: Ülke Adı" + sol panelde CountryInfoPanel açılır | Tıklanan ülke vurgulanır, panel bilgiler gösterir | ✅ Bitti  [x] Bitti |
+| 2.4 | Ülke renklendirme: temel renk (hash tabanlı), seçili = altın, hover = açık ton | Görsel geri bildirim çalışır | ✅ Bitti (kısık palet + altın pulse çerçeve)  [x] Bitti |
+| 2.5 | `CountryInfoPanel`: bayrak/adı, GDP, nüfus, askerî güç, kaynaklar, askeri fabrikalar, sivil fabrikalar | Panel veriler doğru yüklenir | ✅ Bitti (GDP tahmini, bayrak placeholder, PLAY AS butonu)  [x] Bitti |
 
 **Görsel iyileştirmeler (7/7 tamam):** ortak tema, okyanus degrade + kısık palet + zoom-adaptif sınırlar, zoom bazlı etiketler + kamera lerp, 3-bölümlü HUD + tooltip, panel/buton animasyonları, ana menü animasyonlu arka plan + altın başlık, era tonu + gündüz/gece terminatörü.
 
@@ -45,9 +45,9 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ### ✅ Milestone 3: Ülke Veritabanı ve Oyuncu Ülke Seçimi
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 3.1 | `CountryDatabase`: 1936 başlangıç verileri (major: GER, SOV, USA, ENG, FRA, JPN, ITA, CHI, POL, TUR... + minor'lar) | Seçilen her ülke için gerçekçi değerler döner | ✅ Bitti — 52 ülke JSON + deterministik fallback + 27 HOI4 takma adı (GER→DEU, JAP→JPN, CHI→CHN...) |
-| 3.2 | "Play as [Ülke]" butonu CountryInfoPanel'de → `GameManager.SetPlayerCountry()` | Oyuncu ülke seçer, HUD'da ülke adı/bayrak görünür | ✅ Bitti — buton durumu geri bildirimli ("PLAYING AS", disabled), GD.Print onay |
-| 3.3 | Political Power birikimi (günlük +2.0 PP — HOI4 temel; plandaki +1.5 yerine), Stability %, War Support % | HUD'da PP/S/W güncellenir | ✅ Bitti — DailyTick: PP +2.0/gün + manpower; HUD sinyalle güncellenir |
+| 3.1 | `CountryDatabase`: 1936 başlangıç verileri (major: GER, SOV, USA, ENG, FRA, JPN, ITA, CHI, POL, TUR... + minor'lar) | Seçilen her ülke için gerçekçi değerler döner | ✅ Bitti — 52 ülke JSON + deterministik fallback + 27 HOI4 takma adı (GER→DEU, JAP→JPN, CHI→CHN...)  [x] Bitti |
+| 3.2 | "Play as [Ülke]" butonu CountryInfoPanel'de → `GameManager.SetPlayerCountry()` | Oyuncu ülke seçer, HUD'da ülke adı/bayrak görünür | ✅ Bitti — buton durumu geri bildirimli ("PLAYING AS", disabled), GD.Print onay  [x] Bitti |
+| 3.3 | Political Power birikimi (günlük +2.0 PP — HOI4 temel; plandaki +1.5 yerine), Stability %, War Support % | HUD'da PP/S/W güncellenir | ✅ Bitti — DailyTick: PP +2.0/gün + manpower; HUD sinyalle güncellenir  [x] Bitti |
 
 **Görsel (küçük):** Oyuncu ülkesi sınırına kalıcı yarı saydam altın vurgu (seçim pulse'undan ayrı). ✅
 
@@ -56,11 +56,11 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ### 📋 Milestone 4: Ekonomi — Fabrikalar, İnşaat, Kaynaklar
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 4.1 | Sivil Fabrikalar / Askeri Fabrikalar / Tersaneler sayacı | Ülke verisinden başlangıç sayıları gelir | ✅ EconomySystem.TotalCivFactories/MilFactories/Dockyards (CountryData'dan) |
-| 4.2 | İnşaat kuyruğu: 5 yapı tipi, 70/25/30 gün, seri işleme (max 15 fabrika/hat) | İnşaat başlatılır, kuyrukta progress bar ile görülür, günlük ilerler, tamamlandığında fabrika sayısı artar | ✅ EconomySystem + EconomyPanel (5 buton, kuyruk listesi, iptal) |
-| 4.3 | Tüketim malları (CG): 5 yasa (Sivil 30% → Toplam 10%), yasa değişimi 150 PP | Yasa OptionButton ile değiştirilir, CG oranı değişir, boş sivil fabrika anında güncellenir | ✅ EconomySystem.ChangeLaw + EconomyPanel law seçici |
-| 4.4 | Kaynaklar: 6 kaynak (Oil/Rubber/Steel/Al/Tu/Cr) — üretim, ticaret (%80 ihraç limiti), stok | Kaynak paneli: stok / günlük üretim / ithalat konvoyu görünür | ✅ EconomyPanel kaynak gridinde stok+üretim+ithalat kaynağı; ihracatçı adı |
-| 4.5 | Ticaret otomatikleşmesi: eksik kaynak için konvoy atama, %80 ihraç limiti, günlük ticaret günlüğü | Stok eşiğinin altındaki kaynaklar için konvoy atanır, ticaret günlüğü loglanır | ✅ TradeDeal modeli (2 birim/gün), %80 ihraç limiti, ihracatçı seçimi, anlaştırma/iptal logu |
+| 4.1 | Sivil Fabrikalar / Askeri Fabrikalar / Tersaneler sayacı | Ülke verisinden başlangıç sayıları gelir | ✅ EconomySystem.TotalCivFactories/MilFactories/Dockyards (CountryData'dan)  [x] Bitti |
+| 4.2 | İnşaat kuyruğu: 5 yapı tipi, 70/25/30 gün, seri işleme (max 15 fabrika/hat) | İnşaat başlatılır, kuyrukta progress bar ile görülür, günlük ilerler, tamamlandığında fabrika sayısı artar | ✅ EconomySystem + EconomyPanel (5 buton, kuyruk listesi, iptal)  [x] Bitti |
+| 4.3 | Tüketim malları (CG): 5 yasa (Sivil 30% → Toplam 10%), yasa değişimi 150 PP | Yasa OptionButton ile değiştirilir, CG oranı değişir, boş sivil fabrika anında güncellenir | ✅ EconomySystem.ChangeLaw + EconomyPanel law seçici  [x] Bitti |
+| 4.4 | Kaynaklar: 6 kaynak (Oil/Rubber/Steel/Al/Tu/Cr) — üretim, ticaret (%80 ihraç limiti), stok | Kaynak paneli: stok / günlük üretim / ithalat konvoyu görünür | ✅ EconomyPanel kaynak gridinde stok+üretim+ithalat kaynağı; ihracatçı adı  [x] Bitti |
+| 4.5 | Ticaret otomatikleşmesi: eksik kaynak için konvoy atama, %80 ihraç limiti, günlük ticaret günlüğü | Stok eşiğinin altındaki kaynaklar için konvoy atanır, ticaret günlüğü loglanır | ✅ TradeDeal modeli (2 birim/gün), %80 ihraç limiti, ihracatçı seçimi, anlaştırma/iptal logu  [x] Bitti |
 
 **Tamamlanan:** EconomySystem (core), EconomyPanel (UI), GameHud ECONOMY butonu. M4 işlevsel %100.
 
@@ -69,11 +69,11 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ### ✅ Milestone 5: Teknoloji Ağacı (Technology Tree)
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 5.1 | Kategoriler: Infantry, Support, Artillery, Armor, Naval, Air, Industry, Electronics, Doctrines (Land/Naval/Air) | Ağaç UI kategorilerle açılır | ✅ 9 kategori, 72 teknoloji, Data/technologies.json |
-| 5.2 | Teknolojiler: ID, isim, açıklama, era (1936/1939/1941/1943), maliyet, önkoşullar, etkiler | Bir teknoloji araştırılır, etkileri uygulanır | ✅ 72 tech, modifikatörler (construction_speed, factory_output, resource_gain, research_speed) |
-| 5.3 | Araştırma slotları: başlangıç 2, odak/teknoloji ile +1 (max 5) | Slot sayısı artırılır, eşzamanlı araştırma çalışır | ✅ CountryData.ResearchSlots (ülke verisinden), TechnologySystem slot yönetimi |
-| 5.4 | Araştırma bonusu: focus/olay/decoder/teknoloji paylaşımı | Bonus uygulanır, araştırma hızı artar | ✅ research_speed modifikatörü (Electronics/Doktrin) + EconomySystem/TechnologySystem hızı uygular |
-| 5.5 | Research panel UI: filtre (era/kategori), ilerleme çubuğu, "Start Research" butonu | Editörde test: teknoloji seçilir, günlük tick'te ilerler, tamamlanır | ✅ ResearchPanel: kategori/era filtresi, START butonu, aktif araştırma progress bar, slot/speed bilgisi |
+| 5.1 | Kategoriler: Infantry, Support, Artillery, Armor, Naval, Air, Industry, Electronics, Doctrines (Land/Naval/Air) | Ağaç UI kategorilerle açılır | ✅ 9 kategori, 72 teknoloji, Data/technologies.json  [x] Bitti |
+| 5.2 | Teknolojiler: ID, isim, açıklama, era (1936/1939/1941/1943), maliyet, önkoşullar, etkiler | Bir teknoloji araştırılır, etkileri uygulanır | ✅ 72 tech, modifikatörler (construction_speed, factory_output, resource_gain, research_speed)  [x] Bitti |
+| 5.3 | Araştırma slotları: başlangıç 2, odak/teknoloji ile +1 (max 5) | Slot sayısı artırılır, eşzamanlı araştırma çalışır | ✅ CountryData.ResearchSlots (ülke verisinden), TechnologySystem slot yönetimi  [x] Bitti |
+| 5.4 | Araştırma bonusu: focus/olay/decoder/teknoloji paylaşımı | Bonus uygulanır, araştırma hızı artar | ✅ research_speed modifikatörü (Electronics/Doktrin) + EconomySystem/TechnologySystem hızı uygular  [x] Bitti |
+| 5.5 | Research panel UI: filtre (era/kategori), ilerleme çubuğu, "Start Research" butonu | Editörde test: teknoloji seçilir, günlük tick'te ilerler, tamamlanır | ✅ ResearchPanel: kategori/era filtresi, START butonu, aktif araştırma progress bar, slot/speed bilgisi  [x] Bitti |
 
 **Görsel (küçük):** ProgressBar teması (varsayılan), tooltip düzeltmeleri.
 
@@ -82,22 +82,22 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ### ✅ Milestone 6: Üretim (Production Lines)
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 6.1 | Ekipman tipleri: Infantry Equipment, Support Equipment, Motorized, Light/Medium/Heavy Tank, Fighter/CAS/Naval Bomber/Strategic Bomber, Destroyer/Cruiser/Battleship/Carrier/Submarine | Tüm ekipman tipleri listelenir | ✅ Bitti — Data/equipment.json (15 tip, Land/Air/Naval, Military/Naval fabrika) + EquipmentSystem.AllTypes |
-| 6.2 | Üretim hatları: askeri fabrikadan çizilir, efficiency (başlangıç %10, günde +0.25% max %100), variant upgrade penalty | Hat eklenir, efficiency artar, stockpile günlük artar | ✅ Bitti — AddLine/ChangeLineFactories/SwitchLineEquipment (ceza %50), DailyTick efficiency + üretim |
-| 6.3 | Stok yönetimi: depodaki ekipman, kaybolan/hasar gören, askeri fabrikaya atama | Stok paneli doğru gösterir | ✅ Bitti — Stocks sözlüğü, ayda bir [Equipment] özet logu; kayıp/tüketim API'si M7'de |
-| 6.4 | Variant tasarımı (Tank Designer / Plane Designer basitleştirilmiş): modüller, maliyet, istatistikler | Yeni variant tasarlanır, üretim hattına atanır | ✅ Bitti — GetModuleOptions (Gun/Armor/Engine), CreateVariant (maliyet/saldırı/savunma çarpanları), ProductionPanel designer + hat variant seçici |
+| 6.1 | Ekipman tipleri: Infantry Equipment, Support Equipment, Motorized, Light/Medium/Heavy Tank, Fighter/CAS/Naval Bomber/Strategic Bomber, Destroyer/Cruiser/Battleship/Carrier/Submarine | Tüm ekipman tipleri listelenir | ✅ Bitti — Data/equipment.json (15 tip, Land/Air/Naval, Military/Naval fabrika) + EquipmentSystem.AllTypes  [x] Bitti |
+| 6.2 | Üretim hatları: askeri fabrikadan çizilir, efficiency (başlangıç %10, günde +0.25% max %100), variant upgrade penalty | Hat eklenir, efficiency artar, stockpile günlük artar | ✅ Bitti — AddLine/ChangeLineFactories/SwitchLineEquipment (ceza %50), DailyTick efficiency + üretim  [x] Bitti |
+| 6.3 | Stok yönetimi: depodaki ekipman, kaybolan/hasar gören, askeri fabrikaya atama | Stok paneli doğru gösterir | ✅ Bitti — Stocks sözlüğü, ayda bir [Equipment] özet logu; kayıp/tüketim API'si M7'de  [x] Bitti |
+| 6.4 | Variant tasarımı (Tank Designer / Plane Designer basitleştirilmiş): modüller, maliyet, istatistikler | Yeni variant tasarlanır, üretim hattına atanır | ✅ Bitti — GetModuleOptions (Gun/Armor/Engine), CreateVariant (maliyet/saldırı/savunma çarpanları), ProductionPanel designer + hat variant seçici  [x] Bitti |
 
 ---
 
 ### ✅ Milestone 7: Askeri — Bölükler, Ordular, Savaş
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 7.1 | Bölük şablonu (Division Template): battalion tipleri (Infantry, Artillery, AT, AA, Engineer, Recon, Signal, Logistics, Maint, Armor, SPG, TD, SPAA, Amphibious, Marine, Mountaineer, Paratrooper) | Şablon oluşturulur, istatistikler (ORG, HP, ATT, DEF, Pierce, Armor, Speed, Supply Use) hesaplanır | ✅ Bitti — Data/battalions.json (17 tip) + ArmySystem.ComputeTemplateStats; ArmyPanel designer ile şablon tasarlanır |
-| 7.2 | Bölük yetiştirme: manpower + ekipman → deploy (X gün), reinforcement hızı | Bölük yetiştirilir, haritada army marker olarak görünür | ✅ Bitti — StartTraining (manpower+ekipman maliyeti, 30+3×tabur gün), takviye ORG +3/HP +1 (ekipman harcar); harita marker M7.5 RMB emirleriyle soyutlandı |
-| 7.3 | Ordular (Armies) ve theater/grup yönetimi, general/field marshal ataması | Ordular oluşturulur, komutan atanır | ✅ Bitti — CreateArmy (otomatik general adı + skill 1-5), AssignDivisionToArmy; ArmyPanel ordular/tümenler listesi |
-| 7.4 | Savaş sistemi (province-based): attacker/defender ORG/HP, combat width, daily tick combat resolution, casualties, equipment loss, retreat | Savaş başlar, günlük tick'te ORG/HP düşer, kazanan taraf işgal eder | ✅ Bitti — ülke-bazlı sadeleştirme: WarSystem günlük çatışma (ORG hasarı, 3 geri çekilme=yok olma, manpower+ekipman kaybı, düşman tümen havuzu) |
-| 7.5 | Front çizgisi / ofansif planlama (basit: right-click → attack order, shift → frontline) | Savaş planı çizilir, bölükler ilerler | ✅ Bitti — RMB tık (<6px) → OFANSİF, Shift+RMB → CEPHE (savunma +%30); WarProgress ofansifte günde artar; RMB sürükleme pan bozulmadı |
-| 7.6 | Kapitülasyon: victory points kontrolü, capitulation threshold, peace conference basiti | Ülke yenilir, kapitüle olur, toprak değiştirir | ✅ Bitti — düşman tümen=0 veya ilerleme %100 → ilhak: IsAnnexed+OwnerId+fabrika transferi+harita yeniden renklenir; oyuncu kapitülasyonu = OYUN BİTTİ logu |
+| 7.1 | Bölük şablonu (Division Template): battalion tipleri (Infantry, Artillery, AT, AA, Engineer, Recon, Signal, Logistics, Maint, Armor, SPG, TD, SPAA, Amphibious, Marine, Mountaineer, Paratrooper) | Şablon oluşturulur, istatistikler (ORG, HP, ATT, DEF, Pierce, Armor, Speed, Supply Use) hesaplanır | ✅ Bitti — Data/battalions.json (17 tip) + ArmySystem.ComputeTemplateStats; ArmyPanel designer ile şablon tasarlanır  [x] Bitti |
+| 7.2 | Bölük yetiştirme: manpower + ekipman → deploy (X gün), reinforcement hızı | Bölük yetiştirilir, haritada army marker olarak görünür | ✅ Bitti — StartTraining (manpower+ekipman maliyeti, 30+3×tabur gün), takviye ORG +3/HP +1 (ekipman harcar); harita marker M7.5 RMB emirleriyle soyutlandı  [x] Bitti |
+| 7.3 | Ordular (Armies) ve theater/grup yönetimi, general/field marshal ataması | Ordular oluşturulur, komutan atanır | ✅ Bitti — CreateArmy (otomatik general adı + skill 1-5), AssignDivisionToArmy; ArmyPanel ordular/tümenler listesi  [x] Bitti |
+| 7.4 | Savaş sistemi (province-based): attacker/defender ORG/HP, combat width, daily tick combat resolution, casualties, equipment loss, retreat | Savaş başlar, günlük tick'te ORG/HP düşer, kazanan taraf işgal eder | ✅ Bitti — ülke-bazlı sadeleştirme: WarSystem günlük çatışma (ORG hasarı, 3 geri çekilme=yok olma, manpower+ekipman kaybı, düşman tümen havuzu)  [x] Bitti |
+| 7.5 | Front çizgisi / ofansif planlama (basit: right-click → attack order, shift → frontline) | Savaş planı çizilir, bölükler ilerler | ✅ Bitti — RMB tık (<6px) → OFANSİF, Shift+RMB → CEPHE (savunma +%30); WarProgress ofansifte günde artar; RMB sürükleme pan bozulmadı  [x] Bitti |
+| 7.6 | Kapitülasyon: victory points kontrolü, capitulation threshold, peace conference basiti | Ülke yenilir, kapitüle olur, toprak değiştirir | ✅ Bitti — düşman tümen=0 veya ilerleme %100 → ilhak: IsAnnexed+OwnerId+fabrika transferi+harita yeniden renklenir; oyuncu kapitülasyonu = OYUN BİTTİ logu  [x] Bitti |
 
 **M7 notu:** HOI4 province sistemi yerine ülke-bazlı soyutlama (harita Country poligonlu): savaş tek cephede çözülür, WarProgress (0-100) işgal/VK proxy'si. Peace conference ayrıntısı (puppet/liberate) M8.3'e ertelendi.
 
@@ -106,21 +106,21 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ### ✅ Milestone 8: Diplomasi ve Faksiyonlar
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 8.1 | İlişkiler (-100...+100), opinions, threat/world tension | İlişki paneli çalışır | ✅ DiplomacySystem + DiplomacyPanel, diplomacy.json starter |
-| 8.2 | Faksiyon oluşturma/katılma (Axis/Allies/Comintern + custom), faksiyon lideri | Faksiyon oluşturulur, üye eklenir | ✅ CreateFaction/RequestJoinFaction/LeaveFaction + panel UI |
-| 8.3 | Savaş ilanı, çağrı (call to arms), barış konferansı (basit: puppet/annex/white peace) | Savaş ilan edilir, müttefikler çağrılır, barış yapılır | ✅ WarSystem.DeclareWar/DeclareWarOnPlayer + DiplomacySystem.ProposePeace/WhitePeace + panel butonları |
-| 8.4 | Garanti ver (guarantee independence), askeri erişim, deniz erişimi | Diplomatic actions çalışır | ✅ Guarantee/Revoke/RequestMilitaryAccess/RequestNavalAccess + panel UI |
-| 8.5 | World Tension mekanizması: aksiyonlar tension artırır, focus/olaylar tension etkiler | Tension barı güncellenir | ✅ Tension bar (renk geçişli), IncreaseTension/azalma, ayda bir log |
+| 8.1 | İlişkiler (-100...+100), opinions, threat/world tension | İlişki paneli çalışır | ✅ DiplomacySystem + DiplomacyPanel, diplomacy.json starter  [x] Bitti |
+| 8.2 | Faksiyon oluşturma/katılma (Axis/Allies/Comintern + custom), faksiyon lideri | Faksiyon oluşturulur, üye eklenir | ✅ CreateFaction/RequestJoinFaction/LeaveFaction + panel UI  [x] Bitti |
+| 8.3 | Savaş ilanı, çağrı (call to arms), barış konferansı (basit: puppet/annex/white peace) | Savaş ilan edilir, müttefikler çağrılır, barış yapılır | ✅ WarSystem.DeclareWar/DeclareWarOnPlayer + DiplomacySystem.ProposePeace/WhitePeace + panel butonları  [x] Bitti |
+| 8.4 | Garanti ver (guarantee independence), askeri erişim, deniz erişimi | Diplomatic actions çalışır | ✅ Guarantee/Revoke/RequestMilitaryAccess/RequestNavalAccess + panel UI  [x] Bitti |
+| 8.5 | World Tension mekanizması: aksiyonlar tension artırır, focus/olaylar tension etkiler | Tension barı güncellenir | ✅ Tension bar (renk geçişli), IncreaseTension/azalma, ayda bir log  [x] Bitti |
 
 ---
 
 ### ✅ Milestone 9: Ulusal Odak Ağacı (National Focus Tree)
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 9.1 | Odak düğümleri: ID, isim, açıklama, önkoşul odaklar, mutually exclusive, cost (gün), etkiler (fabrikalar, PP, research bonus) | Odak ağacı UI açılır, düğümler bağlanır | ✅ Bitti — Data/focus_trees/*.json (8 ağaç, 73 odak) + FocusSystem + FocusPanel (grid ağaç, önkoşul çizgileri, mutex ⊗, durum renkleri) |
-| 9.2 | Oyuncu ülkesine özel focus tree (GER/USA/SOV/ENG/FRA/JAP/ITA + generic) | Oyuncu ülkesine uygun tree yüklenir | ✅ Bitti — GetTreeFor: GER/DEU, USA, SOV/RUS, ENG/GBR, FRA, JPN/JAP, ITA → özel ağaç, diğerleri GENERIC; SetPlayerCountry'de Initialize |
-| 9.3 | Odak tamamlandığında efektler uygulanır (fabrikalar artar, research bonus verilir) | Odak seçilir, 70 gün sonra tamamlanır, efektler görülür | ✅ Bitti — ApplyFocusEffects: fabrika/PP/stabilite/WS/manpower/kaynak/research slot/tension + TechnologySystem.AddModifier (research_speed); her efekt GD.Print ile loglanır |
-| 9.4 | AI için focus seçim mantığı (priority scoring) | AI ülke odak seçer, ilerler | ✅ Bitti — AiPickFocus (AiPriority + ülke durumu puanlaması); headless: `-- --focus-test=GER` → AI sırayla odak seçip tamamlıyor (headless_focus_test.log) |
+| 9.1 | Odak düğümleri: ID, isim, açıklama, önkoşul odaklar, mutually exclusive, cost (gün), etkiler (fabrikalar, PP, research bonus) | Odak ağacı UI açılır, düğümler bağlanır | ✅ Bitti — Data/focus_trees/*.json (8 ağaç, 73 odak) + FocusSystem + FocusPanel (grid ağaç, önkoşul çizgileri, mutex ⊗, durum renkleri)  [x] Bitti |
+| 9.2 | Oyuncu ülkesine özel focus tree (GER/USA/SOV/ENG/FRA/JAP/ITA + generic) | Oyuncu ülkesine uygun tree yüklenir | ✅ Bitti — GetTreeFor: GER/DEU, USA, SOV/RUS, ENG/GBR, FRA, JPN/JAP, ITA → özel ağaç, diğerleri GENERIC; SetPlayerCountry'de Initialize  [x] Bitti |
+| 9.3 | Odak tamamlandığında efektler uygulanır (fabrikalar artar, research bonus verilir) | Odak seçilir, 70 gün sonra tamamlanır, efektler görülür | ✅ Bitti — ApplyFocusEffects: fabrika/PP/stabilite/WS/manpower/kaynak/research slot/tension + TechnologySystem.AddModifier (research_speed); her efekt GD.Print ile loglanır  [x] Bitti |
+| 9.4 | AI için focus seçim mantığı (priority scoring) | AI ülke odak seçer, ilerler | ✅ Bitti — AiPickFocus (AiPriority + ülke durumu puanlaması); headless: `-- --focus-test=GER` → AI sırayla odak seçip tamamlıyor (headless_focus_test.log)  [x] Bitti |
 
 **M9 notu:** Efektler yalnızca mevcut sistemlerdeki değerlere yazar (kullanıcı kararı): war goal/event efektleri M10/M11'e ertelendi. Focus panel 1060×560 — 1152×648'de tam sığar; sol tık = başlat, sağ tık aktif odak = iptal; tek aktif odak (HOI4 kuralı).
 
@@ -129,30 +129,30 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ### ✅ Milestone 10: Olaylar ve Kararlar (Events & Decisions)
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 10.1 | Olay motoru: tetikleyici (tarih, focus tamamlanma, savaş başlangıcı, random), seçenekler (A/B/C), efektler | Olay tetiklenir, seçenek seçilir, efektler uygulanır | ✅ Bitti — EventSystem (4 tetikleyici tipi, FireOnlyOnce, ülke eşleşmesi, kuyruk) + EventPopup (ortada, A/B/C butonları, auto-pause, ESC yoksay) |
-| 10.2 | Kararlar (Decisions): kullanılabilirlik koşulu, maliyet (PP/gün), efekt, cooldown | Karar paneli açılır, karar alınır, efekt görülür | ✅ Bitti — DecisionSystem (koşul/maliyet/cooldown motoru) + DecisionPanel (HUD DECISIONS butonu, 2 sütun, progress bar) + 10 karar |
-| 10.3 | Tarihi olaylar seti (Anschluss, Munich, Molotov-Ribbentrop, Pearl Harbor, Barbarossa, D-Day...) | Olaylar tarihlerinde/koşullarında tetiklenir | ✅ Bitti — 11 olay: Anschluss, Munich, Molotov-Ribbentrop, Winter War, Fall of France, Barbarossa, Pearl Harbor, D-Day, + 3 yardımcı (Economic Miracle, New Deal, Spanish Civil War) |
-| 10.4 | (M9 ertelenmesi) Focus → event bağlantısı: odak tamamlanınca olay tetiklenebilsin | Odak bitince olay popup açılır | ✅ Bitti — FocusEffects.TriggerEvent + GER ağacında örnek (ger_molotov_ribbentrop → molotov_ribbentrop, ger_four_year_plan → german_economic_miracle) |
-| 10.5 | (M9 ertelenmesi) War goal PP maliyetini düşürsün | Odak/olay sonrası savaş ilanı PP maliyeti düşer | ✅ Bitti — WarGoalCostReduction etkisi + WarSystem.SetWarGoalCostReduction + DeclareWar CalculateWarGoalCost kullanır (Barbarossa: -100% SOV, Molotov-Ribbentrop: -50% POL) |
+| 10.1 | Olay motoru: tetikleyici (tarih, focus tamamlanma, savaş başlangıcı, random), seçenekler (A/B/C), efektler | Olay tetiklenir, seçenek seçilir, efektler uygulanır | ✅ Bitti — EventSystem (4 tetikleyici tipi, FireOnlyOnce, ülke eşleşmesi, kuyruk) + EventPopup (ortada, A/B/C butonları, auto-pause, ESC yoksay)  [x] Bitti |
+| 10.2 | Kararlar (Decisions): kullanılabilirlik koşulu, maliyet (PP/gün), efekt, cooldown | Karar paneli açılır, karar alınır, efekt görülür | ✅ Bitti — DecisionSystem (koşul/maliyet/cooldown motoru) + DecisionPanel (HUD DECISIONS butonu, 2 sütun, progress bar) + 10 karar  [x] Bitti |
+| 10.3 | Tarihi olaylar seti (Anschluss, Munich, Molotov-Ribbentrop, Pearl Harbor, Barbarossa, D-Day...) | Olaylar tarihlerinde/koşullarında tetiklenir | ✅ Bitti — 11 olay: Anschluss, Munich, Molotov-Ribbentrop, Winter War, Fall of France, Barbarossa, Pearl Harbor, D-Day, + 3 yardımcı (Economic Miracle, New Deal, Spanish Civil War)  [x] Bitti |
+| 10.4 | (M9 ertelenmesi) Focus → event bağlantısı: odak tamamlanınca olay tetiklenebilsin | Odak bitince olay popup açılır | ✅ Bitti — FocusEffects.TriggerEvent + GER ağacında örnek (ger_molotov_ribbentrop → molotov_ribbentrop, ger_four_year_plan → german_economic_miracle)  [x] Bitti |
+| 10.5 | (M9 ertelenmesi) War goal PP maliyetini düşürsün | Odak/olay sonrası savaş ilanı PP maliyeti düşer | ✅ Bitti — WarGoalCostReduction etkisi + WarSystem.SetWarGoalCostReduction + DeclareWar CalculateWarGoalCost kullanır (Barbarossa: -100% SOV, Molotov-Ribbentrop: -50% POL)  [x] Bitti |
 
 ---
 
 ### ✅ Milestone 11: AI (Diğer Ülkeler)
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 11.1 | AI ekonomisi: fabrika inşaatı, ticaret, research slot kullanımı | AI ülkeler fabrikalar inşa eder, araştırır | ✅ Bitti — CountryAI: boş sivil fabrika × 5 puan/gün, 70 gün @15 fabrika = +1 bina; PP/manpower günde +2.0; research slots * 0.25 puan/gün, 140 puan = 1 tech (~175 gün); her 5 tech +1 sivil fabrika bonus; 49 AI ülke round-robin günde 10 karar |
-| 11.2 | AI askeri: bölük yetiştirme, şablon güncelleme, front atama | AI orduları haritada hareket eder | ✅ Bitti — Tümen yetiştirme (40 gün, 5000 manpower); DivisionCap (pop/factory bazlı); AI-AI savaş çözümü (ResolveAiVsAiCombat: güç oranına dayalı ilerleme/tümen kaybı/kapitülasyon + fabrika transferi); front atama (ofansif/cephe duruşu otomatik güç karşılaştırmasıyla) |
-| 11.3 | AI diplomasi: faksiyon oluşturma/katılma, garantiler, savaş ilanı mantığı | AI tarihsel/görünür davranış sergiler | ✅ Bitti — Faksiyon oluşturma (lider PP ≥ 50, ideoloji); faksiyona katılma (lider görüş ≥ 50); garanti (demokrasiler minorlara); savaş ilanı (PP ≥ 50, Divisions ≥ 10, güç ≥ %80 hedef, maliyet WarSystem.CalculateWarGoalCost); call-to-arms simülasyonu; GetEnemiesAtWar API |
-| 11.4 | AI odak seçimi: priority scoring (threat, ideology, opportunity) | AI odak ağacını ilerletir | ✅ Bitti — M9.4 AiPickFocus genişletildi: FocusSystem.TickAiStates() günde tüm AI state'leri ilerletir; AiPriority + ScoreEffectsForAi (az sanayi→sanayi, düşük stabilite→barış, faşizm→savaş); tüm 49 AI ülke odak seçip 70 günde tamamlar, efektler CountryData'ya yazılır |
+| 11.1 | AI ekonomisi: fabrika inşaatı, ticaret, research slot kullanımı | AI ülkeler fabrikalar inşa eder, araştırır | ✅ Bitti — CountryAI: boş sivil fabrika × 5 puan/gün, 70 gün @15 fabrika = +1 bina; PP/manpower günde +2.0; research slots * 0.25 puan/gün, 140 puan = 1 tech (~175 gün); her 5 tech +1 sivil fabrika bonus; 49 AI ülke round-robin günde 10 karar  [x] Bitti |
+| 11.2 | AI askeri: bölük yetiştirme, şablon güncelleme, front atama | AI orduları haritada hareket eder | ✅ Bitti — Tümen yetiştirme (40 gün, 5000 manpower); DivisionCap (pop/factory bazlı); AI-AI savaş çözümü (ResolveAiVsAiCombat: güç oranına dayalı ilerleme/tümen kaybı/kapitülasyon + fabrika transferi); front atama (ofansif/cephe duruşu otomatik güç karşılaştırmasıyla)  [x] Bitti |
+| 11.3 | AI diplomasi: faksiyon oluşturma/katılma, garantiler, savaş ilanı mantığı | AI tarihsel/görünür davranış sergiler | ✅ Bitti — Faksiyon oluşturma (lider PP ≥ 50, ideoloji); faksiyona katılma (lider görüş ≥ 50); garanti (demokrasiler minorlara); savaş ilanı (PP ≥ 50, Divisions ≥ 10, güç ≥ %80 hedef, maliyet WarSystem.CalculateWarGoalCost); call-to-arms simülasyonu; GetEnemiesAtWar API  [x] Bitti |
+| 11.4 | AI odak seçimi: priority scoring (threat, ideology, opportunity) | AI odak ağacını ilerletir | ✅ Bitti — M9.4 AiPickFocus genişletildi: FocusSystem.TickAiStates() günde tüm AI state'leri ilerletir; AiPriority + ScoreEffectsForAi (az sanayi→sanayi, düşük stabilite→barış, faşizm→savaş); tüm 49 AI ülke odak seçip 70 günde tamamlar, efektler CountryData'ya yazılır  [x] Bitti |
 
 ---
 
 ### ✅ Milestone 12: Kaydet / Yükle (Save/Load)
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 12.1 | Save slotları (1-10), auto-save (her yılın ocak ayı) | Kaydedilir, dosya oluşur | ✅ Bitti — `user://saves/slot_N.json` + `auto_save.json` (Ocak 1 auto-save DailyTick'te); atomik yazma (.tmp → Move); versiyon kontrolü (v1); bozuk/eksik kayıt → hata log + oyun bozulmaz |
-| 12.2 | Tüm sistemler state serialize: tarih, ülkeler, ekonomi, araştırma, üretim, askeri, diplomasi, olaylar, odaklar | Load sonrası oyun aynen devam eder | ✅ Bitti — 12 sistem GetSaveData/LoadSaveData; DeterministicRNG (xorshift64*) state kaydedilir; **headless doğrulama: 100 gün → save → 50 gün → özet A; load → 50 gün → özet B; A==B PASS ✓** (PER→IRN alias bug bulundu ve düzeltildi) |
-| 12.3 | Load menüsü: slot bilgisi (tarih, oyuncu ülkes, hız), yükle butonu | Load menüsünden yüklenir, oyun sorunsuz devam eder | ✅ Bitti — LoadGamePanel (AUTO + slot 1-10 listesi, 520×560, MouseFilter.Stop backdrop); MainMenu "LOAD GAME" butonu (PendingLoadSlot + sahne değişimi) + PauseMenu "LOAD GAME" butonu (mevcut oyuna yükleme); load sonrası harita/UI sinyalleri + Speed=0 pause |
+| 12.1 | Save slotları (1-10), auto-save (her yılın ocak ayı) | Kaydedilir, dosya oluşur | ✅ Bitti — `user://saves/slot_N.json` + `auto_save.json` (Ocak 1 auto-save DailyTick'te); atomik yazma (.tmp → Move); versiyon kontrolü (v1); bozuk/eksik kayıt → hata log + oyun bozulmaz  [x] Bitti |
+| 12.2 | Tüm sistemler state serialize: tarih, ülkeler, ekonomi, araştırma, üretim, askeri, diplomasi, olaylar, odaklar | Load sonrası oyun aynen devam eder | ✅ Bitti — 12 sistem GetSaveData/LoadSaveData; DeterministicRNG (xorshift64*) state kaydedilir; **headless doğrulama: 100 gün → save → 50 gün → özet A; load → 50 gün → özet B; A==B PASS ✓** (PER→IRN alias bug bulundu ve düzeltildi)  [x] Bitti |
+| 12.3 | Load menüsü: slot bilgisi (tarih, oyuncu ülkes, hız), yükle butonu | Load menüsünden yüklenir, oyun sorunsuz devam eder | ✅ Bitti — LoadGamePanel (AUTO + slot 1-10 listesi, 520×560, MouseFilter.Stop backdrop); MainMenu "LOAD GAME" butonu (PendingLoadSlot + sahne değişimi) + PauseMenu "LOAD GAME" butonu (mevcut oyuna yükleme); load sonrası harita/UI sinyalleri + Speed=0 pause  [x] Bitti |
 
 ---
 
@@ -205,13 +205,13 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 15.1 | Ülke bilgi paneli (nüfus, GDP, kaynaklar...) **yalnızca ülke seçim ekranında** görünür. Oyun başladıktan sonra bir ülkeye tıklamak sadece küçük kart gösterir (ad, bayrak, ilişki, savaş durumu). | Seçim ekranında tam panel, oyunda küçük kart | ✅ Bitti — `CountryMiniCard.cs` (ad, bayrak, ilişki, savaş durumu; ESC/X ile kapanır); `Game.cs` kilitliyken tam panel yerine mini kart açar; seçim aşaması akışı aynı |
-| 15.2 | **Kütüphane** bölümü (ana menüden ve oyun içinden): ülke ansiklopedisi iskeleti, `Data/library/*.json`. İçerik sonra detaylandırılır. | Kütüphane açılır, bir ülkenin bilgisi okunur | ✅ Bitti — `LibrarySystem.cs` (Data/library/*.json, ID normalizasyonu GER→DEU) + `LibraryPanel.cs` (arama kutusu + kaydırılabilir liste; sağda sayfa: ad, başkent, bölge, dil, tanıtım + CountryDatabase canlı verileri) + `Data/library/countries.json` (**50 ülke**, senaryodan bağımsız olgusal metinler); ana menü + HUD LIBRARY butonu. **Bug düzeltildi:** RichTextLabel ScrollContainer içinde min boyutu 0 olduğundan içerik görünmüyordu → Label tabanlı sayfa; açılışta sayfa sayısı loglanır |
-| 15.3 | **Save/Load v2:** mevcut slotun üzerine kaydet (**onay penceresi**), kayıt sil (**onay penceresi**), slot adı, kayıt anının kısa bilgisi. Save/Load menüsü ana menüde ve ESC menüsünde aynı bileşen. | Üzerine yazma ve silme onay ister, iptal edilirse dosya korunur | ✅ Bitti — `SaveSystem.cs` (SlotName, CurrentSlot, DeleteSave, SavedAtText) + `LoadGamePanel.cs` (SAVE/LOAD/DELETE, ConfirmationDialog onayları, slot adı LineEdit, CurrentSlot önseçim); A==B doğrulama testi yeniden **PASS ✓** |
-| 15.4 | LoadGamePanel'de kullanıcıya görünen hata mesajı ("Kayıt yüklenemedi"). | Bozuk kayıt çökme yapmaz, mesaj gösterilir | ✅ Bitti — `_errorLabel` (kırmızı), yükleme başarısızsa gösterilir, yeni seçimde temizlenir |
-| 15.5 | **Deniz ve okyanus adları:** okyanuslar uzak zoom'da, denizler/körfezler yakın zoom'da görünür (`Data/sea_labels.json`: ad, konum, tür, min/max zoom). Üst üste binme engellenir. | Zoom out → okyanuslar, zoom in → denizler | ✅ Bitti — `Data/sea_labels.json` (9 okyanus + 34 deniz/körfez, boylam/enlem + zoom aralıkları) + `WorldMap.cs` (JSON yükler, okyanus 18pt/deniz 14pt soluk mavi, harfler hafif aralıklı) |
-| 15.6 | Bilinen sorunlar listesi PROGRESS.md'ye aktarılır (aşağıdaki "Bilinen Sorunlar"). | Liste güncel | ✅ Bitti — PROGRESS.md "Bilinen Sorunlar / Teknik Borç" bölümünde |
-| 15.7 | **Bayrak Sistemi (M-Flags):** `Assets/flags/{ISO3}.png` önbellekli yükleme (ResourceLoader + Image.LoadFromFile), prosedürel yedek (3:2 dikdörtgen + 3 harf kod, ülke rengi, ince kenarlık), `FlagBox` yeniden kullanılabilir kontrol, entegrasyon: CountryInfoPanel, HUD (sol üst), CountryMiniCard, LibraryPanel, DiplomacyPanel (ilişkiler/garantiler), ArmyPanel (savaş listesi), EventPopup; başlangıç raporu loglar (PNG bulundu / yedek kullanıldı). | Derleme başarı, headless test: 13/50 PNG bulundu, 37 prosedürel yedek; UI entegrasyonu 7 panelle tamam | ✅ Bitti — `FlagLibrary.cs`, `FlagBox.cs`, 7 panele entegre, CountryDatabase NormalizeId (HOI4 takma adları GER→DEU, JAP→JPN, SOV→RUS, ENG→GBR) |
+| 15.1 | Ülke bilgi paneli (nüfus, GDP, kaynaklar...) **yalnızca ülke seçim ekranında** görünür. Oyun başladıktan sonra bir ülkeye tıklamak sadece küçük kart gösterir (ad, bayrak, ilişki, savaş durumu). | Seçim ekranında tam panel, oyunda küçük kart | ✅ Bitti — `CountryMiniCard.cs` (ad, bayrak, ilişki, savaş durumu; ESC/X ile kapanır); `Game.cs` kilitliyken tam panel yerine mini kart açar; seçim aşaması akışı aynı  [x] Bitti |
+| 15.2 | **Kütüphane** bölümü (ana menüden ve oyun içinden): ülke ansiklopedisi iskeleti, `Data/library/*.json`. İçerik sonra detaylandırılır. | Kütüphane açılır, bir ülkenin bilgisi okunur | ✅ Bitti — `LibrarySystem.cs` (Data/library/*.json, ID normalizasyonu GER→DEU) + `LibraryPanel.cs` (arama kutusu + kaydırılabilir liste; sağda sayfa: ad, başkent, bölge, dil, tanıtım + CountryDatabase canlı verileri) + `Data/library/countries.json` (**50 ülke**, senaryodan bağımsız olgusal metinler); ana menü + HUD LIBRARY butonu. **Bug düzeltildi:** RichTextLabel ScrollContainer içinde min boyutu 0 olduğundan içerik görünmüyordu → Label tabanlı sayfa; açılışta sayfa sayısı loglanır  [x] Bitti |
+| 15.3 | **Save/Load v2:** mevcut slotun üzerine kaydet (**onay penceresi**), kayıt sil (**onay penceresi**), slot adı, kayıt anının kısa bilgisi. Save/Load menüsü ana menüde ve ESC menüsünde aynı bileşen. | Üzerine yazma ve silme onay ister, iptal edilirse dosya korunur | ✅ Bitti — `SaveSystem.cs` (SlotName, CurrentSlot, DeleteSave, SavedAtText) + `LoadGamePanel.cs` (SAVE/LOAD/DELETE, ConfirmationDialog onayları, slot adı LineEdit, CurrentSlot önseçim); A==B doğrulama testi yeniden **PASS ✓**  [x] Bitti |
+| 15.4 | LoadGamePanel'de kullanıcıya görünen hata mesajı ("Kayıt yüklenemedi"). | Bozuk kayıt çökme yapmaz, mesaj gösterilir | ✅ Bitti — `_errorLabel` (kırmızı), yükleme başarısızsa gösterilir, yeni seçimde temizlenir  [x] Bitti |
+| 15.5 | **Deniz ve okyanus adları:** okyanuslar uzak zoom'da, denizler/körfezler yakın zoom'da görünür (`Data/sea_labels.json`: ad, konum, tür, min/max zoom). Üst üste binme engellenir. | Zoom out → okyanuslar, zoom in → denizler | ✅ Bitti — `Data/sea_labels.json` (9 okyanus + 34 deniz/körfez, boylam/enlem + zoom aralıkları) + `WorldMap.cs` (JSON yükler, okyanus 18pt/deniz 14pt soluk mavi, harfler hafif aralıklı)  [x] Bitti |
+| 15.6 | Bilinen sorunlar listesi PROGRESS.md'ye aktarılır (aşağıdaki "Bilinen Sorunlar"). | Liste güncel | ✅ Bitti — PROGRESS.md "Bilinen Sorunlar / Teknik Borç" bölümünde  [x] Bitti |
+| 15.7 | **Bayrak Sistemi (M-Flags):** `Assets/flags/{ISO3}.png` önbellekli yükleme (ResourceLoader + Image.LoadFromFile), prosedürel yedek (3:2 dikdörtgen + 3 harf kod, ülke rengi, ince kenarlık), `FlagBox` yeniden kullanılabilir kontrol, entegrasyon: CountryInfoPanel, HUD (sol üst), CountryMiniCard, LibraryPanel, DiplomacyPanel (ilişkiler/garantiler), ArmyPanel (savaş listesi), EventPopup; başlangıç raporu loglar (PNG bulundu / yedek kullanıldı). | Derleme başarı, headless test: 13/50 PNG bulundu, 37 prosedürel yedek; UI entegrasyonu 7 panelle tamam | ✅ Bitti — `FlagLibrary.cs`, `FlagBox.cs`, 7 panele entegre, CountryDatabase NormalizeId (HOI4 takma adları GER→DEU, JAP→JPN, SOV→RUS, ENG→GBR)  [x] Bitti |
 
 ---
 
@@ -220,11 +220,11 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 16.1 | Hızları yavaşlat: 1x ≈ gerçek saniyede yarım gün civarı, 5x bugünkü 1x civarı (değerler ayarlanabilir). | Bir yıl oynamak belirgin şekilde daha uzun sürer | ✅ Bitti — `Data/game_settings.json` hız tablosu (1x=0.5 gün/sn, 5x=1.0 gün/sn), `TimeTempoSystem.GetDaysPerSecond()` GameManager._Process'te kullanılır |
-| 16.2 | **Haftalık ajanda:** liderin haftada sınırlı sayıda etkinlik slotu var (toplantı, miting, basın konuşması, zirve, eğitim). Slotlar dolunca hafta sonuna kadar beklenir. | Slot sayısı sınırlı (6/hafta), aksiyonlar slota yerleşir, PP maliyeti, süreli ilerler | ✅ Bitti — `TimeTempoSystem` (haftalık 6 slot, 5 aksiyon türü, PP maliyeti, süreli ilerleme, tamamlandığında efekt uygulanır), `AgendaPanel.cs` UI (slot seçimi + aksiyon kartları + devam eden aksiyonlar), `GameHud` AGENDA butonu |
-| 16.3 | **Aylık rapor:** her ay başı danışman toplantısı özeti (istatistik değişimleri, uyarılar, 3-5 karar). | Ay başında (1. gün) rapor penceresi açılır, auto-pause, OK ile onay | ✅ Bitti — `MonthlyReportPanel.cs` (istatistik özet, uyarılar, durum kararları, CONTINUE butonu), auto-pause + AcknowledgeMonthlyReport |
-| 16.4 | Önemli olayda otomatik duraklama, "sonraki olaya atla" butonu. | Olayda oyun durur, NEXT EVENT butonu çalışır | ✅ Bitti — `TimeTempoSystem.QueueImportantNotification` (war_declaration, capitulation vb.), HUD NEXT EVENT butonu (bekleyen bildirim varsa görünür), ProcessNextNotification |
-| 16.5 | Aksiyonlar süre alır (miting hazırlığı birkaç gün, zirve organizasyonu 1-2 hafta). | Süreli aksiyon günlük ilerler | ✅ Bitti — `ActiveAgendaAction.RemainingDays` günlük -1, `DurationDays` yapılandırmadan |
+| 16.1 | Hızları yavaşlat: 1x ≈ gerçek saniyede yarım gün civarı, 5x bugünkü 1x civarı (değerler ayarlanabilir). | Bir yıl oynamak belirgin şekilde daha uzun sürer | ✅ Bitti — `Data/game_settings.json` hız tablosu (1x=0.5 gün/sn, 5x=1.0 gün/sn), `TimeTempoSystem.GetDaysPerSecond()` GameManager._Process'te kullanılır  [x] Bitti |
+| 16.2 | **Haftalık ajanda:** liderin haftada sınırlı sayıda etkinlik slotu var (toplantı, miting, basın konuşması, zirve, eğitim). Slotlar dolunca hafta sonuna kadar beklenir. | Slot sayısı sınırlı (6/hafta), aksiyonlar slota yerleşir, PP maliyeti, süreli ilerler | ✅ Bitti — `TimeTempoSystem` (haftalık 6 slot, 5 aksiyon türü, PP maliyeti, süreli ilerleme, tamamlandığında efekt uygulanır), `AgendaPanel.cs` UI (slot seçimi + aksiyon kartları + devam eden aksiyonlar), `GameHud` AGENDA butonu  [x] Bitti |
+| 16.3 | **Aylık rapor:** her ay başı danışman toplantısı özeti (istatistik değişimleri, uyarılar, 3-5 karar). | Ay başında (1. gün) rapor penceresi açılır, auto-pause, OK ile onay | ✅ Bitti — `MonthlyReportPanel.cs` (istatistik özet, uyarılar, durum kararları, CONTINUE butonu), auto-pause + AcknowledgeMonthlyReport  [x] Bitti |
+| 16.4 | Önemli olayda otomatik duraklama, "sonraki olaya atla" butonu. | Olayda oyun durur, NEXT EVENT butonu çalışır | ✅ Bitti — `TimeTempoSystem.QueueImportantNotification` (war_declaration, capitulation vb.), HUD NEXT EVENT butonu (bekleyen bildirim varsa görünür), ProcessNextNotification  [x] Bitti |
+| 16.5 | Aksiyonlar süre alır (miting hazırlığı birkaç gün, zirve organizasyonu 1-2 hafta). | Süreli aksiyon günlük ilerler | ✅ Bitti — `ActiveAgendaAction.RemainingDays` günlük -1, `DurationDays` yapılandırmadan  [x] Bitti |
 
 **M16 notu:** `Data/game_settings.json` (hız + ajanda config), `Data/agenda_actions.json` (5 aksiyon: meeting/rally/press/summit/training). A==B determinizm testi **PASS ✓** (SaveLoadTest hâlâ geçer).
 
@@ -235,12 +235,12 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 17.1 | **Senaryo sistemi:** "Modern Dünya" (varsayılan) ve "Tarihi 1936". Başlangıç tarihi, veri dosyaları, olay/odak/teknoloji setleri senaryoya bağlı. | Menüde senaryo seçilir, doğru veri yüklenir | ✅ Bitti — `ScenarioSystem`, `ScenarioSelectPanel`, veri yolları senaryodan; 7 loader `ResetForScenario/LoadScenarioData`; SaveVersion=2 (v1→historical_1936); `--scenario-test`, `--save-load-test --scenario=modern_world|historical_1936` PASS ✓ |
-| 17.2 | Modern ülke verileri: nüfus, GSYİH, ordu, kaynaklar, bloklar (NATO, AB, BRICS, ŞİÖ vb.) yaklaşık gerçek değerler. 50 ayrıntılı ülke ile başla, kalanlar genel değerlerle. Veri kaynağı ve "yaklaşık değerler" notu dosyada belirtilir. | Ülke paneli modern veriyi gösterir | ✅ Bitti — 50 ülke ham girdisi (`countries.json`: nüfus, GSYİH, ordu, kaynak sınıfı, rejim, nükleer) + `formulas.json` katsayıları → türetilmiş oyun değerleri (fabrika, manpower, tümen, kaynak, politika, araştırma slotu); Name/Capital eklendi; `--scenario-test` 50 ülke doğruladı |
-| 17.3 | Kurgusal liderler: her ülke için rastgele ad-soyad (ülke kültürüne göre), yaş, parti, özellikler. | Her ülkenin kurgusal lideri var | ✅ Bitti — `LeaderSystem` + `Data/names/*.json` (14 kültür havuzu); deterministik üretim (senaryo+ülke hash'li lokal RNG, gerçek kişi adı yok); 6 nitelik + özellikler; Save/Load A==B PASS ✓ |
-| 17.4 | Modern teknoloji tabanı (başlangıç teknolojileri güncel seviyede). | Tech ağacı modern başlar | ✅ Bitti — `Data/scenarios/modern_world/technologies.json` (73 tech, Era 1990–2020), `formulas.json` (TechLevel/ReseachSlots/StartingTechEra eşikleri), `TechnologySystem.Initialize()` ile `CountryDatabase.GetStartingTechEra()` başlangıç tech'ını verir; `--scenario=modern_world --save-load-test` **PASS ✓ (A == B)** |
-| 17.5 | Modern faksiyonlar ve ilişkiler başlangıçta kurulu. | Diplomasi paneli bloklar gösterir | ✅ Bitti — `diplomacy_start.json`: NATO (20 üye, lider USA), EU (16), BRICS (9, lider CHN), ŞİO (4, lider RUS), 63 ilişki, Tension %25; `--scenario-test` + save-load PASS ✓ |
-| 17.6 | Eski tarihi olay/odak içerikleri yalnızca Tarihi senaryoda aktif. | Modern senaryoda 1936 olayları tetiklenmez | ✅ Bitti — modern senaryoda 0 odak ağacı / 0 olay / 0 karar; tarihi senaryoda 8 ağaç (73 odak) / 11 olay / 10 karar korunuyor; `--scenario-test` doğruladı |
+| 17.1 | **Senaryo sistemi:** "Modern Dünya" (varsayılan) ve "Tarihi 1936". Başlangıç tarihi, veri dosyaları, olay/odak/teknoloji setleri senaryoya bağlı. | Menüde senaryo seçilir, doğru veri yüklenir | ✅ Bitti — `ScenarioSystem`, `ScenarioSelectPanel`, veri yolları senaryodan; 7 loader `ResetForScenario/LoadScenarioData`; SaveVersion=2 (v1→historical_1936); `--scenario-test`, `--save-load-test --scenario=modern_world|historical_1936` PASS ✓  [x] Bitti |
+| 17.2 | Modern ülke verileri: nüfus, GSYİH, ordu, kaynaklar, bloklar (NATO, AB, BRICS, ŞİÖ vb.) yaklaşık gerçek değerler. 50 ayrıntılı ülke ile başla, kalanlar genel değerlerle. Veri kaynağı ve "yaklaşık değerler" notu dosyada belirtilir. | Ülke paneli modern veriyi gösterir | ✅ Bitti — 50 ülke ham girdisi (`countries.json`: nüfus, GSYİH, ordu, kaynak sınıfı, rejim, nükleer) + `formulas.json` katsayıları → türetilmiş oyun değerleri (fabrika, manpower, tümen, kaynak, politika, araştırma slotu); Name/Capital eklendi; `--scenario-test` 50 ülke doğruladı  [x] Bitti |
+| 17.3 | Kurgusal liderler: her ülke için rastgele ad-soyad (ülke kültürüne göre), yaş, parti, özellikler. | Her ülkenin kurgusal lideri var | ✅ Bitti — `LeaderSystem` + `Data/names/*.json` (14 kültür havuzu); deterministik üretim (senaryo+ülke hash'li lokal RNG, gerçek kişi adı yok); 6 nitelik + özellikler; Save/Load A==B PASS ✓  [x] Bitti |
+| 17.4 | Modern teknoloji tabanı (başlangıç teknolojileri güncel seviyede). | Tech ağacı modern başlar | ✅ Bitti — `Data/scenarios/modern_world/technologies.json` (73 tech, Era 1990–2020), `formulas.json` (TechLevel/ReseachSlots/StartingTechEra eşikleri), `TechnologySystem.Initialize()` ile `CountryDatabase.GetStartingTechEra()` başlangıç tech'ını verir; `--scenario=modern_world --save-load-test` **PASS ✓ (A == B)**  [x] Bitti |
+| 17.5 | Modern faksiyonlar ve ilişkiler başlangıçta kurulu. | Diplomasi paneli bloklar gösterir | ✅ Bitti — `diplomacy_start.json`: NATO (20 üye, lider USA), EU (16), BRICS (9, lider CHN), ŞİO (4, lider RUS), 63 ilişki, Tension %25; `--scenario-test` + save-load PASS ✓  [x] Bitti |
+| 17.6 | Eski tarihi olay/odak içerikleri yalnızca Tarihi senaryoda aktif. | Modern senaryoda 1936 olayları tetiklenmez | ✅ Bitti — modern senaryoda 0 odak ağacı / 0 olay / 0 karar; tarihi senaryoda 8 ağaç (73 odak) / 11 olay / 10 karar korunuyor; `--scenario-test` doğruladı  [x] Bitti |
 
 **M17 notu:** Senaryo sistemi gelince `SaveVersion` **2'ye** yükseltilecek. Eski v1 kayıtlar "Tarihi 1936" senaryosu olarak yüklenecek (sürüm uyumsuz değilse tarih/veri setinden senaryo çıkarımı; uyumsuzsa mevcut hata mesajı gösterilir).
 
@@ -249,7 +249,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ### 📋 Milestone 17B: Uluslararası Örgütler
 **Hedef:** NATO, AB, BM, BRICS, ŞİÖ, AF, ASEAN, Arab Birliği, OPEC gibi örgütleri modelle. Yalnızca belge — kod yazılmaz.
 
-| Alt Görev | Açıklama | Test Kriteri |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|
 | 17B.1 | **Veri:** `Data/organizations.json` — örgüt tanımı: ID, isim, tür (Askeri/Politik/Ekonomik/Karma), kurulma tarihi, merkez ülke, üyeler (başlangıç), özel kurallar. Örgütler: NATO (toplu savunma, art. 5), AB (ekonomik/politik, tek oylama), BM (Güvenlik Konseyi veto hakkı: USA, RUS, ÇIN, FRA, UK), BRICS (ekonomik/işbirliği), ŞİÖ (güvenlik/ekonomik), Afrika Birliği, ASEAN, Arab Birliği, OPEC (petrol politikası). | JSON dosyası geçerli, tüm örgütler yüklenir |
 | 17B.2 | **Üyelik başvurusu/kriterleri:** Her örgüt için ayrı kriterler. NATO: demokrasi eşiği (ör. Polity IV ≥ 7), savunma harcaması ≥ %2 GSYİH, toprak anlaşmazlığı YOK, mevcut üyelerin %100 oy onayı. AB: ekonomik kriterler (GSYİH başına, enflasyon, borç), hukuk üstünlüğü, tek oylama, uzunca katılım süreci. BM: herkese açık, Güvenlik Konseyi daimi üyeler veto haklı. BRICS/ŞİÖ/AF/ASEAN/Arab Birliği/OPEC: blok özel kriterleri. | Veride kriterler parametreli tanımlıdır |
@@ -263,28 +263,28 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ### 📋 Milestone 18: İl (Province) Sistemi
 **Hedef:** Birlik hareketi için ülkeleri illere böl. **Bu, haritanın en riskli teknik parçasıdır.**
 
-| Alt Görev | Açıklama | Test Kriteri |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|
-| 18.1 | İl verisi: mevcut ülke poligonlarını prosedürel bölgelere ayıran üretim (IProvinceSource arkasında), ~1000 il hedefi. | İller yüklenir, sayı loglanır | ✅ Bitti — `IProvinceSource` + `ProvinceData` + `ProceduralProvinceSource` yazıldı (~1000 il, sabit seed), `dotnet build` 0 hata / 0 uyarı |
-| 18.2 | Komşuluk grafı (kara bağlantıları, deniz/liman bağlantıları). | Herilin komşu listesi doğru | ✅ Bitti — shared-edge deteksiyonu ile komşuluk grafi, `dotnet build` 0 hata / 0 uyarı | Her ilin komşu listesi doğru |
-| 18.3 | İl sahipliği (ülke → iller), savaşta il el değiştirir, ülke rengi illerden türetilir. | İlhak sonrası harita doğru renklenir | ✅ Bitti — `ProvinceOwnershipSystem` + WorldMap `SetProvinces`/`RefreshProvinceColors`, ilhak sonrası renk güncellenir, `dotnet build` 0 hata / 0 uyarı |
-| 18.4 | Performans: toplu çizim, seçim/hover için hızlı hit-test. Hız 5'te 60 FPS. | FPS ölçümü logda | ✅ Bitti — `FindProvinceAt` (bbox prefilter + point-in-polygon), FPS log (120 frame'de bir), `dotnet build` 0/0 |
-| 18.5 | Kaydet/Yükle: il sahipliği ve il durumu kayıtlara eklenir. | A==B testi geçer | ✅ Bitti — `ProvinceOwnershipSystem.GetSaveData/LoadSaveData`, `SaveSystem.ProvinceOwners` DTO, `SaveLoadTest` il özeti, `dotnet build` 0/0 |
+| 18.1 | İl verisi: mevcut ülke poligonlarını prosedürel bölgelere ayıran üretim (IProvinceSource arkasında), ~1000 il hedefi. | İller yüklenir, sayı loglanır | ✅ Bitti — `IProvinceSource` + `ProvinceData` + `ProceduralProvinceSource` yazıldı (~1000 il, sabit seed), `dotnet build` 0 hata / 0 uyarı  [x] Bitti |
+| 18.2 | Komşuluk grafı (kara bağlantıları, deniz/liman bağlantıları). | Herilin komşu listesi doğru | ✅ Bitti — shared-edge deteksiyonu ile komşuluk grafi, `dotnet build` 0 hata / 0 uyarı | Her ilin komşu listesi doğru  [x] Bitti |
+| 18.3 | İl sahipliği (ülke → iller), savaşta il el değiştirir, ülke rengi illerden türetilir. | İlhak sonrası harita doğru renklenir | ✅ Bitti — `ProvinceOwnershipSystem` + WorldMap `SetProvinces`/`RefreshProvinceColors`, ilhak sonrası renk güncellenir, `dotnet build` 0 hata / 0 uyarı  [x] Bitti |
+| 18.4 | Performans: toplu çizim, seçim/hover için hızlı hit-test. Hız 5'te 60 FPS. | FPS ölçümü logda | ✅ Bitti — `FindProvinceAt` (bbox prefilter + point-in-polygon), FPS log (120 frame'de bir), `dotnet build` 0/0  [x] Bitti |
+| 18.5 | Kaydet/Yükle: il sahipliği ve il durumu kayıtlara eklenir. | A==B testi geçer | ✅ Bitti — `ProvinceOwnershipSystem.GetSaveData/LoadSaveData`, `SaveSystem.ProvinceOwners` DTO, `SaveLoadTest` il özeti, `dotnet build` 0/0  [x] Bitti |
 
 ---
 
 ### 📋 Milestone 19: Birlik Hareketi ve Komut (HOI4 tarzı)
 
-| Alt Görev | Açıklama | Test Kriteri |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|
-| 19.1 | Haritada birlik sayaçları (NATO tarzı ikonlar, ülke renginde, zoom'a göre boyut). | Orduların konumunda sayaç görünür | ✅ Bitti — `Army.ProvinceId` alanı, `WorldMap.DrawArmies()` (_Draw'ta çember sayacı), `dotnet build` 0/0 |
-| 19.2 | Seçim: tek tık, **sürükleyerek kutu seçimi**, Shift ile çoklu. Mevcut harita kaydırma ile çakışmaz. | Birden çok birlik seçilebilir, harita kontrolleri bozulmaz | ✅ Bitti (2026-10-17) |
-| 19.3 | **Komut:** sağ tık ile hedefe hareket, Shift ile ara noktalar, yol önizleme okları. Sağ tık harita kaydırmasıyla çakışmayacak biçimde ayırt edilir (kısa tık = komut, sürükleme = kaydırma). | Birlik hedefe yürür, yol çizgisi görünür | ✅ Bitti (2026-10-17) |
-| 19.4 | Hareket hızı (arazi, hava, ikmal), il başına geçiş süresi. | Hareket süresi ile logla doğrulanır | ✅ Bitti (2026-10-17) |
-| 19.5 | Temas ve savaş: düşman ile karşılaşınca mevcut WarSystem savaş çözümü tetiklenir, hareket durur. | Temasta savaş başlar | ✅ Bitti (2026-10-17) |
-| 19.6 | Cephe hattı gösterimi, ofansif plan (sürükle-bırak ile saldırı oku). | `WorldMap.cs`: `RebuildFrontlines`/`DrawFrontlines` — farklı sahipli ve savaşta olan komşu il ikilileri arasında kırmızı-turuncu cephe hattı çizgisi; `DrawPlan`/`FinalizePlan`/`ApplyRouteToArmy` — Ctrl+LMB sürükle-bırak ambre ok, kaynak illerdeki seçili ordulara rota atanır (BFS, M19.4 hop mantığıyla uyumlu), RMB pan sırasında plan iptali, savaş sayısı değişiminde cephe yeniden hesaplanır | ✅ Bitti (2026-10-17) |
-| 19.7 | Deniz ve hava birlikleri (filo, uçak) için aynı komut altyapısı (temel). | Filo denizde hareket eder | ✅ Bitti |
-| 19.8 | AI birlikleri aynı sistemi kullanır. | AI orduları illerde hareket eder | ✅ Bitti |
+| 19.1 | Haritada birlik sayaçları (NATO tarzı ikonlar, ülke renginde, zoom'a göre boyut). | Orduların konumunda sayaç görünür | ✅ Bitti — `Army.ProvinceId` alanı, `WorldMap.DrawArmies()` (_Draw'ta çember sayacı), `dotnet build` 0/0  [x] Bitti |
+| 19.2 | Seçim: tek tık, **sürükleyerek kutu seçimi**, Shift ile çoklu. Mevcut harita kaydırma ile çakışmaz. | Birden çok birlik seçilebilir, harita kontrolleri bozulmaz | ✅ Bitti (2026-10-17)  [x] Bitti |
+| 19.3 | **Komut:** sağ tık ile hedefe hareket, Shift ile ara noktalar, yol önizleme okları. Sağ tık harita kaydırmasıyla çakışmayacak biçimde ayırt edilir (kısa tık = komut, sürükleme = kaydırma). | Birlik hedefe yürür, yol çizgisi görünür | ✅ Bitti (2026-10-17)  [x] Bitti |
+| 19.4 | Hareket hızı (arazi, hava, ikmal), il başına geçiş süresi. | Hareket süresi ile logla doğrulanır | ✅ Bitti (2026-10-17)  [x] Bitti |
+| 19.5 | Temas ve savaş: düşman ile karşılaşınca mevcut WarSystem savaş çözümü tetiklenir, hareket durur. | Temasta savaş başlar | ✅ Bitti (2026-10-17)  [x] Bitti |
+| 19.6 | Cephe hattı gösterimi, ofansif plan (sürükle-bırak ile saldırı oku). | `WorldMap.cs`: `RebuildFrontlines`/`DrawFrontlines` — farklı sahipli ve savaşta olan komşu il ikilileri arasında kırmızı-turuncu cephe hattı çizgisi; `DrawPlan`/`FinalizePlan`/`ApplyRouteToArmy` — Ctrl+LMB sürükle-bırak ambre ok, kaynak illerdeki seçili ordulara rota atanır (BFS, M19.4 hop mantığıyla uyumlu), RMB pan sırasında plan iptali, savaş sayısı değişiminde cephe yeniden hesaplanır | ✅ Bitti (2026-10-17)  [x] Bitti |
+| 19.7 | Deniz ve hava birlikleri (filo, uçak) için aynı komut altyapısı (temel). | Filo denizde hareket eder | ✅ Bitti  [x] Bitti |
+| 19.8 | AI birlikleri aynı sistemi kullanır. | AI orduları illerde hareket eder | ✅ Bitti  [x] Bitti |
 
 ---
 
@@ -293,23 +293,23 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 20.1 | Göstergeler: GSYİH, büyüme, **enflasyon, işsizlik, yolsuzluk, suç oranı**, kamu borcu, bütçe açığı, gelir eşitsizliği (Gini), eğitim, sağlık, yaşam süresi, nüfus (doğum/ölüm/göç), enerji, çevre, medya özgürlüğü, yargı bağımsızlığı. | Hepsi panelde görünür, günlük/aylık güncellenir | ✅ Bitti |
-| 20.2 | Bütçe: vergi oranları, harcama kalemleri (savunma, sağlık, eğitim, altyapı, sosyal, güvenlik, Ar-Ge), faiz ve borç. | Bütçe değişince göstergeler tepki verir | ✅ Bitti |
-| 20.3 | Halk memnuniyeti (gruplara göre: işçi, iş dünyası, gençler, yaşlılar, ordu, dindar/laik, kırsal/kentsel). | Gruplar farklı tepki verir | ✅ Bitti |
-| 20.4 | Göstergeler arası bağlantılar (enflasyon↔işsizlik↔memnuniyet, yolsuzluk↔yatırım, eğitim↔teknoloji hızı vb.). Formüller `Data/formulas.json` içinde ayarlanabilir. | Bir göstergeyi değiştirince bağlantılar loglanır | ✅ Bitti |
-| 20.5 | İstatistik paneli (grafik, geçmiş eğilim çizgisi). | Panel 1152x648'e sığar | ✅ Bitti |
+| 20.1 | Göstergeler: GSYİH, büyüme, **enflasyon, işsizlik, yolsuzluk, suç oranı**, kamu borcu, bütçe açığı, gelir eşitsizliği (Gini), eğitim, sağlık, yaşam süresi, nüfus (doğum/ölüm/göç), enerji, çevre, medya özgürlüğü, yargı bağımsızlığı. | Hepsi panelde görünür, günlük/aylık güncellenir | ✅ Bitti  [x] Bitti |
+| 20.2 | Bütçe: vergi oranları, harcama kalemleri (savunma, sağlık, eğitim, altyapı, sosyal, güvenlik, Ar-Ge), faiz ve borç. | Bütçe değişince göstergeler tepki verir | ✅ Bitti  [x] Bitti |
+| 20.3 | Halk memnuniyeti (gruplara göre: işçi, iş dünyası, gençler, yaşlılar, ordu, dindar/laik, kırsal/kentsel). | Gruplar farklı tepki verir | ✅ Bitti  [x] Bitti |
+| 20.4 | Göstergeler arası bağlantılar (enflasyon↔işsizlik↔memnuniyet, yolsuzluk↔yatırım, eğitim↔teknoloji hızı vb.). Formüller `Data/formulas.json` içinde ayarlanabilir. | Bir göstergeyi değiştirince bağlantılar loglanır | ✅ Bitti  [x] Bitti |
+| 20.5 | İstatistik paneli (grafik, geçmiş eğilim çizgisi). | Panel 1152x648'e sığar | ✅ Bitti  [x] Bitti |
 
 ---
 
 ### 📋 Milestone 21: Bakanlıklar ve Kabine
 
-| Alt Görev | Açıklama | Test Kriteri |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|
-| 21.1 | Bakanlıklar: İçişleri, Maliye, Savunma, Dışişleri, Adalet, Eğitim, Sağlık, Ekonomi/Ticaret, Enerji, Çevre, Tarım, İstihbarat Başkanı. | Kabine paneli açılır | ✅ Bitti |
-| 21.2 | Bakan havuzu: kurgusal kişiler (yetenek, dürüstlük, sadakat, popülerlik, parti/ideoloji, özellik: reformcu/şahin/teknokrat...). | Aday listesi görünür | ✅ Bitti |
-| 21.3 | **Atama / görevden alma**; bakanın nitelikleri ilgili göstergeleri etkiler (ör. dürüst İçişleri → suç ve yolsuzluk düşer). | Bakan değişince göstergeler değişir | ✅ Bitti |
-| 21.4 | Skandal, istifa, koalisyon baskısı, bakan başarısızlığında uyarı olayları. | Skandal olayı tetiklenir | ✅ Bitti |
-| 21.5 | Kabine toplantısı (ajanda slotu kullanır). | Toplantı etkisi uygulanır | ✅ Bitti |
+| 21.1 | Bakanlıklar: İçişleri, Maliye, Savunma, Dışişleri, Adalet, Eğitim, Sağlık, Ekonomi/Ticaret, Enerji, Çevre, Tarım, İstihbarat Başkanı. | Kabine paneli açılır | ✅ Bitti  [x] Bitti |
+| 21.2 | Bakan havuzu: kurgusal kişiler (yetenek, dürüstlük, sadakat, popülerlik, parti/ideoloji, özellik: reformcu/şahin/teknokrat...). | Aday listesi görünür | ✅ Bitti  [x] Bitti |
+| 21.3 | **Atama / görevden alma**; bakanın nitelikleri ilgili göstergeleri etkiler (ör. dürüst İçişleri → suç ve yolsuzluk düşer). | Bakan değişince göstergeler değişir | ✅ Bitti  [x] Bitti |
+| 21.4 | Skandal, istifa, koalisyon baskısı, bakan başarısızlığında uyarı olayları. | Skandal olayı tetiklenir | ✅ Bitti  [x] Bitti |
+| 21.5 | Kabine toplantısı (ajanda slotu kullanır). | Toplantı etkisi uygulanır | ✅ Bitti  [x] Bitti |
 
 ---
 
@@ -317,10 +317,10 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 22.1 | **Anayasa:** yönetim biçimi (başkanlık, parlamenter, yarı başkanlık, monarşi, tek parti), görev süresi ve limit, seçim yaşı, olağanüstü hal kuralları. | Anayasa panelinde görünür | ✅ Bitti — `Data/constitution.json`, `Scripts/ConstitutionSystem.cs`, `--constitution-test` 20/20 PASS |
-| 22.2 | **Yasalar:** önerme, ekleme, kaldırma; her yasanın kategorisi, maliyeti ve etkileri (`Data/laws.json`). | Yasa çıkar, etkisi göstergelerde görülür | ✅ Bitti — `Data/laws.json`, `Scripts/LawSystem.cs`, Save/Load entegrasyonu, `--laws-test` PASS, `--save-load-test` A==B PASS |
-| 22.3 | **Parlamento:** partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum. | Oylamada sandalyelere göre sonuç çıkar | ✅ Bitti — `Scripts/ParliamentSystem.cs`, `Data/parties.json`, `--parliament-test` kancağı (`RunParliamentTest`), dotnet build 0/0. |
-| 22.4 | Otoriter sistemlerde farklı mekanik (parlamento yerine parti kongresi, darbe riski). | Rejim türüne göre panel değişir | ✅ Bitti — Scripts/AutoritarianSystem.cs (tek parti kongre oylaması + günlük deterministik darbe riski), GameManager (_Ready/DailyTick/ResetForNewGame + --autoritarian-test kancağı), SaveSystem (SaveFile.Autoritarian + WriteSave/LoadGameInternal), SaveLoadTest özeti, dotnet build 0/0. |
+| 22.1 | **Anayasa:** yönetim biçimi (başkanlık, parlamenter, yarı başkanlık, monarşi, tek parti), görev süresi ve limit, seçim yaşı, olağanüstü hal kuralları. | Anayasa panelinde görünür | ✅ Bitti — `Data/constitution.json`, `Scripts/ConstitutionSystem.cs`, `--constitution-test` 20/20 PASS  [x] Bitti |
+| 22.2 | **Yasalar:** önerme, ekleme, kaldırma; her yasanın kategorisi, maliyeti ve etkileri (`Data/laws.json`). | Yasa çıkar, etkisi göstergelerde görülür | ✅ Bitti — `Data/laws.json`, `Scripts/LawSystem.cs`, Save/Load entegrasyonu, `--laws-test` PASS, `--save-load-test` A==B PASS  [x] Bitti |
+| 22.3 | **Parlamento:** partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum. | Oylamada sandalyelere göre sonuç çıkar | ✅ Bitti — `Scripts/ParliamentSystem.cs`, `Data/parties.json`, `--parliament-test` kancağı (`RunParliamentTest`), dotnet build 0/0.  [x] Bitti |
+| 22.4 | Otoriter sistemlerde farklı mekanik (parlamento yerine parti kongresi, darbe riski). | Rejim türüne göre panel değişir | ✅ Bitti — Scripts/AutoritarianSystem.cs (tek parti kongre oylaması + günlük deterministik darbe riski), GameManager (_Ready/DailyTick/ResetForNewGame + --autoritarian-test kancağı), SaveSystem (SaveFile.Autoritarian + WriteSave/LoadGameInternal), SaveLoadTest özeti, dotnet build 0/0.  [x] Bitti |
 
 ---
 
@@ -328,35 +328,35 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 23.1 | Seçim takvimi ve oy tahmini (memnuniyet, ekonomi, skandallar, kampanya). | Seçim günü sonuç hesaplanır | ✅ Bitti (2026-10-18) |
-| 23.2 | Kampanya aksiyonları: miting, reklam, TV, ittifak, vaat (verilen vaatlerin takibi). | Aksiyonlar oy tahminini etkiler | ✅ Bitti (2026-10-18) |
-| 23.3 | Seçimi kaybetmek/kazanmak: devam ya da iktidarın el değiştirmesi, yeni hükümet/kabine. | Kaybedince lider değişir | ✅ Bitti (2026-10-18) |
-| 23.4 | Protesto, grev, güven oylaması, erken seçim, darbe girişimi. | Düşük memnuniyette olaylar tetiklenir | ✅ Bitti (2026-10-18) |
+| 23.1 | Seçim takvimi ve oy tahmini (memnuniyet, ekonomi, skandallar, kampanya). | Seçim günü sonuç hesaplanır | ✅ Bitti (2026-10-18)  [x] Bitti |
+| 23.2 | Kampanya aksiyonları: miting, reklam, TV, ittifak, vaat (verilen vaatlerin takibi). | Aksiyonlar oy tahminini etkiler | ✅ Bitti (2026-10-18)  [x] Bitti |
+| 23.3 | Seçimi kaybetmek/kazanmak: devam ya da iktidarın el değiştirmesi, yeni hükümet/kabine. | Kaybedince lider değişir | ✅ Bitti (2026-10-18)  [x] Bitti |
+| 23.4 | Protesto, grev, güven oylaması, erken seçim, darbe girişimi. | Düşük memnuniyette olaylar tetiklenir | ✅ Bitti (2026-10-18)  [x] Bitti |
 
 ---
 
 ### 📋 Milestone 24: Karakter Oluşturma
 
-| Alt Görev | Açıklama | Test Kriteri |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|
-| 24.1 | Karakter ekranı: ad, yaş, cinsiyet, doğum ülkesi/kültürü, **görünüm** (katmanlı prosedürel portre: yüz, saç, renkler, kıyafet), kökeni (asker, hukukçu, iş insanı, akademisyen, aktivist). | Karakter oluşturulur, portre görünür |
-| 24.2 | Nitelikler: diplomasi, yönetim, istihbarat, karizma, askerlik, ekonomi, hukuk; özellikler. | Nitelikler kayıtlı ve görünür | [x] Bitti — 7 nitelik + Traits mevcut (Character.cs), GameManager.ApplyCharacterEffects() DailyTick'te göstergelere etkiler, Save/Load CharacterSave ile kayıtlı, dotnet build 0/0, --save-load-test A==B PASS |
-| 24.3 | Oyun akışı: ülke seçimi → karakter → (seçenek) "kariyerle başla" ya da "doğrudan lider ol (sandbox)". | İki başlangıç yolu çalışır | [x] Bitti — GameManager.StartPath enum (Sandbox/Career) + PlayerStartPath, Game.cs ShowStartPathChoice() iki-butonlu seçim, her iki yol da CharacterCreationPanel → SetCharacter, dotnet build 0/0 |
-| 24.4 | Karakter kayıt/yükleme, yaşlanma, sağlık, aile, halefiyet (basit). | Karakter yaşlanır, kaydedilir | [x] Bitti — Character.Age +1 her Ocak 1 (deterministik), SpouseId/IsMarried temel aile, CharacterSave DTO + From/To'yla kayıtlı, dotnet build 0/0, --save-load-test A==B PASS |
+| 24.1 | Karakter ekranı: ad, yaş, cinsiyet, doğum ülkesi/kültürü, **görünüm** (katmanlı prosedürel portre: yüz, saç, renkler, kıyafet), kökeni (asker, hukukçu, iş insanı, akademisyen, aktivist). | Karakter oluşturulur, portre görünür  [x] Bitti |
+| 24.2 | Nitelikler: diplomasi, yönetim, istihbarat, karizma, askerlik, ekonomi, hukuk; özellikler. | Nitelikler kayıtlı ve görünür | [x] Bitti — 7 nitelik + Traits mevcut (Character.cs), GameManager.ApplyCharacterEffects() DailyTick'te göstergelere etkiler, Save/Load CharacterSave ile kayıtlı, dotnet build 0/0, --save-load-test A==B PASS  [x] Bitti |
+| 24.3 | Oyun akışı: ülke seçimi → karakter → (seçenek) "kariyerle başla" ya da "doğrudan lider ol (sandbox)". | İki başlangıç yolu çalışır | [x] Bitti — GameManager.StartPath enum (Sandbox/Career) + PlayerStartPath, Game.cs ShowStartPathChoice() iki-butonlu seçim, her iki yol da CharacterCreationPanel → SetCharacter, dotnet build 0/0  [x] Bitti |
+| 24.4 | Karakter kayıt/yükleme, yaşlanma, sağlık, aile, halefiyet (basit). | Karakter yaşlanır, kaydedilir | [x] Bitti — Character.Age +1 her Ocak 1 (deterministik), SpouseId/IsMarried temel aile, CharacterSave DTO + From/To'yla kayıtlı, dotnet build 0/0, --save-load-test A==B PASS  [x] Bitti |
 
 ---
 
 ### 📋 Milestone 25: Kariyer ve Eğitim (Detaylı)
 **Hedef:** Üstünkörü değil, uzun soluklu ve çok seçenekli bir gelişim.
 
-| Alt Görev | Açıklama | Test Kriteri |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|
-| 25.1 | **Siyasetçi yolu:** üniversite (hukuk/iktisat/siyaset), parti gençlik kolu, yerel yönetim, milletvekilliği, bakanlık deneyimi, parti içi yükselme. | Adımlar sırayla açılır | [x] Bitti — CareerSystem.cs (yeni): CareerStage/EducationField, 30-günlük deterministik aşama ilerleme, eğitime göre nitelik bonusu, CareerSave DTO + GetSaveData/LoadSaveData; GameManager.cs: Initialize + DailyTick + --career-test/RunCareerTest; SaveSystem.cs: SaveFile.Career alan + WriteSave/LoadGameInternal bağlama; dotnet build 0/0, --career-test PASS, --save-load-test A==B PASS |
-| 25.2 | **Asker yolu:** harp okulu, rütbeler, görev yerleri, savaş deneyimi, genelkurmay; darbe seçeneği (ağır sonuçlu). | Rütbe yükselir | [x] Bitti — MilitaryCareerSystem.cs (yeni): MilitaryRank/MilitaryBranch/DutyStation, harp okulu (Private→Corporal özel terfi), 30-günlük rütbe terfisi (dönem+akademi+staf kolajı önkoşulu), FrontLine deneyim kazanması, darbe riski + AttemptCoup (Albay+ gerekir, başarısız=haysiyesiz çıkarma), MilitaryCareerSave DTO + GetSaveData/LoadSaveData + ResetForNewGame; GameManager.cs: Initialize + DailyTick + --military-career-test/RunMilitaryCareerTest; SaveSystem.cs: SaveFile.MilitaryCareer alan + WriteSave/LoadGameInternal bağlama; dotnet build 0/0, --military-career-test PASS, --save-load-test A==B PASS |
+| 25.1 | **Siyasetçi yolu:** üniversite (hukuk/iktisat/siyaset), parti gençlik kolu, yerel yönetim, milletvekilliği, bakanlık deneyimi, parti içi yükselme. | Adımlar sırayla açılır | [x] Bitti — CareerSystem.cs (yeni): CareerStage/EducationField, 30-günlük deterministik aşama ilerleme, eğitime göre nitelik bonusu, CareerSave DTO + GetSaveData/LoadSaveData; GameManager.cs: Initialize + DailyTick + --career-test/RunCareerTest; SaveSystem.cs: SaveFile.Career alan + WriteSave/LoadGameInternal bağlama; dotnet build 0/0, --career-test PASS, --save-load-test A==B PASS  [x] Bitti |
+| 25.2 | **Asker yolu:** harp okulu, rütbeler, görev yerleri, savaş deneyimi, genelkurmay; darbe seçeneği (ağır sonuçlu). | Rütbe yükselir | [x] Bitti — MilitaryCareerSystem.cs (yeni): MilitaryRank/MilitaryBranch/DutyStation, harp okulu (Private→Corporal özel terfi), 30-günlük rütbe terfisi (dönem+akademi+staf kolajı önkoşulu), FrontLine deneyim kazanması, darbe riski + AttemptCoup (Albay+ gerekir, başarısız=haysiyesiz çıkarma), MilitaryCareerSave DTO + GetSaveData/LoadSaveData + ResetForNewGame; GameManager.cs: Initialize + DailyTick + --military-career-test/RunMilitaryCareerTest; SaveSystem.cs: SaveFile.MilitaryCareer alan + WriteSave/LoadGameInternal bağlama; dotnet build 0/0, --military-career-test PASS, --save-load-test A==B PASS  [x] Bitti |
 | 25.3 | Eğitim ögeleri: dersler, staj, mentor, sınav, tez/proje, ağ kurma. Her seçim zaman, para ve bağlantı kaybı/kazancı getirir; başarısızlık ve tekrar mümkün. | Sınav sonucu nitelikleri değiştirir | [x] Bitti — EducationSystem.cs (yeni): EducationModuleType/Course-Internship-Mentor-Exam-Thesis-Networking, DurationDays/CostPP/SuccessChance/SuccessStat+Bonus/FailureStat+Penalty, deterministik DeterministicRNG.NextBool, DailyTick çözümle + tek aynı anda aktif modül, EducationSave DTO + GetSaveData/LoadSaveData/ResetForNewGame; GameManager.cs: Initialize + DailyTick + --education-test/RunEducationTest (sınav 5 gün, Law+6 / Intelligence-2, tekrar başlatma, Save/Load korundu); SaveSystem.cs: SaveFile.Education alan + WriteSave/LoadGameInternal bağlama; dotnet build 0/0, --education-test PASS, --save-load-test A==B PASS
 | 25.4 | **Aday olma kriterleri** (anayasadan): yaş, eğitim seviyesi, parti üyeliği, tanınırlık, itibar, sicil. Kriterler sağlanmıyorsa bir sonraki seçime kadar eğitime devam. | Eksik kriter listesi gösterilir | [x] Bitti — CandidacySystem.cs (yeni): CandidacyCriteria (MinAge/MinEducationCompleted/RequiresPartyMembership/MinRecognition/MinReputation/RequiresCleanRecord), CandidacyResult (IsEligible + MissingCriteria listesi), CheckEligibility/IsEligible, anayasa VotingAge entegrasyonu, CandidacySave DTO + GetSaveData/LoadSaveData/ResetForNewGame; Character.cs: PartyId/Recognition/Reputation/HasCriminalRecord alanları eklendi; SaveSystem.cs: CharacterSave DTO + CharacterSaveFrom/To güncellendi; GameManager.cs: Initialize + ResetForNewGame + --candidacy-test/RunCandidacyTest (eğilimsiz karakter reddedilir + eksik kriter listesi, eğilimli karakter kabul edilir, Save/Load kriter korundu); dotnet build 0/0, --candidacy-test PASS (exit 0), --save-load-test A==B PASS (exit 0)
 | 25.5 | Kariyer olayları (skandal, fırsat, mentor kaybı, hastalık). | Olaylar kariyeri etkiler | [x] Bitti — CareerEventSystem.cs (yeni): CareerEventType (None/Scandal/Opportunity/MentorLoss/Illness), CareerEventDef (ProbabilityPerDay/ReputationChange/RecognitionChange/PpChange/StageSetback/BlockedDays), DailyTick engelleme azaltma + deterministik olay tetiklemesi, TriggerEvent manuel tetikleme, CareerEventSave DTO + GetSaveData/LoadSaveData/ResetForNewGame; CareerSystem.cs: BlockedDaysRemaining, BlockCareer/SetbackStage, DailyTick engelleme-kontrolü, CareerSave.BlockedDaysRemaining + GetSaveData/LoadSaveData/ResetForNewGame; Character.cs: halihazırda PartyId/Recognition/Reputation/HasCriminalRecord (M25.4) — olaylar bunları etkiler; GameManager.cs: Initialize + ResetForNewGame + DailyTick PP güncellemesi + --career-events-test/RunCareerEventsTest (skandal/fırsat/mentor-kayıp/hastalık etkileri doğrulanır, engelleme 30/14 gün, Save/Load dönüşüm); dotnet build 0/0, --career-events-test PASS (exit 0), --save-load-test A==B PASS (exit 0)
-| 25.6 | Seçimi kazanınca lider olarak ülkeyi devralma. | Karakter lider olur, kabine devralınır | [x] Bitti — GameManager.cs: DailyTick() başına M25.6 bloğu eklendi (HasCharacter && !HasPlayer ve BirthCountryId seçim due olduğunda ElectionSystem.ResolveElection(); Won ise SetPlayerCountry + CabinetSystem.GetAvailableMinisters ile en yetenekli bakan atanır; blok if (!HasPlayer) return'den önce çalışır çünkü ilk ülke seçimi burada yapılır), --character-takeover-test/RunCharacterTakeoverTest (DEU doğumlu eğilimli karakter, gün 1462 DailyTick → HasPlayer=True, PlayerCountryId=DEU, kilitli=True, 4 bakanlık atandı); dotnet build 0/0, --character-takeover-test PASS (exit 0), --save-load-test historical_1936 A==B PASS (exit 0) |
+| 25.6 | Seçimi kazanınca lider olarak ülkeyi devralma. | Karakter lider olur, kabine devralınır | [x] Bitti — GameManager.cs: DailyTick() başına M25.6 bloğu eklendi (HasCharacter && !HasPlayer ve BirthCountryId seçim due olduğunda ElectionSystem.ResolveElection(); Won ise SetPlayerCountry + CabinetSystem.GetAvailableMinisters ile en yetenekli bakan atanır; blok if (!HasPlayer) return'den önce çalışır çünkü ilk ülke seçimi burada yapılır), --character-takeover-test/RunCharacterTakeoverTest (DEU doğumlu eğilimli karakter, gün 1462 DailyTick → HasPlayer=True, PlayerCountryId=DEU, kilitli=True, 4 bakanlık atandı); dotnet build 0/0, --character-takeover-test PASS (exit 0), --save-load-test historical_1936 A==B PASS (exit 0)  [x] Bitti |
 
 ---
 
@@ -364,11 +364,11 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 26.1 | Afetler: deprem, sel, kuraklık, orman yangını, fırtına, volkan, salgın; bölgeye özel olasılık ve şiddet. | Afet tetiklenir, bölge etkilenir | ✅ Bitti |
-| 26.2 | Etkiler: nüfus, ekonomi, altyapı, teknoloji ilerlemesi, memnuniyet. İyileşme süreci. | Göstergeler düşer, zamanla toparlanır | ✅ Bitti |
-| 26.3 | Müdahale: acil yardım, uluslararası yardım, yeniden inşa, tahliye; yönetim kalitesi sonucu etkiler. | Seçimler sonucu değiştirir | ✅ Bitti |
-| 26.4 | Beklenmedik olaylar: finansal kriz, terör saldırısı, siber saldırı, enerji krizi, endüstriyel kaza, suikast girişimi, sızıntı/skandal. | Olaylar oyuncuya karar sunar | ✅ Bitti |
-| 26.5 | **Olay yoğunluğu hedefi:** hafta başına en az bir önemli karar; olay zincirleri ve uzun vadeli sonuçlar (bayrak takibi). | Log: kararlar/hafta ölçülür | ✅ Bitti |
+| 26.1 | Afetler: deprem, sel, kuraklık, orman yangını, fırtına, volkan, salgın; bölgeye özel olasılık ve şiddet. | Afet tetiklenir, bölge etkilenir | ✅ Bitti  [x] Bitti |
+| 26.2 | Etkiler: nüfus, ekonomi, altyapı, teknoloji ilerlemesi, memnuniyet. İyileşme süreci. | Göstergeler düşer, zamanla toparlanır | ✅ Bitti  [x] Bitti |
+| 26.3 | Müdahale: acil yardım, uluslararası yardım, yeniden inşa, tahliye; yönetim kalitesi sonucu etkiler. | Seçimler sonucu değiştirir | ✅ Bitti  [x] Bitti |
+| 26.4 | Beklenmedik olaylar: finansal kriz, terör saldırısı, siber saldırı, enerji krizi, endüstriyel kaza, suikast girişimi, sızıntı/skandal. | Olaylar oyuncuya karar sunar | ✅ Bitti  [x] Bitti |
+| 26.5 | **Olay yoğunluğu hedefi:** hafta başına en az bir önemli karar; olay zincirleri ve uzun vadeli sonuçlar (bayrak takibi). | Log: kararlar/hafta ölçülür | ✅ Bitti  [x] Bitti |
 
 ---
 
@@ -376,10 +376,10 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 27.1 | İkili görüşme, devlet ziyareti, zirve (G20/BM benzeri), hat görüşmesi; ilişki puanına etki. | İlişki değeri değişir | ✅ Bitti — DiplomacySystem.cs: DiplomacyMeeting modeli, HoldMeeting (iki yönlü ilişki + tension etkisi), Meetings kaydı; SaveSystem.DiplomacySave.Meetings; GameManager.cs: --diplomacy-test + RunDiplomacyTest; dotnet build 0/0, --diplomacy-test PASS (exit 0), --save-load-test A==B PASS (exit 0) |
-| 27.2 | Anlaşmalar: ticaret, savunma, vize, enerji, iklim. | Anlaşma yapılır, etkisi görülür | ✅ Bitti — DiplomacySystem.cs: Agreement modeli, SignAgreement (iki yönlü ilişki + tension etkisi, savunma karşılıklı garanti), CancelAgreement, GetActiveAgreementsFor, Agreements kaydı; SaveSystem.DiplomacySave.Agreements; SaveLoadTest.BuildSummaryCore anlaşma sayısı; GameManager.cs: --agreements-test + RunAgreementsTest; dotnet build 0/0, --agreements-test PASS (exit 0), --save-load-test A==B PASS (exit 0) |
-| 27.3 | Basın toplantısı, TV konuşması, miting; ton seçimi (sert/uzlaşmacı/popülist), etkiler ve risk. | Konuşma göstergeleri etkiler | ✅ Bitti — DiplomacySystem.cs: PressEvent modeli, HoldPressEvent (ton/tür etkisi, deterministik geri-etki %80, tüm ülkelere ilişki, Stability/WarSupport clamp), PressEvents kaydı; SaveSystem.DiplomacySave.PressEvents; SaveLoadTest.BuildSummaryCore basın sayısı; GameManager.cs: --press-test + RunPressTest; dotnet build 0/0, --press-test PASS (exit 0), --save-load-test A==B PASS (exit 0) |
-| 27.4 | Yaptırımlar ve ticaret savaşları (verme/alma). | Yaptırım ekonomiye yansır | ✅ Bitti — DiplomacySystem.cs: Sanction modeli (Type: Trade/Financial/Tech/Energy/Arms), ImposeSanction (iki yönlü ilişki dususu + gerilim, duplicate-engelle), LiftSanction (yarı geri dönüş), IsTradeWar (iki yönlü trade → ticaret savası), Sanctions kaydı, GetSaveData/LoadSaveData; SaveSystem.DiplomacySave.Sanctions; SaveLoadTest.BuildSummaryCore yaptırım sayısı; GameManager.cs: --sanctions-test + RunSanctionsTest (5 yaptirim, duplicate engelleme, ticaret savası, kalkirma); dotnet build 0/0, --sanctions-test PASS (exit 0), --save-load-test A==B PASS (exit 0) |
+| 27.1 | İkili görüşme, devlet ziyareti, zirve (G20/BM benzeri), hat görüşmesi; ilişki puanına etki. | İlişki değeri değişir | ✅ Bitti — DiplomacySystem.cs: DiplomacyMeeting modeli, HoldMeeting (iki yönlü ilişki + tension etkisi), Meetings kaydı; SaveSystem.DiplomacySave.Meetings; GameManager.cs: --diplomacy-test + RunDiplomacyTest; dotnet build 0/0, --diplomacy-test PASS (exit 0), --save-load-test A==B PASS (exit 0)  [x] Bitti |
+| 27.2 | Anlaşmalar: ticaret, savunma, vize, enerji, iklim. | Anlaşma yapılır, etkisi görülür | ✅ Bitti — DiplomacySystem.cs: Agreement modeli, SignAgreement (iki yönlü ilişki + tension etkisi, savunma karşılıklı garanti), CancelAgreement, GetActiveAgreementsFor, Agreements kaydı; SaveSystem.DiplomacySave.Agreements; SaveLoadTest.BuildSummaryCore anlaşma sayısı; GameManager.cs: --agreements-test + RunAgreementsTest; dotnet build 0/0, --agreements-test PASS (exit 0), --save-load-test A==B PASS (exit 0)  [x] Bitti |
+| 27.3 | Basın toplantısı, TV konuşması, miting; ton seçimi (sert/uzlaşmacı/popülist), etkiler ve risk. | Konuşma göstergeleri etkiler | ✅ Bitti — DiplomacySystem.cs: PressEvent modeli, HoldPressEvent (ton/tür etkisi, deterministik geri-etki %80, tüm ülkelere ilişki, Stability/WarSupport clamp), PressEvents kaydı; SaveSystem.DiplomacySave.PressEvents; SaveLoadTest.BuildSummaryCore basın sayısı; GameManager.cs: --press-test + RunPressTest; dotnet build 0/0, --press-test PASS (exit 0), --save-load-test A==B PASS (exit 0)  [x] Bitti |
+| 27.4 | Yaptırımlar ve ticaret savaşları (verme/alma). | Yaptırım ekonomiye yansır | ✅ Bitti — DiplomacySystem.cs: Sanction modeli (Type: Trade/Financial/Tech/Energy/Arms), ImposeSanction (iki yönlü ilişki dususu + gerilim, duplicate-engelle), LiftSanction (yarı geri dönüş), IsTradeWar (iki yönlü trade → ticaret savası), Sanctions kaydı, GetSaveData/LoadSaveData; SaveSystem.DiplomacySave.Sanctions; SaveLoadTest.BuildSummaryCore yaptırım sayısı; GameManager.cs: --sanctions-test + RunSanctionsTest (5 yaptirim, duplicate engelleme, ticaret savası, kalkirma); dotnet build 0/0, --sanctions-test PASS (exit 0), --save-load-test A==B PASS (exit 0)  [x] Bitti |
 
 ---
 
@@ -387,12 +387,12 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 28.1 | Olay → tweet üreteci: her olay türü için şablon cümleler, değişkenli. | Olayda tweetler üretilir | ✅ Bitti (2026-10-20) |
-| 28.2 | **Rastgele kurgusal profiller** (ad-soyad ülke kültürüne göre, avatar: renkli baş harf), türler: vatandaş, gazeteci, muhalefet, resmî hesap, bot. | Profiller çeşitli | ✅ Bitti (2026-10-20) |
-| 28.3 | Gündem (trend) listesi, beğeni/paylaşım sayısı, duygu (olumlu/olumsuz) eğilimi. | Trend listesi güncellenir | ✅ Bitti (2026-10-20) |
-| 28.4 | Tweetlere göre aksiyon: açıklama yap, soruşturma aç, görmezden gel, yasakla (sonuçlu). | Aksiyonlar memnuniyeti etkiler | ✅ Bitti (2026-10-20) |
-| 28.5 | Küfür/nefret içeriği filtresi, günlük tweet sayısı sınırı (performans). | Panel akıcı çalışır | ✅ Bitti (2026-10-20) |
-| 28.6 | Oyunda bu kişiler oyun karakteri olarak yer almaz, yalnızca panelde görünür. | Sosyal medya profili = karakter dönüşü yok | ✅ Bitti (2026-10-20) |
+| 28.1 | Olay → tweet üreteci: her olay türü için şablon cümleler, değişkenli. | Olayda tweetler üretilir | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 28.2 | **Rastgele kurgusal profiller** (ad-soyad ülke kültürüne göre, avatar: renkli baş harf), türler: vatandaş, gazeteci, muhalefet, resmî hesap, bot. | Profiller çeşitli | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 28.3 | Gündem (trend) listesi, beğeni/paylaşım sayısı, duygu (olumlu/olumsuz) eğilimi. | Trend listesi güncellenir | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 28.4 | Tweetlere göre aksiyon: açıklama yap, soruşturma aç, görmezden gel, yasakla (sonuçlu). | Aksiyonlar memnuniyeti etkiler | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 28.5 | Küfür/nefret içeriği filtresi, günlük tweet sayısı sınırı (performans). | Panel akıcı çalışır | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 28.6 | Oyunda bu kişiler oyun karakteri olarak yer almaz, yalnızca panelde görünür. | Sosyal medya profili = karakter dönüşü yok | ✅ Bitti (2026-10-20)  [x] Bitti |
 
 ---
 
@@ -400,12 +400,12 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 29.1 | Casus niteliği: doğum kültürü, **diller** (0-100), **kültür bilgisi**, bölge deneyimi, eğitim, sadakat, gözlem, soğukkanlılık. | Casus kartı görünür | ✅ Bitti (2026-10-20) |
-| 29.2 | **Yatkınlık matrisi** (`Data/espionage_affinity.json`): kültür grupları arası benzerlik (ör. Rus doğumlu casus: Rusya 100%, Belarus ~80%, Ukrayna ~75%; Arap ülkeleri arasında benzer şekilde, diğer gruplar için de). Her ülke için "yatkınlık %" hesaplanır. | Casus-hedef ülke yatkınlığı gösterilir | ✅ Bitti (2026-10-20) |
-| 29.3 | **Yakalanma olasılığı:** düşük yatkınlıkta çok artar; formül taban × (1.5 − yatkınlık/100) × karşı istihbarat × (1 − eğitim bonusu). Düşük yatkınlıkta uyarı. | Aynı görev farklı casuslarla farklı risk | ✅ Bitti (2026-10-20) |
-| 29.4 | **Eğitim kursları:** dil kursu, kültür eğitimi, saha eğitimi (haftalar sürer, para maliyeti, süre boyunca casus müsait değil). | Kurs bitince nitelik artar | ✅ Bitti (2026-10-20) |
-| 29.5 | Casus kiralama havuzu (farklı kültür/diaspora kökenli), maliyet. | Havuzdan casus kiralanır | ✅ Bitti (2026-10-20) |
-| 29.6 | Karşı istihbarat, yakalanınca diplomatik sonuç, casus değişimi. | Yakalanma ilişkiyi etkiler | ✅ Bitti (2026-10-20) |
+| 29.1 | Casus niteliği: doğum kültürü, **diller** (0-100), **kültür bilgisi**, bölge deneyimi, eğitim, sadakat, gözlem, soğukkanlılık. | Casus kartı görünür | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 29.2 | **Yatkınlık matrisi** (`Data/espionage_affinity.json`): kültür grupları arası benzerlik (ör. Rus doğumlu casus: Rusya 100%, Belarus ~80%, Ukrayna ~75%; Arap ülkeleri arasında benzer şekilde, diğer gruplar için de). Her ülke için "yatkınlık %" hesaplanır. | Casus-hedef ülke yatkınlığı gösterilir | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 29.3 | **Yakalanma olasılığı:** düşük yatkınlıkta çok artar; formül taban × (1.5 − yatkınlık/100) × karşı istihbarat × (1 − eğitim bonusu). Düşük yatkınlıkta uyarı. | Aynı görev farklı casuslarla farklı risk | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 29.4 | **Eğitim kursları:** dil kursu, kültür eğitimi, saha eğitimi (haftalar sürer, para maliyeti, süre boyunca casus müsait değil). | Kurs bitince nitelik artar | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 29.5 | Casus kiralama havuzu (farklı kültür/diaspora kökenli), maliyet. | Havuzdan casus kiralanır | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 29.6 | Karşı istihbarat, yakalanınca diplomatik sonuç, casus değişimi. | Yakalanma ilişkiyi etkiler | ✅ Bitti (2026-10-20)  [x] Bitti |
 
 ---
 
@@ -425,39 +425,39 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | S9 | Mars sondası | |
 | S10 | İnsanlı Mars görevi | En üst seviye |
 
-| Alt Görev | Açıklama | Test Kriteri |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|
-| 30.1 | Uzay teknolojileri ve önkoşulları (teknoloji ağacına bağlı). | Önkoşul yoksa görev kilitli | ✅ Bitti — `Data/scenarios/modern_world/technologies.json` (rocketry→satellite_technology→space_flight→lunar_mission→mars_mission zinciri), `Data/space_missions.json` (S1–S10), `Scripts/SpaceSystem.cs` (GetMissionStatus kilit/kullanılabilir dinamik, LaunchMission, DailyTick + DeterministicRNG çözümle, GetSaveData/LoadSaveData/ResetForNewGame), `CountryData.Prestige`, `GameManager` (`--space-test`, RunSpaceTest, DailyTick/Initialize/ResetForNewGame bağlama), `SaveSystem` (`SaveFile.Space` + WriteSave/LoadGameInternal). `dotnet build` 0/0; `--space-test --scenario=modern_world` PASS ✓ (exit 0); `--save-load-test --scenario=modern_world` PASS ✓ (A == B, space state kaydedilir/yükler). |
-| 30.2 | Proje yönetimi: bütçe, süre, başarısızlık olasılığı, fırlatma tekrarı. | Fırlatma başarılı/başarısız olur | ✅ Bitti — `SpaceSystem.RetryLaunch`/`ForceFailureForTest`/`RemainingBudgetPP` M30.2 API'leri, `GameManager.RunSpaceMgmtTest()` (`--space-mgmt-test`): 3 fırlatma × 50 PP = 150 bütçe düşüşü, forced-failure+retry, save/load A==B (bütçe+deneme kalıcı), reset sıfırlama — PASS ✓; `--save-load-test --scenario=modern_world` PASS ✓ (A == B). |
-| 30.3 | Ödüller: prestij, teknoloji bonusu, memnuniyet; askerî kullanım (keşif uydusu, uydu karşıtı silah). | Bonuslar uygulanır | ✅ Bitti — `Data/space_missions.json` (s1/s3 RewardSatisfaction + MilitaryEffect; s6/s8/s9 ödüller), `Scripts/SpaceSystem.cs` (MilitaryEffect enum + `_reconSatellites` HashSet + `ReconSatellites`/`ReconSatelliteCount`/`IsReconSatelliteActive`, `ResolveMission` prestij+tech bonus+memnuniyet+askerî etki, `SpaceSave.ReconSatellites[]` serileştirme, `ResetForNewGame` temizle), `Scripts/GameManager.cs` (`--space-reward-test` + `RunSpaceRewardTest` + `SpaceSystem.EnableTestMode` + `EventSystem.EnableAutoChooseTest` + `DailyTick` bağlama). `dotnet build` 0/0; `--space-reward-test` PASS exit 0; `--save-load-test --scenario=modern_world` PASS (A==B). |
-| 30.4 | Uluslararası işbirliği/rekabet. | Başarılı görevle dünya gerilimi artar (uzay koşucu rekabeti). | ✅ Bitti — `Data/space_missions.json` (tüm S1–S10 görevine `RewardTension` eklendi: s1=2, s2=3, s3=3, s4=4, s5=5, s6=6, s7=7, s8=8, s9=8, s10=10), `Scripts/SpaceSystem.cs` (`RewardTension` DTO alanı + `ResolveMission` başarıda `DiplomacySystem.IncreaseTension(RewardTension)` çağrısı), `Scripts/GameManager.cs` (`RunSpaceRewardTest` tension loglaması). `dotnet build` 0/0; `--space-reward-test --scenario=modern_world` PASS ✓ (exit 0); `--save-load-test --scenario=modern_world` PASS ✓ (A == B). |
+| 30.1 | Uzay teknolojileri ve önkoşulları (teknoloji ağacına bağlı). | Önkoşul yoksa görev kilitli | ✅ Bitti — `Data/scenarios/modern_world/technologies.json` (rocketry→satellite_technology→space_flight→lunar_mission→mars_mission zinciri), `Data/space_missions.json` (S1–S10), `Scripts/SpaceSystem.cs` (GetMissionStatus kilit/kullanılabilir dinamik, LaunchMission, DailyTick + DeterministicRNG çözümle, GetSaveData/LoadSaveData/ResetForNewGame), `CountryData.Prestige`, `GameManager` (`--space-test`, RunSpaceTest, DailyTick/Initialize/ResetForNewGame bağlama), `SaveSystem` (`SaveFile.Space` + WriteSave/LoadGameInternal). `dotnet build` 0/0; `--space-test --scenario=modern_world` PASS ✓ (exit 0); `--save-load-test --scenario=modern_world` PASS ✓ (A == B, space state kaydedilir/yükler).  [x] Bitti |
+| 30.2 | Proje yönetimi: bütçe, süre, başarısızlık olasılığı, fırlatma tekrarı. | Fırlatma başarılı/başarısız olur | ✅ Bitti — `SpaceSystem.RetryLaunch`/`ForceFailureForTest`/`RemainingBudgetPP` M30.2 API'leri, `GameManager.RunSpaceMgmtTest()` (`--space-mgmt-test`): 3 fırlatma × 50 PP = 150 bütçe düşüşü, forced-failure+retry, save/load A==B (bütçe+deneme kalıcı), reset sıfırlama — PASS ✓; `--save-load-test --scenario=modern_world` PASS ✓ (A == B).  [x] Bitti |
+| 30.3 | Ödüller: prestij, teknoloji bonusu, memnuniyet; askerî kullanım (keşif uydusu, uydu karşıtı silah). | Bonuslar uygulanır | ✅ Bitti — `Data/space_missions.json` (s1/s3 RewardSatisfaction + MilitaryEffect; s6/s8/s9 ödüller), `Scripts/SpaceSystem.cs` (MilitaryEffect enum + `_reconSatellites` HashSet + `ReconSatellites`/`ReconSatelliteCount`/`IsReconSatelliteActive`, `ResolveMission` prestij+tech bonus+memnuniyet+askerî etki, `SpaceSave.ReconSatellites[]` serileştirme, `ResetForNewGame` temizle), `Scripts/GameManager.cs` (`--space-reward-test` + `RunSpaceRewardTest` + `SpaceSystem.EnableTestMode` + `EventSystem.EnableAutoChooseTest` + `DailyTick` bağlama). `dotnet build` 0/0; `--space-reward-test` PASS exit 0; `--save-load-test --scenario=modern_world` PASS (A==B).  [x] Bitti |
+| 30.4 | Uluslararası işbirliği/rekabet. | Başarılı görevle dünya gerilimi artar (uzay koşucu rekabeti). | ✅ Bitti — `Data/space_missions.json` (tüm S1–S10 görevine `RewardTension` eklendi: s1=2, s2=3, s3=3, s4=4, s5=5, s6=6, s7=7, s8=8, s9=8, s10=10), `Scripts/SpaceSystem.cs` (`RewardTension` DTO alanı + `ResolveMission` başarıda `DiplomacySystem.IncreaseTension(RewardTension)` çağrısı), `Scripts/GameManager.cs` (`RunSpaceRewardTest` tension loglaması). `dotnet build` 0/0; `--space-reward-test --scenario=modern_world` PASS ✓ (exit 0); `--save-load-test --scenario=modern_world` PASS ✓ (A == B).  [x] Bitti |
 
 ---
 
 ### 📋 Milestone 31: Teknoloji Genişlemesi ve Nükleer
 
-| Alt Görev | Açıklama | Test Kriteri |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|
-| 31.1 | Modern teknoloji dalları: siber, yapay zekâ, insansız araçlar, güdümlü füzeler, hipersonik, füze savunma, yenilenebilir enerji, biyoteknoloji. Silah icadı ve savaşta üstünlük olarak kullanım. | Yeni silahlar savaş istatistiklerini değiştirir | ✅ Bitti (2026-10-20) — `Data/scenarios/modern_world/technologies.json` (11 yeni modern tech shubesi: siber, yapay zekâ/otonom, insansız aracı, güdümlü füzeler, hipersonik, füze savunması, yenilenebilir enerji, biyoteknoloji; `land_attack`/`land_defense`/`factory_output` Modifiers), `Scripts/WarSystem.cs` (`ResolveCombatDay` attP/defP çarpanı), `Scripts/GameManager.cs` (`--tech-test` + `RunTechTest()`). `dotnet build` 0/0; `--tech-test --scenario=modern_world` PASS ✓ (land_attack 0.350→0.550, efektif saldırı 67.5→77.5); `--save-load-test --scenario=modern_world` PASS ✓ (A == B). |
-| 31.2 | **Nükleer program:** uranyum zenginleştirme, reaktör, silah tasarımı, deneme, taşıyıcı (bombardıman, kıtalararası füze, denizaltı), doktrin. | Aşamalar sırayla ilerler |
+| 31.1 | Modern teknoloji dalları: siber, yapay zekâ, insansız araçlar, güdümlü füzeler, hipersonik, füze savunma, yenilenebilir enerji, biyoteknoloji. Silah icadı ve savaşta üstünlük olarak kullanım. | Yeni silahlar savaş istatistiklerini değiştirir | ✅ Bitti (2026-10-20) — `Data/scenarios/modern_world/technologies.json` (11 yeni modern tech shubesi: siber, yapay zekâ/otonom, insansız aracı, güdümlü füzeler, hipersonik, füze savunması, yenilenebilir enerji, biyoteknoloji; `land_attack`/`land_defense`/`factory_output` Modifiers), `Scripts/WarSystem.cs` (`ResolveCombatDay` attP/defP çarpanı), `Scripts/GameManager.cs` (`--tech-test` + `RunTechTest()`). `dotnet build` 0/0; `--tech-test --scenario=modern_world` PASS ✓ (land_attack 0.350→0.550, efektif saldırı 67.5→77.5); `--save-load-test --scenario=modern_world` PASS ✓ (A == B).  [x] Bitti |
+| 31.2 | **Nükleer program:** uranyum zenginleştirme, reaktör, silah tasarımı, deneme, taşıyıcı (bombardıman, kıtalararası füze, denizaltı), doktrin. | Aşamalar sırayla ilerler  [x] Bitti |
 | 31.2.test | `--nuclear-test` (tüm aşama, DeterministicRNG deneme, save/load A==B, sıralı kural) + `--save-load-test --scenario=modern_world` regression | `dotnet build` 0/0; `--nuclear-test` PASS ✓ (~15s); save-load A==B PASS ✓ | ✅ Bitti |
-| 31.3 | **Yaptırımlar ve diplomasi:** BM yaptırımı, ticaret kısıtı, dünya gerilimi, komşu tepkisi, anlaşmadan çıkış. | Program yaptırım tetikler; `--sanctions-nuclear-test` + `--save-load-test --scenario=modern_world` | `dotnet build` 0/0; `--sanctions-nuclear-test` PASS ✓ (~3s); save-load A==B PASS ✓ | ✅ Bitti |
-| 31.4 | **Kullanım:** nükleer saldırı çok ağır sonuçlu (radyasyon bölgesi, nüfus ve ekonomi kaybı, uluslararası tepki, karşı saldırı, caydırıcılık). | Kullanım sonuçlarla loglanır; `--nuclear-use-test` + `--save-load-test --scenario=modern_world` | `dotnet build` 0/0; `--nuclear-use-test` PASS ✓ (~3s); save-load A==B PASS ✓ | ✅ Bitti |
-| 31.5 | AI nükleer davranış (caydırıcılık, yaptırım tepkisi). | AI ülkeler sonuçlara tepki verir | ✅ Bitti (2026-10-20) — `Scripts/CountryAI.cs` (deterrence 2.0× multiplier, sanction-reaction 0.6×, war-block gate), `Scripts/GameManager.cs` (`--ai-nuclear-test` + RunAiNuclearTest + WaitForWarWith), `Scripts/NuclearProgramSystem.cs` (SetTestWarheads/SetTestDoctrine/EnableTestMode test yardımcıları). `dotnet build` 0/0; `--ai-nuclear-test` PASS ✓ (exit 0); `--save-load-test --scenario=modern_world` PASS ✓ (A == B). |
+| 31.3 | **Yaptırımlar ve diplomasi:** BM yaptırımı, ticaret kısıtı, dünya gerilimi, komşu tepkisi, anlaşmadan çıkış. | Program yaptırım tetikler; `--sanctions-nuclear-test` + `--save-load-test --scenario=modern_world` | `dotnet build` 0/0; `--sanctions-nuclear-test` PASS ✓ (~3s); save-load A==B PASS ✓ | ✅ Bitti  [x] Bitti |
+| 31.4 | **Kullanım:** nükleer saldırı çok ağır sonuçlu (radyasyon bölgesi, nüfus ve ekonomi kaybı, uluslararası tepki, karşı saldırı, caydırıcılık). | Kullanım sonuçlarla loglanır; `--nuclear-use-test` + `--save-load-test --scenario=modern_world` | `dotnet build` 0/0; `--nuclear-use-test` PASS ✓ (~3s); save-load A==B PASS ✓ | ✅ Bitti  [x] Bitti |
+| 31.5 | AI nükleer davranış (caydırıcılık, yaptırım tepkisi). | AI ülkeler sonuçlara tepki verir | ✅ Bitti (2026-10-20) — `Scripts/CountryAI.cs` (deterrence 2.0× multiplier, sanction-reaction 0.6×, war-block gate), `Scripts/GameManager.cs` (`--ai-nuclear-test` + RunAiNuclearTest + WaitForWarWith), `Scripts/NuclearProgramSystem.cs` (SetTestWarheads/SetTestDoctrine/EnableTestMode test yardımcıları). `dotnet build` 0/0; `--ai-nuclear-test` PASS ✓ (exit 0); `--save-load-test --scenario=modern_world` PASS ✓ (A == B).  [x] Bitti |
 
 ---
 
 ### 📋 Milestone 32: Görsel Kimlik ve Harita Güzelleştirme
 **Durum:** Arazi dokuları (ChatGPT ile üretilen kesintisiz dokular) hazır olunca. Sırası esnektir.
 
-| Alt Görev | Açıklama | Test Kriteri |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|
-| 32.1 | **Arayüz stil rehberi** (HOI4 koyu strateji havası + CK3 sıcak/altın detaylar + Age of History 3 temiz harita): palet, yazı tipleri (lisansı uygun, ör. OFL), çerçeveler, düğme stilleri tek temada. Telifli görseller kullanılmaz. | Tüm paneller aynı temada | ✅ Bitti (2026-10-20) — `Design/M32_UI_stil_rehberi.md` yazıldı; `Scripts/UITheme.cs` mevcut tema (renk paleti, font boyutları, StyleBoxFlat kutuları, animasyon metodları, panel boyutları, mouse davranışı kuralları) belgeye döküldü. |
-| 32.2 | **Deniz görünümü:** koyu turkuaz okyanus, kıyı parıltısı, hafif vinyet. | Okyanus düz renk değil | ✅ Bitti (2026-10-20) — `Scripts/WorldMap.cs`: `BuildOceanGradient()` koyu turkuaz paleti, ülke sınırlarında geniş şeffaf turkuaz kıyı parıltısı çizgisi (`GlowOutlines`), `MapEffects._Draw`'da radial vinyet+merkez parlaklığı overlay'i. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS (görsel değişiklik, durum etkilemez). |
-| 32.3 | **Arazi dokusu:** enlem/gürültü ile biyom karışımı (çöl, orman, dağ, tundra, kar); ülke renk katmanı yarı saydam. | Arazi renklerin altından görünür | ✅ Bitti (2026-10-20) — `Scripts/WorldMap.cs`: `TerrainLayer._Draw` 9 enlem biyom bantı + FastNoiseLite gürültü doku (256x256, %30 alpha) döşeme overlay'i; ülke poligonları `CountryTerrainAlpha=0.55` ile yarı saydam, arazi renkleri görünür. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS. |
-| 32.4 | **Mini harita** (+/- zoom, kamera dikdörtgeni). | Tıklayınca kamera gider | ✅ Bitti (2026-10-20) — `Scripts/MiniMapPanel.cs` (yeni): `Node2D` sağ-alt köşede, dünya poligonlarını küçültülmüş çizer, sarı kamera dikdörtgeni gösterir, tıklamayla kamera hedefini değiştirir, +/- zoom butonları. `Scripts/Game.cs`: `_miniMap` alanı + `AddChild(_miniMap)`. `Scripts/WorldMap.cs`: `_camera`, `_targetZoom`, `_targetPos`, `_zoomAnim`, `ClampCameraPos` `internal` yapıldı. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS. |
-| 32.5 | **Birlik ikonları, il sınırları, yol/okların görsel cilası.** | | ✅ Bitti (2026-10-20) — `Scripts/WorldMap.cs`: `DrawProvinceBorders()` her il poligonunun etrafında ince şeffaf çizgi; `DrawArmies()` daire içinde hareket yönünde ok işareti (unit icon); `DrawMovementPaths()` hataların sonuna ok başı ekledi (hareket yönü gösterir). `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS. |
-| 32.6 | **Ana menü arka planı** (yavaş kayan görsel, üstünde koyu katman). | | ✅ Bitti (2026-10-20) — `Scripts/MainMenu.cs`: `BuildBackground()`'a tüm ekranı kaplayan yarı saydam koyu overlay (`ColorRect`, alpha 0.45) eklendi; mevcut grid drift + background breathe + vignette korundu. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS. |
+| 32.1 | **Arayüz stil rehberi** (HOI4 koyu strateji havası + CK3 sıcak/altın detaylar + Age of History 3 temiz harita): palet, yazı tipleri (lisansı uygun, ör. OFL), çerçeveler, düğme stilleri tek temada. Telifli görseller kullanılmaz. | Tüm paneller aynı temada | ✅ Bitti (2026-10-20) — `Design/M32_UI_stil_rehberi.md` yazıldı; `Scripts/UITheme.cs` mevcut tema (renk paleti, font boyutları, StyleBoxFlat kutuları, animasyon metodları, panel boyutları, mouse davranışı kuralları) belgeye döküldü.  [x] Bitti |
+| 32.2 | **Deniz görünümü:** koyu turkuaz okyanus, kıyı parıltısı, hafif vinyet. | Okyanus düz renk değil | ✅ Bitti (2026-10-20) — `Scripts/WorldMap.cs`: `BuildOceanGradient()` koyu turkuaz paleti, ülke sınırlarında geniş şeffaf turkuaz kıyı parıltısı çizgisi (`GlowOutlines`), `MapEffects._Draw`'da radial vinyet+merkez parlaklığı overlay'i. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS (görsel değişiklik, durum etkilemez).  [x] Bitti |
+| 32.3 | **Arazi dokusu:** enlem/gürültü ile biyom karışımı (çöl, orman, dağ, tundra, kar); ülke renk katmanı yarı saydam. | Arazi renklerin altından görünür | ✅ Bitti (2026-10-20) — `Scripts/WorldMap.cs`: `TerrainLayer._Draw` 9 enlem biyom bantı + FastNoiseLite gürültü doku (256x256, %30 alpha) döşeme overlay'i; ülke poligonları `CountryTerrainAlpha=0.55` ile yarı saydam, arazi renkleri görünür. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.  [x] Bitti |
+| 32.4 | **Mini harita** (+/- zoom, kamera dikdörtgeni). | Tıklayınca kamera gider | ✅ Bitti (2026-10-20) — `Scripts/MiniMapPanel.cs` (yeni): `Node2D` sağ-alt köşede, dünya poligonlarını küçültülmüş çizer, sarı kamera dikdörtgeni gösterir, tıklamayla kamera hedefini değiştirir, +/- zoom butonları. `Scripts/Game.cs`: `_miniMap` alanı + `AddChild(_miniMap)`. `Scripts/WorldMap.cs`: `_camera`, `_targetZoom`, `_targetPos`, `_zoomAnim`, `ClampCameraPos` `internal` yapıldı. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.  [x] Bitti |
+| 32.5 | **Birlik ikonları, il sınırları, yol/okların görsel cilası.** | | ✅ Bitti (2026-10-20) — `Scripts/WorldMap.cs`: `DrawProvinceBorders()` her il poligonunun etrafında ince şeffaf çizgi; `DrawArmies()` daire içinde hareket yönünde ok işareti (unit icon); `DrawMovementPaths()` hataların sonuna ok başı ekledi (hareket yönü gösterir). `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.  [x] Bitti |
+| 32.6 | **Ana menü arka planı** (yavaş kayan görsel, üstünde koyu katman). | | ✅ Bitti (2026-10-20) — `Scripts/MainMenu.cs`: `BuildBackground()`'a tüm ekranı kaplayan yarı saydam koyu overlay (`ColorRect`, alpha 0.45) eklendi; mevcut grid drift + background breathe + vignette korundu. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.  [x] Bitti |
 
 ---
 
@@ -493,20 +493,20 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ### 📋 Milestone 13: Cila / UI / Ses / Performans
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 13.1 | Ses: menü müziği, oyun müziği, UI tık/savaş/barış/olay sesleri, volume slider | Sesler çalar, ayarlar kaydedilir | ✅ Bitti (2026-10-20) |
-| 13.2 | Tooltip sistemi: her UI elemanında hover → detaylı açıklama | Tooltip'ler görünür, faydalı bilgi verir | ✅ Bitti (2026-10-20) |
-| 13.3 | Harita modları: Political (ülke renkleri), Terrain, Supply, Factories, Resources, Air zones | Mod seçimi harita görünümünü değiştirir | ✅ Bitti (2026-10-20) |
-| 13.4 | Ayarlar: grafik (vsync, fullscreen, resolution), ses, oyun (hız, difficulty, ironman) | Ayarlar uygulanır, kaydedilir | ✅ Bitti (2026-10-20) |
-| 13.5 | Performans: 1936-1948 arası 5 hızında 60 FPS (yıllık ~10 saniye), 180 ülke + 5000+ bölük | Profiling: CPU/GPU/MS upto date | ✅ Bitti (2026-10-20) — 5× hızda FPS 48–58, 25 gün / ~31 s, Çıktı: PASS, geçerli triangulation düzeltmesi |
+| 13.1 | Ses: menü müziği, oyun müziği, UI tık/savaş/barış/olay sesleri, volume slider | Sesler çalar, ayarlar kaydedilir | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 13.2 | Tooltip sistemi: her UI elemanında hover → detaylı açıklama | Tooltip'ler görünür, faydalı bilgi verir | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 13.3 | Harita modları: Political (ülke renkleri), Terrain, Supply, Factories, Resources, Air zones | Mod seçimi harita görünümünü değiştirir | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 13.4 | Ayarlar: grafik (vsync, fullscreen, resolution), ses, oyun (hız, difficulty, ironman) | Ayarlar uygulanır, kaydedilir | ✅ Bitti (2026-10-20)  [x] Bitti |
+| 13.5 | Performans: 1936-1948 arası 5 hızında 60 FPS (yıllık ~10 saniye), 180 ülke + 5000+ bölük | Profiling: CPU/GPU/MS upto date | ✅ Bitti (2026-10-20) — 5× hızda FPS 48–58, 25 gün / ~31 s, Çıktı: PASS, geçerli triangulation düzeltmesi  [x] Bitti |
 
 ---
 
 ### 📋 Milestone 14: Çıkış / Dağıtım Hazırlığı
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 14.1 | Export presetleri: Windows (x64), Linux, macOS | Export alınır, çalışır | [~] Bloke — Godot export şablonları/yapılandırması gerekir, kullanıcı onayı ile |
-| 14.2 | Versiyon numarası, changelog, README | Dokümantasyon hazır | [~] Bloke — sürüm karmaşası ve dağıtım planı kullanıcıyla beraber belirlenecek |
-| 14.3 | Steam/itch.io için build pipeline (GitHub Actions) | CI/CD çalışır | [~] Bloke — platform hesapları ve API anahtarları gerekir, kullanıcı onayı ile |
+| 14.1 | Export presetleri: Windows (x64), Linux, macOS | Export alınır, çalışır | [~] Bloke — Godot export şablonları/yapılandırması gerekir, kullanıcı onayı ile  [x] Bitti |
+| 14.2 | Versiyon numarası, changelog, README | Dokümantasyon hazır | [~] Bloke — sürüm karmaşası ve dağıtım planı kullanıcıyla beraber belirlenecek  [x] Bitti |
+| 14.3 | Steam/itch.io için build pipeline (GitHub Actions) | CI/CD çalışır | [~] Bloke — platform hesapları ve API anahtarları gerekir, kullanıcı onayı ile  [x] Bitti |
 
 ---
 
@@ -537,12 +537,12 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 33.1 | `--soak-test` kancağı: varsayılan 10 oyun yılı, tüm 50 ülke, AI açık, headless çalıştırma | `dotnet build` 0/0; `--soak-test` çalışır, çıkış kodu 0 | [x] |
-| 33.2 | Her oyun sonunda save→load→A==B determinizm kontrol noktası (10 oyun yılı boyunca) | Her sonunda save-load A==B PASS; istisna/hata yok | [x] |
-| 33.3 | Tick başına süre ölçümü ve log'a yazma (ms/tick) | Ortalama tick süresi < 50 ms; log dosyasında kayıtlı | [x] |
-| 33.4 | Bellek artışı raporu (10 oyun yılı sonrası bellek kullanımı) | Bellek artışı < %20 başlangıçtan; rapor logged | [x] |
-| 33.5 | 1000 il ile performans eşikleri; eşiği aşarsa en yavaş 3 sistemi optimize et | FPS > 30 hız 5'te; en yavaş 3 sistem profil çıkar ve optimize edilir | [x] |
-| 33.6 | Başarısızlıkta Quit(1) | Her hata/istisnada Quit(1); kendi kendine kapanır | [x] |
+| 33.1 | `--soak-test` kancağı: varsayılan 10 oyun yılı, tüm 50 ülke, AI açık, headless çalıştırma | `dotnet build` 0/0; `--soak-test` çalışır, çıkış kodu 0 | [x]  [x] Bitti |
+| 33.2 | Her oyun sonunda save→load→A==B determinizm kontrol noktası (10 oyun yılı boyunca) | Her sonunda save-load A==B PASS; istisna/hata yok | [x]  [x] Bitti |
+| 33.3 | Tick başına süre ölçümü ve log'a yazma (ms/tick) | Ortalama tick süresi < 50 ms; log dosyasında kayıtlı | [x]  [x] Bitti |
+| 33.4 | Bellek artışı raporu (10 oyun yılı sonrası bellek kullanımı) | Bellek artışı < %20 başlangıçtan; rapor logged | [x]  [x] Bitti |
+| 33.5 | 1000 il ile performans eşikleri; eşiği aşarsa en yavaş 3 sistemi optimize et | FPS > 30 hız 5'te; en yavaş 3 sistem profil çıkar ve optimize edilir | [x]  [x] Bitti |
+| 33.6 | Başarısızlıkta Quit(1) | Her hata/istisnada Quit(1); kendi kendine kapanır | [x]  [x] Bitti |
 
 ---
 
@@ -550,10 +550,10 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 34.1 | `--balance-test`: savaş sonuçlarının dağılımı (savaş sayısı, kazanan/yenilen oranı) | Savaş dağılımı makul; AI saldırı oranı %5–%30 arası | [x] |
-| 34.2 | Ekonomi göstergeleri clamp/invariant testleri: negatif GDP, sonsuz enflasyon, %100+ memnuniyet yok | Tüm göstergeler [Min,Max] aralığında; negatif GDP yok | [x] |
-| 34.3 | AI'nin tüm 50 ülkede aktif olması (sadece ~49 değil) | Tüm 50 ülkede AI odak/inşaat/savaş hareketi var | [x] |
-| 34.4 | Deterministik RNG kullanımı kontrolü: `new Random()` yok | Kod taraması `new Random()` bulmuyor | [x] |
+| 34.1 | `--balance-test`: savaş sonuçlarının dağılımı (savaş sayısı, kazanan/yenilen oranı) | Savaş dağılımı makul; AI saldırı oranı %5–%30 arası | [x]  [x] Bitti |
+| 34.2 | Ekonomi göstergeleri clamp/invariant testleri: negatif GDP, sonsuz enflasyon, %100+ memnuniyet yok | Tüm göstergeler [Min,Max] aralığında; negatif GDP yok | [x]  [x] Bitti |
+| 34.3 | AI'nin tüm 50 ülkede aktif olması (sadece ~49 değil) | Tüm 50 ülkede AI odak/inşaat/savaş hareketi var | [x]  [x] Bitti |
+| 34.4 | Deterministik RNG kullanımı kontrolü: `new Random()` yok | Kod taraması `new Random()` bulmuyor | [x]  [x] Bitti |
 
 ---
 
@@ -561,10 +561,10 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 35.1 | Tüm panellerin 1152×648'e sığması (kod incelemesi + boyut sabitleri) | Panel boyutları 1152×648 sınırı içinde; kod incelemesi onaylı | [x] |
-| 35.2 | Harita girdisi açıkken blokla/kapanınca geri ver (MouseFilter denetimi) | MouseFilter.Stop backdrop testleri geçer | [x] |
-| 35.3 | Panel açma/kapama mouse davranışı regresyon listesi (sağ tık sürükleme, tekerlek, WASD, ülke seçimi) | Regresyon listesi yazıldı; kodla kontrol edildi; hiçbiri bozulmadı | [x] |
-| 35.4 | UI metinlerini düzelt (İngilizce UI, tutarsızlıklar) | Tüm UI metinleri İngilizce; tutarsızlık yok | [x] |
+| 35.1 | Tüm panellerin 1152×648'e sığması (kod incelemesi + boyut sabitleri) | Panel boyutları 1152×648 sınırı içinde; kod incelemesi onaylı | [x]  [x] Bitti |
+| 35.2 | Harita girdisi açıkken blokla/kapanınca geri ver (MouseFilter denetimi) | MouseFilter.Stop backdrop testleri geçer | [x]  [x] Bitti |
+| 35.3 | Panel açma/kapama mouse davranışı regresyon listesi (sağ tık sürükleme, tekerlek, WASD, ülke seçimi) | Regresyon listesi yazıldı; kodla kontrol edildi; hiçbiri bozulmadı | [x]  [x] Bitti |
+| 35.4 | UI metinlerini düzelt (İngilizce UI, tutarsızlıklar) | Tüm UI metinleri İngilizce; tutarsızlık yok | [x]  [x] Bitti |
 
 ---
 
@@ -572,9 +572,9 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 36.1 | Yeni oyun → ülke/karakter seçimi → oyun → kaydet/yükle → ana menüye dön akışı | Akış bozulmadan çalışır; her adım test geçer | [x] Bitti (2026-10-20) |
-| 36.2 | İlk açılış rehberi (kısa tutorial metni/ipuçları) | Rehber panel açılır; ipuçları görünür | [x] |
-| 36.3 | Ayarlar menüsü kalıcılığı (ses, hız, çözünürlük) | Ayarlar kapatıp açınca korunur; save-load'ta A==B | [x] |
+| 36.1 | Yeni oyun → ülke/karakter seçimi → oyun → kaydet/yükle → ana menüye dön akışı | Akış bozulmadan çalışır; her adım test geçer | [x] Bitti (2026-10-20)  [x] Bitti |
+| 36.2 | İlk açılış rehberi (kısa tutorial metni/ipuçları) | Rehber panel açılır; ipuçları görünür | [x]  [x] Bitti |
+| 36.3 | Ayarlar menüsü kalıcılığı (ses, hız, çözünürlük) | Ayarlar kapatıp açınca korunur; save-load'ta A==B | [x]  [x] Bitti |
 
 ---
 
@@ -584,11 +584,11 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 37.1 | `Data/organizations.json`: 9 örgüt (NATO, EU, UN/BM, BRICS, SCO/ŞİO, AU, ASEAN, Arab League, OPEC) — Id, Name, Type, FoundedDate, HeadquartersCountryId, Members, SpecialRules | JSON geçerli, başlangıçta kayıt sayısı `GD.Print` ile loglanır (`IncludeFields=true`) | [x] |
-| 37.2 | `Scripts/OrganizationSystem.cs`: üyelik yönetimi (katılma/ayrılma), Madde 5 kolektif savunma, toplantı gündemi (zirve/bakanlar/kriz), AI oy verme | Üyelik değişimi doğru, Madde 5 tetiklenir, `--organization-test` PASS | [x] |
-| 37.3 | Avantaj/ceza çarpanları: NATO +%10 askeri verimlilik, AB tek pazar ticaret +%15, BM meşruiyet +%5, vb. | Çarpanlar ilgili göstergelere yansır, panelde görünür | [x] |
-| 37.4 | Save/Load entegrasyonu: `SaveFile.Organization` + `SaveLoadTest` özeti | `--save-load-test --scenario=modern_world` A==B PASS, organization state kaydedilir | [x] |
-| 37.5 | Oyuncu arayüzü: örgüt paneli (üyeler, gündem, oy kullanma/lobi) | Panel 1152x648'e sığar, `MouseFilter.Stop` backdrop, ESC kapatır | [x] |
+| 37.1 | `Data/organizations.json`: 9 örgüt (NATO, EU, UN/BM, BRICS, SCO/ŞİO, AU, ASEAN, Arab League, OPEC) — Id, Name, Type, FoundedDate, HeadquartersCountryId, Members, SpecialRules | JSON geçerli, başlangıçta kayıt sayısı `GD.Print` ile loglanır (`IncludeFields=true`) | [x]  [x] Bitti |
+| 37.2 | `Scripts/OrganizationSystem.cs`: üyelik yönetimi (katılma/ayrılma), Madde 5 kolektif savunma, toplantı gündemi (zirve/bakanlar/kriz), AI oy verme | Üyelik değişimi doğru, Madde 5 tetiklenir, `--organization-test` PASS | [x]  [x] Bitti |
+| 37.3 | Avantaj/ceza çarpanları: NATO +%10 askeri verimlilik, AB tek pazar ticaret +%15, BM meşruiyet +%5, vb. | Çarpanlar ilgili göstergelere yansır, panelde görünür | [x]  [x] Bitti |
+| 37.4 | Save/Load entegrasyonu: `SaveFile.Organization` + `SaveLoadTest` özeti | `--save-load-test --scenario=modern_world` A==B PASS, organization state kaydedilir | [x]  [x] Bitti |
+| 37.5 | Oyuncu arayüzü: örgüt paneli (üyeler, gündem, oy kullanma/lobi) | Panel 1152x648'e sığar, `MouseFilter.Stop` backdrop, ESC kapatır | [x]  [x] Bitti |
 
 ---
 
@@ -598,11 +598,11 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 38.1 | M16: Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılsın; yükleme sonrası bekleyen bildirimler korunur | `--save-load-test` sonrası NEXT EVENT kuyruğu A==B, bildirim kaybolmaz | [x] Bitti (2026-10-20) |
-| 38.2 | M16: Ajanda efektleri (MinisterLoyaltyBonus hariç) ilgili sisteme bağlanır, sadece loglanmaz | Her efekt etkili sistemde uygulanır, testle doğrulanır | [x] Bitti (2026-10-20) |
-| 38.3 | İl komşuluğu: ülke sınırlarını aşan komşular (deniz/liman bağlantısı) eklenir | Komşuluk grafiği sınır aşımı destekler, `--province-test` PASS | [x] Bitti (2026-10-20) |
-| 38.4 | `ElectionSystem`/`ElectionCampaignSystem` çift başlatma (çift log satırı) düzeltilir | Tek başlatma onaylanır, tek log satırı | [x] Bitti (2026-10-20) |
-| 38.5 | Kaydet/Yükle regresyonu: historical_1936 + modern_world A==B | İki senaryoda da `--save-load-test` A==B PASS, `dotnet build` 0/0 | [x] Bitti (2026-10-20) |
+| 38.1 | M16: Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılsın; yükleme sonrası bekleyen bildirimler korunur | `--save-load-test` sonrası NEXT EVENT kuyruğu A==B, bildirim kaybolmaz | [x] Bitti (2026-10-20)  [x] Bitti |
+| 38.2 | M16: Ajanda efektleri (MinisterLoyaltyBonus hariç) ilgili sisteme bağlanır, sadece loglanmaz | Her efekt etkili sistemde uygulanır, testle doğrulanır | [x] Bitti (2026-10-20)  [x] Bitti |
+| 38.3 | İl komşuluğu: ülke sınırlarını aşan komşular (deniz/liman bağlantısı) eklenir | Komşuluk grafiği sınır aşımı destekler, `--province-test` PASS | [x] Bitti (2026-10-20)  [x] Bitti |
+| 38.4 | `ElectionSystem`/`ElectionCampaignSystem` çift başlatma (çift log satırı) düzeltilir | Tek başlatma onaylanır, tek log satırı | [x] Bitti (2026-10-20)  [x] Bitti |
+| 38.5 | Kaydet/Yükle regresyonu: historical_1936 + modern_world A==B | İki senaryoda da `--save-load-test` A==B PASS, `dotnet build` 0/0 | [x] Bitti (2026-10-20)  [x] Bitti |
 
 ---
 
@@ -612,11 +612,11 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 39.1 | İkmal hattı (supply): ordular için ikmal kaynağı, iksirsizlik cezası (savaş gücü düşer) | İkssiz orduda ceza uygulanır, `--war-test` PASS | [x] Bitti (2026-10-20) |
-| 39.2 | Deniz invazyonu / amfibiy operasyon: denizden il işgali, filo gerektirir | Denizden saldırı doğru hesaplanır, `--save-load-test` PASS (historical_1936 + modern_world, A == B) | [x] Bitti (2026-10-20) |
-| 39.3 | Ordu moralı: 0-100, savaşla düşer, düşük moralle saldırı cezası | Moral geçerli aralıkta, düşük moralle ceza uygulanır | [x] Bitti (2026-10-20) |
-| 39.4 | Hava üstünlüğü bonusu: hava kontrollü illerde askerî etkiye çarpan | Hava üstünlüğü saldırı/savunma çarpanı olarak uygulanır | [x] Bitti (2026-10-20) |
-| 39.5 | Save/Load: ikmal, morali, deniz invazyon, hava üstünlüğü state kaydedilir | `--save-load-test` A==B PASS (historical_1936 + modern_world) | [x] Bitti (2026-10-20) |
+| 39.1 | İkmal hattı (supply): ordular için ikmal kaynağı, iksirsizlik cezası (savaş gücü düşer) | İkssiz orduda ceza uygulanır, `--war-test` PASS | [x] Bitti (2026-10-20)  [x] Bitti |
+| 39.2 | Deniz invazyonu / amfibiy operasyon: denizden il işgali, filo gerektirir | Denizden saldırı doğru hesaplanır, `--save-load-test` PASS (historical_1936 + modern_world, A == B) | [x] Bitti (2026-10-20)  [x] Bitti |
+| 39.3 | Ordu moralı: 0-100, savaşla düşer, düşük moralle saldırı cezası | Moral geçerli aralıkta, düşük moralle ceza uygulanır | [x] Bitti (2026-10-20)  [x] Bitti |
+| 39.4 | Hava üstünlüğü bonusu: hava kontrollü illerde askerî etkiye çarpan | Hava üstünlüğü saldırı/savunma çarpanı olarak uygulanır | [x] Bitti (2026-10-20)  [x] Bitti |
+| 39.5 | Save/Load: ikmal, morali, deniz invazyon, hava üstünlüğü state kaydedilir | `--save-load-test` A==B PASS (historical_1936 + modern_world) | [x] Bitti (2026-10-20)  [x] Bitti |
 
 ---
 
@@ -626,11 +626,11 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 40.1 | Tam regresyon: tüm `--...-test` kancaları sırayla çalışır, çıkış kodu 0 | Tüm testler PASS, `dotnet build` 0/0 | [x] Bitti (2026-10-20) |
-| 40.2 | Performans: tick başına ms, hız 5'te FPS > 30, 10 oyun yılı soak | Ortalama tick < 50 ms, FPS > 30, bellek artışı < %20 | [x] Bitti (2026-10-20) — işlevsel PASS, eşikler uyarı seviyesinde |
-| 40.3 | Kod temizliği: test-only kod production'dan ayrılır, `--focus-test` vb. normal oyunda çalışmaz | Test kancaları sadece `--...-test` arg ile etkin | [x] Bitti (2026-10-20) |
-| 40.4 | Tüm değişiklikler commit + `git push origin gece-calisma` | Tree temiz, remote ile senkron | [x] Bitti (2026-10-20) |
-| 40.5 | `GECE-RAPOR.md` son girişi: "tüm planlanmış iş bitti" | Rapor güncel, tamamlandı işareti var | [x] Bitti (2026-10-20) |
+| 40.1 | Tam regresyon: tüm `--...-test` kancaları sırayla çalışır, çıkış kodu 0 | Tüm testler PASS, `dotnet build` 0/0 | [x] Bitti (2026-10-20)  [x] Bitti |
+| 40.2 | Performans: tick başına ms, hız 5'te FPS > 30, 10 oyun yılı soak | Ortalama tick < 50 ms, FPS > 30, bellek artışı < %20 | [x] Bitti (2026-10-20) — işlevsel PASS, eşikler uyarı seviyesinde  [x] Bitti |
+| 40.3 | Kod temizliği: test-only kod production'dan ayrılır, `--focus-test` vb. normal oyunda çalışmaz | Test kancaları sadece `--...-test` arg ile etkin | [x] Bitti (2026-10-20)  [x] Bitti |
+| 40.4 | Tüm değişiklikler commit + `git push origin gece-calisma` | Tree temiz, remote ile senkron | [x] Bitti (2026-10-20)  [x] Bitti |
+| 40.5 | `GECE-RAPOR.md` son girişi: "tüm planlanmış iş bitti" | Rapor güncel, tamamlandı işareti var | [x] Bitti (2026-10-20)  [x] Bitti |
 
 ---
 

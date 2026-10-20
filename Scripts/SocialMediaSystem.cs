@@ -49,6 +49,9 @@ public static class SocialMediaSystem
     /// <summary>Aynı günde üretilen tweet sayısının üst sınırı (performans koruması).</summary>
     public static int MaxTweetsPerDay { get; set; } = 10;
 
+    /// <summary>Toplam tweet sayısının üst sınırı (performans/bellek koruması).</summary>
+    private const int MaxTotalTweets = 500;
+
     public static void OnEventResolved(EventSystem.GameEvent evt, int optionIndex)
     {
         if (evt == null) return;
@@ -121,6 +124,10 @@ public static class SocialMediaSystem
         }
 
         _tweets.Add(tweet);
+
+        // M28.5: Toplam tweet sayısını sınırla — en eski tweetleri sil (bellek/seri̇le­stirme performansı).
+        while (_tweets.Count > MaxTotalTweets)
+            _tweets.RemoveAt(0);
 
         GD.Print($"[SocialMedia] Tweet üretildi: {tweet.AuthorHandle} → {content}");
     }

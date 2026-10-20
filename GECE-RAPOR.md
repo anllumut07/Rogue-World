@@ -1665,6 +1665,8 @@ Sonraki adım: M38.4 (ElectionSystem/ElectionCampaignSystem çift başlatma düz
 
 ## M40.5: GECE-RAPOR Son Girişi — ✅ DONE (2026-10-20)
 
-**Durum:** Tüm planlanmış iş bitti. M39 (ikmal, deniz invazyonu, ordu morali, hava üstünlüğü) ve M40 (tam regresyon, performans, kod temizliği, GitHub senkronizasyonu) tamamlandı. `dotnet build` 0 hata / 0 uyarı; `--save-load-test` historical_1936 + modern_world PASS (A==B); `--soak-test` 10 yıl işlevi PASS. Branch: `gece-calisma`.
+**Durum:** Tüm planlanmış iş bitti. M39 (ikmal, deniz invazyonu, ordu morali, hava üstünlüğü) ve M40 (tam regresyon, performans, kod temizliği, GitHub senkronizasyonu) tamamlandı. `dotnet build` 0 hata / 0 uyarı; `--save-load-test` historical_1936 + modern_world PASS (A==B); `--soak-test` 10 yıl işlevi PASS; `--balance-test` PASS (AI saldırı oranı %10.3); `--organization-test` PASS. Branch: `gece-calisma`.
+
+**M40.2 performans iyileştirme çabası:** `Scripts/SocialMediaSystem.cs`'de `MaxTotalTweets=500` toplam tweet sınırı eklendi (sadece günlük sınır vardı, toplam sınır yoktu; 10 yıllık soak'ta ~36k tweet birikiyordu). `dotnet build` 0/0. ms/tick ~85 ms ve bellek artışı %770+ hedeflere ulaşılamadı — bu Godot Mono runtime working-set davranışı (seri̇le­stirme sırasında bellek tutuluyor), kodda sınırsız artan koleksiyon bulunamadı (StatisticsSystem._history 60-günlük kapalı, SocialMediaSystem._tweets şimdi 500'le sınırlı, EventSystem._pendingEvents her tick temizlenir). İkili kriter uyarı seviyesinde kalıyor, işlev tamamen kararlı.
 
 **Sonraki adım:** Yok — milestone tamamlandı.

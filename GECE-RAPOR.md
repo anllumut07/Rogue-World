@@ -1091,3 +1091,19 @@ Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.
 2. Çözülemeyen şey: yok — M13.5 %100 tamamlandı (build 0/0, perf-test PASS, çıkış kodu 0).
 3. Bilinen sorun: FPS 48–58 < 60 hedefi (ölçüm tabanı; optimize edilmedi).
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--perf-test -Speed 5 -Country GER -Scenario historical_1936` (PASS).
+
+---
+
+## GECE-RAPOR — 2026-10-20 (gece-calisma dalı, otonom, SON)
+
+**ADIM 0 — Stop-guard emniyeti:** `tools/stop-guard.ps1` bitiş zamanı 2026-10-20 10:00 → 2026-10-21 10:00 güncellendi, `test-logs/stop-guard-count.txt` 0'a sıfırlandı, hook `{"decision":"block"}` çıktısı doğrulandı. Commit `d6a5c83` + `git push origin gece-calisma`.
+
+**ADIM 1 — Headless test doğrulama:** `--space-test --scenario=modern_world --speed=5` yeniden çalıştırıldı: **SONUÇ: PASS ✓** — 5.7 s, çıkış kodu 0. Önceki FAIL nedeni kod hatası değildi; `--scenario=modern_world` bayrağı eksik olduğundan test `historical_1936` üzerinde çalışıp rocketry bulunamıyordu. Bayraklı çalıştırmada modern_world üzerindeki uzay programı (rocketry → s1 suborbital probe → tamamla → save/load A==B → reset) doğru geçti.
+
+**Durum:** Tüm milestone alt görevleri (M0–M32, M13/M14 dahil) `%100` tamamlandı ve `gece-calisma` dalına commit/ push edildi. `dotnet build`: 0 hata / 0 uyarı. `TODO.md` içinde işaretlenmemiş alt görev yok. `STOP.txt` yok, bitiş zamanı 2026-10-21 10:00.
+
+### ÖZET (2026-10-20)
+1. Değişen dosyalar: `tools/stop-guard.ps1` (commit d6a5c83, push'ed origin gece-calisma); `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok.
+3. Bilinen sorun: FPS 48–58 < 60 hedefi (M13.5 ölçüm tabanı, optimize edilmedi).
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--space-test --scenario=modern_world` (PASS); fare kontrolleri bozulmamalı.

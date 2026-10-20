@@ -2013,5 +2013,15 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 - Kod değişikliği gerekmedi; doğrulama: `dotnet build` 0 hata / 0 uyarı; `--save-load-test --scenario=modern_world` **SONUÇ: PASS ✓ (A == B)**.
 - TODO.md 36.1 → [x] Bitti.
 
-36.2 İlk açılış rehberi: henüz başlanmadı.
-36.3 Ayarlar menüsü kalıcılığı: henüz başlanmadı.
+### M36.2: İlk açılış rehberi — ✅ DONE (2026-10-20)
+- `Scripts/TutorialPanel.cs` (yeni): Overlay `Control` (FullRect, MouseFilter.Stop backdrop ColorRect %60 siyah), `PanelContainer` 860×520 (1152×648'e sığar), `ProcessMode.Always` (paused iken de kapanır), ESC ve "GOT IT" butonu kapatır. `UITheme.PopIn/FadeOut/AddHoverScale/ApplyTheme` kullanır. "Don't show again" `CheckBox` → `SettingsSystem.TutorialSeen` kalıcı bayrağı (user://settings.json, Save/Load A==B korundu). UI metinleri İngilizce (Welcome to Rogue World + 7 ipucu). `TutorialPanel.OpenUnder(parent)` statik giriş, `IsOpen` bayrağı, `_UnhandledInput` ESC.
+- `Scripts/SettingsSystem.cs`: `TutorialSeen` static prop + `SaveBlob`/`SettingsSave` DTO alanı + `Load`/`Save`/`GetSaveData`/`LoadSaveData`/`SetTutorialSeen(bool)` entegrasyonu.
+- `Scripts/Game.cs`: `OnCharacterConfirmed` — karakter onaylandıktan sonra `!SettingsSystem.TutorialSeen` ise `TutorialPanel.OpenUnder(this)` çağrılır.
+- `dotnet build`: 0 hata / 0 uyarı. `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — TutorialSeen state kaydedilir/yükler, determinizm bozulmadı.
+
+### M36.3: Ayarlar menüsü kalıcılığı — ✅ DONE (2026-10-20)
+- Ayarlar (MasterVolume, Fullscreen, ResolutionIndex, VSync, DefaultSpeed, Difficulty, Ironman) zaten `SettingsSystem` üzerinden user://settings.json'da kalıcıydı (M1.5).
+- `SaveSystem.WriteSave` (line ~463) `SettingsSystem.GetSaveData()` ve `LoadGameInternal` (line ~633) `SettingsSystem.LoadSaveData()` ile save/load'a zaten entegre (M12).
+- `--settings-test`: **PASSED** (exit 0) — DefaultSpeed/VSync/Difficulty/Ironman DTO A==B doğrulandı.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — ayarlar kayıt/yükleme ile birlikte determinizm korundu.
+- Kod değişikliği gerekmedi; doğrulama tamamlandı. TODO.md 36.3 → [x].

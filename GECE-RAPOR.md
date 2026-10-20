@@ -1321,3 +1321,39 @@ Akış zaten eksiksiz kablolu (MainMenu → ScenarioSelectPanel → GameManager.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--save-load-test` (A==B); ana menü → yeni oyun → ülke seçimi → karakter → oyun → pause → MAIN MENU akışı manuel olarak.
 
 **TODO.md:** 36.1 → [x]. 36.2, 36.3 bekliyor. `git commit` + `git push origin gece-calisma` yapılacak.
+
+## GECE-RAPOR — 2026-10-20 (gece-calisma dalı, otonom, M36.2 + M36.3 tamamlandı)
+
+**STOP.txt kontrolü:** yok — stop kancası engellemez.
+
+**ADIM 1 — M36.2 (İlk açılış rehberi / tutorial panel):**
+`Scripts/TutorialPanel.cs` (yeni): overlay `Control` FullRect + `MouseFilter.Stop` backdrop (`ColorRect` %60 siyah), `PanelContainer` 860×520 (1152×648'de sığar), `ProcessMode.Always`, ESC + "GOT IT" kapatır. `UITheme.PopIn/FadeOut/AddHoverScale/ApplyTheme`. "Don't show again" `CheckBox` → `SettingsSystem.TutorialSeen` kalıcı bayrak (user://settings.json, Save/Load A==B). UI metinleri İngilizce (Welcome to Rogue World + 7 ipucu). `TutorialPanel.OpenUnder(parent)` statik, `IsOpen` bayrağı, `_UnhandledInput` ESC.
+
+`Scripts/SettingsSystem.cs`: `TutorialSeen` prop + `SaveBlob`/`SettingsSave` DTO alanı + `Load`/`Save`/`GetSaveData`/`LoadSaveData`/`SetTutorialSeen(bool)` entegrasyonu.
+
+`Scripts/Game.cs`: `OnCharacterConfirmed` — `!SettingsSystem.TutorialSeen` ise `TutorialPanel.OpenUnder(this)`.
+
+**Test Sonuçları:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — TutorialSeen kaydedilir/yükler, determinizm bozulmadı.
+
+**ÖZET (M36.2 — 2026-10-20)**
+1. Değişen dosyalar: `Scripts/TutorialPanel.cs` (yeni), `Scripts/SettingsSystem.cs`, `Scripts/Game.cs`, `TODO.md` (36.2 [x]), `PROGRESS.md` (M36.2 DONE).
+2. Çözülemeyen şey: yok — M36.2 PASS.
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--save-load-test` (A==B); yeni oyun başlangıcında tutorial panelinin çıkması, "Don't show again" işaretli kapatınca bir daha çıkmaması.
+
+**ADIM 2 — M36.3 (Ayarlar menüsü kalıcılığı / settings persistence):**
+Ayarlar (MasterVolume, Fullscreen, ResolutionIndex, VSync, DefaultSpeed, Difficulty, Ironman) zaten `SettingsSystem` üzerinden user://settings.json'da kalıcıydı (M1.5) ve `SaveSystem.WriteSave`/`LoadGameInternal` ile save/load'a entegre (M12). Kod değişikliği gerekmedi; doğrulama tamamlandı.
+
+**Test Sonuçları:**
+- `--settings-test`: **PASSED** (exit 0) — DefaultSpeed/VSync/Difficulty/Ironman DTO A==B.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — ayarlar kayıt/yükleme ile birlikte determinizm korundu.
+
+**ÖZET (M36.3 — 2026-10-20)**
+1. Değişen dosyalar: yok (doğrulama sadece; kalıcılık M1.5/M12'de zaten implement edilmişti).
+2. Çözülemeyen şey: yok — M36.3 PASS.
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--settings-test` ve `--save-load-test` (A==B).
+
+**TODO.md:** 36.1, 36.2, 36.3 → [x]. M36 tamamlandı. `git commit` + `git push origin gece-calisma` yapılacak.

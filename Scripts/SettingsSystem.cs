@@ -14,6 +14,7 @@ public static class SettingsSystem
     public static int DefaultSpeed { get; private set; } = 0; // 0=pause, 1-5
     public static GameDifficulty Difficulty { get; private set; } = GameDifficulty.Normal;
     public static bool Ironman { get; private set; } = false;
+    public static bool TutorialSeen { get; private set; } = false; // M36.2: ilk açılış rehberi görüldü mü?
 
     public static readonly Vector2I[] Resolutions =
     {
@@ -38,6 +39,7 @@ public static class SettingsSystem
         public int DefaultSpeed { get; set; }
         public string Difficulty { get; set; }
         public bool Ironman { get; set; }
+        public bool TutorialSeen { get; set; }
     }
 
     public static void Load()
@@ -56,6 +58,7 @@ public static class SettingsSystem
             DefaultSpeed = Mathf.Clamp(blob.DefaultSpeed, 0, 5);
             Difficulty = Enum.TryParse<GameDifficulty>(blob.Difficulty, out var d) ? d : GameDifficulty.Normal;
             Ironman = blob.Ironman;
+            TutorialSeen = blob.TutorialSeen;
         }
         catch (System.Exception e)
         {
@@ -73,7 +76,8 @@ public static class SettingsSystem
             VSync = VSync,
             DefaultSpeed = DefaultSpeed,
             Difficulty = Difficulty.ToString(),
-            Ironman = Ironman
+            Ironman = Ironman,
+            TutorialSeen = TutorialSeen
         };
 
         using var f = FileAccess.Open(Path, FileAccess.ModeFlags.Write);
@@ -126,6 +130,13 @@ public static class SettingsSystem
         Save();
     }
 
+    public static void SetTutorialSeen(bool seen)
+    {
+        TutorialSeen = seen;
+        Save();
+        GD.Print($"SettingsSystem: TutorialSeen = {seen}");
+    }
+
     public static void Apply()
     {
         // Ses her ortamda uygulanabilir
@@ -175,6 +186,7 @@ public static class SettingsSystem
         public int DefaultSpeed { get; set; }
         public string Difficulty { get; set; }
         public bool Ironman { get; set; }
+        public bool TutorialSeen { get; set; }
     }
 
     public static SettingsSave GetSaveData()
@@ -187,7 +199,8 @@ public static class SettingsSystem
             VSync = VSync,
             DefaultSpeed = DefaultSpeed,
             Difficulty = Difficulty.ToString(),
-            Ironman = Ironman
+            Ironman = Ironman,
+            TutorialSeen = TutorialSeen
         };
     }
 
@@ -202,6 +215,7 @@ public static class SettingsSystem
         DefaultSpeed = Mathf.Clamp(s.DefaultSpeed, 0, 5);
         Difficulty = Enum.TryParse<GameDifficulty>(s.Difficulty, out var d) ? d : GameDifficulty.Normal;
         Ironman = s.Ironman;
+        TutorialSeen = s.TutorialSeen;
     }
 
     public static void ResetForNewGame()

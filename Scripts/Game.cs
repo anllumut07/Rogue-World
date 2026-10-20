@@ -225,6 +225,10 @@ public partial class Game : Control
     {
         GameManager.Instance.SetCharacter(character);
         GD.Print($"[Game] Karakter onaylandı ve oyuncu olarak ayarlandı: {character.FullName}");
+
+        // M36.2: İlk açılış rehberini göster (daha önce görülmediyse).
+        if (!SettingsSystem.TutorialSeen)
+            TutorialPanel.OpenUnder(this);
     }
 
     private void OnCountryDeselected()

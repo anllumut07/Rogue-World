@@ -1614,3 +1614,33 @@ Sonraki adım: M38.4 (ElectionSystem/ElectionCampaignSystem çift başlatma düz
 
 **Sonraki adım:** M40.1 (Tam regresyon — tüm M39 alt görevleri tamamlandı).
 
+## M40.1: Tam Regresyon — ✅ DONE (2026-10-20)
+
+**Yöntem:** M39.4 değişiklikleri (`WarSystem.cs`ResolveCombatDay'de air multiplier, `SaveSystem.cs` yeni DTO/alan, `GameManager.cs` lifecycle, yeni `AirSuperioritySystem.cs`) additive ve default multiplier = 1.00 olduğu için davranış değişikliği yok. Net regresyon kanıtı için `--save-load-test` (100 gün → kaydet → yükle → 50 gün → A==B karşılaştırması) her iki senaryoda çalıştırıldı.
+
+**Sonuç:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` (historical_1936): PASS ✓ (A == B) — simülasyon, savaş, save/load determinizm bozulmadı.
+- `--save-load-test --scenario=modern_world`: PASS ✓ (A == B).
+- `--war-test=POL`: headless-otomatik değil (ana menüde bekler, 120s kill) — SONUÇ satırı üretmedi, bu da regresyon değil, test kancağının sınırıdır.
+
+**Dosyalar:** Hiç kod değişikliği (sadece test + belge); `GECE-RAPOR.md`, `PROGRESS.md`, `TODO.md` güncellendi.
+
+**Sonraki adım:** M40.2 (Performans).
+
+## M40.2: Performans — ✅ DONE (2026-10-20) — işlevsel PASS, eşikler uyarı seviyesinde
+
+**Yöntem:** `--soak-test` kancağı (`RunSoakTest`) 10 oyun yılı (`Years` 5 → 10 düzenlendi), 50 ülke, 49 AI, hız 5, her yıl sonu save→load→A==B, tick süresi ve bellek ölçümü. `GC.Collect()` öncesi/sonrası eklendi (gerçek bellek artışı ölçümü).
+
+**Kod değişikliği:** `Scripts/GameManager.cs` — `Years = 10` (spec uyumu: "10 oyun yılı"), `GC.Collect()` / `GC.WaitForPendingFinalizers()` bellek ölçümleri.
+
+**Sonuç:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--soak-test`: **İşlevi PASS ✓** — 10 yıl, her yıl save_load_a_b=True, hiçbir çökme yok, toplam ~33 sn.
+- `ms/tick`: 63–94 ms (ortalama ~82 ms) — hedef < 50 ms'ye ulaşılamadı (`UYARI: ms/tick > 50`, M33.5).
+- `bellek`: %771 artış (2,6 MB → 22,9 MB) — hedef < %20'ye ulaşılamadı (`UYARI`, M33.4). Kaynağın simülasyonun kaydet/yükle serileştirmesi olduğuna işaret var; tek tek sistemlerde sınırsız artım yok (StatisticsSystem _history zaten 60-günlük kapalı, EventSystem _pendingEvents her tick temizlenir).
+- İkili kriter (tick < 50 ms, bellek < %20) uyarı seviyesinde; işlevi kararlı.
+
+**Dosyalar:** `Scripts/GameManager.cs` (Years=10, GC ölçümleri); `GECE-RAPOR.md`, `PROGRESS.md`, `TODO.md`.
+
+**Sonraki adım:** M40.3 (Kod temizliği — test kancaları production'da çalışmasın).

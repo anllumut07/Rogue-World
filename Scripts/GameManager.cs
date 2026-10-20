@@ -4811,10 +4811,13 @@ public partial class GameManager : Node
         int provinceCount = ProvinceOwnershipSystem.GetSaveData().Count;
         GD.Print($"[SoakTest] İl: {provinceCount}");
 
-        const int Years = 5;
+        const int Years = 10;
         const int DaysPerYear = 30;
 
         var totalSw = System.Diagnostics.Stopwatch.StartNew();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
         long initialMemory = GC.GetTotalMemory(false);
 
         for (int year = 1; year <= Years && ok; year++)
@@ -4864,6 +4867,9 @@ public partial class GameManager : Node
         }
 
         totalSw.Stop();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
         long finalMemory = GC.GetTotalMemory(false);
         double memPct = initialMemory > 0 ? (double)(finalMemory - initialMemory) / initialMemory * 100.0 : 0;
         GD.Print($"[SoakTest] Toplam süre: {totalSw.Elapsed.TotalSeconds:F1} sn");

@@ -802,6 +802,8 @@ public partial class GameManager : Node
         SupplySystem.DailyTick();
         // M39.2: Deniz invazyonu günlük ilerlemesi (denizden indirme / karşıdan karşıya indirme).
         NavalInvasionSystem.DailyTick();
+        // M39.3: Ordu morali günlük tick'i (varsayılan değere doğru toparlanma).
+        MoraleSystem.DailyTick();
 
         // M8: Diplomasi sistemi
         DiplomacySystem.DailyTick();
@@ -1013,6 +1015,8 @@ public partial class GameManager : Node
         SupplySystem.Initialize(data);
         // Deniz invazyonu sistemini başlat (M39.2)
         NavalInvasionSystem.Initialize(data);
+        // Ordu morali sistemini başlat (M39.3)
+        MoraleSystem.Initialize(data);
         // Diplomasi sistemini başlat (M8)
         DiplomacySystem.Initialize(data);
         // M17A: Casus belli sistemini başlat — gerekçe/iddia/ateşkes/meşruiyet
@@ -1138,6 +1142,8 @@ public partial class GameManager : Node
         SupplySystem.ResetForNewGame();
         // M39.2: Deniz invazyonu sistemini yeni oyun için sıfırla.
         NavalInvasionSystem.ResetForNewGame();
+        // M39.3: Ordu morali sistemini yeni oyun için sıfırla.
+        MoraleSystem.ResetForNewGame();
 
         // M29.5: Casus kiralama havuzunu yeni oyun için başlat.
         EspionageSystem.InitializeRentalPool(TotalDays);

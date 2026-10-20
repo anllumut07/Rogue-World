@@ -61,6 +61,7 @@ public static class SaveSystem
         public WarSave War { get; set; }
         public SupplySave Supply { get; set; } // M39.1: ikmal durumu
         public NavalInvasionSave NavalInvasion { get; set; } // M39.2: deniz invazyonu durumu
+        public MoraleSave Morale { get; set; } // M39.3: ordu morali durumu
         public DiplomacySave Diplomacy { get; set; }
         public CasusBelliSave CasusBelli { get; set; } // M17A: gerekçe/ateşkes/meşruiyet
         public FocusSave Focus { get; set; }
@@ -199,6 +200,18 @@ public static class SaveSystem
         public float SupplyLevel { get; set; }
         public int DaysOutOfSupply { get; set; }
     }
+
+    // ===== Ordu morali DTOs (M39.3) =====
+    public class MoraleSave
+    {
+        public MoraleEntry[] States { get; set; }
+    }
+    public class MoraleEntry
+    {
+        public string ArmyId { get; set; }
+        public int Morale { get; set; }
+    }
+
 
     // ===== Deniz invazyonu DTOs (M39.2) =====
     public class NavalInvasionSave
@@ -467,6 +480,7 @@ public static class SaveSystem
             War = WarSystem.GetSaveData(),
             Supply = SupplySystem.GetSaveData(), // M39.1: ikmal durumu
             NavalInvasion = NavalInvasionSystem.GetSaveData(), // M39.2: deniz invazyonu durumu
+            Morale = MoraleSystem.GetSaveData(), // M39.3: ordu morali durumu
             Diplomacy = DiplomacySystem.GetSaveData(),
             CasusBelli = CasusBelliSystem.GetSaveData(),
             Focus = FocusSystem.GetSaveData(),
@@ -613,6 +627,7 @@ public static class SaveSystem
             WarSystem.LoadSaveData(save.War);
             SupplySystem.LoadSaveData(save.Supply); // M39.1: ikmal durumu
             NavalInvasionSystem.LoadSaveData(save.NavalInvasion); // M39.2: deniz invazyonu durumu
+            MoraleSystem.LoadSaveData(save.Morale); // M39.3: ordu morali durumu
             DiplomacySystem.LoadSaveData(save.Diplomacy);
             CasusBelliSystem.LoadSaveData(save.CasusBelli);
             FocusSystem.LoadSaveData(save.Focus);

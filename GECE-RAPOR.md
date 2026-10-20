@@ -1587,3 +1587,16 @@ Sonraki adım: M38.4 (ElectionSystem/ElectionCampaignSystem çift başlatma düz
 
 **Sonraki adım:** M39.3 (Ordu morali).
 
+## M39.3: Ordu Moralı — ✅ DONE (2026-10-20)
+
+- Yeni dosya: `Scripts/MoraleSystem.cs` — statik sınıf, her ordu için morale (0-100) takibi (`DefaultMorale=50`, `MinMorale=0`, `MaxMorale=100`); varsayılan değere günde ±1 toparlanma. Düşük morale (%20 ve altı) → %0.60 saldırı/savunma çarpanı, %50 ve üzeri → tam %1.00 (ara değerler lineer). `DailyTick()`, `GetCombatMoraleMultiplier(armyId)`, `ApplyCombatResult(armyId, won, intensityBonus)`, `GetMorale`/`SetMorale`/`ModifyMorale` API'leri.
+- `Scripts/WarSystem.cs`: `ResolveCombatDay`'de her tümen katkısı (`attP`/`defP`) ordunun morale çarpanıyla çarpılır (`supMult * morMult`).
+- `Scripts/GameManager.cs`: `MoraleSystem.Initialize(data)` (Initialize), `MoraleSystem.ResetForNewGame()` (ResetForNewGame), `MoraleSystem.DailyTick()` (DailyTick) entegrasyonu.
+- `Scripts/SaveSystem.cs`: `MoraleSave`/`MoraleEntry` DTO'ları + `SaveFile.Morale` alanı; kaydet/yükle çağrıları eklendi.
+
+**Testler:** `dotnet build` 0 hata / 0 uyarı; `--save-load-test` (historical_1936) PASS (A==B); `--save-load-test --scenario=modern_world` PASS (A==B).
+
+**Dosyalar:** `Scripts/MoraleSystem.cs` (yeni), `Scripts/WarSystem.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (39.3 [x]), `PROGRESS.md` (M39.3 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M39.4 (Hava üstünlüğü bonusu).
+

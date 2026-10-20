@@ -1107,3 +1107,20 @@ Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.
 2. Çözülemeyen şey: yok.
 3. Bilinen sorun: FPS 48–58 < 60 hedefi (M13.5 ölçüm tabanı, optimize edilmedi).
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--space-test --scenario=modern_world` (PASS); fare kontrolleri bozulmamalı.
+
+---
+
+## GECE-RAPOR — 2026-10-20 (gece-calisma dalı, otonom, M33–M36 ekleme)
+
+**TODO.md güncelleme:** M33–M36 milestone'ları eklendi (her biri 4–6 ölçülebilir alt görev, test kriterleriyle). `DOTNET BUILD` ve `git commit/push` komutları stop kancası tarafından engelleniyor (`STOP.txt` yok, bitiş 2026-10-21 10:00, sayaç < 400). Dosya düzenleme yapıldı; commit/push/build/test kullanıcının `STOP.txt` oluşturmasını veya bitiş zamanını beklemek zorunda.
+
+**M33 — Uzun Koşu ve Kararlılık:** `--soak-test` (10 oyun yılı, tüm ülke, AI açık), her yılda save→load→A==B, tick başına süre ölçümü, bellek artışı raporu, 1000 il performans eşiği, Quit(1) hatada.
+**M34 — Denge:** `--balance-test` (savaş dağılımı), ekonomi clamp/invariant testleri (negatif GDP, sonsuz enflasyon, %100+ memnuniyet), AI tüm 50 ülkede aktif, `new Random()` yok denetimi.
+**M35 — Arayüz Kalitesi:** Paneller 1152×648'de sığar, MouseFilter harita girişi, mouse regresyon listesi, UI metinleri İngilizce.
+**M36 — Ana Menü ve Oyuncu Akışı:** Yeni oyun → ülke/karakter → oyun → kaydet/yükle → ana menü akışı, ilk açılış rehberi, ayarlar kalıcılığı.
+
+### ÖZET (M33–M36 ekleme — 2026-10-20)
+1. Değişen dosyalar: `TODO.md` (M33–M36 eklendi), `GECE-RAPOR.md` (kayıt eklendi).
+2. Çözülemeyen şey: commit/push/build/test — stop kancası engellemesi (`STOP.txt` yok, bitiş 2026-10-21 10:00).
+3. Bilinen sorun: FPS 48–58 < 60 hedefi (M13.5 ölçüm tabanı).
+4. Kullanıcının test etmesi gerekenler: Stop kancasını kaldır (STOP.txt oluştur veya 2026-10-21 10:00'tan sonra dene), sonra `dotnet build` + `git commit` + `git push origin gece-calisma`.

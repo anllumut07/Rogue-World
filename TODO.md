@@ -530,3 +530,52 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 🔄 **FAZ 2: Gerçek Dünya Simülasyonu** — Yön değişikliği onaylandı: oyun güncel dünyayı simüle edecek (oyuncu karakter, kurgusal liderler, yavaş tempo, iller, istatistikler, seçimler...). Plan TODO.md'de "FAZ 2" bölümünde (M15-M32). Eski M13/M14 Faz 2 sonrasına ertelendi.
 
 **DUR: Kullanıcı onayı bekleniyor** — M15 manuel testleri: (1) ülke kilitleyince bir ülkeye tıkla → küçük kart, tam panel açılmamalı; (2) ana menü + HUD'daki LIBRARY; (3) ESC → SAVE/LOAD: üzerine yazma/silme onayları, iptal dosyayı korur; (4) bozuk kayıt dosyası → hata mesajı; (5) zoom out → okyanus, zoom in → deniz etiketleri; (6) mouse: sağ tık sürükleme/tekerlek/WASD/ülke seçimi bozulmadı. Onay sonrası → **Milestone 16: Zaman ve Tempo**.
+
+---
+
+### 📋 Milestone 33: Uzun Koşu ve Kararlılık
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 33.1 | `--soak-test` kancağı: varsayılan 10 oyun yılı, tüm 50 ülke, AI açık, headless çalıştırma | `dotnet build` 0/0; `--soak-test` çalışır, çıkış kodu 0 | [ ] |
+| 33.2 | Her oyun sonunda save→load→A==B determinizm kontrol noktası (10 oyun yılı boyunca) | Her sonunda save-load A==B PASS; istisna/hata yok | [ ] |
+| 33.3 | Tick başına süre ölçümü ve log'a yazma (ms/tick) | Ortalama tick süresi < 50 ms; log dosyasında kayıtlı | [ ] |
+| 33.4 | Bellek artışı raporu (10 oyun yılı sonrası bellek kullanımı) | Bellek artışı < %20 başlangıçtan; rapor logged | [ ] |
+| 33.5 | 1000 il ile performans eşikleri; eşiği aşarsa en yavaş 3 sistemi optimize et | FPS > 30 hız 5'te; en yavaş 3 sistem profil çıkar ve optimize edilir | [ ] |
+| 33.6 | Başarısızlıkta Quit(1) | Her hata/istisnada Quit(1); kendi kendine kapanır | [ ] |
+
+---
+
+### 📋 Milestone 34: Denge
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 34.1 | `--balance-test`: savaş sonuçlarının dağılımı (savaş sayısı, kazanan/yenilen oranı) | Savaş dağılımı makul; AI saldırı oranı %5–%30 arası | [ ] |
+| 34.2 | Ekonomi göstergeleri clamp/invariant testleri: negatif GDP, sonsuz enflasyon, %100+ memnuniyet yok | Tüm göstergeler [Min,Max] aralığında; negatif GDP yok | [ ] |
+| 34.3 | AI'nin tüm 50 ülkede aktif olması (sadece ~49 değil) | Tüm 50 ülkede AI odak/inşaat/savaş hareketi var | [ ] |
+| 34.4 | Deterministik RNG kullanımı kontrolü: `new Random()` yok | Kod taraması `new Random()` bulmuyor | [ ] |
+
+---
+
+### 📋 Milestone 35: Arayüz Kalitesi
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 35.1 | Tüm panellerin 1152×648'e sığması (kod incelemesi + boyut sabitleri) | Panel boyutları 1152×648 sınırı içinde; kod incelemesi onaylı | [ ] |
+| 35.2 | Harita girdisi açıkken blokla/kapanınca geri ver (MouseFilter denetimi) | MouseFilter.Stop backdrop testleri geçer | [ ] |
+| 35.3 | Panel açma/kapama mouse davranışı regresyon listesi (sağ tık sürükleme, tekerlek, WASD, ülke seçimi) | Regresyon listesi yazıldı; kodla kontrol edildi; hiçbiri bozulmadı | [ ] |
+| 35.4 | UI metinlerini düzelt (İngilizce UI, tutarsızlıklar) | Tüm UI metinleri İngilizce; tutarsızlık yok | [ ] |
+
+---
+
+### 📋 Milestone 36: Ana Menü ve Oyuncu Akışı
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 36.1 | Yeni oyun → ülke/karakter seçimi → oyun → kaydet/yükle → ana menüye dön akışı | Akış bozulmadan çalışır; her adım test geçer | [ ] |
+| 36.2 | İlk açılış rehberi (kısa tutorial metni/ipuçları) | Rehber panel açılır; ipuçları görünür | [ ] |
+| 36.3 | Ayarlar menüsü kalıcılığı (ses, hız, çözünürlük) | Ayarlar kapatıp açınca korunur; save-load'ta A==B | [ ] |
+
+---
+
+## Notlar

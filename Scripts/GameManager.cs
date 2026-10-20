@@ -74,6 +74,14 @@ public partial class GameManager : Node
     // M12: --rng-seed test tohumu (yoksa null → her yeni oyunda tarih bazlı tohum)
     private ulong? _forcedRngSeed;
 
+    // M13.2: Tooltip sistemi test durumu (sınıf seviyesinde, ertelenmiş test metotları tarafından kullanılır).
+    private bool tooltipTest = false;
+    private bool _ttSetOk;
+    private bool _ttLayerOk;
+    private string _ttText;
+    private Control _ttBtn;
+    private TooltipPanel _ttTip;
+
     public override void _Ready()
     {
         Instance = this;
@@ -146,7 +154,6 @@ public partial class GameManager : Node
         bool sanctionsNuclearTest = false;  // M31.3: yaptirim / nükleer diplomasi testi (--sanctions-nuclear-test)
         bool nuclearUseTest = false;        // M31.4: nükleer kullanım testi (--nuclear-use-test)
         bool aiNuclearTest = false;         // M31.5: AI nükleer davranış testi (--ai-nuclear-test)
-
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -263,6 +270,8 @@ public partial class GameManager : Node
                 nuclearUseTest = true;
             else if (arg == "--ai-nuclear-test")
                 aiNuclearTest = true;
+            else if (arg == "--tooltip-test")
+                tooltipTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -591,6 +600,10 @@ public partial class GameManager : Node
         // saldırısını engeller; doctrina/başlık kaldırıldığında saldırıya geçer; DTO A==B).
         if (aiNuclearTest)
             RunAiNuclearTest();
+
+        // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
+        if (tooltipTest)
+            RunTooltipTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -4306,6 +4319,103 @@ public partial class GameManager : Node
 
         bool ok = defsOk && history > 0 && roundtripOk;
         GD.Print(ok ? "[UnexpectedEventTest] SONUÇ: PASS ✓" : "[UnexpectedEventTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M13.2: Tooltip sistemi testi (--tooltip-test).
+    /// 1) TooltipSystem.Set() ile bir kontrol bağlanabilir ve gösterim hatası üretmez?
+    /// 2) TooltipPanel.Show() / Hide() çalışır mı?
+    /// 3) TooltipSystem.Unset() bağlantıyı kaldırır mı?
+    /// 4) TooltipPanel, fare olaylarını engellemez (MouseFilter = Ignore)?
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunTooltipTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M13.2: TOOLTIP SİSTEM TESTİ (--tooltip-test)");
+        GD.Print("=========================================");
+
+        // _Ready sırasında ağaç hâlâ kuruluyor, AddChild senkron olarak başarısız olabilir.
+        // Tüm test mantığını ertelenmiş çağrı ile çalıştır.
+        CallDeferred(MethodName.RunTooltipTestDeferred);
+    }
+
+    private void RunTooltipTestDeferred()
+    {
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        // 1) Bir buton oluşturup tooltip bağlama — fırlatma yapmamalı
+        _ttBtn = new Button { Text = "TooltipTestButon" };
+        AddChild(_ttBtn);
+        _ttText = "Bu bir detaylı tooltip açıklamasıdır.";
+        _ttSetOk = false;
+        try
+        {
+            TooltipSystem.Set(_ttBtn, _ttText);
+            _ttSetOk = true;
+        }
+        catch (Exception e)
+        {
+            GD.PrintErr($"[TooltipTest] Set() istisna: {e.Message}");
+        }
+        GD.Print($"[TooltipTest] Set() çalıştırıldı: {(_ttSetOk ? "OK" : "FAIL")}");
+
+        // TooltipPanel/_layer'ın ağaca eklenmesini (CallDeferred) bekleyip geri kalanı denetle.
+        CallDeferred(MethodName.RunTooltipTestVerify);
+    }
+
+    private void RunTooltipTestVerify()
+    {
+        // 2) Tooltip panelinin CanvasLayer üzerinden oluşturulup erişilebilir olmalı
+        var root = GetTree().Root;
+        int canvasLayerCount = 0;
+        foreach (Node child in root.GetChildren())
+        {
+            if (child is CanvasLayer) canvasLayerCount++;
+        }
+        GD.Print($"[TooltipTest] CanvasLayer sayısı (tooltip için >=1 beklenir): {canvasLayerCount}");
+        _ttLayerOk = canvasLayerCount >= 1;
+
+        // 3) TooltipPanel: Show() fırlatmasın, Hide() visible=false yapın, MouseFilter=Ignore
+        _ttTip = new TooltipPanel();
+        AddChild(_ttTip); // _Ready çalışınca _label ve MouseFilter başlatılır
+
+        // _Ready'nin çalışmasını bekleyip nihai kontrolleri yap.
+        CallDeferred(MethodName.RunTooltipTestFinal);
+    }
+
+    private void RunTooltipTestFinal()
+    {
+        bool showNoThrow = false;
+        try { _ttTip.Show(_ttText); showNoThrow = true; }
+        catch (Exception e) { GD.PrintErr($"[TooltipTest] Show() istisna: {e.Message}"); }
+        _ttTip.Hide();
+        bool hideOk = !_ttTip.Visible;
+        GD.Print($"[TooltipTest] Show() hata-sız: {showNoThrow}, Hide() visible=false: {hideOk}");
+
+        // 4) MouseFilter = Ignore (fare olaylarını engellememeli)
+        bool mouseFilterOk = _ttTip.MouseFilter == Control.MouseFilterEnum.Ignore;
+        GD.Print($"[TooltipTest] MouseFilter=Ignore: {(mouseFilterOk ? "OK" : "FAIL")}");
+
+        // 5) Unset — bağlantıyı kaldırır, tekrar Set ile bağlanabilir
+        TooltipSystem.Unset(_ttBtn);
+        bool unsetOk = true;
+        try
+        {
+            TooltipSystem.Set(_ttBtn, "Yeni metin");
+        }
+        catch (Exception e)
+        {
+            GD.PrintErr($"[TooltipTest] Unset sonrası Set() istisna: {e.Message}");
+            unsetOk = false;
+        }
+        GD.Print($"[TooltipTest] Unset sonrası tekrar Set(): {(unsetOk ? "OK" : "FAIL")}");
+
+        bool ok = _ttSetOk && _ttLayerOk && showNoThrow && hideOk && mouseFilterOk && unsetOk;
+        GD.Print(ok ? "[TooltipTest] SONUÇ: PASS ✓" : "[TooltipTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

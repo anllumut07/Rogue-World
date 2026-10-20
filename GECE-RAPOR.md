@@ -977,3 +977,51 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 **M32.6 — ✅ DONE:** `Scripts/MainMenu.cs`: `BuildBackground()`'a tüm ekranı kaplayan yarı saydam koyu overlay eklendi (ColorRect, alpha 0.45). Grid drift, background breathe, vignette, altın başlık korundu. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.
 
 Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.
+
+## M13.1: Ses Sistemi (AudioSystem) — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:** `Scripts/AudioSystem.cs` — statik ses sistemi; prosedürel sinüs tonu `AudioStreamGenerator` ile üretilir (ses dosyası yok). `PlayMenuMusic()` (220 Hz ambient, 10 sn), `PlayGameMusic()` (330 Hz, 10 sn), `StopMusic()`, `PlayUIClick()` (880 Hz), `PlayWarSound()` (220 Hz), `PlayPeaceSound()` (660 Hz), `PlayEventSound()` (440 Hz), `SetVolume(v01)` → `AudioServer.SetBusVolumeDb(0, db)` (`SettingsSystem.MasterVolume`). Godot 4 C# API: `player.Play()` → `GetStreamPlayback()` → `Playback.PushBuffer(Vector2[])`; her oynatma için yeni (boş) generator (`ClearBuffer` engellenir, `Looping` yok). `Initialize(Node)` iki `AudioStreamPlayer` (müzik + SFX) ekler; `ResetForNewGame()` müzik durdurur.
+
+**Değiştirilen dosyalar:**
+- `Scripts/Game.cs`: `AudioSystem.PlayGameMusic()` — oyun sahnesinde çağrılıyor.
+- `Scripts/GameManager.cs`: `AudioSystem.Initialize(this)` — başlatma.
+- `Scripts/MainMenu.cs`: `AudioSystem.PlayMenuMusic()` — ana menüde çağrılıyor.
+- `RogueWorld.csproj`: `<GenerateAssemblyInfo>false</GenerateAssemblyInfo>` + `<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>` (Godot.NET.Sdk `WriteCodeFragment` zaten assembly attribute'lerini emit ediyor; duplicate CS0579 hatasını giderir).
+- `TODO.md`: M13.1 satırına Durum sütunu eklendi, `[x] Bitti (2026-10-20)` işaretlendi.
+- `PROGRESS.md`: M13.1 DONE bölümü eklendi.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — ses sistemi kayıt/yüklemeyi bozmuyor, stderr'de ses hatası yok.
+
+**Çözülemeyen şey:** yok — M13.1 %100 tamamlandı.
+
+**Bilinen sorun:** ses dosyası (müzik/tık) henüz yok; prosedürel sinüs tonu kullanılıyor, gerçek dosya kullanıcı tarafından eklenecek (M13 notunda zaten belirtilmiş).
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--save-load-test --scenario=modern_world` (A==B).
+
+### ÖZET (M13.1 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/AudioSystem.cs` (yeni — prosedürel ses altyapısı), `Scripts/Game.cs`, `Scripts/GameManager.cs`, `Scripts/MainMenu.cs` (AudioSystem entegrasyonu), `RogueWorld.csproj` (duplicate attribute düzeltmesi), `TODO.md` (13.1 [x]), `PROGRESS.md` (M13.1 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M13.1 %100 tamamlandı (build 0/0, save-load-test A==B PASS).
+3. Bilinen sorun: gerçek ses dosyası yok; prosedürel sinüs tonu ile geçici olarak çalışıyor.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--save-load-test --scenario=modern_world` (A==B).
+
+## M13.2: Tooltip Sistemi — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:** `Scripts/TooltipSystem.cs` — statik tooltip sistemi; `Set(Control, string)` metni bağlar ve built-in `Control.TooltipText`’i devre dışı bırakır, `Unset(Control)` bağlantıyı kaldırır, `Ensure(Control)` CanvasLayer (Layer=200) + TooltipPanel’i ağaca erteleyen şekilde ekler (`TreeEntered` retry ile `_Ready` sırasında “Parent node is busy” önlenir). `MouseEntered`/`MouseExited` ile Show/Hide yönettiği. `Scripts/TooltipPanel.cs` — `Control` alt sınıfı; koyu tema (UITheme), 0.22s gecikmeli gösterim, `MouseFilter=Ignore` (fare olayını engellemez), fareyle birlikte hareket eder ve viewport sınırları içinde kalır; `Show(string)` / `new void Hide()` / `Reveal(string)`.
+
+**Değiştirilen dosyalar:** `Scripts/GameManager.cs` — `tooltipTest` bayrağı + `_ttSetOk/_ttLayerOk/_ttText/_ttBtn/_ttTip` sınıf-seviyesi alanları (sınıf seviyesine taşınarak derleme hatası giderildi); `--tooltip-test` argümanı ve `RunTooltipTest()` + 4 ertelemeli aşama (`RunTooltipTestDeferred`, `RunTooltipTestVerify`, `RunTooltipTestFinal`) — Set/Show/Hide/Unset/CanvasLayer/MouseFilter doğrular.
+
+**Testler:** `dotnet build`: 0 hata / 0 uyarı. `--tooltip-test`: **SONUÇ: PASS ✓**. `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — tooltip sistemi kayıt/yüklemeyi bozmuyor.
+
+**Çözülemeyen şey:** yok — M13.2 %100 tamamlandı.
+
+**Bilinen sorun:** yok.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--tooltip-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).
+
+### ÖZET (M13.2 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/TooltipSystem.cs` (yeni), `Scripts/TooltipPanel.cs` (yeni), `Scripts/GameManager.cs` (tooltip test alanları + test kancaları), `TODO.md` (13.2 [x]), `PROGRESS.md` (M13.2 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M13.2 %100 tamamlandı (build 0/0, tooltip-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--tooltip-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).

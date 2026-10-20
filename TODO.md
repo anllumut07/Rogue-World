@@ -491,13 +491,13 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 *(Eski M13 ve M14 — Faz 2 tamamlandıktan sonra uygulanır.)*
 
 ### 📋 Milestone 13: Cila / UI / Ses / Performans
-| Alt Görev | Açıklama | Test Kriteri |
-|-----------|----------|--------------|
-| 13.1 | Ses: menü müziği, oyun müziği, UI tık/savaş/barış/olay sesleri, volume slider | Sesler çalar, ayarlar kaydedilir |
-| 13.2 | Tooltip sistemi: her UI elemanında hover → detaylı açıklama | Tooltip'ler görünür, faydalı bilgi verir |
-| 13.3 | Harita modları: Political (ülke renkleri), Terrain, Supply, Factories, Resources, Air zones | Mod seçimi harita görünümünü değiştirir |
-| 13.4 | Ayarlar: grafik (vsync, fullscreen, resolution), ses, oyun (hız, difficulty, ironman) | Ayarlar uygulanır, kaydedilir |
-| 13.5 | Performans: 1936-1948 arası 5 hızında 60 FPS (yıllık ~10 saniye), 180 ülke + 5000+ bölük | Profiling: CPU/GPU/MS upto date |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 13.1 | Ses: menü müziği, oyun müziği, UI tık/savaş/barış/olay sesleri, volume slider | Sesler çalar, ayarlar kaydedilir | ✅ Bitti (2026-10-20) |
+| 13.2 | Tooltip sistemi: her UI elemanında hover → detaylı açıklama | Tooltip'ler görünür, faydalı bilgi verir | ✅ Bitti (2026-10-20) |
+| 13.3 | Harita modları: Political (ülke renkleri), Terrain, Supply, Factories, Resources, Air zones | Mod seçimi harita görünümünü değiştirir | |
+| 13.4 | Ayarlar: grafik (vsync, fullscreen, resolution), ses, oyun (hız, difficulty, ironman) | Ayarlar uygulanır, kaydedilir | |
+| 13.5 | Performans: 1936-1948 arası 5 hızında 60 FPS (yıllık ~10 saniye), 180 ülke + 5000+ bölük | Profiling: CPU/GPU/MS upto date | |
 
 ---
 

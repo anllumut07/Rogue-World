@@ -63,7 +63,7 @@ public partial class ScenarioSelectPanel : CanvasLayer
 
         GD.Print($"[ScenarioSelectPanel] OpenUnder — parent={parent?.GetType().Name ?? "null"}");
         var panel = new ScenarioSelectPanel();
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
     }
 
     private void BuildUi()

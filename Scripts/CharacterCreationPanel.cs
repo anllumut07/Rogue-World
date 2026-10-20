@@ -36,11 +36,34 @@ public partial class CharacterCreationPanel : Control
     private Character _character;
     private List<CountryData> _countries;
 
+    // M24.1 düzeltme: kültür artık seçilebilir (LeaderSystem kültür anahtarlarıyla aynı
+    // küme — ülke kültürü önseçili gelir, oyuncu değiştirebilir).
+    public static readonly (string key, string label)[] CultureOptions =
+    {
+        ("anglo", "Anglo"), ("germanic", "Germanic"), ("latin", "Latin"), ("slavic", "Slavic"),
+        ("nordic", "Nordic"), ("greek", "Greek"), ("turkish", "Turkish"), ("arabic", "Arabic"),
+        ("iranian", "Iranian"), ("south_asian", "South Asian"), ("east_asian", "East Asian"),
+        ("southeast_asian", "Southeast Asian"), ("african", "African"), ("hungarian", "Hungarian"),
+    };
+
+    private static int IndexOfCulture(string key)
+    {
+        for (int i = 0; i < CultureOptions.Length; i++)
+            if (CultureOptions[i].key == key) return i;
+        return 0;
+    }
+
+    private void OnCultureSelected(long idx)
+    {
+        if (idx < 0 || idx >= CultureOptions.Length) return;
+        _character.CultureKey = CultureOptions[(int)idx].key;
+    }
+
     public static void OpenUnder(Node parent, Action<Character> onConfirmed = null)
     {
         if (IsOpen) return;
         var panel = new CharacterCreationPanel { OnConfirmed = onConfirmed };
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
     }
 
     public override void _Ready()
@@ -132,9 +155,10 @@ public partial class CharacterCreationPanel : Control
         _content.AddChild(FormRow("Birth Country:", out _countryInput));
         _countryInput.ItemSelected += OnCountrySelected;
 
-        // Kültür (otomatik, salt okunur)
+        // Kültür (seçilebilir — ülke kültürü önseçili; LeaderSystem kültür anahtarlarıyla aynı)
         _content.AddChild(FormRow("Culture:", out _cultureInput));
-        _cultureInput.Disabled = true;
+        foreach (var c in CultureOptions) _cultureInput.AddItem(c.label);
+        _cultureInput.ItemSelected += OnCultureSelected;
 
         // Köken
         _content.AddChild(FormRow("Background:", out _backgroundInput));
@@ -343,8 +367,8 @@ public partial class CharacterCreationPanel : Control
         _character.Law = generated.Law;
         _character.Traits = new List<string>(generated.Traits);
 
-        _cultureInput.Clear();
-        _cultureInput.AddItem(_character.CultureKey);
+        // Ülkenin kültürünü önseçil (tam liste BuildUi'de bir kez dolduruldu)
+        _cultureInput.Select(IndexOfCulture(_character.CultureKey));
 
         // Kökeni sıfırla (ilk = military)
         _backgroundInput.Selected = 0;
@@ -428,7 +452,7 @@ public partial class CharacterCreationPanel : Control
     private void UpdateStatus()
     {
         bool valid = !string.IsNullOrWhiteSpace(_character.FirstName) && _character.FirstName.Length >= 2;
-        _statusLabel.Text = valid ? "Karakter hazır — START GAME ile başlayın." : "İsim en az 2 karakter olmalı.";
+        _statusLabel.Text = valid ? "Character ready — press START GAME." : "Name must be at least 2 characters.";
         _statusLabel.AddThemeColorOverride("font_color", valid ? new Color(0.5f, 1f, 0.5f) : new Color(1f, 0.5f, 0.5f));
     }
 

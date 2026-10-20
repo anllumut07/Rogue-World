@@ -65,7 +65,7 @@ public partial class DiplomacyPanel : Control
         // 2) Yedek yol: koddan oluştur
         panel ??= new DiplomacyPanel();
 
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
         GD.Print($"[DiplomacyPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
     }
 

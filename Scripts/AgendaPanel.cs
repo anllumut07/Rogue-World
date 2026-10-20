@@ -60,7 +60,7 @@ public partial class AgendaPanel : CanvasLayer
 
         GD.Print($"[AgendaPanel] OpenUnder — parent={parent?.GetType().Name ?? "null"}");
         var panel = new AgendaPanel();
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
         return panel;
     }
 

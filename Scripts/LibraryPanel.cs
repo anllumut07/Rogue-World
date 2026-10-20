@@ -73,7 +73,7 @@ public partial class LibraryPanel : CanvasLayer
         GD.Print($"[LibraryPanel] OpenUnder — parent={parent?.GetType().Name ?? "null"}");
 
         var panel = new LibraryPanel();
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
         return panel;
     }
 

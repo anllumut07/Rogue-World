@@ -79,7 +79,7 @@ public partial class LoadGamePanel : CanvasLayer
         panel._fromMainMenu = fromMainMenu;
         panel._afterLoad = afterLoad;
 
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
     }
 
     private void BuildUi()

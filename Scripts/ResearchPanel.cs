@@ -60,7 +60,7 @@ public partial class ResearchPanel : Control
         // 2) Yedek yol: koddan oluştur
         panel ??= new ResearchPanel();
 
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
         GD.Print($"[ResearchPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
     }
 

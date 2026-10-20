@@ -52,7 +52,7 @@ public partial class FocusPanel : Control
         // 2) Yedek yol: koddan oluştur
         panel ??= new FocusPanel();
 
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
         GD.Print($"[FocusPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
     }
 

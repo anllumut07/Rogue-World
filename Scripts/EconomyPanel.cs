@@ -60,7 +60,7 @@ public partial class EconomyPanel : Control
         // 2) Yedek yol: koddan oluştur
         panel ??= new EconomyPanel();
 
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
         GD.Print($"[EconomyPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
     }
 

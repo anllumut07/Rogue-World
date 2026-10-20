@@ -23,7 +23,7 @@ public partial class OrganizationPanel : Control
 
         GD.Print("[OrganizationPanel] OpenUnder — parent=" + (parent?.GetType().Name ?? "null"));
         var panel = new OrganizationPanel();
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
     }
 
     public override void _Ready()

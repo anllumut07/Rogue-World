@@ -21,7 +21,7 @@ public partial class TutorialPanel : Control
     {
         if (IsOpen) return;
         var panel = new TutorialPanel();
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
     }
 
     public override void _Ready()

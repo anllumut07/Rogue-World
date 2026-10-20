@@ -51,7 +51,7 @@ public partial class MonthlyReportPanel : CanvasLayer
 
         GD.Print($"[MonthlyReportPanel] OpenUnder — parent={parent?.GetType().Name ?? "null"}");
         var panel = new MonthlyReportPanel();
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
         return panel;
     }
 

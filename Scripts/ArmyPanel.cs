@@ -70,7 +70,7 @@ public partial class ArmyPanel : Control
         // 2) Yedek yol: koddan oluştur
         panel ??= new ArmyPanel();
 
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
         GD.Print($"[ArmyPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
     }
 

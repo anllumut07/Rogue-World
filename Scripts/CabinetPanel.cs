@@ -22,7 +22,7 @@ public partial class CabinetPanel : Control
 
         GD.Print("[CabinetPanel] OpenUnder — parent=" + (parent?.GetType().Name ?? "null"));
         var panel = new CabinetPanel();
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
     }
 
     public override void _Ready()

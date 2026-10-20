@@ -31,7 +31,7 @@ public partial class ElectionPanel : Control
     {
         if (IsOpen) return;
         var panel = new ElectionPanel();
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
     }
 
     public override void _Ready()

@@ -65,7 +65,7 @@ public partial class DecisionPanel : Control
         //    _Ready içindeki SetAnchorsPreset(FullRect) kökü tam ekran yapar.
         panel ??= new DecisionPanel();
 
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
         GD.Print($"[DecisionPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
     }
 

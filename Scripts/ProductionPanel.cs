@@ -76,7 +76,7 @@ public partial class ProductionPanel : Control
         // 2) Yedek yol: koddan oluştur
         panel ??= new ProductionPanel();
 
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
         GD.Print($"[ProductionPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
     }
 

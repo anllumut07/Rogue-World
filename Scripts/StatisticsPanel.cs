@@ -27,7 +27,7 @@ public partial class StatisticsPanel : Control
 
         GD.Print($"[StatisticsPanel] OpenUnder — parent={parent?.GetType().Name ?? "null"}");
         var panel = new StatisticsPanel();
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
     }
 
     public override void _Ready()

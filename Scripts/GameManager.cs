@@ -140,6 +140,7 @@ public partial class GameManager : Node
         bool techTest = false;              // M31.1: modern silah teknolojisi testi (--tech-test)
         bool nuclearTest = false;           // M31.2: nükleer program testi (--nuclear-test)
         bool sanctionsNuclearTest = false;  // M31.3: yaptirim / nükleer diplomasi testi (--sanctions-nuclear-test)
+        bool nuclearUseTest = false;        // M31.4: nükleer kullanım testi (--nuclear-use-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -253,6 +254,8 @@ public partial class GameManager : Node
                 nuclearTest = true;
             else if (arg == "--sanctions-nuclear-test")
                 sanctionsNuclearTest = true;
+            else if (arg == "--nuclear-use-test")
+                nuclearUseTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -571,6 +574,11 @@ public partial class GameManager : Node
         // anlaşmadan çıkış, dünya gerilimi, kaydet/yükle A==B; başarısızlıkta Quit(1)).
         if (sanctionsNuclearTest)
             RunSanctionsNuclearTest();
+
+        // M31.4: Nükleer kullanım testi (saldırı, nüfus/ekonomi kaybı, radyasyon, gerilim, ilişkiler,
+        // karşı saldırı, caydırıcılık, kaydet/yükle A==B; başarısızlıkta Quit(1)).
+        if (nuclearUseTest)
+            RunNuclearUseTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -2988,6 +2996,108 @@ public partial class GameManager : Node
             && unFlagged && tradeRestricted && withdrawOk && agreementCycleOk && dtoRoundTrip && unSurvives;
 
         GD.Print(pass ? "[SanctionsNuclearTest] SONUÇ: PASS ✓" : "[SanctionsNuclearTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(pass ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M31.4: Nükleer kullanım testi — oyuncu nükleer saldırı başlatır; başlık tüketilir, hedefte
+    /// nüfus/ekonomi kaybı, radyasyon bölgesi, dünya gerilimi ve ilişkide büyük darba, Deterministik
+    /// karşı saldırı, kaydet/yükle A==B. Normal oyunda ASLA çalışmaz (--nuclear-use-test).
+    /// </summary>
+    private void RunNuclearUseTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M31.4: NÜKLEER KULLANIM TESTİ (--nuclear-use-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        if (Speed == 0) SetSpeed(0);
+
+        NuclearProgramSystem.EnableTestMode();
+        NuclearProgramSystem.SetTestCompletedStage(NuclearProgramSystem.NuclearStage.BomberDelivery);
+        NuclearProgramSystem.SetTestWarheads(1);
+
+        string playerId = PlayerCountryId;
+        var playerData = PlayerCountryData;
+        if (playerData != null) playerData.PoliticalPower = 5000;
+
+        // Hedef: oyuncuyu içermeyen, bağımsız ilk ülke
+        string targetId = null;
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c.Id != playerId && !c.IsAnnexed) { targetId = c.Id; break; }
+        }
+        if (targetId == null)
+        {
+            GD.Print("[NuclearUseTest] Uygun hedef ülke bulunamadı — test atlanıyor");
+            GD.Print("=========================================");
+            return;
+        }
+
+        bool allOk = true;
+        var targetData = CountryDatabase.Get(targetId);
+        float tensionBefore = DiplomacySystem.WorldTension;
+        int warheadsBefore = NuclearProgramSystem.Warheads;
+        long targetPopBefore = targetData.Population;
+        int targetFactoriesBefore = targetData.TotalFactories;
+        int relationBefore = DiplomacySystem.GetRelation(playerId, targetId);
+        int radiationBefore = NuclearProgramSystem.ActiveRadiationZones;
+        GD.Print($"[NuclearUseTest] {playerId} -> {targetId}: tension önce=%{tensionBefore:F1}, başlık={warheadsBefore}, " +
+                 $"hedef nüfus={targetPopBefore}, fabrika={targetFactoriesBefore}, ilişki={relationBefore}, radyasyon={radiationBefore}");
+
+        var (ok, reason, result) = NuclearProgramSystem.LaunchNuclearStrike(playerId, targetId);
+        GD.Print($"[NuclearUseTest] LaunchNuclearStrike: {(ok ? "OK" : "FAIL: " + reason)}");
+        if (!ok) { allOk = false; GetTree().Quit(1); return; }
+
+        // Başlık tüketilmiş olmalı
+        int warheadsAfter = NuclearProgramSystem.Warheads;
+        bool warheadConsumed = warheadsAfter == warheadsBefore - 1;
+        GD.Print($"[NuclearUseTest] Başlık sonrası={warheadsAfter} (once={warheadsBefore}, tüketildi={warheadConsumed})");
+        if (!warheadConsumed) allOk = false;
+
+        // Hedefte nüfus ve fabrika kaybı
+        bool targetDamaged = result.PopulationLost > 0 && result.FactoriesLost > 0;
+        GD.Print($"[NuclearUseTest] Hedef hasarı: nüfus −{result.PopulationLost}, fabrika −{result.FactoriesLost}, " +
+                 $"istikrar −{result.StabilityLoss:F0}, destek −{result.WarSupportLoss:F0}, zarar={targetDamaged}");
+        if (!targetDamaged) allOk = false;
+
+        // Radyasyon bölgesi oluşturulmuş olmalı
+        int radiationAfter = NuclearProgramSystem.ActiveRadiationZones;
+        float radIntensity = NuclearProgramSystem.GetRadiationIntensity(targetId, (int)TotalDays);
+        bool radiationActive = radiationAfter == radiationBefore + 1 && radIntensity > 0;
+        GD.Print($"[NuclearUseTest] Radyasyon sonrası={radiationAfter} (once={radiationBefore}), yoğunluk=%{radIntensity:P1}, aktif={radiationActive}");
+        if (!radiationActive) allOk = false;
+
+        // Dünya gerilimi artmış, ilişki bozulmuş olmalı
+        float tensionAfter = DiplomacySystem.WorldTension;
+        int relationAfter = DiplomacySystem.GetRelation(playerId, targetId);
+        GD.Print($"[NuclearUseTest] Tension sonrası=%{tensionAfter:F1} (delta={tensionAfter - tensionBefore:+#;-#;0}), " +
+                 $"ilişki sonrası={relationAfter} (delta={relationAfter - relationBefore})");
+        if (!(tensionAfter > tensionBefore && relationAfter < relationBefore)) allOk = false;
+
+        // Strike result alanları
+        bool resultOk = result != null && result.AttackerId == playerId && result.TargetId == targetId
+            && result.Day == (int)TotalDays && result.Radiation != null;
+        GD.Print($"[NuclearUseTest] StrikeResult bütünleşti={resultOk}, karşı saldırı={result.RetaliationTriggered}");
+        if (!resultOk) allOk = false;
+
+        // DTO kaydet/yükle A==B (başlık + radyasyon zonu kalıcı olmalı)
+        var beforeDto = NuclearProgramSystem.GetSaveData();
+        NuclearProgramSystem.LoadSaveData(beforeDto);
+        var afterDto = NuclearProgramSystem.GetSaveData();
+        bool dtoRoundTrip = afterDto.Warheads == beforeDto.Warheads
+            && afterDto.RadiationZones != null && afterDto.RadiationZones.Count == beforeDto.RadiationZones.Count
+            && afterDto.CompletedThrough == beforeDto.CompletedThrough;
+        bool radiationSurvives = afterDto.RadiationZones != null && afterDto.RadiationZones.Count == 1;
+        GD.Print($"[NuclearUseTest] DTO round_trip={dtoRoundTrip}, radyasyon survives={radiationSurvives}");
+        if (!dtoRoundTrip || !radiationSurvives) allOk = false;
+
+        bool pass = allOk && warheadConsumed && targetDamaged && radiationActive
+            && tensionAfter > tensionBefore && relationAfter < relationBefore && resultOk
+            && dtoRoundTrip && radiationSurvives;
+
+        GD.Print(pass ? "[NuclearUseTest] SONUÇ: PASS ✓" : "[NuclearUseTest] SONUÇ: FAIL ✗");
         GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");
     }

@@ -442,7 +442,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | 31.2 | **Nükleer program:** uranyum zenginleştirme, reaktör, silah tasarımı, deneme, taşıyıcı (bombardıman, kıtalararası füze, denizaltı), doktrin. | Aşamalar sırayla ilerler |
 | 31.2.test | `--nuclear-test` (tüm aşama, DeterministicRNG deneme, save/load A==B, sıralı kural) + `--save-load-test --scenario=modern_world` regression | `dotnet build` 0/0; `--nuclear-test` PASS ✓ (~15s); save-load A==B PASS ✓ | ✅ Bitti |
 | 31.3 | **Yaptırımlar ve diplomasi:** BM yaptırımı, ticaret kısıtı, dünya gerilimi, komşu tepkisi, anlaşmadan çıkış. | Program yaptırım tetikler; `--sanctions-nuclear-test` + `--save-load-test --scenario=modern_world` | `dotnet build` 0/0; `--sanctions-nuclear-test` PASS ✓ (~3s); save-load A==B PASS ✓ | ✅ Bitti |
-| 31.4 | **Kullanım:** nükleer saldırı çok ağır sonuçlu (radyasyon bölgesi, nüfus ve ekonomi kaybı, uluslararası tepki, karşı saldırı, caydırıcılık). | Kullanım sonuçlarla loglanır |
+| 31.4 | **Kullanım:** nükleer saldırı çok ağır sonuçlu (radyasyon bölgesi, nüfus ve ekonomi kaybı, uluslararası tepki, karşı saldırı, caydırıcılık). | Kullanım sonuçlarla loglanır; `--nuclear-use-test` + `--save-load-test --scenario=modern_world` | `dotnet build` 0/0; `--nuclear-use-test` PASS ✓ (~3s); save-load A==B PASS ✓ | ✅ Bitti |
 | 31.5 | AI nükleer davranış (caydırıcılık, yaptırım tepkisi). | AI ülkeler sonuçlara tepki verir |
 
 ---

@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Nükleer program sistemi (M31.2): uranyum zenginleştirme → reaktör → silah tasarımı →
@@ -27,6 +28,36 @@ public static class NuclearProgramSystem
     }
 
     public enum NuclearDoctrine { None = 0, Deterrence = 1, FirstUse = 2, NoFirstUse = 3 }
+
+    /// <summary>
+    /// M31.4: Bir ülke üzerinde aktif Radyasyon Bölgesi (fallout). Belirli bir gün sayısı
+    /// boyunca target'ın refah/istiridyasını yagyar; GetRadiationIntensity ile sorgulanır.
+    /// </summary>
+    public class RadiationZone
+    {
+        public string TargetId { get; set; }
+        public int UntilDay { get; set; }      // bu güne kadar radyoaktivite devam eder
+        public float Intensity { get; set; }   // 0-1 (ör. %30-%70)
+    }
+
+    /// <summary>
+    /// M31.4: Nükleer saldırının net etkileri (test ve raporlama için).
+    /// </summary>
+    public class StrikeResult
+    {
+        public string AttackerId { get; set; }
+        public string TargetId { get; set; }
+        public int Day { get; set; }
+        public long PopulationLost { get; set; }
+        public int FactoriesLost { get; set; }
+        public float StabilityLoss { get; set; }
+        public float WarSupportLoss { get; set; }
+        public float TensionIncrease { get; set; }
+        public int RelationDelta { get; set; }      // saldırgan-hedef ikisi için uygulanan düşüş
+        public bool RetaliationTriggered { get; set; }
+        public float RetaliationDamageToAttacker { get; set; } // hedefin karşı saldırısından saldırgana düşen nüfus/istiridya
+        public RadiationZone Radiation { get; set; }
+    }
 
     // Aşama → gereken teknoloji ID'si (technologies.json). TümEra >= 2020, bu yüzden
     // başlangıçta hiçbiri otomatik araştırılmaz (maks. startEra = 2010).
@@ -64,18 +95,47 @@ public static class NuclearProgramSystem
     private static NuclearDoctrine _doctrine = NuclearDoctrine.None;
     private static bool _testMode;
 
+    // M31.4: aktif radyasyon bölgeleri (hedef ülke → temizleniş günü + yoğunluk)
+    private static readonly List<RadiationZone> _radiationZones = new();
+
     public static NuclearStage CompletedThrough => _completedThrough;
     public static NuclearStage InProgressStage => _inProgress;
     public static int DaysInvested => _daysInvested;
     public static int TestsConducted => _testsConducted;
     public static int Warheads => _warheads;
     public static NuclearDoctrine Doctrine => _doctrine;
-    public static bool IsTestMode => _testMode;
+
+    /// <summary>M31.4: Belirli bir ülkedeki aktif radyasyon yoğunluğu (0 = temiz).</summary>
+    public static float GetRadiationIntensity(string countryId, int currentDay)
+    {
+        foreach (var z in _radiationZones)
+            if (z.TargetId == countryId && currentDay < z.UntilDay) return z.Intensity;
+        return 0f;
+    }
+
+    /// <summary>M31.4: Aktif radyasyon bölgesi sayısı (test/raporlama için).</summary>
+    public static int ActiveRadiationZones => _radiationZones.Count(z => z.UntilDay > (GM?.TotalDays ?? 0));    public static bool IsTestMode => _testMode;
 
     public static void EnableTestMode()
     {
         _testMode = true;
         GD.Print("[Nükleer] Test modu etkin: ücret/günek=0, süre=1 gün, deneme başarısı garantili");
+    }
+
+    /// <summary>Yalnızca test modunda geçerli: saldırı testi için başlık sayısını direkt ayarlar.</summary>
+    public static void SetTestWarheads(int count)
+    {
+        if (!_testMode) return;
+        _warheads = Math.Max(0, count);
+        GD.Print($"[Nükleer] Test başlık sayısı={_warheads}");
+    }
+
+    /// <summary>Yalnızca test modunda geçerli: taşıyıcı yeteneği için tamamlanmış aşamayı direkt ayarlar.</summary>
+    public static void SetTestCompletedStage(NuclearStage stage)
+    {
+        if (!_testMode) return;
+        _completedThrough = stage;
+        GD.Print($"[Nükleer] Test tamamlanmış aşama={stage}");
     }
 
     private static GameManager GM => GameManager.Instance;
@@ -132,10 +192,15 @@ public static class NuclearProgramSystem
     // Günlük tick: süresi dolan aşamayı tamamlar
     public static void DailyTick(int currentDay)
     {
-        if (_inProgress == NuclearStage.None) return;
-        _daysInvested++;
-        if (_daysInvested >= GetStageDuration(_inProgress))
-            CompleteStage();
+        if (_inProgress != NuclearStage.None)
+        {
+            _daysInvested++;
+            if (_daysInvested >= GetStageDuration(_inProgress))
+                CompleteStage();
+        }
+
+        // M31.4: süresi dolan radyasyon bölgelerini temizle
+        _radiationZones.RemoveAll(z => z.UntilDay <= currentDay);
     }
 
     private static void CompleteStage()
@@ -170,6 +235,150 @@ public static class NuclearProgramSystem
         GD.Print($"[Nükleer] Aşama tamamlandı: {done} — en yüksek tamamlanan: {_completedThrough}");
     }
 
+    // ===== M31.4: Nükleer saldırı (kullanım) =====
+
+    /// <summary>
+    /// Bir nükleer saldırı başlatılabilir mi? Saldırganın savaş başlığı, taşıyıcı kapasitesi,
+    /// PP'si ve hedefin geçerliliğini denetler.
+    /// </summary>
+    public static (bool ok, string reason) CanLaunchNuclearStrike(string attackerId, string targetId)
+    {
+        if (string.IsNullOrEmpty(attackerId) || string.IsNullOrEmpty(targetId) || attackerId == targetId)
+            return (false, "Geçersiz saldırgan/hedef");
+
+        var attacker = CountryDatabase.Get(attackerId);
+        var target = CountryDatabase.Get(targetId);
+        if (attacker == null || target == null || attacker.IsAnnexed || target.IsAnnexed)
+            return (false, "Ülke yok veya ilhak edilmiş");
+
+        // Taşıyıcı kapasitesi: en az bombardman/ICBM/SLBM aşaması tamamlanmış olmalı
+        if (_completedThrough < NuclearStage.BomberDelivery)
+            return (false, "Nükleer taşıyıcı teknolojisi yok (bombardman/ICBM/SLBM gerekli)");
+
+        if (_warheads <= 0)
+            return (false, "Savaş başlığı yok");
+
+        const int launchPPCost = 1000;
+        if (attacker.PoliticalPower < launchPPCost)
+            return (false, $"Yetersiz PP (saldırı maliyeti {launchPPCost})");
+
+        return (true, null);
+    }
+
+    /// <summary>
+    /// Nükleer saldırıyı gerçekleştirir: başlık tüketilir, hedefte nüfus/ekonomi kaybı,
+    /// radyasyon bölgesi oluşturur, dünya gerilimi ve ilişkilerde büyük değişim olur.
+    /// Karmaşık tepki (karşı saldırı) DeterministikRNG ile çözülür.
+    /// </summary>
+    public static (bool ok, string reason, StrikeResult result) LaunchNuclearStrike(string attackerId, string targetId)
+    {
+        var (can, reason) = CanLaunchNuclearStrike(attackerId, targetId);
+        if (!can) return (false, reason, null);
+
+        var attacker = CountryDatabase.Get(attackerId);
+        var target = CountryDatabase.Get(targetId);
+        int day = GM?.TotalDays ?? 0;
+
+        const int launchPPCost = 1000;
+        attacker.PoliticalPower -= launchPPCost;
+        _warheads--;
+
+        var result = new StrikeResult
+        {
+            AttackerId = attackerId,
+            TargetId = targetId,
+            Day = day,
+            Radiation = new RadiationZone { TargetId = targetId }
+        };
+
+        // --- Nüfus ve ekonomi kaybı (hedef) ---
+        int popLossPercent = _testMode ? 10 : DeterministicRNG.NextInt(5, 16); // %5-%15
+        long populationLost = (long)(target.Population * popLossPercent / 100.0);
+        target.Population = Math.Max(0, target.Population - populationLost);
+
+        int civFactoryLost = _testMode ? 1 : DeterministicRNG.NextInt(1, 4); // 1-3
+        int milFactoryLost = _testMode ? 1 : DeterministicRNG.NextInt(1, 3);  // 1-2
+        target.CivFactories = Math.Max(0, target.CivFactories - civFactoryLost);
+        target.MilFactories = Math.Max(0, target.MilFactories - milFactoryLost);
+        int factoriesLost = civFactoryLost + milFactoryLost;
+
+        target.StabilityPercent = Math.Clamp(target.StabilityPercent - 15, 0, 100);
+        target.WarSupportPercent = Math.Clamp(target.WarSupportPercent - 10, 0, 100);
+
+        result.PopulationLost = populationLost;
+        result.FactoriesLost = factoriesLost;
+        result.StabilityLoss = 15f;
+        result.WarSupportLoss = 10f;
+
+        // --- Radyasyon bölgesi (hedef) ---
+        int radiationDuration = _testMode ? 5 : DeterministicRNG.NextInt(30, 91);
+        float radiationIntensity = _testMode ? 0.5f : (float)DeterministicRNG.NextDouble(0.30, 0.70);
+        result.Radiation.UntilDay = day + radiationDuration;
+        result.Radiation.Intensity = radiationIntensity;
+        _radiationZones.Add(result.Radiation);
+
+        // --- Uluslararası tepki: dünya gerilimi (büyük artış) ---
+        float tensionIncrease = _testMode ? 5f : 25f;
+        DiplomacySystem.IncreaseTension(tensionIncrease);
+        result.TensionIncrease = tensionIncrease;
+
+        // --- İlişki etkisi: saldırgan-hedef ikisi büyük ölçüde bozulur ---
+        int relationDelta = -50;
+        DiplomacySystem.ModifyRelation(attackerId, targetId, relationDelta);
+        DiplomacySystem.ModifyRelation(targetId, attackerId, relationDelta);
+        result.RelationDelta = relationDelta;
+
+        // Nükel tabosu: tüm bağımsız ülkelerin saldırgana karşı hafif bir yıtışı
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c.IsAnnexed || c.Id == attackerId || c.Id == targetId) continue;
+            DiplomacySystem.ModifyRelation(c.Id, attackerId, -5);
+        }
+
+        // Hedefin faksiyon müttefikleri saldırgana karşı daha sert tepki verir
+        foreach (var f in DiplomacySystem.Factions.Values)
+        {
+            bool targetIsMember = f.LeaderId == targetId || f.MemberIds.Contains(targetId);
+            if (targetIsMember)
+            {
+                foreach (var m in f.MemberIds)
+                {
+                    if (m != attackerId && m != targetId)
+                        DiplomacySystem.ModifyRelation(m, attackerId, -15);
+                }
+                break;
+            }
+        }
+
+        // --- Karşı saldırı (retaliation): büyük askeri güce sahip hedefDeterministik olarak yanıt verir ---
+        bool retaliation = target.MilFactories >= 8 && DeterministicRNG.NextBool(0.5);
+        if (retaliation)
+        {
+            result.RetaliationTriggered = true;
+            // Hedef, saldırgan üzerinde hafif bir karşı darbe yapar (konvansiyonel)
+            int retaliatePopLossPercent = _testMode ? 3 : DeterministicRNG.NextInt(1, 5);
+            long retaliatePopLost = (long)(attacker.Population * retaliatePopLossPercent / 100.0);
+            attacker.Population = Math.Max(0, attacker.Population - retaliatePopLost);
+            attacker.StabilityPercent = Math.Clamp(attacker.StabilityPercent - 5, 0, 100);
+            result.RetaliationDamageToAttacker = retaliatePopLost;
+            DiplomacySystem.IncreaseTension(_testMode ? 3f : 10f);
+            GD.Print($"[Nükleer] KARŞI SALDIRI: {targetId} -> {attackerId} (nüfus kaybı {retaliatePopLost})");
+        }
+
+        // --- Caydırıcılık doktrin etkisi: saldırgan caydırıcılık doktrinindeyse prestij kaybı ---
+        if (_doctrine == NuclearDoctrine.Deterrence)
+        {
+            attacker.Prestige = Math.Max(0, attacker.Prestige - 5);
+            GD.Print("[Nükleer] Caydırıcılık doktriniyle saldırı — prestij −5");
+        }
+
+        GD.Print($"[Nükleer] SALDIRI: {attackerId} -> {targetId} (gün {day}) — başlık −1, " +
+                 $"nüfus −{populationLost}, fabrika −{factoriesLost}, istikrar −15, gerilim +{tensionIncrease:F0}, " +
+                 $"radyasyon {radiationIntensity:P0} {radiationDuration}g, karşı saldırı={retaliation}");
+
+        return (true, null, result);
+    }
+
     // ===== M12: Save/Load =====
 
     public class NuclearSave
@@ -180,6 +389,7 @@ public static class NuclearProgramSystem
         public int TestsConducted { get; set; }
         public int Warheads { get; set; }
         public int Doctrine { get; set; } // (int)NuclearDoctrine
+        public List<RadiationZone> RadiationZones { get; set; } // M31.4
     }
 
     public static NuclearSave GetSaveData()
@@ -191,7 +401,13 @@ public static class NuclearProgramSystem
             DaysInvested = _daysInvested,
             TestsConducted = _testsConducted,
             Warheads = _warheads,
-            Doctrine = (int)_doctrine
+            Doctrine = (int)_doctrine,
+            RadiationZones = _radiationZones.Select(z => new RadiationZone
+            {
+                TargetId = z.TargetId,
+                UntilDay = z.UntilDay,
+                Intensity = z.Intensity
+            }).ToList()
         };
     }
 
@@ -204,7 +420,12 @@ public static class NuclearProgramSystem
         _testsConducted = data.TestsConducted;
         _warheads = data.Warheads;
         _doctrine = (NuclearDoctrine)data.Doctrine;
-        GD.Print($"[Nükleer] State yüklendi — ileri={_completedThrough}, devam={_inProgress}, başlık={_warheads}, doktrin={_doctrine}");
+
+        _radiationZones.Clear();
+        if (data.RadiationZones != null)
+            foreach (var z in data.RadiationZones) _radiationZones.Add(z);
+
+        GD.Print($"[Nükleer] State yüklendi — ileri={_completedThrough}, devam={_inProgress}, başlık={_warheads}, doktrin={_doctrine}, radyasyon={_radiationZones.Count}");
     }
 
     public static void ResetForNewGame()
@@ -216,6 +437,7 @@ public static class NuclearProgramSystem
         _warheads = 0;
         _doctrine = NuclearDoctrine.None;
         _testMode = false;
+        _radiationZones.Clear();
         GD.Print("[Nükleer] Yeni oyun için sıfırlandı");
     }
 }

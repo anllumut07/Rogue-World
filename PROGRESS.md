@@ -1656,3 +1656,18 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Dosyalar:** Değiştirilen: `Scripts/DiplomacySystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (31.3 [x]), `PROGRESS.md` (M31.3 DONE), `GECE-RAPOR.md`.
 
 **Sonraki adım:** M31.4 Nükleer Kullanım (radyasyon bölgesi, nüfus ve ekonomi kaybı, uluslararası tepki, karşı saldırı, caydırıcılık).
+
+### M31.4: Nükleer Kullanım — ✅ DONE (2026-10-20)
+
+**Değiştirilen dosyalar:**
+- `Scripts/NuclearProgramSystem.cs`: `RadiationZone` ve `StrikeResult` DTO sınıfları; `_radiationZones` listesi; `GetRadiationIntensity()` / `ActiveRadiationZones` sorguları; `SetTestWarheads()` / `SetTestCompletedStage()` test yardımcısı (sadece test modunda); `CanLaunchNuclearStrike()` (bağlayıcı, taşıyıcı, PP kontrolü); `LaunchNuclearStrike()` (başlık tüketimi, hedefte nüfus/fabrikâ/istikrar/desteği kaybı, radyasyon bölgesi, dünya gerilimi +25, saldırgan-hedef ilişki −50, nükleer tabosu −5, faksiyon müttefiki −15, Deterministik karşı saldırı, caydırıcılık doktrini prestij etkisi); `DailyTick` içinde süresi dolan radyasyon temizliği; `NuclearSave` DTO'ya `RadiationZones` + GetSaveData/LoadSaveData/ResetForNewGame bağlama.
+- `Scripts/GameManager.cs`: `nuclearUseTest` field, `--nuclear-use-test` arg parsing, `RunNuclearUseTest()` (DEU, başlık verme, saldırı, hasar/radyasyon/gerilim/ilişki doğrulaması, DTO A==B, Quit(0/1)).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--nuclear-use-test`: **SONUÇ: PASS ✓** (~3s) — başlık tüketildi, hedef nüfus/fabrikâ azaldı, radyasyon bölge aktif, tension ve ilişki değişti, DTO round_trip + radyasyon survives.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — nükleer state (bağlayıcı, radyasyon bölgesi) dosya kaydet/yüklede korunuyor.
+
+**Dosyalar:** Değiştirilen: `Scripts/NuclearProgramSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (31.4 [x]), `PROGRESS.md` (M31.4 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M31.5 AI Nükleer Davranış (caydırıcılık, yaptırım tepkisi).

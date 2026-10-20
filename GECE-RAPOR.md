@@ -909,3 +909,29 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 2. Çözülemeyen şey: yok — M31.3 %100 tamamlandı (build 0/0, sanctions-nuclear-test PASS ~3s, save-load-test A==B).
 3. Bilinen sorun: komşu tepkisi NeighborSystem.IsReady'e bağlı; UI paneli yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--sanctions-nuclear-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).
+
+
+## M31.4: Nükleer Kullanım — ✅ DONE (2026-10-20)
+
+**Neden:** M31.3 tamamlandı ve pushed (f8dbc5b). M31.4 (nükleer saldırı: radyasyon bölgesi, nüfus ve ekonomi kaybı, uluslararası tepki, karşı saldırı, caydırıcılık) NuclearProgramSystem'e eklendi; GameManager'a `--nuclear-use-test` kanca eklendi.
+
+**Değişen dosyalar:**
+- `Scripts/NuclearProgramSystem.cs`: `RadiationZone` ve `StrikeResult` DTO sınıfları; `_radiationZones` listesi; `GetRadiationIntensity()` / `ActiveRadiationZones`; `SetTestWarheads()` / `SetTestCompletedStage()` (sadece test modu); `CanLaunchNuclearStrike()` (bağlayıcı, taşıyıcı, PP kontrolü); `LaunchNuclearStrike()` (başlık tüketimi, hedefte nüfus/fabrikâ/istikrar/desteği kaybı, radyasyon bölgesi, dünya gerilimi +25, saldırgan-hedef ilişki −50, nükleer tabosu −5, faksiyon müttefiki −15, Deterministik karşı saldırı, caydırıcılık doktrini prestij etkisi); `DailyTick` süresi dolan radyasyon temizliği; `NuclearSave` DTO'ya `RadiationZones` + GetSaveData/LoadSaveData/ResetForNewGame bağlama.
+- `Scripts/GameManager.cs`: `nuclearUseTest` field, `--nuclear-use-test` arg parsing, `RunNuclearUseTest()` (DEU, başlık verme, saldırı, hasar/radyasyon/gerilim/ilişki doğrulaması, DTO A==B, Quit(0/1)).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--nuclear-use-test`: **SONUÇ: PASS ✓** (~3s) — başlık tüketildi, hedef nüfus/fabrikâ azaldı, radyasyon bölge aktif, tension ve ilişki değişti, DTO round_trip + radyasyon survives.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — nükleer state (bağlayıcı, radyasyon bölgesi) dosya kaydet/yüklede korunuyor.
+
+**Çözülemeyen şey:** yok — M31.4 %100 tamamlandı.
+
+**Bilinen sorun:** NuclearProgramSystem oyuncuya özel (M31.5 AI nükleer davranış için genişletilmesi gerekecek); UI paneli yok (model-seviyede); komşu/faksiyon tepkisi DiplomacySystem'e bağlı.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--nuclear-use-test` (PASS ~3s); `--save-load-test --scenario=modern_world` (A==B).
+
+### ÖZET (M31.4 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/NuclearProgramSystem.cs` (saldırı, radyasyon, hasar, caydırıcılık), `Scripts/GameManager.cs` (`--nuclear-use-test` + RunNuclearUseTest), `TODO.md` (31.4 [x]), `PROGRESS.md` (M31.4 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M31.4 %100 tamamlandı (build 0/0, nuclear-use-test PASS ~3s, save-load-test A==B).
+3. Bilinen sorun: NuclearProgramSystem oyuncuya özel; UI paneli yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--nuclear-use-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).

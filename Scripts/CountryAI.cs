@@ -492,7 +492,23 @@ public static class CountryAI
                 int defDivs = targetSt?.Divisions ?? target.StartingDivisions;
                 int defStrength = defDivs + target.TotalFactories / 3;
 
-                if (attStrength < defStrength * 0.8) continue; // çok güçlü hedef
+                // M31.5: Nükleer caydırıcılık — hedef nükleer-silahlı ve caydırıcılık doktrinindeyse
+                // çok daha güçlü sayılır (AI onu saldırıdan kaçınır). Yalnızca oyuncu 핵 durumu
+                // takip edilir (NuclearProgramSystem oyuncuya özeldir).
+                bool targetIsNuclearDeterrence = target.Id == GM.PlayerCountryId
+                    && NuclearProgramSystem.Warheads > 0
+                    && NuclearProgramSystem.Doctrine == NuclearProgramSystem.NuclearDoctrine.Deterrence;
+                float deterrenceMultiplier = targetIsNuclearDeterrence ? 2.0f : 1.0f;
+
+                // M31.5: Yaptırım tepkisi — hedef, AI'yi aktif yaptırıyorsa AI onu daha zayıf görür
+                // (yaptırım = casus belli benzeri tepki; saldırıyı daha cazip kılar)
+                bool sanctionedByTarget = DiplomacySystem.Sanctions.Any(s =>
+                    s.Active && s.InitiatorId == target.Id && s.TargetId == data.Id);
+                float sanctionReactionMultiplier = sanctionedByTarget ? 0.6f : 1.0f;
+
+                int effectiveDefStrength = (int)(defStrength * deterrenceMultiplier * sanctionReactionMultiplier);
+
+                if (attStrength < effectiveDefStrength * 0.8) continue; // çok güçlü hedef
 
                 // Savaş maliyeti (war goal indirimi olabilir)
                 int warCost = WarSystem.CalculateWarGoalCost(target.Id);

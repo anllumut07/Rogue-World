@@ -141,6 +141,7 @@ public partial class GameManager : Node
         bool nuclearTest = false;           // M31.2: nükleer program testi (--nuclear-test)
         bool sanctionsNuclearTest = false;  // M31.3: yaptirim / nükleer diplomasi testi (--sanctions-nuclear-test)
         bool nuclearUseTest = false;        // M31.4: nükleer kullanım testi (--nuclear-use-test)
+        bool aiNuclearTest = false;         // M31.5: AI nükleer davranış testi (--ai-nuclear-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -256,6 +257,8 @@ public partial class GameManager : Node
                 sanctionsNuclearTest = true;
             else if (arg == "--nuclear-use-test")
                 nuclearUseTest = true;
+            else if (arg == "--ai-nuclear-test")
+                aiNuclearTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -579,6 +582,11 @@ public partial class GameManager : Node
         // karşı saldırı, caydırıcılık, kaydet/yükle A==B; başarısızlıkta Quit(1)).
         if (nuclearUseTest)
             RunNuclearUseTest();
+
+        // M31.5: AI nükleer davranış testi (caydırıcılık doktrini + başlık, AI'nin oyuncuya
+        // saldırısını engeller; doctrina/başlık kaldırıldığında saldırıya geçer; DTO A==B).
+        if (aiNuclearTest)
+            RunAiNuclearTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -3100,6 +3108,126 @@ public partial class GameManager : Node
         GD.Print(pass ? "[NuclearUseTest] SONUÇ: PASS ✓" : "[NuclearUseTest] SONUÇ: FAIL ✗");
         GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M31.5: AI nükleer davranış testi — oyuncu nükleer-silahlı ve caydırıcılık doktrinindeyse
+    /// AI oyuncuyu çok daha güçlü görür (deterrence 2.0x) ve saldırıyı engeller; başlık/doctrin
+    /// kaldırıldığında saldırıya geçer. DTO kaydet/yükle A==B doğrulanır. Normal oyunda ASLA
+    /// çalışmaz (--ai-nuclear-test).
+    /// </summary>
+    private void RunAiNuclearTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M31.5: AI NÜKLEER DAVRANIŞ TESTİ (--ai-nuclear-test)");
+        GD.Print("=========================================");
+
+        string playerId = "DEU";
+        var deu = CountryDatabase.Get(playerId);
+
+        // Hedef: oyuncunun komşusu, ilhak edilmemiş, oyuncuya karşı savaşta olmayan bir AI ülke.
+        string targetId = null;
+        CountryData targetData = null;
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c == null || c.IsAnnexed || c.Id == playerId) continue;
+            if (!NeighborSystem.AreNeighbors(playerId, c.Id)) continue;
+            if (WarSystem.IsAtWarWith(c.Id, playerId)) continue;
+            targetId = c.Id;
+            targetData = c;
+            break;
+        }
+        if (targetId == null)
+        {
+            GD.Print("[AiNuclearTest] Oyuncunun uygun komşu AI ülkesi bulunamadı — test BAŞARISIZ");
+            GD.Print("=========================================");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Oyuncuyu (DEU) zaten düşük güce indir: nükleersiz durumda hedefe saldırılabilir,
+        // nükleer caydırıcılıkla (2.0x) ise saldırı engellenmeli.
+        deu.StartingDivisions = 5;
+        deu.CivFactories = 10;
+        deu.MilFactories = 15;
+        deu.Dockyards = 20; // TotalFactories=45 → defStrength = 5 + 15 = 20
+
+        // Hedef AI: savaş kararına girmek için ≥10 tümen gerekir; nükleersizden
+        // güçlü, nükleerli durumda zayıf görünmesi için ayarlanır.
+        targetData.StartingDivisions = 12;
+        targetData.PoliticalPower = 2000;
+        targetData.WarSupportPercent = 60;
+
+        if (!HasPlayer) SetPlayerCountry(playerId);
+        // AI durumunu oyuncu ülkesini hariç tutacak şekilde (yeniden) başlat.
+        CountryAI.Initialize();
+        if (Speed == 0) SetSpeed(5);
+
+        NuclearProgramSystem.EnableTestMode();
+        NuclearProgramSystem.SetTestWarheads(1);
+        NuclearProgramSystem.SetTestDoctrine(NuclearProgramSystem.NuclearDoctrine.Deterrence);
+
+        var playerData = PlayerCountryData;
+        if (playerData != null)
+        {
+            playerData.PoliticalPower = 5000;
+            playerData.WarSupportPercent = 100;
+        }
+
+        // Gerekçe: hedef -> oyuncu (otomatik, anında geçerli → HasValidCasusBelli true)
+        CasusBelliSystem.GrantImmediateJustification(targetId, playerId, "defense_retaliation");
+
+        int defDivs = playerData != null ? playerData.StartingDivisions : 0;
+        int defFactories = playerData != null ? playerData.TotalFactories : 0;
+        int defStrength = defDivs + defFactories / 3;
+        int attDivs = targetData != null ? targetData.StartingDivisions : 0;
+        int attFactories = targetData != null ? targetData.TotalFactories : 0;
+        int attStrength = attDivs + attFactories / 3;
+        GD.Print($"[AiNuclearTest] {playerId}(D) def={defStrength} ({defDivs} tümen, {defFactories} fabrika), " +
+                 $"{targetId}(A) att={attStrength} ({attDivs} tümen, {attFactories} fabrika)");
+
+        bool allOk = true;
+
+        // --- Aşama 1: Caydırıcılık AKTIF — AI oyuncuya saldırıya geçmemeli ---
+        GD.Print("[AiNuclearTest] Aşama 1: Nükleer caydırıcılık AKTIF (başlık=1, doktrin=Deterrence)");
+        bool warDuringDeterrence = WaitForWarWith(targetId, playerId, maxDays: 40);
+        GD.Print($"[AiNuclearTest] Caydırıcılıktan sonra {targetId}->{playerId} savaşta mı? {warDuringDeterrence}");
+        bool deterrenceBlocked = !warDuringDeterrence;
+        if (!deterrenceBlocked) allOk = false;
+
+        // --- Aşama 2: Caydırıcılık KALDIRILDI — AI oyuncuyu saldırıya geçebilir ---
+        NuclearProgramSystem.SetTestWarheads(0); // başlık 0 → targetIsNuclearDeterrence false
+        GD.Print("[AiNuclearTest] Aşama 2: Nükleer caydırıcılık KALDIRILDI (başlık=0)");
+        bool warAfterDeterrence = WaitForWarWith(targetId, playerId, maxDays: 40);
+        GD.Print($"[AiNuclearTest] Caydırıcılık kaldırıldıktan sonra {targetId}->{playerId} savaşta mı? {warAfterDeterrence}");
+        bool deterrenceLiftedAttack = warAfterDeterrence;
+        if (!deterrenceLiftedAttack) allOk = false;
+
+        // DTO kaydet/yükle A==B (nükleer durum kalıcı olmalı)
+        var beforeDto = NuclearProgramSystem.GetSaveData();
+        NuclearProgramSystem.LoadSaveData(beforeDto);
+        var afterDto = NuclearProgramSystem.GetSaveData();
+        bool dtoRoundTrip = afterDto.Warheads == beforeDto.Warheads
+            && afterDto.CompletedThrough == beforeDto.CompletedThrough
+            && afterDto.Doctrine == beforeDto.Doctrine;
+        GD.Print($"[AiNuclearTest] DTO round_trip={dtoRoundTrip}, başlık={afterDto.Warheads}, doktrin={afterDto.Doctrine}");
+        if (!dtoRoundTrip) allOk = false;
+
+        bool pass = allOk && deterrenceBlocked && deterrenceLiftedAttack && dtoRoundTrip;
+        GD.Print(pass ? "[AiNuclearTest] SONUÇ: PASS ✓" : "[AiNuclearTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(pass ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>Belirtilen çift arasında savaş açılana kadar (veya maxDays kadar) gün ilerletir.</summary>
+    private bool WaitForWarWith(string attackerId, string defenderId, int maxDays)
+    {
+        for (int d = 0; d < maxDays; d++)
+        {
+            if (WarSystem.IsAtWarWith(attackerId, defenderId)) return true;
+            AdvanceDaysForTest(1);
+        }
+        return WarSystem.IsAtWarWith(attackerId, defenderId);
     }
 
     private static EventSystem.GameEvent MakeTestEvent(string id, string name, string declareWar)

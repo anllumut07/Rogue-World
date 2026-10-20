@@ -138,6 +138,14 @@ public static class NuclearProgramSystem
         GD.Print($"[Nükleer] Test tamamlanmış aşama={stage}");
     }
 
+    /// <summary>Yalnızca test modunda geçerli: nükleer doktrini direkt ayarlar (caydırıcılık testi için).</summary>
+    public static void SetTestDoctrine(NuclearDoctrine doctrine)
+    {
+        if (!_testMode) return;
+        _doctrine = doctrine;
+        GD.Print($"[Nükleer] Test doktrin={doctrine}");
+    }
+
     private static GameManager GM => GameManager.Instance;
     private static CountryData Player => GM?.PlayerCountryData;
 

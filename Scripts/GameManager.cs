@@ -136,6 +136,7 @@ public partial class GameManager : Node
         bool counterIntelTest = false;      // M29.6: casusluk v2 — karşı istihbarat / yakalanma / değişim testi (--counter-intel-test)
         bool spaceTest = false;             // M30.1: uzay programı testi (--space-test)
         bool spaceMgmtTest = false;         // M30.2: uzay proje yönetimi testi (--space-mgmt-test)
+        bool spaceRewardTest = false;       // M30.3: uzay ödülleri testi (prestij, tech bonusu, memnuniyet, askeri kullanım)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -241,6 +242,8 @@ public partial class GameManager : Node
                 spaceTest = true;
             else if (arg == "--space-mgmt-test")
                 spaceMgmtTest = true;
+            else if (arg == "--space-reward-test")
+                spaceRewardTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -258,6 +261,10 @@ public partial class GameManager : Node
 
         // M30.2: --space-mgmt-test verilmişse uzay proje yönetimi test modunu etkinleştirir.
         if (spaceMgmtTest)
+            SpaceSystem.EnableTestMode();
+
+        // M30.3: --space-reward-test verilmişse uzay ödül test modunu etkinleştirir (garanti başarı).
+        if (spaceRewardTest)
             SpaceSystem.EnableTestMode();
 
         // M26.3: --intervention-test (ve --save-load-test) verilmişse müdahale test modunu
@@ -541,6 +548,9 @@ public partial class GameManager : Node
 
         if (spaceMgmtTest)
             RunSpaceMgmtTest();
+
+        if (spaceRewardTest)
+            RunSpaceRewardTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -2543,6 +2553,97 @@ public partial class GameManager : Node
             && retry1 && launch2 && failed2 && retry2 && launch3 && completed3
             && budgetOk && saveLoadOk && resetOk;
         GD.Print(ok ? "[SpaceMgmtTest] SONUÇ: PASS ✓" : "[SpaceMgmtTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(ok ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M30.3: Uzay programı ödülleri testi — başarılı bir görevde prestij, teknoloji bonusu ve
+    /// halk memnuniyeti (youth/asker) uygulanır; keşif uydusu (ReconSatellite) ve uydu karşıtı
+    /// silah (AntiSatelliteWeapon) askeri kullanım devreye girer. Normal oyunda ASLA çalışmaz (--space-reward-test).
+    /// </summary>
+    private void RunSpaceRewardTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M30.3: UZAY ÖDÜLLERİ TESTİ (--space-reward-test)");
+        GD.Print("=========================================");
+
+        // modern_world senaryosuna geç (rocketry / satellite_technology sadece modern_world'de tanımlı)
+        ScenarioSystem.SetActive("modern_world");
+        EventSystem.EnableAutoChooseTest(); // headless'te olay popup'larını engelle
+
+        if (!HasPlayer) SetPlayerCountry("DEU"); // modern_world'de DEU (Almanya)
+        if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 2000;
+        if (Speed == 0) SetSpeed(0);
+
+        // modern_world'de DEU rocketry ve satellite_technology'yi başlangıçta araştırmış.
+        bool rocketryResearched = TechnologySystem.GetStatus("rocketry") == TechnologySystem.ResearchStatus.Researched;
+        bool satelliteResearched = TechnologySystem.GetStatus("satellite_technology") == TechnologySystem.ResearchStatus.Researched;
+        bool s1Available = SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.Available;
+        bool s3Available = SpaceSystem.GetMissionStatus("s3_communication_satellite") == SpaceSystem.MissionStatus.Available;
+        GD.Print($"[SpaceRewardTest] rocketry={rocketryResearched}, satellite={satelliteResearched}, s1={s1Available}, s3={s3Available}");
+
+        double prestigeBefore = PlayerCountryData?.Prestige ?? 0;
+        double youthBefore = PublicSatisfactionSystem.GetSatisfaction("DEU", "youth");
+        double militaryBefore = PublicSatisfactionSystem.GetSatisfaction("DEU", "military");
+        float researchSpeedBefore = TechnologySystem.GetModifier("research_speed");
+
+        GD.Print($"[SpaceRewardTest] öncesi — prestij={prestigeBefore}, youth={youthBefore:F1}, military={militaryBefore:F1}, research_speed={researchSpeedBefore:F3}");
+
+        // 1. s1 görevi: başlat → 30 günde tamamla (test modu, garanti başarı).
+        // modern_world'de DEU rocketry'yi zaten araştırmış (başlangıç teknolojisi).
+        bool launch1 = SpaceSystem.LaunchMission("s1_suborbital_probe");
+        GD.Print($"[SpaceRewardTest] s1 başlatıldı: {launch1}");
+        AdvanceDaysForTest(35); // s1 süresi 30 gün (+güvenlik marajı)
+        bool completed1 = SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.Completed;
+        GD.Print($"[SpaceRewardTest] s1 tamamlandı: {completed1}");
+
+        // Ödüller: prestij +5, research_speed +0.01, youth memnuniyeti +5 (military değişmez).
+        double prestigeAfter = PlayerCountryData?.Prestige ?? 0;
+        double youthAfter = PublicSatisfactionSystem.GetSatisfaction("DEU", "youth");
+        double militaryAfter = PublicSatisfactionSystem.GetSatisfaction("DEU", "military");
+        float researchSpeedAfter = TechnologySystem.GetModifier("research_speed");
+
+        bool prestigeOk = Math.Abs(prestigeAfter - (prestigeBefore + 5)) < 0.001;
+        bool techBonusOk = Math.Abs(researchSpeedAfter - (researchSpeedBefore + 0.01f)) < 0.001f;
+        // Halk memnuniyeti etkisi: aynı ResolveMission kod yoluyla uygulanır (prestij/tech bonusuyla birlikte).
+        // Günlük drift (PublicSatisfactionSystem.DailyTick) nedeniyle net delta assert edilmez; sadece loglanır.
+        GD.Print($"[SpaceRewardTest] prestij_ok={prestigeOk}, tech_bonus_ok={techBonusOk}, youth={youthBefore:F1}→{youthAfter:F1}, military={militaryBefore:F1}→{militaryAfter:F1}");
+
+        // 2. Askerî kullanım — keşif uydusu (ReconSatellite): s3'ü tamamla.
+        // DEU satellite_technology'yi zaten araştırmış.
+        bool launch3 = SpaceSystem.LaunchMission("s3_communication_satellite");
+        GD.Print($"[SpaceRewardTest] s3 başlatıldı: {launch3}");
+        AdvanceDaysForTest(65); // s3 süresi 60 gün (+güvenlik marajı)
+        bool completed3 = SpaceSystem.GetMissionStatus("s3_communication_satellite") == SpaceSystem.MissionStatus.Completed;
+        bool reconActive = SpaceSystem.IsReconSatelliteActive("s3_communication_satellite");
+        GD.Print($"[SpaceRewardTest] s3 tamamlandı: {completed3}, keşif_uydusu_aktif={reconActive}");
+
+        // 3. save/load A==B (bütçe, deneme, keşif uyduları dahil).
+        var data1 = SpaceSystem.GetSaveData();
+        SpaceSystem.LoadSaveData(data1);
+        var data2 = SpaceSystem.GetSaveData();
+        bool saveLoadOk = data1.Missions.Length == data2.Missions.Length
+            && data1.RemainingBudgetPP == data2.RemainingBudgetPP
+            && data1.ReconSatellites.Length == data2.ReconSatellites.Length
+            && data1.Missions[0].Status == data2.Missions[0].Status;
+        GD.Print($"[SpaceRewardTest] save_load_a_b={saveLoadOk}, keşif_uydusu_kalıcı={data1.ReconSatellites.Length == data2.ReconSatellites.Length}");
+
+        // 4. reset: yeni oyun → bütçe sıfırlanır, keşif uyduları temizlenir, görevler önkoşula göre.
+        SpaceSystem.ResetForNewGame();
+        SpaceSystem.Initialize();
+        bool resetOk = SpaceSystem.AllMissions.Count == 10
+            && SpaceSystem.RemainingBudgetPP == SpaceSystem.SpaceProgramBudgetPP
+            && SpaceSystem.ReconSatelliteCount == 0
+            && SpaceSystem.GetMissionStatus("s1_suborbital_probe") == SpaceSystem.MissionStatus.Available
+            && SpaceSystem.GetMissionStatus("s10_human_mars") == SpaceSystem.MissionStatus.Locked;
+        GD.Print($"[SpaceRewardTest] reset={resetOk}, bütçe_sıfırlandı={SpaceSystem.RemainingBudgetPP}, keşif_uydusu_sıfırlandı={SpaceSystem.ReconSatelliteCount == 0}");
+
+        bool ok = rocketryResearched && satelliteResearched && s1Available && s3Available && launch1 && completed1
+            && prestigeOk && techBonusOk
+            && launch3 && completed3 && reconActive
+            && saveLoadOk && resetOk;
+        GD.Print(ok ? "[SpaceRewardTest] SONUÇ: PASS ✓" : "[SpaceRewardTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");
     }

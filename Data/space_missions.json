@@ -9,7 +9,9 @@
     "DurationDays": 30,
     "BaseSuccessProbability": 0.85,
     "RewardPrestige": 5,
-    "RewardTechBonus": { "research_speed": 0.01 }
+    "RewardTechBonus": { "research_speed": 0.01 },
+    "RewardSatisfaction": { "youth": 5 },
+    "MilitaryEffect": "None"
   },
   {
     "Id": "s2_first_satellite",
@@ -33,7 +35,9 @@
     "DurationDays": 60,
     "BaseSuccessProbability": 0.65,
     "RewardPrestige": 10,
-    "RewardTechBonus": {}
+    "RewardTechBonus": {},
+    "RewardSatisfaction": { "military": 5 },
+    "MilitaryEffect": "ReconSatellite"
   },
   {
     "Id": "s4_lunar_probe",
@@ -69,7 +73,9 @@
     "DurationDays": 75,
     "BaseSuccessProbability": 0.60,
     "RewardPrestige": 30,
-    "RewardTechBonus": { "research_speed": 0.02 }
+    "RewardTechBonus": { "research_speed": 0.02 },
+    "RewardSatisfaction": { "youth": 10, "military": 5 },
+    "MilitaryEffect": "None"
   },
   {
     "Id": "s7_space_station",
@@ -93,7 +99,9 @@
     "DurationDays": 150,
     "BaseSuccessProbability": 0.40,
     "RewardPrestige": 60,
-    "RewardTechBonus": { "research_speed": 0.03 }
+    "RewardTechBonus": { "research_speed": 0.03 },
+    "RewardSatisfaction": { "youth": 10, "military": 10 },
+    "MilitaryEffect": "None"
   },
   {
     "Id": "s9_mars_probe",
@@ -105,7 +113,9 @@
     "DurationDays": 180,
     "BaseSuccessProbability": 0.35,
     "RewardPrestige": 35,
-    "RewardTechBonus": { "research_speed": 0.02 }
+    "RewardTechBonus": { "research_speed": 0.02 },
+    "RewardSatisfaction": {},
+    "MilitaryEffect": "AntiSatelliteWeapon"
   },
   {
     "Id": "s10_human_mars",

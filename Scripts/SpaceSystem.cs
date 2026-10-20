@@ -26,9 +26,14 @@ public static class SpaceSystem
         public double BaseSuccessProbability = 0.5; // 0-1
         public int RewardPrestige = 0;     // tamamlandığında kazanılan prestij
         public Dictionary<string, float> RewardTechBonus = new(); // modifikatör bonusları
+        public Dictionary<string, float> RewardSatisfaction = new(); // grupId -> memnuniyet delta (başarıda uygulanır)
+        public MilitaryEffect MilitaryEffect = MilitaryEffect.None; // askeri kullanım (keşif uydusu / uydu karşıtı silah)
     }
 
     public enum MissionStatus { Locked, Available, InProgress, Completed, Failed }
+
+    // Askerî kullanım türü (M30.3): bir görevin başarılı tamamlanmasıyla devreye giren askeri etki.
+    public enum MilitaryEffect { None, ReconSatellite, AntiSatelliteWeapon }
 
     public class ActiveMission
     {
@@ -45,6 +50,7 @@ public static class SpaceSystem
     {
         public ActiveMissionSave[] Missions = Array.Empty<ActiveMissionSave>();
         public int RemainingBudgetPP = SpaceProgramBudgetPP; // kalan bütçe
+        public string[] ReconSatellites = Array.Empty<string>(); // M30.3: aktif keşif uyduları
     }
 
     public class ActiveMissionSave
@@ -66,6 +72,7 @@ public static class SpaceSystem
     public static readonly int SpaceProgramBudgetPP = 1500; // uzay programı bütçesi (PP)
     private static int _remainingBudgetPP; // kalan bütçe
     private static bool _forceFailureForTest; // test kancası: her fırlatmayı zorla başarısız yapar
+    private static readonly HashSet<string> _reconSatellites = new(); // M30.3: aktif keşif uydusu görev ID'leri
 
     private static GameManager GM => GameManager.Instance;
     private static CountryData Player => GM?.PlayerCountryData;
@@ -85,7 +92,7 @@ public static class SpaceSystem
 
         try
         {
-            var options = new JsonSerializerOptions { IncludeFields = true };
+            var options = new JsonSerializerOptions { IncludeFields = true, Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() } };
             var list = JsonSerializer.Deserialize<List<MissionDefinition>>(FileAccess.GetFileAsString(Path), options);
             foreach (var m in list)
                 if (m?.Id != null) _all[m.Id] = m;
@@ -171,6 +178,29 @@ public static class SpaceSystem
             foreach (var kv in def.RewardTechBonus)
                 TechnologySystem.AddModifier(kv.Key, kv.Value);
 
+            // Ödüller: halk memnuniyeti (M30.3) — başarılı uzay görevi ilgili toplum gruplarını mutlu eder.
+            string playerId = GM?.PlayerCountryId;
+            if (!string.IsNullOrEmpty(playerId))
+            {
+                foreach (var kv in def.RewardSatisfaction)
+                {
+                    double current = PublicSatisfactionSystem.GetSatisfaction(playerId, kv.Key);
+                    PublicSatisfactionSystem.SetSatisfaction(playerId, kv.Key, current + kv.Value);
+                }
+            }
+
+            // Askerî kullanım (M30.3): keşif uydusu / uydu karşıtı silah.
+            if (def.MilitaryEffect == MilitaryEffect.ReconSatellite)
+            {
+                _reconSatellites.Add(mission.MissionId);
+                GD.Print($"[Space] Keşif uydusu devreye girdi: {def.Name} — askeri görüntüleme aktif");
+            }
+            else if (def.MilitaryEffect == MilitaryEffect.AntiSatelliteWeapon)
+            {
+                DiplomacySystem.IncreaseTension(10f);
+                GD.Print($"[Space] Uydu karşıtı silah denemesi: {def.Name} — dünya gerilimi +10");
+            }
+
             GD.Print($"[Space] Görev tamamlandı: {def.Name} ({def.Level}) — başarı, prestij +{def.RewardPrestige}");
         }
         else
@@ -243,6 +273,11 @@ public static class SpaceSystem
     // Deneme sayacı (UI / test).
     public static int GetRetryCount(string missionId) => _missions.TryGetValue(missionId, out var m) ? m.RetryCount : -1;
 
+    // M30.3: Keşif uydusu takibi (askeri kullanım).
+    public static IReadOnlySet<string> ReconSatellites => _reconSatellites;
+    public static int ReconSatelliteCount => _reconSatellites.Count;
+    public static bool IsReconSatelliteActive(string missionId) => _reconSatellites.Contains(missionId);
+
     // Başarısız (veya tamamlanan) bir görevi yeniden kullanılabilir yapar — fırlatma tekrarı.
     // PP/bütçe yeniden fırlatmada LaunchMission ile ayrı ayrı kesilir; burada sadece görevi tekrar hazır hale getirir.
     public static bool RetryLaunch(string missionId)
@@ -273,6 +308,7 @@ public static class SpaceSystem
                 RetryCount = m.RetryCount,
             }).ToArray(),
             RemainingBudgetPP = _remainingBudgetPP,
+            ReconSatellites = _reconSatellites.ToArray(),
         };
     }
 
@@ -282,6 +318,10 @@ public static class SpaceSystem
         EnsureLoaded();
         _missions.Clear();
         _remainingBudgetPP = data.RemainingBudgetPP;
+        _reconSatellites.Clear();
+        if (data.ReconSatellites != null)
+            foreach (var id in data.ReconSatellites)
+                _reconSatellites.Add(id);
         if (data.Missions != null)
         {
             foreach (var s in data.Missions)
@@ -314,6 +354,7 @@ public static class SpaceSystem
         _initialized = false;
         _testMode = false;
         _forceFailureForTest = false;
+        _reconSatellites.Clear();
         _remainingBudgetPP = SpaceProgramBudgetPP;
     }
 

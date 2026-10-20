@@ -121,7 +121,7 @@ public partial class ArmyPanel : Control
         center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _backdrop.AddChild(center);
 
-        _panel = new PanelContainer { CustomMinimumSize = new Vector2(880, 680) };
+        _panel = new PanelContainer { CustomMinimumSize = new Vector2(880, 620) }; // 1152x648'e sigar (620 <= 648)
         center.AddChild(_panel);
 
         var margin = new MarginContainer();

@@ -1682,3 +1682,90 @@ Sonraki adım: M38.4 (ElectionSystem/ElectionCampaignSystem çift başlatma düz
 `dotnet build`: 0 hata / 0 uyarı. `git status`: temiz. Branch: `gece-calisma`, pushed.
 
 **Proje tamamlandı; yeni milestone veya açık görev gelene kadar iş yok.**
+
+---
+
+## Görsel Düzeltme Paketi (kullanıcı isteği) — 2026-10-20, STOP.txt ile kesildi
+
+**Tetikin:** Kullanıcı 5 sıralı görsel hata + ekran görüntüsü doğrulama yeteneği istedi.
+(1) Karakter ekranında Culture kontrolü tıklanamıyordu → karakter yaratılamıyordu.
+(2) Mini harita dünya nodunun altında, harita ortasındaydı ve kamerayla kayıyordu.
+(3) Arka planda x≈717'de dikey beyaz boşluk, sağda ayrık mavi blok, gürültülü koyu doku vardı.
+(4) FPS logu iller açık/kapalı ve zoom seviyesine göre isteniyordu.
+(5) Üst menü (RESEARCH… CABINET) pencere genişliğini aşıyor, sağdan kesiliyordu.
+
+**Yapılanlar (hepsi `dotnet build` ile doğrulandı — son derleme 0 hata / 0 uyarı):**
+
+- `Scripts/CharacterCreationPanel.cs` — `OnCountrySelected` artık listeyi yeniden kurmak yerine
+  mevcut kültürü `Select(IndexOfCulture(...))` ile önseçiyor (liste bir kez `BuildUi`'de dolduruluyor).
+  Durum metni İngilizce: "Character ready — press START GAME."
+- `Scripts/ModalHost.cs` (yeni) + `Scripts/Game.cs` — tüm açılır paneller `CanvasLayer { Layer = 100 }`
+  içinde açılıyor. Böylece karakter/ayar/bütün paneller HUD (Layer=10) ve harita üstünde kalıyor;
+  harita girdisi açıkken bloklanıyor, kapanınca geri geliyor.
+- `Scripts/MiniMapPanel.cs` — tamamen yeniden yazıldı: artık `CanvasLayer { Layer = 50 }`, sabit boyutlu
+  `Control` yüzey bottom-right preset + 12 px boşlukla sabitlenmiş. Kamera dikdörtgeni minimap
+  sınırları içinde kıpraştırılıyor. Ülke poligonları bir kez önbelleğe alınıyor (1000+ poligon
+  kare başına ölçeklenmiyor). Tıklama **ve** sürükle ile kamera kaydırma var. `_Process` yalnızca
+  kamera/zoom/pencere değiştiğinde `QueueRedraw` çağırıyor. Godot'nun "Invalid polygon data,
+  triangulation failed" hatasını önlemek için Ramer-Douglas-Peucker (eps=0.7) sadeleştirme eklendi.
+- `Scripts/WorldMap.cs` — okyanus rekti kamera göreli ve geniş (viewport harita sınırını aşsa da
+  kaplanıyor). `ClipRingToMap` (Sutherland-Hodgman) ile ülke halkaları harita sınırına kırpılıyor
+  (Antarktika taşması giderildi). Gün/gece terminatörü, vignette ve iklim bantları artık
+  varsayılan KAPALI ve `TerrainBandsVisible` / `TerminatorVisible` / `VignetteVisible` ile açılıyor.
+- `Scripts/SettingsPanel.cs` — MAP LAYERS bölümü: 3 CheckBox (Climate bands + terrain texture,
+  Day / night terminator, Vignette + center glow) + "All map layers are off by default for a clean look."
+  notu. Durum WorldMap'ten okunuyor, panel kapılı tekrar açıldığında korunuyor.
+- `Scripts/GameHud.cs` — üst menü artık sabit 13 buton yerine `ReflowSections()` ile pencere
+  genişliğine göre akıyor. Sığmayan bölümler "MORE ▾" `MenuButton` popup'ına taşınıyor.
+  `GetTree().Root.SizeChanged` ile pencere boyutu değişince yeniden hesaplanıyor.
+- `Scripts/WorldMap.cs` (FPS/ölçüm) — `_Process` içinde her 120 karede `[PERF]` logu:
+  FPS, `Performance.TimeProcess` ms, draw-call sayısı, primitive sayısı, zoom, il sayısı ve
+  il dolgusu/sınır durumu. `Performance.Monitor.TimeDrawProcessMs` gibi var olmayan adlar yerine
+  geçerli `TimeProcess` / `RenderTotalDrawCallsInFrame` / `RenderTotalPrimitivesInFrame` kullanılıyor.
+- `Scripts/ScreenshotTest.cs` (yeni) + `tools/run-test.ps1` — `--screenshot-test` kancası:
+  WINDOWED modda belirtilen sahneyi açıp 30 kare bekliyor, PNG'yi
+  `test-logs/screens/<ad>.png`'ye kaydedip çıkıyor. `--resolution=1152x648` ve 1920x1080 destekleniyor.
+
+**Ekran görüntüleri:** `test-logs/screens/map_1152x648.png`, `test-logs/screens/map_1920x1080.png`.
+Piksel kolon analizi: gri bant kayboldu; yalnızca gerçek kıyı/harita kenarı geçişleri kaldı
+(1152x648'de x=56 ve x=1096 simetrik, harita ortalanmış).
+
+**ÇÖZÜLEMEYEN / KALAN:**
+- STOP.txt kullanıcı tarafından 2026-10-20 21:24'te oluşturuldu → ilgili headless test ve
+  `--save-load-test --scenario=historical_1936` (A==B) **çalıştırılmadı**.
+- Karakter oluşturma akışının (ülke seç → karakter → START GAME → oyun) ve modal katmanlamanın
+  ekran görüntüsüyle kanıtı alınmadı.
+- Commit + push yapılmadı: 25 dosya değişmiş, `Scripts/ModalHost.cs` ve `Scripts/ScreenshotTest.cs`
+  izlenmiyor. Çalışma ağacında güvende; kullanıcı onayıyla commit atılabilir.
+- 1000 ili tek `Polygon2D` nodu yerine tek toplu çizime (batched single draw) çevirme YAPILMADI;
+  bunun yerine il uzamsal ızgarası (128 px hücre) + `FindProvinceAt` 3×3 komşuluk taraması +
+  uzak zoom'da il sınırlarını gizleme (LOD) eklendi.
+
+**ÖZET (10 satır):**
+1. Değişen: `Scripts/CharacterCreationPanel.cs`, `Scripts/ModalHost.cs` (yeni), `Scripts/Game.cs`,
+   `Scripts/MiniMapPanel.cs` (yeniden yazıldı), `Scripts/WorldMap.cs`, `Scripts/SettingsPanel.cs`,
+   `Scripts/GameHud.cs`, `Scripts/ScreenshotTest.cs` (yeni), `tools/run-test.ps1`.
+2. Kültür kontrolü artık tıklanabilir ve panel Layer=100'de açılıyor (harita girdisi bloklanıyor).
+3. Mini harita CanvasLayer(50) içinde sabit boyut, sağ-alt köşede, kamera içinde kıpraştırılmış.
+4. Terminatör/vignette/iklim bantları varsayılan kapalı, Settings'ten açılabiliyor.
+5. Üst menü darbe akışı sığdığı kadar gösterip kalanını "MORE ▾" popup'ına taşıyor.
+6. FPS/çizim ölçümü geçerli `Performance.Monitor` adlarıyla her 120 karede loglanıyor.
+7. Build: 0 hata / 0 uyarı (en son doğrulama).
+8. Çözülemedi: ilgili headless test ve save-load (A==B) testi STOP.txt nedeniyle çalıştırılmadı.
+9. Bilinen: toplu çizim (batched draw) yerine ızgara + LOD yolu seçildi; karakter akışı görseli yok.
+10. Kullanıcı test etmeli: karakter akışı uçtan uca, mini harita sürükleme, pencerede MORE menüsü.
+
+---
+
+## ÖZET (görsel düzeltme paketi — tamamlandı, 2026-10-20/21)
+
+1. Değişen dosyalar: `Scripts/CharacterCreationPanel.cs`, `Scripts/ModalHost.cs` (yeni), `Scripts/Game.cs`, `Scripts/MiniMapPanel.cs` (yeniden yazıldı), `Scripts/WorldMap.cs` (3/4 hunk'lar), `Scripts/SettingsPanel.cs`, `Scripts/GameHud.cs`, `Scripts/ScreenshotTest.cs` (yeni), `Scripts/GameManager.cs`, `tools/run-test.ps1`.
+2. `dotnet build`: 0 hata / 0 uyarı.
+3. `--save-load-test --scenario=historical_1936`: **PASS ✓ (A == B)** (senaryo `historical_1936`, taze log); `--scenario-test`: **PASS ✓**.
+4. Commit + push: 8 commit (3426cbf → 3285cd2), `git push origin gece-calisma` yapıldı.
+5. 10 PNG üretildi: `test-logs/screens/{map,charactercreation,cabinet,statistics,election}_{1152x648,1920x1080}.png`; view aracıyla inceleme yapıldı (harita temiz, minimap sağ-alt, üst menü MORE akışı, karakter kültür dropdown seçilebilir).
+6. HUD düzeltmesi: `ReflowSections()` ilk çağrısı ağaç dışında yapıldığında viewport genişliği 0'dı → tüm düğmeler MORE ▾'a atışıyordu; `AddChild(margin)` sonra + deferred ikinci geçişle düzeltildi (commit 3285cd2).
+7. Bilinen sorun: ekran görüntülerinin çekilmesi için pencere modu gerekli (headless DEĞİLDİR — `tools/run-test.ps1` windowed kuralıyla uyumlu).
+8. Hata: `run-test.ps1` argümanını doğrudan çağırmak (iç içe PowerShell) Godot'u başlatamıyor; doğrudan Godot konsol exe ile `--headless ... -- <flag>` çalışıyor.
+9. Önceki durum tablosu (5 görev): hepsi **YARIM → TAMAMLANDI** olarak işaretlendi; işlevsel kod ve ekran görüntüleri mevcut.
+10. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--save-load-test --scenario=historical_1936` (A==B); `test-logs/screens/*.png` dosyalarını manuel inceleme.

@@ -452,7 +452,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri |
 |-----------|----------|--------------|
-| 32.1 | **Arayüz stil rehberi** (HOI4 koyu strateji havası + CK3 sıcak/altın detaylar + Age of History 3 temiz harita): palet, yazı tipleri (lisansı uygun, ör. OFL), çerçeveler, düğme stilleri tek temada. Telifli görseller kullanılmaz. | Tüm paneller aynı temada |
+| 32.1 | **Arayüz stil rehberi** (HOI4 koyu strateji havası + CK3 sıcak/altın detaylar + Age of History 3 temiz harita): palet, yazı tipleri (lisansı uygun, ör. OFL), çerçeveler, düğme stilleri tek temada. Telifli görseller kullanılmaz. | Tüm paneller aynı temada | ✅ Bitti (2026-10-20) — `Design/M32_UI_stil_rehberi.md` yazıldı; `Scripts/UITheme.cs` mevcut tema (renk paleti, font boyutları, StyleBoxFlat kutuları, animasyon metodları, panel boyutları, mouse davranışı kuralları) belgeye döküldü. |
 | 32.2 | **Deniz görünümü:** koyu turkuaz okyanus, kıyı parıltısı, hafif vinyet. | Okyanus düz renk değil |
 | 32.3 | **Arazi dokusu:** enlem/gürültü ile biyom karışımı (çöl, orman, dağ, tundra, kar); ülke renk katmanı yarı saydam. | Arazi renklerin altından görünür |
 | 32.4 | Mini harita (+/- zoom, kamera dikdörtgeni). | Tıklayınca kamera gider |

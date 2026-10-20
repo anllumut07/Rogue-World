@@ -1684,4 +1684,16 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 **Dosyalar:** Değiştirilen: `Scripts/CountryAI.cs`, `Scripts/GameManager.cs`, `Scripts/NuclearProgramSystem.cs`, `TODO.md` (31.5 [x]), `PROGRESS.md` (M31.5 DONE), `GECE-RAPOR.md`.
 
+### M32.1: Arayüz Stil Rehberi — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:**
+- `Design/M32_UI_stil_rehberi.md`: HOI4 koyu strateji + CK3 sıcak/altın detay + AoH3 temiz harita temasından yola çıkarak UI stil rehberi. Renk paleti (PanelBg #0B1018, Gold #C9A227, GoldBright #FFD700, TextMain #E8E0D0 vb.), yazı tipleri (OFL lisanslı, varsayılan Godot font), StyleBoxFlat kutu stilleri (Button, ToolbarButton, PanelContainer, InnerPanel, Separator, LineEdit/TextEdit, OptionButton, PopupMenu, CheckBox, HSlider, ScrollBar, Window), font boyutları (16), animasyon metodları (AddHoverScale, FadeIn/Out, PopIn/Out), panel boyutları (1152×648 kısıtı), mouse davranışı kuralları, tek tema kuralı.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı (UITheme.cs değişmedi, belge sadece dokümantasyon).
+
+**Dosyalar:** Yeni: `Design/M32_UI_stil_rehberi.md`, `TODO.md` (32.1 [x]).
+
+**Sonraki adım:** M32.2–32.6 (deniz görünümü, arazi dokusu, mini harita, birlik ikonları, ana menü arka planı) — arazi dokusu kaynağı beklenince (milhout engeli).
+
 **Sonraki adım:** M32 Görsel Kimlik ve Harita Güzelleştirme (isteğe bağlı, explicit onay gerekli).

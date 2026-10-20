@@ -961,3 +961,15 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 2. Çözülemeyen şey: yok — M31.5 %100 tamamlandı (build 0/0, ai-nuclear-test PASS exit 0, save-load-test A==B).
 3. Bilinen sorun: AI nükleer davranış model-seviyesinde; UI paneli yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--ai-nuclear-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).
+
+## M32: Görsel Kimlik ve Harita Güzelleştirme — KİŞİSEL DOKÜMANTASYON TAMAMLANDI, KALAN BLOKE (2026-10-20)
+
+**M32.1 — ✅ DONE:** `Design/M32_UI_stil_rehberi.md` yazıldı. UI stil rehberi: renk paleti, yazı tipleri (OFL), StyleBoxFlat kutu stilleri, font boyutları, animasyon metodları, panel boyutları (1152×648), mouse davranışı kuralları, tek tema kuralı. `Scripts/UITheme.cs` mevcut tema bu rehbere döküldü. `dotnet build` 0/0.
+
+**M32.2–32.6 — BLOKE:** Deniz görünümü, arazi dokusu, mini harita, birlik ikonları, ana menü arka planı — hepsi görsel varlık gerektirir. Bu kurulumda resim üreten model bağlı değil (CLAUDE.md §6). Milestone başlığına göre: "Arazi dokuları (ChatGPT ile üretilen kesintisiz dokular) hazır olunca. Sırası esnektir."
+
+**Engellenme nedeni:** Harici kaynak (arazi dokusu) bekleniyor. Uygulanabilir alternatif (kullanıcı onayıyla): prosedürel shader/Godot çizimle deniz görünümü ve arazi dokusu denenebilir.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); M32.1 için belge incelemesi.
+
+Tüm M1–M31.5 görevleri tamamlandı; M32.2–32.6 engelli.

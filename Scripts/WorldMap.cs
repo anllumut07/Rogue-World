@@ -141,7 +141,30 @@ public partial class WorldMap : Node2D
     private GradientTexture2D _oceanTexture;
     private GradientTexture2D _vignetteTexture; // M32.2: vinyet + merkez parlaklığı
     private ImageTexture _noiseTexture;        // M32.3: arazi doku gürültüsü (tekrar eden)
-    private TerrainLayer _terrainLayer;        // M32.3: enlem bazlı biyom katmanı (ülkelerin altında)
+
+    // M32.3 düzeltme: Enlem bazlı renkli bantlar + gürültü doku VARSYILAN KAPALI.
+    // Kullanıcı şikayeti: haritada "gürültü koyu doku" ve yatay renkli bantlar
+    // istenmeyen görünüyordu. Katman bilinçli (TerrainLayer) ama kullanıcıya
+    // açma/kapma kontrolü verilmeden sürekli açıktı. Artık ayar kökünde kapalı.
+    private TerrainLayer _terrainLayer;
+    private bool _terrainBandsVisible = false;
+
+    // Arazi katmanı açma/kapma (minimap ve ayarlar bu özelliği kullanır).
+    public bool TerrainBandsVisible
+    {
+        get => _terrainBandsVisible;
+        set
+        {
+            if (_terrainBandsVisible == value) return;
+            _terrainBandsVisible = value;
+            if (_terrainLayer != null)
+            {
+                _terrainLayer.Visible = value;
+                _terrainLayer.QueueRedraw();
+            }
+            GD.Print($"WorldMap: arazi bantları {(_terrainBandsVisible ? "AÇIK" : "KAPALI")}");
+        }
+    }
     private float _lastBorderZoom = -1f;
 
     // M32.3: Ülke renk katmanı yarı saydam → arazi renginin altında görünür.
@@ -161,6 +184,28 @@ public partial class WorldMap : Node2D
     private const float TerminatorPeriod = 60f;       // saniye cinsinden bir tam tur
     private const float TerminatorBandWidthRatio = 0.35f;
 
+    // Düzeltme (kullanıcı şikayeti): haritada sabit duran dikey GRİ BANT görünüyordu
+    // (x≈717). Kaynak: gündüz/gece terminatörü — 756 birim genişliğinde yumuşak
+    // kenarlı gece bandı haritayı ikiye böldüğü için "boşluk/bant" gibi duruyor.
+    // Vinyet de köşeleri koyutup haritayı kirli gösteriyordu.
+    // Her iki katman da bilinçli ama VARSYILAN KAPALI; açma/kapama ayarı aşağıda.
+    private bool _terminatorVisible = false; // gündüz/gece bandı (varsayılan kapalı)
+    private bool _vignetteVisible = false;   // vinyet + merkez parıltısı (varsayılan kapalı)
+
+    /// Gündüz/gece terminatör bandı açık mı? (varsayılan kapalı)
+    public bool TerminatorVisible
+    {
+        get => _terminatorVisible;
+        set { _terminatorVisible = value; _effects?.QueueRedraw(); }
+    }
+
+    /// Vinyet + merkez parıltısı açık mı? (varsayılan kapalı)
+    public bool VignetteVisible
+    {
+        get => _vignetteVisible;
+        set { _vignetteVisible = value; _effects?.QueueRedraw(); }
+    }
+
     public override void _Ready()
     {
         Instance = this;
@@ -169,6 +214,7 @@ public partial class WorldMap : Node2D
 
         // M32.3: Arazi doku katmanı — ülkelerin ALTINDA çizilir (BuildFromGeoJson'dan önce eklendi).
         _terrainLayer = new TerrainLayer();
+        _terrainLayer.Visible = _terrainBandsVisible; // varsayılan kapalı (kullanıcı isteği)
         AddChild(_terrainLayer);
 
         // Küçük gürültü doku (FastNoiseLite, tek seferlik üretim, haritaya döşenir).
@@ -269,7 +315,15 @@ public partial class WorldMap : Node2D
     public override void _Draw()
     {
         // Okyanus: koyu mavi degrade (kutuplar koyu -> ekvator hafif mavi)
-        var big = new Rect2(-2000f, -1000f, MapSize.X + 4000f, MapSize.Y + 2000f);
+        // Kameranın gördüğü TÜM alanı kaplayacak kadar geniş: kamera harita
+        // sınırlarının dışına taşsa bile (zoom-out, kenarlar) beyaz/gri boşluk kalmasın.
+        var camSize = _camera != null
+            ? GetViewportRect().Size / _camera.Zoom
+            : GetViewportRect().Size + MapSize;
+        var camPos = _camera != null ? _camera.Position : MapSize / 2f;
+        float halfW = Mathf.Max(camSize.X, MapSize.X) * 0.5f + 2000f;
+        float halfH = Mathf.Max(camSize.Y, MapSize.Y) * 0.5f + 2000f;
+        var big = new Rect2(camPos.X - halfW, camPos.Y - halfH, halfW * 2f, halfH * 2f);
         if (_oceanTexture != null)
             DrawTextureRect(_oceanTexture, big, false);
         else
@@ -1005,10 +1059,81 @@ public partial class WorldMap : Node2D
         if (points.Count >= 3)
         {
             var ring = points.ToArray();
+            // Antarktika (ve kutup bantlarında çok uzayan poligonlar) harita
+            // sınırının çok ötesine taşar: endüstri/güney kutup halkaları -90
+            // enlemine kadar iner. Project() bunu MapSize.Y'nin çok altına
+            // yazar → harita tahta çerçevesinin dibini aşan devasa gri blok.
+            // Bu yüzden her halkayı harita sınırı içine kırpıyoruz (Sutherland-
+            // Hodgman tarzı dikey kırpma: sol/sağ/üst/alt sınırlara karşı).
+            ring = ClipRingToMap(ring, MapSize);
             country.Rings.Add(ring);
             var cleaned = CleanRing(ring);
             if (cleaned != null) country.CleanRings.Add(cleaned);
         }
+    }
+
+    // Halkayı [0..MapSize] dikdörtgenine kırpar (Antarktika kırpma sorunu).
+    // Sutherland-Hodgman: sınırın dışında kalan kısımlar kesilir, köşelerde
+    // sınır noktası eklenir. Çok küçük/bozulmuş halkada orijinali döndürür.
+    private static Vector2[] ClipRingToMap(Vector2[] ring, Vector2 mapSize)
+    {
+        const float pad = 1.5f; // kenar hizasını örterek kırpma toleransı
+        var bounds = new Rect2(0f, 0f, mapSize.X, mapSize.Y);
+        bool inside = true;
+        foreach (var p in ring)
+        {
+            if (!new Rect2(0f, 0f, mapSize.X + pad, mapSize.Y + pad).HasPoint(p)) { inside = false; break; }
+        }
+        if (inside) return ring; // tamamen içeride: değiştirme
+
+        var poly = new List<Vector2>(ring);
+
+        Vector2 Intersect(Vector2 a, Vector2 b, float edge, bool horizontal, bool greater)
+        {
+            // Yatay kenar: y=edge; dikey kenar: x=edge.
+            float t = horizontal
+                ? (b.Y - a.Y == 0f ? 0f : (edge - a.Y) / (b.Y - a.Y))
+                : (b.X - a.X == 0f ? 0f : (edge - a.X) / (b.X - a.X));
+            t = Mathf.Clamp(t, 0f, 1f);
+            var pt = a.Lerp(b, t);
+            return horizontal ? new Vector2(pt.X, edge) : new Vector2(edge, pt.Y);
+        }
+
+        List<Vector2> ClipSide(List<Vector2> input, float edge, bool horizontal, bool greater, bool keepGreater)
+        {
+            var output = new List<Vector2>();
+            for (int i = 0; i < input.Count; i++)
+            {
+                var cur = input[i];
+                var prev = input[(i + input.Count - 1) % input.Count];
+                bool curIn = greater ? (horizontal ? cur.X >= edge : cur.Y >= edge)
+                                     : (horizontal ? cur.X <= edge : cur.Y <= edge);
+                bool prevIn = greater ? (horizontal ? prev.X >= edge : prev.Y >= edge)
+                                      : (horizontal ? prev.X <= edge : prev.Y <= edge);
+                if (curIn)
+                {
+                    if (!prevIn) output.Add(Intersect(prev, cur, edge, horizontal, greater));
+                    output.Add(cur);
+                }
+                else if (prevIn)
+                {
+                    output.Add(Intersect(prev, cur, edge, horizontal, greater));
+                }
+            }
+            return output;
+        }
+
+        // Alt (y >= 0), üst (y <= Y), sol (x >= 0), sağ (x <= X) sınırlarına karşı kırp.
+        poly = ClipSide(poly, 0f, false, false, true);          // x >= 0
+        if (poly.Count < 3) return ring;
+        poly = ClipSide(poly, mapSize.X, false, true, false);   // x <= X
+        if (poly.Count < 3) return ring;
+        poly = ClipSide(poly, 0f, true, false, true);          // y >= 0
+        if (poly.Count < 3) return ring;
+        poly = ClipSide(poly, mapSize.Y, true, true, false);   // y <= Y
+        if (poly.Count < 3) return ring;
+
+        return poly.ToArray();
     }
 
     // GeoJSON halkasını DrawPolygon için temizler: neredeyse aynı noktaları,
@@ -1834,7 +1959,8 @@ public partial class WorldMap : Node2D
             }
 
             // Gündüz/gece terminatörü: yumuşak kenarlı dikey gece bandı
-            if (wm._terminatorTexture != null)
+            // VARSYILAN KAPALI — haritayı bölen gri bant şikayeti.
+            if (wm._terminatorVisible && wm._terminatorTexture != null)
             {
                 float bandW = wm.MapSize.X * TerminatorBandWidthRatio;
                 var rect = new Rect2(
@@ -1844,7 +1970,8 @@ public partial class WorldMap : Node2D
             }
 
             // M32.2: Vinyet + merkez parlaklığı — tüm haritanın üzerine, köşeler koyu, merkez hafif turkuaz.
-            if (wm._vignetteTexture != null)
+            // VARSYILAN KAPALI — köşe koyulaşması haritayı kirli gösteriyordu.
+            if (wm._vignetteVisible && wm._vignetteTexture != null)
             {
                 var bigRect = new Rect2(-1000f, -1000f, wm.MapSize.X + 2000f, wm.MapSize.Y + 2000f);
                 DrawTextureRect(wm._vignetteTexture, bigRect, false);

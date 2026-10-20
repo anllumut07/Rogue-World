@@ -20,6 +20,11 @@ public partial class SettingsPanel : Control
     private OptionButton _difficultyOption;
     private CheckBox _ironmanCheck;
 
+    // Harita katmanı anahtarları (düzeltme: varsayılan kapalı).
+    private CheckBox _terrainBandsCheck;
+    private CheckBox _terminatorCheck;
+    private CheckBox _vignetteCheck;
+
     // Animasyon için referanslar
     private ColorRect _backdrop;
     private PanelContainer _panel;
@@ -66,7 +71,7 @@ public partial class SettingsPanel : Control
         // 2) Yedek yol: koddan oluştur
         panel ??= new SettingsPanel();
 
-        parent.AddChild(panel);
+        ModalHost.AddUnder(parent, panel);
         GD.Print($"[SettingsPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
     }
 
@@ -240,6 +245,41 @@ public partial class SettingsPanel : Control
         _ironmanCheck = new CheckBox { Text = "Ironman" };
         vbox.AddChild(_ironmanCheck);
 
+        // --- HARİTA KATMANLARI (düzeltme: varsayılan kapalı görsel katmanlar) ---
+        // Kullanıcı şikayeti: haritada istenmeyen gri bant, gürültü doku ve renkli
+        // enlem bantları vardı. Bu katmanlar bilinçli ama artık buradan açılıp
+        // kapanıyor; oyun açılışında hepsi kapalı.
+        vbox.AddChild(new HSeparator());
+
+        var layersTitle = new Label
+        {
+            Text = "MAP LAYERS",
+            HorizontalAlignment = HorizontalAlignment.Center
+        };
+        layersTitle.AddThemeColorOverride("font_color", UITheme.Gold);
+        vbox.AddChild(layersTitle);
+
+        _terrainBandsCheck = new CheckBox { Text = "Climate bands + terrain texture" };
+        _terrainBandsCheck.Toggled += OnTerrainBandsToggled;
+        vbox.AddChild(_terrainBandsCheck);
+
+        _terminatorCheck = new CheckBox { Text = "Day / night terminator" };
+        _terminatorCheck.Toggled += OnTerminatorToggled;
+        vbox.AddChild(_terminatorCheck);
+
+        _vignetteCheck = new CheckBox { Text = "Vignette + center glow" };
+        _vignetteCheck.Toggled += OnVignetteToggled;
+        vbox.AddChild(_vignetteCheck);
+
+        var layersHint = new Label
+        {
+            Text = "All map layers are off by default for a clean look.",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        layersHint.AddThemeFontSizeOverride("font_size", 12);
+        layersHint.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        vbox.AddChild(layersHint);
+
         // --- GERİ butonu (sağa hizalı) ---
         var backRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         vbox.AddChild(backRow);
@@ -275,6 +315,28 @@ public partial class SettingsPanel : Control
         _defaultSpeedOption.Select(SettingsSystem.DefaultSpeed); // 0=pause .. 5 -> item index 0..5
         _difficultyOption.Select((int)SettingsSystem.Difficulty); // Easy=0, Normal=1, Hard=2
         _ironmanCheck.ButtonPressed = SettingsSystem.Ironman;
+
+        // Harita katmanları: açık/kapalı durumu WorldMap'ten oku (varsayılan kapalı).
+        var wm = WorldMap.Instance;
+        _terrainBandsCheck.ButtonPressed = wm?.TerrainBandsVisible ?? false;
+        _terminatorCheck.ButtonPressed = wm?.TerminatorVisible ?? false;
+        _vignetteCheck.ButtonPressed = wm?.VignetteVisible ?? false;
+    }
+
+    // Harita katmanı anahtarları (düzeltme: gri bant / gürültü doku şikayeti).
+    private void OnTerrainBandsToggled(bool pressed)
+    {
+        if (WorldMap.Instance != null) WorldMap.Instance.TerrainBandsVisible = pressed;
+    }
+
+    private void OnTerminatorToggled(bool pressed)
+    {
+        if (WorldMap.Instance != null) WorldMap.Instance.TerminatorVisible = pressed;
+    }
+
+    private void OnVignetteToggled(bool pressed)
+    {
+        if (WorldMap.Instance != null) WorldMap.Instance.VignetteVisible = pressed;
     }
 
     private void ConnectSignals()

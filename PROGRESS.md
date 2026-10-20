@@ -1641,3 +1641,18 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Dosyalar:** Yeni: `Scripts/NuclearProgramSystem.cs`. Değiştirilen: `Data/scenarios/modern_world/technologies.json`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (31.2 [x]), `PROGRESS.md` (M31.2 DONE), `GECE-RAPOR.md`.
 
 **Sonraki adım:** M31.3 Yaptırımlar ve Diplomasi (isteğe bağlı, explicit onay gerekli).
+
+### M31.3: Yaptırımlar ve Diplomasi — ✅ DONE (2026-10-20)
+
+**Değiştirilen dosyalar:**
+- `Scripts/DiplomacySystem.cs`: `Sanction` sınıfına `IsUnSanction` ve `Reason` alanları eklendi; `ImposeUnSanction()` (BM/Güvenlik Konseyi tarzı çok taraflı yaptırım: tüm bağımsız ülkelerin hedefle ilişkisi düşer, büyük gerilim, komşu tepkisi); `IsTradeRestricted()` (tek yönlü veya karşılıklı ticaret kısıtı sorgusu); `ApplyNeighborReaction()` (hedefin komşuları yaptırıma girişene karşı daha öfkelenir); `WithdrawFromAgreement()` (anlaşmadan çıkış: ilişkiye kalıcı zarar, gerilim +3).
+- `Scripts/GameManager.cs`: `sanctionsNuclearTest` field, `--sanctions-nuclear-test` arg parsing, `RunSanctionsNuclearTest()` (BM yaptırım, komşu tepkisi, ticaret kısıtlaması, imzalı anlaşmadan çıkış, DTO kaydet/yükle A==B, Quit(0/1)).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--sanctions-nuclear-test`: **SONUÇ: PASS ✓** (~3s) — BM bayrak/sebep doğrulandı, ticaret kısıtlı, anlaşma imza→çıkar döngüsü, tension artıyor, DTO round_trip + BM state survives.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — yaptırım/anlaşma state'i dosya kaydet/yüklede korunuyor.
+
+**Dosyalar:** Değiştirilen: `Scripts/DiplomacySystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (31.3 [x]), `PROGRESS.md` (M31.3 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M31.4 Nükleer Kullanım (radyasyon bölgesi, nüfus ve ekonomi kaybı, uluslararası tepki, karşı saldırı, caydırıcılık).

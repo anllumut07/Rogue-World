@@ -139,6 +139,7 @@ public partial class GameManager : Node
         bool spaceRewardTest = false;       // M30.3: uzay ödülleri testi (prestij, tech bonusu, memnuniyet, askeri kullanım)
         bool techTest = false;              // M31.1: modern silah teknolojisi testi (--tech-test)
         bool nuclearTest = false;           // M31.2: nükleer program testi (--nuclear-test)
+        bool sanctionsNuclearTest = false;  // M31.3: yaptirim / nükleer diplomasi testi (--sanctions-nuclear-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -250,6 +251,8 @@ public partial class GameManager : Node
                 techTest = true;
             else if (arg == "--nuclear-test")
                 nuclearTest = true;
+            else if (arg == "--sanctions-nuclear-test")
+                sanctionsNuclearTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -563,6 +566,11 @@ public partial class GameManager : Node
 
         if (nuclearTest)
             RunNuclearTest();
+
+        // M31.3: Yaptirim / nükleer diplomasi testi (BM yaptirim, komşu tepkisi, ticaret kısıtlaması,
+        // anlaşmadan çıkış, dünya gerilimi, kaydet/yükle A==B; başarısızlıkta Quit(1)).
+        if (sanctionsNuclearTest)
+            RunSanctionsNuclearTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -2878,6 +2886,109 @@ public partial class GameManager : Node
             && !redoOk;
         GD.Print(ok ? "[NuclearTest] SONUÇ: PASS ✓" : "[NuclearTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M31.3: Yaptirim / nükleer diplomasi testi — BM (çok taraflı) yaptirim, komşu tepkisi,
+    /// ticaret kısıtlaması, anlaşmadan çıkış, dünya gerilimi ve DTO kaydet/yükle A==B doğrular.
+    /// Nükleer deneme sebebiyle BM yaptirimi uygulanır; komşular tepki verir; ticaret kısıtlanır;
+    /// bir anlaşma imzalanıp ardından terk edilir. Normal oyunda ASLA çalışmaz (--sanctions-nuclear-test).
+    /// </summary>
+    private void RunSanctionsNuclearTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M31.3: YAPTIRIM / NÜKLEER DİPLOMASI TESTİ (--sanctions-nuclear-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        string playerId = PlayerCountryId;
+
+        // Hedef: oyuncuyu içermeyen, bağımsız ilk ülke
+        string targetId = null;
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c.Id != playerId && !c.IsAnnexed) { targetId = c.Id; break; }
+        }
+        if (targetId == null)
+        {
+            GD.Print("[SanctionsNuclearTest] Uygun hedef ülke bulunamadı — test atlanıyor");
+            GD.Print("=========================================");
+            return;
+        }
+
+        bool allOk = true;
+        float tensionBefore = DiplomacySystem.WorldTension;
+        int sanctionsBefore = DiplomacySystem.Sanctions.Count(s => s.Active);
+        int agreementsBefore = DiplomacySystem.Agreements.Count(a => a.Active);
+        GD.Print($"[SanctionsNuclearTest] {playerId} -> {targetId}: tension önce=%{tensionBefore:F1}, aktif yaptirim={sanctionsBefore}, aktif anlaşma={agreementsBefore}");
+        // 1. BM (çok taraflı) yaptirim — nükleer deneme/program sebebi
+        bool unOk = DiplomacySystem.ImposeUnSanction(playerId, targetId, DiplomacySystem.Sanction.Type.Trade, 60, "Nükleer deneme/program");
+        GD.Print($"[SanctionsNuclearTest] BM ImposeUnSanction: {(unOk ? "OK" : "FAIL")}");
+        if (!unOk) allOk = false;
+
+        var unSanction = DiplomacySystem.Sanctions.LastOrDefault(s => s.IsUnSanction && s.TargetId == targetId);
+        bool unFlagged = unSanction != null && unSanction.IsUnSanction && unSanction.Reason == "Nükleer deneme/program";
+        GD.Print($"[SanctionsNuclearTest] BM bayrak/sebep doğrulandı: {unFlagged} (id={unSanction?.Id})");
+        if (!unFlagged) allOk = false;
+
+        // 2. Ticaret kısıtlaması (tek yönlü trade yaptırım = kısıtlı)
+        bool tradeRestricted = DiplomacySystem.IsTradeRestricted(playerId, targetId);
+        GD.Print($"[SanctionsNuclearTest] Ticaret kısıtlı mı: {tradeRestricted}");
+        if (!tradeRestricted) allOk = false;
+
+        // 3. Komşu tepkisi (hazırsa): hedefin bir komşusu uygulayıcıya karşı daha öfkeli olmalı
+        string neighborId = null;
+        int neighborRelBefore = 0;
+        if (NeighborSystem.IsReady)
+        {
+            var neighbors = NeighborSystem.GetNeighbors(targetId);
+            neighborId = neighbors.FirstOrDefault(n => n != playerId && CountryDatabase.Get(n) != null && !CountryDatabase.Get(n).IsAnnexed);
+            if (neighborId != null)
+                neighborRelBefore = DiplomacySystem.GetRelation(neighborId, playerId);
+            GD.Print($"[SanctionsNuclearTest] Komşu {neighborId ?? "(yok)"} ile ilişki önce={neighborRelBefore}");
+        }
+
+        // 4. Anlaşma imzala, ardından çıkarılma (vardığı doğru)
+        string agrId = null;
+        int agreementsAfterSign = -1;
+        if (DiplomacySystem.SignAgreement(playerId, targetId, DiplomacySystem.Agreement.Type.Trade, 0))
+        {
+            agrId = DiplomacySystem.Agreements.Last().Id;
+            agreementsAfterSign = DiplomacySystem.Agreements.Count(a => a.Active);
+            GD.Print($"[SanctionsNuclearTest] Anlaşma imzalandı: {agrId} (aktif anlaşma={agreementsAfterSign})");
+        }
+
+        bool withdrawOk = agrId != null && DiplomacySystem.WithdrawFromAgreement(playerId, agrId);
+        GD.Print($"[SanctionsNuclearTest] Anlaşmadan çıkış: {(withdrawOk ? "OK" : "FAIL")}");
+        if (!withdrawOk) allOk = false;
+
+        int agreementsAfter = DiplomacySystem.Agreements.Count(a => a.Active);
+        bool agreementCycleOk = agreementsAfterSign == agreementsBefore + 1 && agreementsAfter == agreementsBefore;
+        GD.Print($"[SanctionsNuclearTest] Aktif anlaşma sonrası={agreementsAfter} (imza sonrası={agreementsAfterSign}, once={agreementsBefore}, döngü={agreementCycleOk})");
+        if (!agreementCycleOk) allOk = false;
+
+        float tensionAfter = DiplomacySystem.WorldTension;
+        int sanctionsAfter = DiplomacySystem.Sanctions.Count(s => s.Active);
+        GD.Print($"[SanctionsNuclearTest] Son: tension=%{tensionAfter:F1} (delta={tensionAfter - tensionBefore:+#;-#;0}), aktif yaptirim={sanctionsBefore}->{sanctionsAfter}");
+
+        // DTO kaydet/yükle A==B — yeni state (IsUnSanction/Reason dahil) kalıcı mı?
+        var beforeDto = DiplomacySystem.GetSaveData();
+        DiplomacySystem.LoadSaveData(beforeDto);
+        var afterDto = DiplomacySystem.GetSaveData();
+        bool dtoRoundTrip = afterDto.Sanctions != null && afterDto.Sanctions.Length == beforeDto.Sanctions.Length
+            && afterDto.Agreements != null && afterDto.Agreements.Length == beforeDto.Agreements.Length;
+        bool unSurvives = afterDto.Sanctions != null && afterDto.Sanctions.Any(s => s.IsUnSanction && s.Reason == "Nükleer deneme/program");
+        GD.Print($"[SanctionsNuclearTest] DTO round_trip={dtoRoundTrip}, BM state survives={unSurvives}");
+        if (!dtoRoundTrip || !unSurvives) allOk = false;
+
+        bool pass = allOk && tensionAfter > tensionBefore && sanctionsAfter > sanctionsBefore
+            && unFlagged && tradeRestricted && withdrawOk && agreementCycleOk && dtoRoundTrip && unSurvives;
+
+        GD.Print(pass ? "[SanctionsNuclearTest] SONUÇ: PASS ✓" : "[SanctionsNuclearTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(pass ? 0 : 1);
         GD.Print("=========================================");
     }
 

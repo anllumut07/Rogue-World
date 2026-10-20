@@ -883,3 +883,29 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 2. Çözülemeyen şey: yok — M31.2 %100 tamamlandı (build 0/0, nuclear-test PASS ~15.6s, save-load-test A==B).
 3. Bilinen sorun: nükleer/UI paneli henüz yok (model-seviyede).
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--nuclear-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).
+
+
+## M31.3: Yaptırımlar ve Diplomasi — ✅ DONE (2026-10-20)
+
+**Neden:** Faz 2 planned, M31.2 tamamlandı ve pushed (d63eb77). M31.3'ultami (BM yaptırım, ticaret kısıtı, dünya gerilimi, komşu tepkisi, anlaşmadan çıkış) DiplomacySystem.cs (M27.4 fondament) üzerine genişletildi; GameManager'a `--sanctions-nuclear-test` kanca eklendi.
+
+**Yeni/Değişen dosyalar:**
+- `Scripts/DiplomacySystem.cs`: `Sanction` sınıfına `IsUnSanction` ve `Reason` alanları; `ImposeUnSanction()` (çok taraflı BM yaptırım: tüm bağımsız ülke ilişkisi düşer, büyük gerilim, komşu tepkisi); `IsTradeRestricted()` (tek/yönlü veya karşılıklı ticaret kısıtı sorgusu); `ApplyNeighborReaction()` (hedef komşuları yaptırıma girişene karşı daha öfkelenir); `WithdrawFromAgreement()` (anlaşmadan çıkış: ilişkiye kalıcı zarar, gerilim +3). Mevcut `Sanctions[]`/`Agreements[]` Save/Load DTO'zına otomatik geçer (yeni alanlar System.Text.Json tarafından serileştirilir; SaveSystem değişikliği gerektirmedi).
+- `Scripts/GameManager.cs`: `sanctionsNuclearTest` field, `--sanctions-nuclear-test` arg parsing, `RunSanctionsNuclearTest()` (BM yaptırım, komşu tepkisi, ticaret kısıtlaması, imzalı anlaşmanın imza→çıkar döngüsü, DTO kaydet/yükle A==B, Quit(0/1)).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--sanctions-nuclear-test`: **SONUÇ: PASS ✓** (~3s) — BM bayrak/sebep doğrulandı, ticaret kısıtlı, anlaşma imza→çıkar döngüsü, tension artıyor (+9), DTO round_trip + BM state survives.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — yaptırım/anlaşma state'i dosya kaydet/yüklede korunuyor.
+
+**Çözülemeyen şey:** yok — M31.3 %100 tamamlandı.
+
+**Bilinen sorun:** komşu tepkisi yalnızca `NeighborSystem.IsReady` olduğunda etkin (GeoJSON bağlantısı); UI paneli henüz yok (model-seviyede); M31.4 nükleer kullanım sonraki alt görev.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--sanctions-nuclear-test` (PASS ~3s); `--save-load-test --scenario=modern_world` (A==B).
+
+### ÖZET (M31.3 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/DiplomacySystem.cs` (BM yaptırım, ticaret kısıtı, komşu tepkisi, anlaşmadan çıkış), `Scripts/GameManager.cs` (`--sanctions-nuclear-test` + RunSanctionsNuclearTest), `TODO.md` (31.3 [x]), `PROGRESS.md` (M31.3 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M31.3 %100 tamamlandı (build 0/0, sanctions-nuclear-test PASS ~3s, save-load-test A==B).
+3. Bilinen sorun: komşu tepkisi NeighborSystem.IsReady'e bağlı; UI paneli yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--sanctions-nuclear-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).

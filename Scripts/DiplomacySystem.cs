@@ -155,6 +155,8 @@ public static class DiplomacySystem
         public int RelationDelta { get; set; }   // Iki yonlu (iki ulkeye de) uygulanan iliski dususu
         public float TensionEffect { get; set; } // Gerilim artisi (pozitif)
         public string EffectText { get; set; }   // İnsan okunabilir özet
+        public bool IsUnSanction { get; set; }   // BM/Güvenlik Konseyi kaynakli mi (M31.3)
+        public string Reason { get; set; }       // Yaptirim sebesi (ör. "Nükleer deneme/program") (M31.3)
     }
 
     // ===== Sabitler =====
@@ -1110,6 +1112,125 @@ public static class DiplomacySystem
         }
 
         GD.Print($"[Diplomacy] Yaptirim kalkirildi: {s.Id}");
+        return true;
+    }
+
+    // ===== M31.3: BM/Güvenlik Konseyi tarzı çok taraflı yaptırım =====
+
+    /// <summary>
+    /// BM/Güvenlik Konseyi tarzı çok taraflı yaptırım. Tüm bağımsız ülkelerin hedefle
+    /// olan ilişkisi düşer, büyük dünya gerilimi yaratır. IsUnSanction=true ve Reason kaydedilir.
+    /// </summary>
+    public static bool ImposeUnSanction(string initiatorId, string targetId, Sanction.Type type, int durationDays, string reason)
+    {
+        var initiator = CountryDatabase.Get(initiatorId);
+        var target = CountryDatabase.Get(targetId);
+        if (initiator == null || target == null || initiator.IsAnnexed || target.IsAnnexed || initiatorId == targetId)
+            return false;
+
+        // Aynı yönde aynı tür BM etkisinden sadece biri aktif olabilir
+        if (_sanctions.Any(s => s.Active && s.InitiatorId == initiatorId && s.TargetId == targetId && s.SanctionType == type && s.IsUnSanction))
+            return false;
+
+        int relationDelta = type switch
+        {
+            Sanction.Type.Trade => -15,
+            Sanction.Type.Financial => -20,
+            Sanction.Type.Tech => -12,
+            Sanction.Type.Energy => -16,
+            Sanction.Type.Arms => -22,
+            _ => -8
+        };
+        float tensionEffect = type switch
+        {
+            Sanction.Type.Trade => 6f,
+            Sanction.Type.Financial => 8f,
+            Sanction.Type.Tech => 4f,
+            Sanction.Type.Energy => 7f,
+            Sanction.Type.Arms => 9f,
+            _ => 5f
+        };
+
+        // Çok taraflı: her bağımsız ülkenin hedefle olan ilişkisi düşer (hedef hariç)
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c.Id == targetId || c.IsAnnexed) continue;
+            ModifyRelation(c.Id, targetId, relationDelta);
+        }
+        // Hedefin uygulayıcıya karşı yanıtı
+        ModifyRelation(targetId, initiatorId, relationDelta);
+
+        if (tensionEffect != 0f) IncreaseTension(tensionEffect);
+
+        // Komşu tepkisi: hedefin komşuları, yaptırıma girişene karşı daha öfkelenir
+        ApplyNeighborReaction(targetId, initiatorId, relationDelta);
+
+        _sanctions.Add(new Sanction
+        {
+            Id = $"UN-{initiatorId}-{targetId}-{type}-{GM?.TotalDays ?? 0}",
+            InitiatorId = initiatorId,
+            TargetId = targetId,
+            SanctionType = type,
+            DayStarted = GM?.TotalDays ?? 0,
+            DurationDays = durationDays,
+            Active = true,
+            RelationDelta = relationDelta,
+            TensionEffect = tensionEffect,
+            IsUnSanction = true,
+            Reason = reason,
+            EffectText = $"BM Yaptirimi: {initiatorId} -> {targetId} ({type}, gun {GM?.TotalDays ?? 0}), sebep: {reason}, iliski {relationDelta:+#;-#;0}, gerilim {tensionEffect:+#;-#;0}"
+        });
+
+        GD.Print($"[Diplomacy] BM Yaptirim: {initiatorId} -> {targetId} ({type}, day {GM?.TotalDays}, sure={durationDays}, sebep={reason}) — iliski {relationDelta:+#;-#;0}, gerilim {tensionEffect:+#;-#;0}");
+        return true;
+    }
+
+    /// <summary>İki ülke arasında aktif tek-yönlü veya karşılıklı ticaret kısıtlaması varsa true.</summary>
+    public static bool IsTradeRestricted(string a, string b) =>
+        _sanctions.Any(s => s.Active && s.SanctionType == Sanction.Type.Trade &&
+            ((s.InitiatorId == a && s.TargetId == b) || (s.InitiatorId == b && s.TargetId == a)));
+
+    /// <summary>Hedefin komşularını yaptırıma girişene karşı yıpratır (komşu dayanışması tepkisi).</summary>
+    private static void ApplyNeighborReaction(string targetId, string initiatorId, int relationDelta)
+    {
+        if (!NeighborSystem.IsReady) return;
+        var neighbors = NeighborSystem.GetNeighbors(targetId);
+        foreach (var neighborId in neighbors)
+        {
+            var n = CountryDatabase.Get(neighborId);
+            if (n == null || n.IsAnnexed || neighborId == initiatorId) continue;
+            int neighborDelta = Math.Max(-5, relationDelta / 3);
+            ModifyRelation(neighborId, initiatorId, neighborDelta);
+            GD.Print($"[Diplomacy] Komşu tepkisi: {neighborId} -> {initiatorId} ({neighborDelta:+#;-#;0})");
+        }
+    }
+
+    // ===== M31.3: Anlaşmadan çıkış (vardığı doğru) =====
+
+    /// <summary>
+    /// Bir ülke aktif bir anlaşmadan çekilir. İlişkiye kalıcı zarar verir, dünya gerilimi artar.
+    /// Sadece anlaşmanın tarafı çıkabilir (CancelAgreement temiz iptal, bu yüzden ayrı ayrı tutulur).
+    /// </summary>
+    public static bool WithdrawFromAgreement(string countryId, string agreementId)
+    {
+        var agr = _agreements.FirstOrDefault(x => x.Id == agreementId && x.Active);
+        if (agr == null) return false;
+        if (agr.CountryA != countryId && agr.CountryB != countryId) return false;
+
+        string other = agr.CountryA == countryId ? agr.CountryB : agr.CountryA;
+
+        // İlişkiye kalıcı zarar (anlaşma etkisinin ters işareti, yarı miktarda)
+        int relationPenalty = -Math.Abs(agr.RelationDelta) / 2;
+        if (relationPenalty != 0)
+        {
+            ModifyRelation(countryId, other, relationPenalty);
+            ModifyRelation(other, countryId, relationPenalty);
+        }
+
+        IncreaseTension(3f);
+
+        agr.Active = false;
+        GD.Print($"[Diplomacy] Anlaşmadan çıkış: {countryId} -> {agreementId} ({other} ile), iliski {relationPenalty:+#;-#;0}, tension +3");
         return true;
     }
 

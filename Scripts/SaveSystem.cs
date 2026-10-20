@@ -89,6 +89,7 @@ public static class SaveSystem
         public SocialProfileSave SocialProfile { get; set; } // M28.2: kurgusal sosyal medya profilleri
         public EspionageSystem.EspionageSave Espionage { get; set; } // M29.1: casusluk v2 — casus nitelik kayıtları
         public SpaceSystem.SpaceSave Space { get; set; } // M30.1: uzay programı — görev durumları
+        public NuclearProgramSystem.NuclearSave Nuclear { get; set; } // M31.2: nükleer program aşamaları
     }
 
     // ===== Economy DTOs =====
@@ -459,6 +460,7 @@ public static class SaveSystem
             SocialProfile = SocialProfileSystem.GetSaveData(), // M28.2: kurgusal sosyal medya profilleri
             Espionage = EspionageSystem.GetSaveData(), // M29.1: casusluk v2 — casus nitelik kayıtları
             Space = SpaceSystem.GetSaveData(), // M30.1: uzay programı — görev durumları
+            Nuclear = NuclearProgramSystem.GetSaveData(), // M31.2: nükleer program aşamaları
         };
 
         EnsureSavesDir();
@@ -627,6 +629,9 @@ public static class SaveSystem
 
             // M30.1: uzay programı — görev durumları — kayıtta varsa geri yüklenir
             SpaceSystem.LoadSaveData(save.Space);
+
+            // M31.2: nükleer program — aşama durumu — kayıtta varsa geri yüklenir
+            NuclearProgramSystem.LoadSaveData(save.Nuclear);
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

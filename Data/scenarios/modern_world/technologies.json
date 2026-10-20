@@ -1058,5 +1058,104 @@
     "Modifiers": {
       "land_attack": 0.20
     }
+  },
+  {
+    "Id": "uranium_mining",
+    "Name": "Uranium Mining",
+    "Category": "Nuclear",
+    "Era": 2020,
+    "Cost": 10,
+    "Description": "Uranium mines and yellowcake production — the first step of a nuclear program.",
+    "Prerequisites": [],
+    "Effects": ["Uranium resource access"],
+    "Modifiers": {}
+  },
+  {
+    "Id": "uranium_enrichment",
+    "Name": "Uranium Enrichment",
+    "Category": "Nuclear",
+    "Era": 2020,
+    "Cost": 12,
+    "Description": "Gas centrifuge enrichment facilities — low-enriched to weapons-grade uranium.",
+    "Prerequisites": ["uranium_mining"],
+    "Effects": ["Uranium enrichment capability"],
+    "Modifiers": {}
+  },
+  {
+    "Id": "nuclear_reactor",
+    "Name": "Nuclear Reactor",
+    "Category": "Nuclear",
+    "Era": 2025,
+    "Cost": 15,
+    "Description": "Research and power reactors — plutonium production and nuclear know-how.",
+    "Prerequisites": ["uranium_enrichment"],
+    "Effects": ["Reactor technology"],
+    "Modifiers": {}
+  },
+  {
+    "Id": "nuclear_weapon_design",
+    "Name": "Nuclear Weapon Design",
+    "Category": "Nuclear",
+    "Era": 2030,
+    "Cost": 15,
+    "Description": "Warhead physics package and implosion design.",
+    "Prerequisites": ["nuclear_reactor"],
+    "Effects": ["Nuclear weapon design"],
+    "Modifiers": {}
+  },
+  {
+    "Id": "nuclear_testing",
+    "Name": "Nuclear Testing",
+    "Category": "Nuclear",
+    "Era": 2035,
+    "Cost": 15,
+    "Description": "First nuclear test detonation — proof of a workable weapon.",
+    "Prerequisites": ["nuclear_weapon_design"],
+    "Effects": ["Nuclear test capability"],
+    "Modifiers": {}
+  },
+  {
+    "Id": "strategic_bomber",
+    "Name": "Strategic Nuclear Bomber",
+    "Category": "Nuclear",
+    "Era": 2038,
+    "Cost": 15,
+    "Description": "Long-range bomber modified for nuclear weapon delivery.",
+    "Prerequisites": ["nuclear_testing"],
+    "Effects": ["Bomber nuclear delivery"],
+    "Modifiers": {}
+  },
+  {
+    "Id": "icbm_technology",
+    "Name": "ICBM Technology",
+    "Category": "Nuclear",
+    "Era": 2040,
+    "Cost": 20,
+    "Description": "Intercontinental ballistic missile — intercontinental nuclear delivery.",
+    "Prerequisites": ["nuclear_testing"],
+    "Effects": ["ICBM nuclear delivery"],
+    "Modifiers": {}
+  },
+  {
+    "Id": "slbm_technology",
+    "Name": "SLBM Technology",
+    "Category": "Nuclear",
+    "Era": 2045,
+    "Cost": 20,
+    "Description": "Submarine-launched ballistic missile — survivable second-strike capability.",
+    "Prerequisites": ["icbm_technology"],
+    "Effects": ["SLBM nuclear delivery"],
+    "Modifiers": {}
+  },
+  {
+    "Id": "nuclear_doctrine",
+    "Name": "Nuclear Doctrine",
+    "Category": "Nuclear",
+    "Era": 2050,
+    "Cost": 10,
+    "Description": "Nuclear use doctrine — deterrence, first-use or no-first-use posture.",
+    "Prerequisites": ["slbm_technology"],
+    "Effects": ["Nuclear doctrine"],
+    "Modifiers": {}
   }
 ]

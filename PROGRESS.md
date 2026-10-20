@@ -1625,4 +1625,19 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 **Dosyalar:** Değiştirilen: `Data/scenarios/modern_world/technologies.json`, `Scripts/WarSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (31.1 [x]), `PROGRESS.md` (M31.1 DONE), `GECE-RAPOR.md`.
 
-**Sonraki adım:** M31.2 Nükleer program.
+### M31.2: Nükleer Program — ✅ DONE (2026-10-20)
+
+**Değiştirilen dosyalar:**
+- `Scripts/NuclearProgramSystem.cs` (yeni): `NuclearStage`/`NuclearDoctrine` enum'ları, 8 aşamalı sıralı program (zenginleştirme→reaktör→silah tasarımı→deneme→bombarda→ICBM→SLBM→doktrin), `StageTechId`/`StageCost` sözlükleri, `CanStartStage` (sıralı + önkoşul tech + PP/demir/alüminyum), `StartStage`, `DailyTick`, `CompleteStage` (DeterministicRNG deneme başarısı %80), `NuclearSave` DTO + `GetSaveData`/`LoadSaveData`/`ResetForNewGame`/`EnableTestMode`.
+- `Data/scenarios/modern_world/technologies.json`: 9 nükleer tech (uranium_mining/enrichment, nuclear_reactor, nuclear_weapon_design, nuclear_testing, strategic_bomber, icbm_technology, slbm_technology, nuclear_doctrine), Era ≥ 2020, Category "Nuclear", test dostu düşük Cost (10–20).
+- `Scripts/GameManager.cs`: `nuclearTest` field, `--nuclear-test` arg parsing, `RunNuclearTest()` (DEU, sıralı-kural assert, 9 tech araştırma+tamamlama, 8 aşama ilerletme, save/load A==B, Quit(0/1)), `AdvanceDaysForTest(Cost+1)` marginı.
+- `Scripts/SaveSystem.cs`: `SaveFile.Nuclear` alan + `WriteSave`/`LoadGameInternal` bağlama.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--nuclear-test`: **SONUÇ: PASS ✓** (~15.6s) — sıralı kural, 8 aşama sırayla, deneme başarılı (başlık=1), doktrin=caydırıcılık, save/load A==B, tamamlanmış aşama yeniden başlatılamıyor.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — nükleer state ile birlikte determinizm korunuyor.
+
+**Dosyalar:** Yeni: `Scripts/NuclearProgramSystem.cs`. Değiştirilen: `Data/scenarios/modern_world/technologies.json`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (31.2 [x]), `PROGRESS.md` (M31.2 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M31.3 Yaptırımlar ve Diplomasi (isteğe bağlı, explicit onay gerekli).

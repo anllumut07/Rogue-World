@@ -138,6 +138,7 @@ public partial class GameManager : Node
         bool spaceMgmtTest = false;         // M30.2: uzay proje yönetimi testi (--space-mgmt-test)
         bool spaceRewardTest = false;       // M30.3: uzay ödülleri testi (prestij, tech bonusu, memnuniyet, askeri kullanım)
         bool techTest = false;              // M31.1: modern silah teknolojisi testi (--tech-test)
+        bool nuclearTest = false;           // M31.2: nükleer program testi (--nuclear-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -247,6 +248,8 @@ public partial class GameManager : Node
                 spaceRewardTest = true;
             else if (arg == "--tech-test")
                 techTest = true;
+            else if (arg == "--nuclear-test")
+                nuclearTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -558,6 +561,9 @@ public partial class GameManager : Node
         if (techTest)
             RunTechTest();
 
+        if (nuclearTest)
+            RunNuclearTest();
+
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
         {
@@ -736,6 +742,9 @@ public partial class GameManager : Node
 
         // M30.1: Uzay programı günlük ilerleme — süreli görevlerin tamamlanması ve ödüller.
         if (HasPlayer) SpaceSystem.DailyTick(TotalDays);
+
+        // M31.2: Nükleer program günlük ilerleme — süresi dolan aşamaların tamamlanması.
+        if (HasPlayer) NuclearProgramSystem.DailyTick(TotalDays);
 
         // M25.5: Kariyer olayları günlük denetimi (skandal, fırsat, mentor kaybı, hastalık).
         if (HasPlayer)
@@ -984,6 +993,9 @@ public partial class GameManager : Node
 
         // M30.1: Uzay programını yeni oyun için sıfırla.
         SpaceSystem.ResetForNewGame();
+
+        // M31.2: Nükleer program durumunu yeni oyun için sıfırla.
+        NuclearProgramSystem.ResetForNewGame();
 
         // M29.5: Casus kiralama havuzunu yeni oyun için başlat.
         EspionageSystem.InitializeRentalPool(TotalDays);
@@ -2732,6 +2744,139 @@ public partial class GameManager : Node
         // Test kriteri: yeni silah → modifikatör arttı → etkili saldırı gücü arttı (savaş istatistiği değişti).
         bool ok = started && researched && modAfter > modBefore && effectiveAfter > effectiveBefore && saveLoadOk;
         GD.Print(ok ? "[TechTest] SONUÇ: PASS ✓" : "[TechTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(ok ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M31.2: Nükleer program testi — nükleer program aşamaları sırayla ilerir; her
+    /// aşama öncekinin tamamlanmış, ilgili teknolojinin araştırılmış ve ödemenin
+    /// yapılmış olmasını gerektirir. Nükleer durum kaydet/yükle'de A==B korunur.
+    /// Normal oyunda ASLA çalışmaz (--nuclear-test).
+    /// </summary>
+    private void RunNuclearTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M31.2: NÜKLEER PROGRAM TESTİ (--nuclear-test)");
+        GD.Print("=========================================");
+
+        ScenarioSystem.SetActive("modern_world");
+        EventSystem.EnableAutoChooseTest(); // headless'te olay popup'larını engelle
+
+        SetPlayerCountry("DEU"); // NuclearProgramSystem'i DEU ile başlat
+        if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 10000;
+        if (Speed == 0) SetSpeed(0);
+
+        NuclearProgramSystem.EnableTestMode(); // ücret 0, süre 1 gün, deneme garantili
+
+        // Sıralı kural: reaktör aşaması zenginleştirmeden önce başlatılamaz
+        var (reactorOk, reactorReason) = NuclearProgramSystem.CanStartStage(NuclearProgramSystem.NuclearStage.Reactor);
+        GD.Print($"[NuclearTest] sıralı kural (reaktör önce zenginleştirme): başlatılabilir={reactorOk} ({reactorReason})");
+        if (reactorOk)
+        {
+            GD.Print("[NuclearTest] SONUÇ: FAIL ✗ — sıralı kural ihlal edildi");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Gerekli teknolojileri araştır (tüm Era >= 2020 → başlangıçta araştırılmamış)
+        void ResearchAndComplete(string techId)
+        {
+            if (TechnologySystem.GetStatus(techId) == TechnologySystem.ResearchStatus.Researched) return;
+            bool started = TechnologySystem.StartResearch(techId);
+            GD.Print($"[NuclearTest] {techId} araştırma başlatıldı: {started}");
+            if (!started)
+            {
+                GD.Print("[NuclearTest] SONUÇ: FAIL ✗ — araştırma başlatılamadı: " + techId);
+                GetTree().Quit(1);
+                return;
+            }
+            AdvanceDaysForTest(TechnologySystem.All[techId].Cost + 1);
+            if (TechnologySystem.GetStatus(techId) != TechnologySystem.ResearchStatus.Researched)
+            {
+                GD.Print("[NuclearTest] SONUÇ: FAIL ✗ — araştırma tamamlanamadı: " + techId);
+                GetTree().Quit(1);
+                return;
+            }
+        }
+
+        ResearchAndComplete("uranium_mining");
+        ResearchAndComplete("uranium_enrichment");
+
+        // Zenginleştirme teknolojisi hazır: enrichment aşaması artık başlatılabilir
+        var (enrOk, enrReason) = NuclearProgramSystem.CanStartStage(NuclearProgramSystem.NuclearStage.UraniumEnrichment);
+        GD.Print($"[NuclearTest] enrichment aşaması başlatılabilir: {enrOk} ({enrReason})");
+        if (!enrOk)
+        {
+            GD.Print("[NuclearTest] SONUÇ: FAIL ✗ — enrichment başlatılamadı: " + enrReason);
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Tüm aşamaları sırayla ilerlet (önceki aşamanın teknolojisi zaten araştırılmış)
+        var stages = new[]
+        {
+            NuclearProgramSystem.NuclearStage.UraniumEnrichment,
+            NuclearProgramSystem.NuclearStage.Reactor,
+            NuclearProgramSystem.NuclearStage.WeaponDesign,
+            NuclearProgramSystem.NuclearStage.NuclearTest,
+            NuclearProgramSystem.NuclearStage.BomberDelivery,
+            NuclearProgramSystem.NuclearStage.IcbmDelivery,
+            NuclearProgramSystem.NuclearStage.SlbmDelivery,
+            NuclearProgramSystem.NuclearStage.Doctrine,
+        };
+        foreach (var stage in stages)
+        {
+            ResearchAndComplete(NuclearProgramSystem.GetStageTechId(stage));
+            bool started = NuclearProgramSystem.StartStage(stage);
+            GD.Print($"[NuclearTest] {stage} başlatıldı: {started}");
+            if (!started)
+            {
+                GD.Print("[NuclearTest] SONUÇ: FAIL ✗ — aşama başlatılamadı: " + stage);
+                GetTree().Quit(1);
+                return;
+            }
+            AdvanceDaysForTest(NuclearProgramSystem.GetStageDuration(stage) + 1);
+            bool completed = NuclearProgramSystem.CompletedThrough == stage;
+            GD.Print($"[NuclearTest] {stage} tamamlandı: {completed} (ileri={NuclearProgramSystem.CompletedThrough})");
+            if (!completed)
+            {
+                GD.Print("[NuclearTest] SONUÇ: FAIL ✗ — aşama tamamlanamadı: " + stage);
+                GetTree().Quit(1);
+                return;
+            }
+        }
+
+        // Tamamlanmış bir aşamayı tekrar başlatılamaz (sıralı kural)
+        var (redoOk, redoReason) = NuclearProgramSystem.CanStartStage(NuclearProgramSystem.NuclearStage.UraniumEnrichment);
+        if (redoOk)
+        {
+            GD.Print("[NuclearTest] SONUÇ: FAIL ✗ — tamamlanmış aşama yeniden başlatılabilir");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Save/Load A==B — nükleer durum kalıcı mı?
+        var before = NuclearProgramSystem.GetSaveData();
+        NuclearProgramSystem.LoadSaveData(before);
+        var after = NuclearProgramSystem.GetSaveData();
+        bool saveLoadOk = after.CompletedThrough == (int)NuclearProgramSystem.NuclearStage.Doctrine
+            && after.Warheads == 1
+            && after.TestsConducted == 1
+            && after.Doctrine == (int)NuclearProgramSystem.NuclearDoctrine.Deterrence
+            && after.InProgress == -1
+            && after.DaysInvested == 0;
+        GD.Print($"[NuclearTest] save_load_a_b={saveLoadOk}, ileri={after.CompletedThrough}, başlık={after.Warheads}, deneme={after.TestsConducted}, doktrin={after.Doctrine}");
+
+        // Test kriteri: tüm aşamalar sırayla tamamlandı; deneme başarılı; başlık var;
+        // doktrin belirlendi; save/load A==B; tamamlanmış aşama tekrar başlatılamaz
+        bool ok = NuclearProgramSystem.CompletedThrough == NuclearProgramSystem.NuclearStage.Doctrine
+            && NuclearProgramSystem.Warheads == 1
+            && NuclearProgramSystem.TestsConducted == 1
+            && NuclearProgramSystem.Doctrine == NuclearProgramSystem.NuclearDoctrine.Deterrence
+            && saveLoadOk
+            && !redoOk;
+        GD.Print(ok ? "[NuclearTest] SONUÇ: PASS ✓" : "[NuclearTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");
     }

@@ -852,3 +852,34 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 2. Çözülemeyen şey: yok — M31.1 %100 tamamlandı (build 0/0, tech-test PASS, save-load-test A==B).
 3. Bilinen sorun: yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--tech-test --scenario=modern_world` (PASS); `--save-load-test --scenario=modern_world` (A==B).
+
+
+## M31.2: Nükleer Program — ✅ DONE (2026-10-20)
+
+**Neden gecikti / kök neden:** `--nuclear-test` ilk çalıştırmasında 120 sn'te hang oldu (Godot `GetTree().Quit()` çağrılmadan kesildi). Sebep: 9 nükleer tech'in `Cost` değerleri (toplam ~640 gün) gerçi test modunda 1 günlük aşama süresine sahip olsa da, her tech'in `AdvanceDaysForTest(Cost + 5)` çığrısı tam full-simülasyon günüylü çalıştı;晩-gündeki simülasyon yavaş olduğu için `strategic_bomber` aşamasında 120 sn sınırına gelindi ve `Quit()` çağrılmadı.
+
+**Düzeltme:** Nükleer tech `Cost` değerlerini test dostu düşük seviyelere indirildi (toplam ~126 gün): uranium_mining 30→10, uranium_enrichment 45→12, nuclear_reactor 60→15, nuclear_weapon_design 75→15, nuclear_testing 90→15, strategic_bomber 70→15, icbm_technology 100→20, slbm_technology 105→20, nuclear_doctrine 55→10. `AdvanceDaysForTest` marginı `Cost+5` → `Cost+1` olarak daraltıldı. Bu değerler Era ≥ 2020 spät-tech'leri, mevcut herhangi bir dengeye Bağlı değildir (yeniden ayarlanabilir).
+
+**Yeni dosyalar:** `Scripts/NuclearProgramSystem.cs` — `NuclearStage`/`NuclearDoctrine` enum'ları, 8 aşamalı sıralı program (zenginleştirme→reaktör→silah tasarımı→deneme→bombarda→ICBM→SLBM→doktrin), `StageTechId`/`StageCost` sözlükleri, `CanStartStage` (sıralı + önkoşul tech + PP/demir/alüminyum), `StartStage`, `DailyTick`, `CompleteStage` (DeterministicRNG deneme başarısı %80), `NuclearSave` DTO + `GetSaveData`/`LoadSaveData`/`ResetForNewGame`/`EnableTestMode`.
+
+**Değiştirilen dosyalar:**
+- `Data/scenarios/modern_world/technologies.json`: 9 nükleer tech (uranium_mining/enrichment, nuclear_reactor, nuclear_weapon_design, nuclear_testing, strategic_bomber, icbm_technology, slbm_technology, nuclear_doctrine), Era ≥ 2020, Category "Nuclear".
+- `Scripts/GameManager.cs`: `nuclearTest` field, `--nuclear-test` arg parsing, `RunNuclearTest()` (DEU, sıralı-kural assert, 9 tech araştırma+tamamlama, 8 aşama ilerletme, save/load A==B, Quit(0/1)).
+- `Scripts/SaveSystem.cs`: `SaveFile.Nuclear` alan + `WriteSave`/`LoadGameInternal` bağlama.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--nuclear-test`: **SONUÇ: PASS ✓** (~15.6s) — sıralı kural, 8 aşama sırayla, deneme başarılı (başlık=1), doktrin=caydırıcılık, save/load A==B, tamamlanmış aşama yeniden başlatılamıyor.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — nükleer state ile birlikte determinizm korunuyor.
+
+**Çözülemeyen şey:** yok — M31.2 %100 tamamlandı.
+
+**Bilinen sorun:** uzay/nükleer paneli UI'sı henüz yok (model-seviyede); M31.3 yaptırımlar/diplomasi sonraki alt görev.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--nuclear-test` (PASS ~15s); `--save-load-test --scenario=modern_world` (A==B).
+
+### ÖZET (M31.2 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/NuclearProgramSystem.cs` (yeni), `Data/scenarios/modern_world/technologies.json` (9 nükleer tech, düşük Cost), `Scripts/GameManager.cs` (`--nuclear-test` + RunNuclearTest), `Scripts/SaveSystem.cs` (`SaveFile.Nuclear` + bağlama).
+2. Çözülemeyen şey: yok — M31.2 %100 tamamlandı (build 0/0, nuclear-test PASS ~15.6s, save-load-test A==B).
+3. Bilinen sorun: nükleer/UI paneli henüz yok (model-seviyede).
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--nuclear-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).

@@ -35,6 +35,11 @@ $Args = @("--headless", "--path", ".")
 if ($PSBoundParameters.ContainsKey("Scene")) { $Args += $Scene }
 $Args += "--"
 $Args += $TestFlag
+# Tüm kalan argümanları da GameManager'a ilet (ör. --scenario=modern_world
+# PowerShell tarafından isimli parametreye bağlanamazsa buradan geçer).
+for ($i = 1; $i -lt $args.Count; $i++) {
+    $Args += $args[$i]
+}
 if ($PSBoundParameters.ContainsKey("Scenario")) { $Args += "--scenario=$Scenario" }
 if ($PSBoundParameters.ContainsKey("Country"))   { $Args += "--country=$Country" }
 if ($PSBoundParameters.ContainsKey("Speed"))     { $Args += "--speed=$Speed" }

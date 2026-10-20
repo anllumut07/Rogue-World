@@ -361,22 +361,29 @@ public static class SaveLoadTest
         return sb.ToString();
     }
 
-    private static void FindDiff(string a, string b)
+    /// <summary>
+    /// M33: --soak-test için label'sız çekirdek özeti (public erişim).
+    /// </summary>
+    public static string GetSummaryCore() => BuildSummaryCore();
+
+    public static void FindDiff(string a, string b)
     {
         var linesA = a.Split('\n');
         var linesB = b.Split('\n');
         int max = Math.Max(linesA.Length, linesB.Length);
+        int diffCount = 0;
         for (int i = 0; i < max; i++)
         {
             string la = i < linesA.Length ? linesA[i] : "(EOF)";
             string lb = i < linesB.Length ? linesB[i] : "(EOF)";
             if (la != lb)
             {
-                GD.PrintErr($"[Diff] Satır {i+1}:");
-                GD.PrintErr($"  A: {la}");
-                GD.PrintErr($"  B: {lb}");
-                break; // İlk fark
+                diffCount++;
+                GD.Print($"[Diff] Satır {i+1}:");
+                GD.Print($"  A: {la}");
+                GD.Print($"  B: {lb}");
             }
         }
+        GD.Print($"[Diff] Toplam farklı satır: {diffCount}");
     }
 }

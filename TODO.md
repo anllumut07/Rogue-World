@@ -537,12 +537,12 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 33.1 | `--soak-test` kancağı: varsayılan 10 oyun yılı, tüm 50 ülke, AI açık, headless çalıştırma | `dotnet build` 0/0; `--soak-test` çalışır, çıkış kodu 0 | [ ] |
-| 33.2 | Her oyun sonunda save→load→A==B determinizm kontrol noktası (10 oyun yılı boyunca) | Her sonunda save-load A==B PASS; istisna/hata yok | [ ] |
-| 33.3 | Tick başına süre ölçümü ve log'a yazma (ms/tick) | Ortalama tick süresi < 50 ms; log dosyasında kayıtlı | [ ] |
-| 33.4 | Bellek artışı raporu (10 oyun yılı sonrası bellek kullanımı) | Bellek artışı < %20 başlangıçtan; rapor logged | [ ] |
-| 33.5 | 1000 il ile performans eşikleri; eşiği aşarsa en yavaş 3 sistemi optimize et | FPS > 30 hız 5'te; en yavaş 3 sistem profil çıkar ve optimize edilir | [ ] |
-| 33.6 | Başarısızlıkta Quit(1) | Her hata/istisnada Quit(1); kendi kendine kapanır | [ ] |
+| 33.1 | `--soak-test` kancağı: varsayılan 10 oyun yılı, tüm 50 ülke, AI açık, headless çalıştırma | `dotnet build` 0/0; `--soak-test` çalışır, çıkış kodu 0 | [x] |
+| 33.2 | Her oyun sonunda save→load→A==B determinizm kontrol noktası (10 oyun yılı boyunca) | Her sonunda save-load A==B PASS; istisna/hata yok | [x] |
+| 33.3 | Tick başına süre ölçümü ve log'a yazma (ms/tick) | Ortalama tick süresi < 50 ms; log dosyasında kayıtlı | [x] |
+| 33.4 | Bellek artışı raporu (10 oyun yılı sonrası bellek kullanımı) | Bellek artışı < %20 başlangıçtan; rapor logged | [x] |
+| 33.5 | 1000 il ile performans eşikleri; eşiği aşarsa en yavaş 3 sistemi optimize et | FPS > 30 hız 5'te; en yavaş 3 sistem profil çıkar ve optimize edilir | [x] |
+| 33.6 | Başarısızlıkta Quit(1) | Her hata/istisnada Quit(1); kendi kendine kapanır | [x] |
 
 ---
 

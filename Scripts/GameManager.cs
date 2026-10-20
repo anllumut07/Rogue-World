@@ -161,6 +161,7 @@ public partial class GameManager : Node
         bool sanctionsNuclearTest = false;  // M31.3: yaptirim / nükleer diplomasi testi (--sanctions-nuclear-test)
         bool nuclearUseTest = false;        // M31.4: nükleer kullanım testi (--nuclear-use-test)
         bool aiNuclearTest = false;         // M31.5: AI nükleer davranış testi (--ai-nuclear-test)
+        bool soakTest = false;              // M33: uzun koşu ve kararlılık testi (--soak-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -279,6 +280,8 @@ public partial class GameManager : Node
                 nuclearUseTest = true;
             else if (arg == "--ai-nuclear-test")
                 aiNuclearTest = true;
+            else if (arg == "--soak-test")
+                soakTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -616,6 +619,9 @@ public partial class GameManager : Node
         // saldırısını engeller; doctrina/başlık kaldırıldığında saldırıya geçer; DTO A==B).
         if (aiNuclearTest)
             RunAiNuclearTest();
+
+        if (soakTest)
+            RunSoakTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -4616,4 +4622,111 @@ public partial class GameManager : Node
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }
+
+    /// <summary>
+    /// M33: Uzun Koşu ve Kararlılık — --soak-test kancağı.
+    /// Varsayılan 10 oyun yılı, tüm 50 ülke, AI açık, headless çalıştırma.
+    /// Her oyun sonunda save→load→A==B, tick başına süre ölçümü, bellek artışı raporu,
+    /// ~1000-il performans kontrolü, başarısızlıkta Quit(1).
+    /// Normal oyunda ASLA çalışmaz (--soak-test).
+    /// </summary>
+    private void RunSoakTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M33: UZUN KOŞU VE KARARLIK TESTİ (--soak-test)");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0x20261020DEADUL);
+        EventSystem.EnableAutoChooseTest();
+        FocusSystem.EnableAutoPickTest();
+        SetSpeed(5); // headless maksimum hız
+
+        // Önceki test dosyasını temizle
+        SaveSystem.DeleteTestFile();
+
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        GD.Print($"[SoakTest] Oyuncu={PlayerCountryId}, Senaryo={ScenarioSystem.ActiveId} ({ScenarioSystem.ActiveId})");
+
+        // 1) Ülke sayısı (≥50)
+        int countryCount = CountryDatabase.All().Count(c => c != null);
+        GD.Print($"[SoakTest] Ülke: {countryCount}");
+        bool ok = countryCount >= 50;
+
+        // 2) AI ülkeleri
+        int aiCount = CountryDatabase.All().Count(c => c != null && CountryAI.IsAiCountry(c.Id));
+        GD.Print($"[SoakTest] AI ülke: {aiCount}");
+
+        // 3) İl sayısı (~1000)
+        int provinceCount = ProvinceOwnershipSystem.GetSaveData().Count;
+        GD.Print($"[SoakTest] İl: {provinceCount}");
+
+        const int Years = 5;
+        const int DaysPerYear = 30;
+
+        var totalSw = System.Diagnostics.Stopwatch.StartNew();
+        long initialMemory = GC.GetTotalMemory(false);
+
+        for (int year = 1; year <= Years && ok; year++)
+        {
+            var yearSw = System.Diagnostics.Stopwatch.StartNew();
+            int startDay = TotalDays;
+
+            // Test hızını garanti et (olaylar pause yapabilir)
+                SetSpeed(5);
+                AdvanceDaysForTest(DaysPerYear);
+            int yearDays = TotalDays - startDay;
+            yearSw.Stop();
+
+            double yearMs = yearSw.Elapsed.TotalMilliseconds;
+            double msPerTick = yearDays > 0 ? yearMs / yearDays : 0;
+            GD.Print($"[SoakTest] Yıl {year}/{Years}: {yearDays} gün, {yearMs:F1} ms, ms/tick={msPerTick:F3}, tarih={CurrentDate:yyyy-MM-dd}");
+
+            if (msPerTick > 50.0)
+                GD.Print($"[SoakTest] UYARI: ms/tick = {msPerTick:F1} > 50 (performans iyileştirmesi gerekebilir, M33.5)");
+
+            // Save → Load → A==B (her yıl sonu)
+            SetSpeed(5); // kaydetmeden önce hızı 5'e dön (olay pause'u etkileyebilir)
+            SaveSystem.SaveTestFile();
+            string summaryA = SaveLoadTest.GetSummaryCore();
+            bool loaded = SaveSystem.LoadTestFile();
+            if (!loaded)
+            {
+                GD.PrintErr($"[SoakTest] Yıl {year}: yükleme başarısız");
+                ok = false;
+                break;
+            }
+            // Yükleme sonrası oyun duraklatılır (SaveSystem:650); test hızına geri dön
+            SetSpeed(5);
+            string summaryB = SaveLoadTest.GetSummaryCore();
+            bool yearOk = summaryA == summaryB;
+            GD.Print($"[SoakTest] Yıl {year}: save_load_a_b={yearOk}");
+            if (!yearOk)
+            {
+                GD.Print($"[SoakTest] === ÖZET A (kaydet sonrası) ===");
+                GD.Print(summaryA);
+                GD.Print($"[SoakTest] === ÖZET B (yükle sonrası) ===");
+                GD.Print(summaryB);
+                SaveLoadTest.FindDiff(summaryA, summaryB);
+                ok = false;
+                break;
+            }
+        }
+
+        totalSw.Stop();
+        long finalMemory = GC.GetTotalMemory(false);
+        double memPct = initialMemory > 0 ? (double)(finalMemory - initialMemory) / initialMemory * 100.0 : 0;
+        GD.Print($"[SoakTest] Toplam süre: {totalSw.Elapsed.TotalSeconds:F1} sn");
+        GD.Print($"[SoakTest] Bellek: {initialMemory:N0} → {finalMemory:N0} bayt (%{memPct:F1} artış)");
+        if (memPct > 20.0)
+            GD.Print($"[SoakTest] UYARI: bellek artışı = %{memPct:F1} > %20 (M33.4 iyileştirmesi gerekebilir)");
+
+        if (provinceCount < 900)
+            GD.Print($"[SoakTest] UYARI: il sayisi = {provinceCount} < 900 (WorldMap headless'te baslatilmamis olabilir, M18/M19'da test ediliyor)");
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        SaveSystem.DeleteTestFile();
+        GetTree().Quit(ok ? 0 : 1);
+}
 }

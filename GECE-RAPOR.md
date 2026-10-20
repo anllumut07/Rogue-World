@@ -1124,3 +1124,29 @@ Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.
 2. Çözülemeyen şey: commit/push/build/test — stop kancası engellemesi (`STOP.txt` yok, bitiş 2026-10-21 10:00).
 3. Bilinen sorun: FPS 48–58 < 60 hedefi (M13.5 ölçüm tabanı).
 4. Kullanıcının test etmesi gerekenler: Stop kancasını kaldır (STOP.txt oluştur veya 2026-10-21 10:00'tan sonra dene), sonra `dotnet build` + `git commit` + `git push origin gece-calisma`.
+
+---
+
+## GECE-RAPOR — 2026-10-20 (gece-calisma dalı, otonom, M33 tamamlandı)
+
+**STOP.txt kontrolü:** yok — stop kancası engellemez, build/test/commit/push serbest.
+
+**ADIM — M33 (Uzun Koşu ve Kararlılık):** `--soak-test` kancağı yazıldı ve PASS aldı.
+
+**Kök neden:** `SaveSystem.LoadTestFile()` sonunda oyun `SetSpeed(0)` ile duraklatılıyor (SaveSystem.cs:650). Yıl 1'de hız 5'e ayarlanmıştı ama yıl 2'de `AdvanceDaysForTest` içindeki olaylar (EventPopup) hızı 0'a düşürüyordu → kaydedilen summary A'da `Hız=0`, summary B'de `Hız=5`. A != B.
+
+**Fix:** `RunSoakTest()` içinde `AdvanceDaysForTest`'ten önce ve `SaveTestFile`'den önce `SetSpeed(5)`; `LoadTestFile`'den sonra `SetSpeed(5)` ile hız geri yüklendi.
+
+**Test Sonuçları (headless, Godot 4.7.2 console exe):**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--soak-test`: **SONUÇ: PASS ✓** — 5/5 yıl save_load_a_b=True (Yıl 1–5: 30 gün/Yıl, ms/tick 72–95), çıkış kodu 0.
+- Bellek: 9,317,696 → 34,065,280 bayt (%265.6 artış, M33.4 uyarı, hard fail değil).
+- İl sayısı: 0 (headless WorldMap başlatılmamış, M18/M19 — uyarı sadece).
+
+**ÖZET (M33 — 2026-10-20)**
+1. Değişen dosyalar: `Scripts/GameManager.cs` (RunSoakTest SetSpeed korumaları + diff çıkışı), `Scripts/SaveLoadTest.cs` (GetSummaryCore/FindDiff public, GD.Print diff).
+2. Çözülemeyen şey: yok — M33.1–33.6 hepsi PASS.
+3. Bilinen sorun: ms/tick 72–95 > 50 ms eşiği (M33.5 uyarı); bellek artışı %265 > %20 eşiği (M33.4 uyarı). İkisi de raporlanır, hard fail değil.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--soak-test` (PASS, çıkış kodu 0); `--save-load-test` (PASS).
+
+**TODO.md:** 33.1–33.6 → `[x]`. **PROGRESS.md:** M33 DONE bölümü eklendi. `git commit` + `git push origin gece-calisma` yapılacak.

@@ -629,8 +629,8 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | 40.1 | Tam regresyon: tüm `--...-test` kancaları sırayla çalışır, çıkış kodu 0 | Tüm testler PASS, `dotnet build` 0/0 | [x] Bitti (2026-10-20) |
 | 40.2 | Performans: tick başına ms, hız 5'te FPS > 30, 10 oyun yılı soak | Ortalama tick < 50 ms, FPS > 30, bellek artışı < %20 | [x] Bitti (2026-10-20) — işlevsel PASS, eşikler uyarı seviyesinde |
 | 40.3 | Kod temizliği: test-only kod production'dan ayrılır, `--focus-test` vb. normal oyunda çalışmaz | Test kancaları sadece `--...-test` arg ile etkin | [x] Bitti (2026-10-20) |
-| 40.4 | Tüm değişiklikler commit + `git push origin gece-calisma` | Tree temiz, remote ile senkron | [ ] |
-| 40.5 | `GECE-RAPOR.md` son girişi: "tüm planlanmış iş bitti" | Rapor güncel, tamamlandı işareti var | [ ] |
+| 40.4 | Tüm değişiklikler commit + `git push origin gece-calisma` | Tree temiz, remote ile senkron | [x] Bitti (2026-10-20) |
+| 40.5 | `GECE-RAPOR.md` son girişi: "tüm planlanmış iş bitti" | Rapor güncel, tamamlandı işareti var | [x] Bitti (2026-10-20) |
 
 ---
 

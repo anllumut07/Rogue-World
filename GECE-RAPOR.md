@@ -1644,3 +1644,27 @@ Sonraki adım: M38.4 (ElectionSystem/ElectionCampaignSystem çift başlatma düz
 **Dosyalar:** `Scripts/GameManager.cs` (Years=10, GC ölçümleri); `GECE-RAPOR.md`, `PROGRESS.md`, `TODO.md`.
 
 **Sonraki adım:** M40.3 (Kod temizliği — test kancaları production'da çalışmasın).
+
+## M40.3: Kod Temizliği — ✅ DONE (2026-10-20)
+
+**Yöntem:** `Scripts/GameManager.cs`'teki tüm `RunXxxTest()` çağrıları karşılık gelen `...Test` bool bayrağıyla (`if (...Test)`) korumalı; bayrak yalnız karşılık gelen `--...-test` argümanı ile true yapılır (ör. `--soak-test` → `soakTest`). Normal oyun akışında (aks arg yoksa) hiçbir test kancağı çalışmaz; `--focus-test` vb. normal oyunda çalışmaz. 50+ test metodu taranıp onaylandı.
+
+**Sonuç:** Test-only kod production'dan ayrılmış, `--...-test` arg ile etkin. Test kriteri sağlandı.
+
+**Dosyalar:** `Scripts/GameManager.cs` (onay, değişiklik yok); `GECE-RAPOR.md`, `PROGRESS.md`, `TODO.md`.
+
+**Sonraki adım:** M40.4 (commit + push).
+
+## M40.4: GitHub Senkronizasyonu — ✅ DONE (2026-10-20)
+
+**İşlem:** `git add` → `git commit` → `git push origin gece-calisma` (force push kullanılmadı, ana dalıza push yapılmadı). Commitler: `eb68bf7` (M39.4), `52f3e49` (M40.1-40.3). Tree temiz, remote ile senkron.
+
+**Gizli bilgi kontrolü:** Commitlerde key/.env/config.yaml/büyük binary yok (yalnızca markdown + GameManager.cs).
+
+**Sonraki adım:** M40.5 (GECE-RAPOR son girişi — "tüm planlanmış iş bitti").
+
+## M40.5: GECE-RAPOR Son Girişi — ✅ DONE (2026-10-20)
+
+**Durum:** Tüm planlanmış iş bitti. M39 (ikmal, deniz invazyonu, ordu morali, hava üstünlüğü) ve M40 (tam regresyon, performans, kod temizliği, GitHub senkronizasyonu) tamamlandı. `dotnet build` 0 hata / 0 uyarı; `--save-load-test` historical_1936 + modern_world PASS (A==B); `--soak-test` 10 yıl işlevi PASS. Branch: `gece-calisma`.
+
+**Sonraki adım:** Yok — milestone tamamlandı.

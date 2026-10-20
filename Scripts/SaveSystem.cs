@@ -60,6 +60,7 @@ public static class SaveSystem
         public ArmySave Army { get; set; }
         public WarSave War { get; set; }
         public SupplySave Supply { get; set; } // M39.1: ikmal durumu
+        public NavalInvasionSave NavalInvasion { get; set; } // M39.2: deniz invazyonu durumu
         public DiplomacySave Diplomacy { get; set; }
         public CasusBelliSave CasusBelli { get; set; } // M17A: gerekçe/ateşkes/meşruiyet
         public FocusSave Focus { get; set; }
@@ -197,6 +198,23 @@ public static class SaveSystem
         public string ProvinceId { get; set; }
         public float SupplyLevel { get; set; }
         public int DaysOutOfSupply { get; set; }
+    }
+
+    // ===== Deniz invazyonu DTOs (M39.2) =====
+    public class NavalInvasionSave
+    {
+        public NavalInvasionEntry[] Invasions { get; set; }
+    }
+    public class NavalInvasionEntry
+    {
+        public string Id { get; set; }
+        public string NavyId { get; set; }
+        public string OriginProvinceId { get; set; }
+        public string TargetProvinceId { get; set; }
+        public string[] DivisionIds { get; set; }
+        public int DaysRemaining { get; set; }
+        public int TotalDays { get; set; }
+        public int State { get; set; } // NavalInvasionSystem.InvasionState (int)
     }
 
     // ===== Diplomacy DTOs =====
@@ -448,6 +466,7 @@ public static class SaveSystem
             Army = ArmySystem.GetSaveData(),
             War = WarSystem.GetSaveData(),
             Supply = SupplySystem.GetSaveData(), // M39.1: ikmal durumu
+            NavalInvasion = NavalInvasionSystem.GetSaveData(), // M39.2: deniz invazyonu durumu
             Diplomacy = DiplomacySystem.GetSaveData(),
             CasusBelli = CasusBelliSystem.GetSaveData(),
             Focus = FocusSystem.GetSaveData(),
@@ -593,6 +612,7 @@ public static class SaveSystem
             ArmySystem.LoadSaveData(save.Army);
             WarSystem.LoadSaveData(save.War);
             SupplySystem.LoadSaveData(save.Supply); // M39.1: ikmal durumu
+            NavalInvasionSystem.LoadSaveData(save.NavalInvasion); // M39.2: deniz invazyonu durumu
             DiplomacySystem.LoadSaveData(save.Diplomacy);
             CasusBelliSystem.LoadSaveData(save.CasusBelli);
             FocusSystem.LoadSaveData(save.Focus);

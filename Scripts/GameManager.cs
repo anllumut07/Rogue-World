@@ -800,6 +800,8 @@ public partial class GameManager : Node
         WarSystem.DailyTick();
         // M39.1: İkmal günlük tick'i (ordular için ikmal seviyesi güncellenir).
         SupplySystem.DailyTick();
+        // M39.2: Deniz invazyonu günlük ilerlemesi (denizden indirme / karşıdan karşıya indirme).
+        NavalInvasionSystem.DailyTick();
 
         // M8: Diplomasi sistemi
         DiplomacySystem.DailyTick();
@@ -1009,6 +1011,8 @@ public partial class GameManager : Node
         WarSystem.Initialize(data);
         // İkmal sistemini başlat (M39.1)
         SupplySystem.Initialize(data);
+        // Deniz invazyonu sistemini başlat (M39.2)
+        NavalInvasionSystem.Initialize(data);
         // Diplomasi sistemini başlat (M8)
         DiplomacySystem.Initialize(data);
         // M17A: Casus belli sistemini başlat — gerekçe/iddia/ateşkes/meşruiyet
@@ -1132,6 +1136,8 @@ public partial class GameManager : Node
 
         // M39.1: İkmal sistemini yeni oyun için sıfırla.
         SupplySystem.ResetForNewGame();
+        // M39.2: Deniz invazyonu sistemini yeni oyun için sıfırla.
+        NavalInvasionSystem.ResetForNewGame();
 
         // M29.5: Casus kiralama havuzunu yeni oyun için başlat.
         EspionageSystem.InitializeRentalPool(TotalDays);

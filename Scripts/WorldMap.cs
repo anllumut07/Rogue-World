@@ -16,6 +16,9 @@ public partial class WorldMap : Node2D
 
     public static WorldMap Instance { get; private set; }
 
+    // M39.2: Deniz invazyonu sistemi için hızlı il erişimi (kıyı kontrolü vb.)
+    public ProvinceData GetProvinceById(string id) => _provinceById.GetValueOrDefault(id);
+
     // M13.3: Harita görünüm modları — Political (ülke renkleri), Terrain (biyom),
     // Supply (tacviye), Factories (fabrika yoğunluğu), Resources (kaynak), AirZones (hava Bölgesi).
     public enum MapMode { Political, Terrain, Supply, Factories, Resources, AirZones }

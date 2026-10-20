@@ -708,3 +708,33 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 3. Bilinen sorun: casusluk paneli UI'sı yok; model-seviyede kiralama metodlarıyla taahhüt edildi.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--spy-rental-test` ve `--save-load-test` çalıştırılmalı.
 
+
+## M29.6: Karşı İstihbarat, Yakalanma ve Casus Değişimi — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:** yok.
+
+**Değiştirilen dosyalar:**
+- `Scripts/EspionageSystem.cs`: `CheckCaptures(currentDay)` — günlük yakalanma denetimi (DeterministicRNG, `GetCaptureChance` formülü `base × (1.5 − affinity/100) × counterIntel × (1 − educationBonus)`, clamp [0,1]), yakalanan casus `CapturedSpy`/`CapturedSpySave` listeye eklenir, `ReleaseCapturedSpy(capturedSpyId)` ile serbest bırakılabilir; yakalanma anında `DiplomacySystem.ModifyRelation(ownerId, targetId, -15)` (owner→capturer) ilişki etkisi, serbest bırakmada `+5` (capturer→owner); `GetSaveData`/`LoadSaveData`/`ResetForNewGame` `Captured` alanını seriler.
+- `Scripts/GameManager.cs`: `RunCounterIntelTest()` (`--counter-intel-test`) — counter-intel=100 ile garantili yakalanma, ilişki düşüşü doğrulaması, serbest bırakma +5 iyileştirme, save-load dönüşüm (captured listesi korunur), reset temizler; `DailyTick` ile `CheckCaptures` her gün çalışır.
+- `TODO.md`: 29.6 satırına Durum sütunu eklendi, `[x] Bitti (2026-10-20)` işaretlendi.
+- `PROGRESS.md`: M29.6 DONE bölümü eklendi.
+- `GECE-RAPOR.md`: bu bölüm + ÖZET.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--counter-intel-test`: **SONUÇ: PASS ✓** — casus yakalanır (gün 2), ilişki GER→FRA -15, captured listelenir, serbest bırakıldığında -100→-95 iyileşmesi, save-load A==B, reset temiz.
+- `--save-load-test`: **SONUÇ: PASS ✓ (A == B)** — Espionage yakalanma state'i serileştirmesi determinizmi bozmuyor.
+- Regresyon: `--espionage-test` PASS, `--spy-training-test` PASS, `--spy-rental-test` PASS.
+
+**Çözülemeyen şey:** yok — M29.6 %100 tamamlandı.
+
+**Bilinen sorun:** casusluk paneli UI'sı henüz yok (M29 backend-odaklı), yakalanma/serbest bırakma metodu model-seviyede taahhüt edildi.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--counter-intel-test` ve `--save-load-test` çalıştırılmalı.
+
+### ÖZET (M29.6 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/EspionageSystem.cs` (yakalanma denetimi + serbest bırakma + Save/Load/Reset), `Scripts/GameManager.cs` (`--counter-intel-test` + DailyTick entegrasyonu), `TODO.md` (29.6 [x]), `PROGRESS.md` (M29.6 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M29.6 %100 tamamlandı (build 0/0, counter-intel-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: casus paneli UI'sı yok; model-seviyede karşı istihbarat/yakalanma metodlarıyla taahhüt edildi.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--counter-intel-test` ve `--save-load-test` çalıştırılmalı.
+

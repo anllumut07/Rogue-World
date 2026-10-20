@@ -18,6 +18,7 @@ public static class EspionageSystem
         public string Id { get; set; }
         public string Name { get; set; }
         public string BirthCulture { get; set; }         // ülke kültürüne göre (LeaderSystem.GetCultureKey)
+        public string OwnerCountryId { get; set; }         // casusun görev aldığı ülke (GenerateSpy countryId)
         public Dictionary<string, int> Languages { get; set; } = new(); // dil → seviye 0-100
         public int CultureKnowledge { get; set; }         // 0-100
         public string RegionExperience { get; set; }      // primary region
@@ -33,6 +34,7 @@ public static class EspionageSystem
         public string Id = "";
         public string Name = "";
         public string BirthCulture = "";
+        public string OwnerCountryId = "";
         public string[] LanguageIds = Array.Empty<string>();
         public int[] LanguageLevels = Array.Empty<int>();
         public int CultureKnowledge = 0;
@@ -49,6 +51,32 @@ public static class EspionageSystem
         public SpySave[] Spies = Array.Empty<SpySave>();
         public TrainingCourseSave Training = new(); // M29.4: aktif eğitim kursu durumu
         public RentalPoolSave RentalPool = new(); // M29.5: kiralama havuzu durumu
+        // M29.6: karşı istihbarat, yakalanma ve casus değişim durumu
+        public CounterIntelEntry[] CounterIntel = Array.Empty<CounterIntelEntry>();
+        public MissionSave[] Missions = Array.Empty<MissionSave>();
+        public CapturedSpySave[] Captured = Array.Empty<CapturedSpySave>();
+    }
+
+    // ===== M29.6: Karşı istihbarat / yakalanma / casus değişim veri modelleri =====
+    public class CounterIntelEntry
+    {
+        public string CountryId = "";
+        public int Level = 0; // 0-100, ülkenin karşı istihbarat gücü
+    }
+
+    public class MissionSave
+    {
+        public string SpyId = "";
+        public string TargetCountryId = "";
+    }
+
+    public class CapturedSpySave
+    {
+        public string SpyId = "";
+        public string SpyName = "";
+        public string OwnerCountryId = "";
+        public string CapturedBy = ""; // casusu tutan ülke
+        public int CapturedDay = 0;
     }
 
     public class TrainingCourseSave
@@ -276,6 +304,137 @@ public static class EspionageSystem
     public static IReadOnlyList<RentalSpy> RentalPool => _rentalPool;
     public static int TotalHiredPP => _totalHiredPP;
 
+    // ===== M29.6: Karşı istihbarat / görev / yakalanma durumu =====
+    // _missions: casus -> hedef ülke (aktif görev). Bir casus aynı anda tek görevde olabilir.
+    private static readonly Dictionary<string, string> _missions = new(StringComparer.OrdinalIgnoreCase);
+    // _captured: bir ülke tarafından tutulan yakalanan casuslar.
+    private static readonly List<CapturedSpy> _captured = new();
+    // _counterIntel: ülke -> karşı istihbarat seviyesi (0-100).
+    private static readonly Dictionary<string, int> _counterIntel = new(StringComparer.OrdinalIgnoreCase);
+
+    public class CapturedSpy
+    {
+        public string SpyId = "";
+        public string SpyName = "";
+        public string OwnerCountryId = "";
+        public string CapturedBy = "";
+        public int CapturedDay = 0;
+    }
+
+    public static int MissionCount => _missions.Count;
+    public static int CapturedCount => _captured.Count;
+    public static IReadOnlyList<CapturedSpy> CapturedSpies => _captured;
+
+    /// <summary>Ülkenin karşı istihbarat seviyesi (0-100). Girilmemişse deterministik varsayılan.</summary>
+    public static int GetCounterIntelLevel(string countryId)
+    {
+        if (string.IsNullOrEmpty(countryId)) return 20;
+        if (_counterIntel.TryGetValue(countryId, out var v)) return v;
+        // Deterministik varsayılan: ülke id'nin hashinden 10-60 arası.
+        unchecked
+        {
+            int h = 0;
+            foreach (char ch in countryId) h = h * 31 + ch;
+            int level = 10 + (Mathf.Abs(h) % 51);
+            _counterIntel[countryId] = level;
+            return level;
+        }
+    }
+
+    /// <summary>Ülkenin karşı istihbarat seviyesini ayarlar (test / gelecek yükseltme için).</summary>
+    public static void SetCounterIntelLevel(string countryId, int level)
+    {
+        if (string.IsNullOrEmpty(countryId)) return;
+        _counterIntel[countryId] = Mathf.Clamp(level, 0, 100);
+    }
+
+    /// <summary>Bir casusu bir ülkeye görev yapmaya atar (casus zaten görevde değilse).</summary>
+    public static bool AssignSpyToMission(string spyId, string targetCountryId, int currentDay)
+    {
+        if (string.IsNullOrEmpty(spyId) || string.IsNullOrEmpty(targetCountryId)) return false;
+        var spy = _spies.FirstOrDefault(s => s.Id == spyId);
+        if (spy == null) return false;
+        if (_missions.ContainsKey(spyId)) return false; // zaten görevde
+
+        _missions[spyId] = targetCountryId;
+        GD.Print($"[EspionageSystem] Casus görev atandı: {spyId} ({spy.Name}) → {targetCountryId} (gün {currentDay})");
+        return true;
+    }
+
+    /// <summary>Casusun şu anki görev hedefi (görevde değilse null).</summary>
+    public static string GetSpyMissionTarget(string spyId)
+    {
+        return _missions.TryGetValue(spyId, out var target) ? target : null;
+    }
+
+    public static bool IsSpyOnMission(string spyId) => _missions.ContainsKey(spyId);
+
+    /// <summary>Casus yakalanıp yakalanmadığı.</summary>
+    public static bool IsSpyCaptured(string spyId) => _captured.Any(c => c.SpyId == spyId);
+
+    /// <summary>Belirli bir ülke tarafından tutulan yakalanan casusları döner.</summary>
+    public static IReadOnlyList<CapturedSpy> GetCapturedSpies(string capturedByCountryId)
+    {
+        return _captured.Where(c => c.CapturedBy == capturedByCountryId).ToList().AsReadOnly();
+    }
+
+    /// <summary>Yakalanan casusu serbest bırakır / değişim yapar: tutan ülke ile sahibi arası ilişki iyileşir.</summary>
+    public static bool ReleaseCapturedSpy(string capturedSpyId)
+    {
+        var c = _captured.FirstOrDefault(x => x.SpyId == capturedSpyId);
+        if (c == null) return false;
+
+        DiplomacySystem.ModifyRelation(c.CapturedBy, c.OwnerCountryId, +5);
+        _captured.Remove(c);
+        GD.Print($"[EspionageSystem] Casus değişim/serbest bırakma: {capturedSpyId} ({c.SpyName}) → {c.OwnerCountryId} tarafından geri alındı, tutan={c.CapturedBy}");
+        return true;
+    }
+
+    /// <summary>Günlük görevdeki casusların yakalanma kontrolü (deterministik).</summary>
+    private static void CheckCaptures(int currentDay)
+    {
+        if (_missions.Count == 0) return;
+
+        var capturedToday = new List<string>();
+        foreach (var kv in _missions.ToArray())
+        {
+            string spyId = kv.Key;
+            string targetCountry = kv.Value;
+            var spy = _spies.FirstOrDefault(s => s.Id == spyId);
+            if (spy == null) continue;
+
+            double counterIntel = GetCounterIntelLevel(targetCountry) / 100.0;
+            double chance = GetCaptureChance(spyId, targetCountry, counterIntel);
+            if (DeterministicRNG.NextDouble() < chance)
+            {
+                capturedToday.Add(spyId);
+            }
+        }
+
+        foreach (var spyId in capturedToday)
+        {
+            var spy = _spies.FirstOrDefault(s => s.Id == spyId);
+            string targetCountry = _missions[spyId];
+            _missions.Remove(spyId);
+
+            _captured.Add(new CapturedSpy
+            {
+                SpyId = spyId,
+                SpyName = spy?.Name ?? "?",
+                OwnerCountryId = spy?.OwnerCountryId ?? "",
+                CapturedBy = targetCountry,
+                CapturedDay = currentDay,
+            });
+
+            // Diplomat sonuç: casusun sahibi ile tutan ülke arası ilişki kırılır.
+            if (spy != null && !string.IsNullOrEmpty(spy.OwnerCountryId))
+            {
+                DiplomacySystem.ModifyRelation(spy.OwnerCountryId, targetCountry, -15);
+                GD.Print($"[EspionageSystem] Casus yakalandı: {spyId} ({spy.Name}) ülke={targetCountry} tarafından (gün {currentDay}); ilişki {spy.OwnerCountryId}→{targetCountry} -15");
+            }
+        }
+    }
+
     public static TrainingCourseType CourseType => _courseType;
     public static string CourseSpyId => _courseSpyId;
     public static int DaysRemaining => _daysRemaining;
@@ -330,34 +489,43 @@ public static class EspionageSystem
     /// <summary>Günlük tick — aktif kursun süresini azaltır, bitince deterministik nitelik artışı uygular.</summary>
     public static void DailyTick(int currentDay)
     {
-        if (!IsInTraining) return;
-
-        _daysRemaining--;
-        if (_daysRemaining > 0) return;
-
-        var def = GetCourseDef(_courseType);
-        var spy = _spies.FirstOrDefault(s => s.Id == _courseSpyId);
-
-        _completedCount++;
-        _totalSpentPP += def.CostPP;
-        _lastSuccess = true;
-
-        if (spy != null)
+        // M29.4: aktif kurs varsa süresini azalt, bitince nitelik artışı uygular.
+        if (IsInTraining)
         {
-            ApplyTrainingStatChange(spy, def.Type);
-            GD.Print($"[EspionageSystem] KURS TAMAMLANDI: {def.Name} casus={spy.Id} ({spy.Name}) → nitelikler güncellendi (gün {currentDay})");
-        }
-        else
-        {
-            GD.PrintErr($"[EspionageSystem] KURS TAMAMLANDI ama casus bulunamadı: {_courseSpyId} (gün {currentDay})");
-        }
+            _daysRemaining--;
+            if (_daysRemaining > 0)
+            {
+                CheckCaptures(currentDay);
+                return;
+            }
 
-        _courseType = TrainingCourseType.None;
-        _courseSpyId = "";
-        _daysRemaining = 0;
+            var def = GetCourseDef(_courseType);
+            var spy = _spies.FirstOrDefault(s => s.Id == _courseSpyId);
+
+            _completedCount++;
+            _totalSpentPP += def.CostPP;
+            _lastSuccess = true;
+
+            if (spy != null)
+            {
+                ApplyTrainingStatChange(spy, def.Type);
+                GD.Print($"[EspionageSystem] KURS TAMAMLANDI: {def.Name} casus={spy.Id} ({spy.Name}) → nitelikler güncellendi (gün {currentDay})");
+            }
+            else
+            {
+                GD.PrintErr($"[EspionageSystem] KURS TAMAMLANDI ama casus bulunamadı: {_courseSpyId} (gün {currentDay})");
+            }
+
+            _courseType = TrainingCourseType.None;
+            _courseSpyId = "";
+            _daysRemaining = 0;
+        }
 
         // M29.5: kiralama havuzu yenileme kontrolü (her gün ticks'te değerlendirilir, aralık bazlı gerçekleşir).
         RefreshRentalPoolIfNeeded(currentDay);
+
+        // M29.6: görevdeki casusların yakalanma kontrolü (deterministik, her gün).
+        CheckCaptures(currentDay);
     }
 
     private static void ApplyTrainingStatChange(Spy spy, TrainingCourseType type)
@@ -509,6 +677,7 @@ public static class EspionageSystem
             Id = $"spy-{_nextSpyNum++}",
             Name = $"{DeterministicRNG.NextChoice(pool.First)} {DeterministicRNG.NextChoice(pool.Last)}",
             BirthCulture = culture,
+            OwnerCountryId = countryId,
             Languages = GenerateLanguages(),
             CultureKnowledge = DeterministicRNG.NextInt(0, 101),
             RegionExperience = DeterministicRNG.NextChoice(_regions),
@@ -549,7 +718,7 @@ public static class EspionageSystem
         {
             Spies = _spies.Select(s => new SpySave
             {
-                Id = s.Id, Name = s.Name, BirthCulture = s.BirthCulture,
+                Id = s.Id, Name = s.Name, BirthCulture = s.BirthCulture, OwnerCountryId = s.OwnerCountryId,
                 LanguageIds = s.Languages.Keys.ToArray(), LanguageLevels = s.Languages.Values.ToArray(),
                 CultureKnowledge = s.CultureKnowledge, RegionExperience = s.RegionExperience,
                 RegionExperienceLevel = s.RegionExperienceLevel, Education = s.Education,
@@ -580,6 +749,13 @@ public static class EspionageSystem
                 LastRefreshDay = _lastRefreshDay,
                 TotalHiredPP = _totalHiredPP,
             },
+            CounterIntel = _counterIntel.Select(kv => new CounterIntelEntry { CountryId = kv.Key, Level = kv.Value }).ToArray(),
+            Missions = _missions.Select(kv => new MissionSave { SpyId = kv.Key, TargetCountryId = kv.Value }).ToArray(),
+            Captured = _captured.Select(c => new CapturedSpySave
+            {
+                SpyId = c.SpyId, SpyName = c.SpyName, OwnerCountryId = c.OwnerCountryId,
+                CapturedBy = c.CapturedBy, CapturedDay = c.CapturedDay,
+            }).ToArray(),
         };
     }
 
@@ -592,7 +768,7 @@ public static class EspionageSystem
             {
                 _spies.Add(new Spy
                 {
-                    Id = t.Id, Name = t.Name, BirthCulture = t.BirthCulture,
+                    Id = t.Id, Name = t.Name, BirthCulture = t.BirthCulture, OwnerCountryId = t.OwnerCountryId,
                     Languages = t.LanguageIds.Zip(t.LanguageLevels, (k, v) => new { k, v }).ToDictionary(x => x.k, x => x.v),
                     CultureKnowledge = t.CultureKnowledge, RegionExperience = t.RegionExperience,
                     RegionExperienceLevel = t.RegionExperienceLevel, Education = t.Education,
@@ -636,7 +812,32 @@ public static class EspionageSystem
             _totalHiredPP = data.RentalPool.TotalHiredPP;
         }
 
-        GD.Print($"Espionage: state yüklendi — casus={_spies.Count} kurs={_courseType} kalan_gun={_daysRemaining} kiralik_havuz={_rentalPool.Count}");
+        if (data?.CounterIntel != null)
+        {
+            _counterIntel.Clear();
+            foreach (var e in data.CounterIntel)
+                _counterIntel[e.CountryId] = e.Level;
+        }
+
+        if (data?.Missions != null)
+        {
+            _missions.Clear();
+            foreach (var m in data.Missions)
+                _missions[m.SpyId] = m.TargetCountryId;
+        }
+
+        if (data?.Captured != null)
+        {
+            _captured.Clear();
+            foreach (var c in data.Captured)
+                _captured.Add(new CapturedSpy
+                {
+                    SpyId = c.SpyId, SpyName = c.SpyName, OwnerCountryId = c.OwnerCountryId,
+                    CapturedBy = c.CapturedBy, CapturedDay = c.CapturedDay,
+                });
+        }
+
+        GD.Print($"Espionage: state yüklendi — casus={_spies.Count} kurs={_courseType} kalan_gun={_daysRemaining} kiralik_havuz={_rentalPool.Count} gorev={_missions.Count} yakalanan={_captured.Count}");
     }
 
     public static void ResetForNewGame()
@@ -656,6 +857,11 @@ public static class EspionageSystem
         _nextRentalSpyNum = 1;
         _lastRefreshDay = 0;
         _totalHiredPP = 0;
+
+        // M29.6: görev, yakalanma ve karşı istihbarat durumunu sıfırla.
+        _missions.Clear();
+        _captured.Clear();
+        _counterIntel.Clear();
 
         GD.Print("Espionage: yeni oyun için sıfırlandı.");
     }

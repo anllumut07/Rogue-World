@@ -133,6 +133,7 @@ public partial class GameManager : Node
         bool espionageTest = false;         // M29.1: casusluk v2 — casus niteliği modeli testi (--espionage-test)
         bool spyTrainingTest = false;       // M29.4: casusluk v2 — eğitim kursları testi (--spy-training-test)
         bool spyRentalTest = false;         // M29.5: casusluk v2 — kiralama havuzu testi (--spy-rental-test)
+        bool counterIntelTest = false;      // M29.6: casusluk v2 — karşı istihbarat / yakalanma / değişim testi (--counter-intel-test)
 
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -232,6 +233,8 @@ public partial class GameManager : Node
                 spyTrainingTest = true;
             else if (arg == "--spy-rental-test")
                 spyRentalTest = true;
+            else if (arg == "--counter-intel-test")
+                counterIntelTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -516,6 +519,8 @@ public partial class GameManager : Node
             RunSpyTrainingTest();
         if (spyRentalTest)
             RunSpyRentalTest();
+        if (counterIntelTest)
+            RunCounterIntelTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -2257,6 +2262,92 @@ public partial class GameManager : Node
 
         ok = poolOk && hireOk && doubleHire && unknownHire && poorOk && saveLoadOk && refreshOk && resetOk;
         GD.Print(ok ? "[SpyRentalTest] SONUÇ: PASS ✓" : "[SpyRentalTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(ok ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    // M29.6: Casusluk v2 — karşı istihbarat / yakalanma / casus değişimi testi (--counter-intel-test).
+    // Görev atama, karşı istihbarat seviyesi, deterministik günlük yakalanma, ilişkiye düşen sonuç,
+    // yakalanan-casus listesi, serbest bırakma/değişim, Save/Load A==B ve ResetForNewGame.
+    private void RunCounterIntelTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M29.6: CASUSLUK v2 — KARŞI İSTİHBARAT / YAKALANMA / DEĞİŞİM TESTİ (--counter-intel-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        bool ok = true;
+
+        DeterministicRNG.InitializeForNewGame(555123456);
+
+        var player = GameManager.Instance.PlayerCountryData;
+        player.PoliticalPower = 1000; // test sabit bakiyesi
+
+        // 1. GER casusu üret ve FRA'ya görev ata.
+        EspionageSystem.ResetForNewGame();
+        DeterministicRNG.InitializeForNewGame(555123456);
+        var spy = EspionageSystem.GenerateSpy("GER");
+        spy.Education = 0; // eğitim bonusesu sıfırla → yakalanma şansı maksimum (deterministik test)
+        bool assigned = EspionageSystem.AssignSpyToMission(spy.Id, "FRA", 0);
+        string missionTarget = EspionageSystem.GetSpyMissionTarget(spy.Id);
+        GD.Print($"[CounterIntelTest] casus={spy.Id}({spy.Name}) owner={spy.OwnerCountryId} atandi={assigned} hedef={missionTarget}");
+
+        // 2. FRA karşı istihbaratını %100'e ayarla (maks yakalanma riski).
+        EspionageSystem.SetCounterIntelLevel("FRA", 100);
+        GD.Print($"[CounterIntelTest] karsi_istihbari_FRA=100");
+
+        // 3. Determistik günlük tick: yüksek karşı istihbaratla casus一定 yakalanır.
+        int captureDay = -1;
+        for (int day = 1; day <= 200; day++)
+        {
+            EspionageSystem.DailyTick(day);
+            if (EspionageSystem.IsSpyCaptured(spy.Id)) { captureDay = day; break; }
+        }
+        bool captured = captureDay > 0;
+        GD.Print($"[CounterIntelTest] yakalandi={captured} gun={captureDay} gorev_devam={EspionageSystem.IsSpyOnMission(spy.Id)}");
+
+        // 4. İlişkiye düşen sonuç: GER→FRA ilişkisi negatif olmalı.
+        int relAfterCapture = DiplomacySystem.GetRelation("GER", "FRA");
+        bool relationDamaged = relAfterCapture < 0;
+        GD.Print($"[CounterIntelTest] iliski_GER_FRA={relAfterCapture} dusdu={relationDamaged}");
+
+        // 5. Yakalanan casus FRA tarafından listelenir.
+        var fraCaptured = EspionageSystem.GetCapturedSpies("FRA");
+        bool listed = fraCaptured.Any(c => c.SpyId == spy.Id);
+        GD.Print($"[CounterIntelTest] fra_yakalanan_sayisi={fraCaptured.Count} listelendi={listed}");
+
+        // 6. Serbest bırakma / değişim: FRA→GER ilişkisi iyileşir.
+        int relBeforeRelease = DiplomacySystem.GetRelation("FRA", "GER");
+        bool released = EspionageSystem.ReleaseCapturedSpy(spy.Id);
+        int relAfterRelease = DiplomacySystem.GetRelation("FRA", "GER");
+        bool relationImproved = relAfterRelease > relBeforeRelease;
+        GD.Print($"[CounterIntelTest] serbest_birakildi={released} iliski_FRA_GER {relBeforeRelease}->{relAfterRelease} iyilesti={relationImproved}");
+
+        // 7. Save/Load A==B (görev + yakalanma + karşı istihbarat).
+        EspionageSystem.ResetForNewGame();
+        DeterministicRNG.InitializeForNewGame(555123456);
+        var s2 = EspionageSystem.GenerateSpy("GER");
+        EspionageSystem.AssignSpyToMission(s2.Id, "FRA", 0);
+        EspionageSystem.SetCounterIntelLevel("FRA", 100);
+        for (int day = 1; day <= 200; day++) { EspionageSystem.DailyTick(day); if (EspionageSystem.IsSpyCaptured(s2.Id)) break; }
+        var data1 = EspionageSystem.GetSaveData();
+        EspionageSystem.LoadSaveData(data1);
+        var data2 = EspionageSystem.GetSaveData();
+        bool saveLoadOk = data1.Missions.Length == data2.Missions.Length
+            && data1.Captured.Length == data2.Captured.Length
+            && data1.CounterIntel.Length == data2.CounterIntel.Length
+            && data1.Captured.Any(c => c.SpyId == s2.Id) == data2.Captured.Any(c => c.SpyId == s2.Id);
+        GD.Print($"[CounterIntelTest] save_load_a_b={saveLoadOk} gorev={data2.Missions.Length} yakalanan={data2.Captured.Length} karsi_intel={data2.CounterIntel.Length}");
+
+        // 8. ResetForNewGame temizler.
+        EspionageSystem.ResetForNewGame();
+        bool resetOk = EspionageSystem.MissionCount == 0 && EspionageSystem.CapturedCount == 0;
+        GD.Print($"[CounterIntelTest] reset={resetOk} gorev={EspionageSystem.MissionCount} yakalanan={EspionageSystem.CapturedCount}");
+
+        ok = assigned && missionTarget == "FRA" && captured && relationDamaged && listed && released && relationImproved && saveLoadOk && resetOk;
+        GD.Print(ok ? "[CounterIntelTest] SONUÇ: PASS ✓" : "[CounterIntelTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");
     }

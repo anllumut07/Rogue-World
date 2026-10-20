@@ -2,7 +2,7 @@
 # Claue Code Stop hook'undan stdin girdisini okur (tüketilir, karar üzerinde etki yok).
 # Aşağıdaki üç koşuldan biri doğruysa duruma izin verilir (sessiz exit 0):
 #   1) Proje kökünde STOP.txt varsa
-#   2) Zaman 2026-10-20 10:00'ye ulaştıysa/geçtiyse
+#   2) Zaman 2026-10-21 10:00'ye ulaştıysa/geçtiyse
 #   3) test-logs/stop-guard-count.txt sayacı 400'u geçtiyse (sonsuz döngü emniyeti)
 # Aksi halde engelleme JSON'u basılır ve durdurma engellenir.
 
@@ -23,7 +23,7 @@ $count++
 $count | Out-File -FilePath $CountFile -Encoding utf8
 
 $StopFile  = Join-Path $RepoRoot "STOP.txt"
-$EndTime   = [datetime]'2026-10-20 10:00'
+$EndTime   = [datetime]'2026-10-21 10:00'
 
 if (Test-Path $StopFile) { exit 0 }
 if ((Get-Date) -ge $EndTime) { exit 0 }

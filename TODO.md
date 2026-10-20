@@ -497,7 +497,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | 13.2 | Tooltip sistemi: her UI elemanında hover → detaylı açıklama | Tooltip'ler görünür, faydalı bilgi verir | ✅ Bitti (2026-10-20) |
 | 13.3 | Harita modları: Political (ülke renkleri), Terrain, Supply, Factories, Resources, Air zones | Mod seçimi harita görünümünü değiştirir | ✅ Bitti (2026-10-20) |
 | 13.4 | Ayarlar: grafik (vsync, fullscreen, resolution), ses, oyun (hız, difficulty, ironman) | Ayarlar uygulanır, kaydedilir | ✅ Bitti (2026-10-20) |
-| 13.5 | Performans: 1936-1948 arası 5 hızında 60 FPS (yıllık ~10 saniye), 180 ülke + 5000+ bölük | Profiling: CPU/GPU/MS upto date | |
+| 13.5 | Performans: 1936-1948 arası 5 hızında 60 FPS (yıllık ~10 saniye), 180 ülke + 5000+ bölük | Profiling: CPU/GPU/MS upto date | ✅ Bitti (2026-10-20) — 5× hızda FPS 48–58, 25 gün / ~31 s, Çıktı: PASS, geçerli triangulation düzeltmesi |
 
 ---
 

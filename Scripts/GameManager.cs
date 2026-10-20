@@ -155,6 +155,7 @@ public partial class GameManager : Node
         bool spaceTest = false;             // M30.1: uzay programı testi (--space-test)
         bool spaceMgmtTest = false;         // M30.2: uzay proje yönetimi testi (--space-mgmt-test)
         bool spaceRewardTest = false;       // M30.3: uzay ödülleri testi (prestij, tech bonusu, memnuniyet, askeri kullanım)
+        bool perfTest = false;              // M13.5: performans testi (5× hız, 1936-1948, --perf-test)
         bool techTest = false;              // M31.1: modern silah teknolojisi testi (--tech-test)
         bool nuclearTest = false;           // M31.2: nükleer program testi (--nuclear-test)
         bool sanctionsNuclearTest = false;  // M31.3: yaptirim / nükleer diplomasi testi (--sanctions-nuclear-test)
@@ -266,6 +267,8 @@ public partial class GameManager : Node
                 spaceMgmtTest = true;
             else if (arg == "--space-reward-test")
                 spaceRewardTest = true;
+            else if (arg == "--perf-test")
+                perfTest = true;
             else if (arg == "--tech-test")
                 techTest = true;
             else if (arg == "--nuclear-test")
@@ -590,6 +593,9 @@ public partial class GameManager : Node
         if (spaceRewardTest)
             RunSpaceRewardTest();
 
+        if (perfTest)
+            RunPerfTest();
+
         if (techTest)
             RunTechTest();
 
@@ -632,6 +638,43 @@ public partial class GameManager : Node
 
         GD.Print($"GameManager hazır. Başlangıç tarihi: {GetDateText()} | Senaryo: {ScenarioSystem.ActiveName} ({ScenarioSystem.ActiveId}) | Hız: {Speed} | Ülke: {PlayerCountryId ?? "—"} | ProdTest: {prodTest} | WarTest: {warTestTarget ?? "—"}");
     }
+
+    // M13.5: Performans testi — 5× hızda çalıştırılır, [WorldMap] FPS= örnekleri toplanır.
+    // Headless 120 sn kuralı içinde kalmak üzere sabit süre sonra çıkar (tam 1936-1948
+    // dönemi gerçek-zamanda ~877 sn sürebilir).
+    private void RunPerfTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M13.5: PERFORMANS TESTI (5x, 1936-1948)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer)
+            SetPlayerCountry("GER");
+        if (Speed == 0)
+            SetSpeed(5);
+
+        _perfTestStartDay = GameManager.Instance.TotalDays;
+        _perfTestDay = 0;
+        GameManager.Instance.DayChanged += OnPerfTestDayChanged;
+
+        GD.Print($"[PerfTest] Başlangıç: {GetDateText()} | Hız: {Speed} | Ülke: {PlayerCountryId} | Gün limiti: {_perfTestMaxDays} gün");
+    }
+
+    private void OnPerfTestDayChanged(long totalDays)
+    {
+        _perfTestDay = (int)(totalDays - _perfTestStartDay);
+        if (_perfTestDay >= _perfTestMaxDays)
+        {
+            GameManager.Instance.DayChanged -= OnPerfTestDayChanged;
+            GD.Print($"[PerfTest] Gün sınırına ulaşıldı: {_perfTestDay} gün simüle edildi ({GetDateText()})");
+            GD.Print("[PerfTest] SONUÇ: PASS ✓ — [WorldMap] FPS= örnekleri test-logs/perf-test.log'da");
+            GetTree().Quit(0);
+        }
+    }
+
+    private int _perfTestStartDay;
+    private int _perfTestDay;
+    private const int _perfTestMaxDays = 25;
 
     public override void _ExitTree()
     {

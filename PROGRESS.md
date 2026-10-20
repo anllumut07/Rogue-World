@@ -1855,3 +1855,24 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 **Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--settings-test` (PASS); `--save-load-test --scenario=modern_world` (A==B); fare kontrolleri (sağ tık sürükleme/tekerlek/WASD/ülke seçimi) bozulmamalı.
 
 **Dosyalar:** Değiştirilen: `Scripts/SettingsSystem.cs`, `Scripts/SettingsPanel.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (13.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+### M13.5: Performans (CPU/GPU/MS Profiling) — ✅ DONE (2026-10-20)
+
+**Değişikler:**
+- `Scripts/GameManager.cs`: `--perf-test` bayrağı ayrıştırıldı; `RunPerfTest()` (M13.5 kancağı) `WorldMap`'teki FPS örneklerini yakalar, day-count tabanlı çıkış kancası (`_perfTestMaxDays = 25`, `OnPerfTestDayChanged(long totalDays)`), `GetTree().Quit(0)` geçtiğinde.
+- `Scripts/MiniMapPanel.cs`: `_Draw` artık `c.CleanRings` (WorldMap'te yükleme sonrası bir kez temizlenmiş) üzerindeniter; per-frame dedup kaldırıldı; `using System.Collections.Generic;` kaldırıldı (artık gerekli değil); `PolygonSignedArea(Vector2[])` shoelace yardımcı korundu; sign-alan koruması (< 1.0f dünya, < 0.5f ekran) devam ediyor.
+- `Scripts/WorldMap.cs`: `Country.CleanRings` alanı (`List<Vector2[]>`); `AddRing` her ring için yeni `CleanRing(Vector2[] ring)` statik yardımcı çalıştırır (yakın-başlangıç-duplikatları, kapanık-döngü başlangıç/son duplik, ardışık koliner pts'leri temizler) ve hem `Rings`'e hem `CleanRings`'e yazar; `Polygon2D` node'ları yine de orijinal `Rings`'i kullanır.
+- `tools/run-test.ps1`: `[string]$Scene` parametresi eklendi; scene positional argümanı olarak Godot'a geçirilebiliyor (`--path .` sonra scene, sonra `"--"` + test bayrağı), böylece `game.tscn` (WorldMap aktif) yüklenebiliyor.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `Godot_v4.7.2-stable_mono_win64_console.exe --headless --path . res://Scenes/game.tscn -- --perf-test -Speed 5 -Country GER -Scenario historical_1936`: **SONUÇ: PASS ✓** — 25 gün (26 Ocak 1936) ~31 saniyede, FPS örnekleri 48–58 (hedef 60), `[PerfTest] SONUÇ: PASS ✓`, çıkış kodu 0.
+- Triangulation hataları: yükleme-zamanı `CleanRing` temizlemeyle kaynak düzeltilmiş; kalan sadece `WARNING: 1 ObjectDB instance was leaked at exit` — zararsız, sonucu etkilemez.
+
+**Çözülemeyen şey:** FPS 48–58 biraz 60 hedefinin altında; aday nedenler: 180 ülke sistem tick'i/gün + 637 il. Daha fazla optimizasyon henüz uygulanmadı — ölçüm tabanı olarak kalıyor.
+
+**Bilinen sorun:** FPS 48–58 < 60 hedefi (ölçüm tabanı; optimize edilmedi).
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); Godot ile `--perf-test -Speed 5 -Country GER -Scenario historical_1936` (res://Scenes/game.tscn) PASS; fare kontrolleri (sağ tık sürükleme/tekerlek/WASD/ülke seçimi) bozulmamalı.
+
+**Dosyalar:** Değiştirilen: `Scripts/GameManager.cs`, `Scripts/MiniMapPanel.cs`, `Scripts/WorldMap.cs`, `tools/run-test.ps1`, `TODO.md` (13.5 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.

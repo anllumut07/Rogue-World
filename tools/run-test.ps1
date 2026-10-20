@@ -5,7 +5,8 @@
 param(
     [string]$Scenario,
     [string]$Country,
-    [string]$Speed
+    [string]$Speed,
+    [string]$Scene
 )
 
 $TestFlag = if ($args.Count -gt 0) { $args[0] } else {
@@ -30,7 +31,10 @@ $SafeFlag = $TestFlag.TrimStart("-").Replace("--", "").Replace("-", "_")
 $LogPath  = Join-Path $LogDir "$SafeFlag.log"
 $ErrPath  = Join-Path $LogDir "$SafeFlag.err"
 
-$Args = @("--headless", "--path", ".", "--", $TestFlag)
+$Args = @("--headless", "--path", ".")
+if ($PSBoundParameters.ContainsKey("Scene")) { $Args += $Scene }
+$Args += "--"
+$Args += $TestFlag
 if ($PSBoundParameters.ContainsKey("Scenario")) { $Args += "--scenario=$Scenario" }
 if ($PSBoundParameters.ContainsKey("Country"))   { $Args += "--country=$Country" }
 if ($PSBoundParameters.ContainsKey("Speed"))     { $Args += "--speed=$Speed" }

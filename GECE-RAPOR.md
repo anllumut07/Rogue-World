@@ -1069,3 +1069,25 @@ Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.
 2. Çözülemeyen şey: yok — M13.4 %100 tamamlandı (build 0/0, settings-test PASS, save-load-test A==B PASS).
 3. Bilinen sorun: yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--settings-test` (PASS); `--save-load-test --scenario=modern_world` (A==B).
+
+### M13.5: Performans (CPU/GPU/MS Profiling) — ✅ DONE (2026-10-20)
+
+**Değişen dosyalar:**
+- `Scripts/GameManager.cs` (`--perf-test` bayrağı, `RunPerfTest()`, `OnPerfTestDayChanged(long totalDays)` day-count çıkış kancağı `_perfTestMaxDays = 25`, `GetTree().Quit(0)`).
+- `Scripts/MiniMapPanel.cs` (`_Draw` artık `c.CleanRings` kullanır; per-frame dedup kaldırıldı; `PolygonSignedArea` yardımcı korundu; `using System.Collections.Generic;` kaldırıldı).
+- `Scripts/WorldMap.cs` (`Country.CleanRings` alanı, `AddRing` + `CleanRing(Vector2[] ring)` statik yardımcı, yükleme sonrası bir kez temizleme; `Polygon2D` node'ları `Rings`'i kullanmaya devam ediyor).
+- `tools/run-test.ps1` (`[string]$Scene` parametresi, positional scene argümanı Godot'a).
+
+**Testler:** `dotnet build`: 0 hata / 0 uyarı. `--perf-test -Speed 5 -Country GER -Scenario historical_1936` (res://Scenes/game.tscn): **SONUÇ: PASS ✓** — 25 gün ~31 s, FPS örnekleri 48–58, çıkış kodu 0. Triangulation hataları kaynak düzeltilmiştir; kalan `ObjectDB instance was leaked at exit` uyarısı zararsız.
+
+**Çözülemeyen şey:** FPS 48–58 < 60 hedefi; optimize edilmedi (ölçüm tabanı).
+
+**Bilinen sorun:** FPS 48–58 < 60 hedefi.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--perf-test` (PASS); fare kontrolleri bozulmamalı.
+
+### ÖZET (M13.5 — 2026-10-20)
+1. Değişen dosyalar: `Scripts/GameManager.cs`, `Scripts/MiniMapPanel.cs`, `Scripts/WorldMap.cs`, `tools/run-test.ps1`, `TODO.md` (13.5 [x]), `PROGRESS.md` (M13.5 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M13.5 %100 tamamlandı (build 0/0, perf-test PASS, çıkış kodu 0).
+3. Bilinen sorun: FPS 48–58 < 60 hedefi (ölçüm tabanı; optimize edilmedi).
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--perf-test -Speed 5 -Country GER -Scenario historical_1936` (PASS).

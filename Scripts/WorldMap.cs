@@ -50,6 +50,7 @@ public partial class WorldMap : Node2D
         public string Id = "?";
         public string Name = "?";
         public readonly List<Vector2[]> Rings = new();
+        public List<Vector2[]> CleanRings = new(); // M13.5: triüleyiciye güvenli temizlenmiş halkalar (MiniMapPanel)
         public readonly List<Polygon2D> Nodes = new();
         public readonly List<Line2D> Outlines = new();
         public readonly List<Line2D> GlowOutlines = new(); // M32.2: kıyı parıltısı çizgileri
@@ -998,7 +999,48 @@ public partial class WorldMap : Node2D
             if (crosses && lon < 0) lon += 360.0;
             points.Add(Project(lon, lat));
         }
-        if (points.Count >= 3) country.Rings.Add(points.ToArray());
+        if (points.Count >= 3)
+        {
+            var ring = points.ToArray();
+            country.Rings.Add(ring);
+            var cleaned = CleanRing(ring);
+            if (cleaned != null) country.CleanRings.Add(cleaned);
+        }
+    }
+
+    // GeoJSON halkasını DrawPolygon için temizler: neredeyse aynı noktaları,
+    // kapalı-döngü baş/son çiftini ve collinear (doğrusal) ardışık noktaları kaldırır.
+    // Godot'un CanvasItem.DrawPolygon triüleyicisi bu bozuklukları reddeder.
+    private static Vector2[] CleanRing(Vector2[] ring)
+    {
+        const float eps2 = 1e-4f; // ~0.01 dünya birimi karesi
+        var clean = new List<Vector2>(ring.Length);
+        for (int i = 0; i < ring.Length; i++)
+        {
+            var p = ring[i];
+            if (clean.Count > 0 && (clean[clean.Count - 1] - p).LengthSquared() < eps2)
+                continue;
+            clean.Add(p);
+        }
+        if (clean.Count > 1 && (clean[0] - clean[clean.Count - 1]).LengthSquared() < eps2)
+            clean.RemoveAt(clean.Count - 1);
+        if (clean.Count < 3) return null;
+
+        // Collinear ardışık noktaları çıkar (triangulator'a zero-area üçgen doğurur).
+        int n = clean.Count;
+        var simplified = new List<Vector2>(n);
+        for (int i = 0; i < n; i++)
+        {
+            var prev = clean[(i - 1 + n) % n];
+            var cur = clean[i];
+            var next = clean[(i + 1) % n];
+            var a = cur - prev;
+            var b = next - cur;
+            if (Mathf.Abs(a.X * b.Y - a.Y * b.X) < 1e-6f) continue;
+            simplified.Add(cur);
+        }
+        if (simplified.Count < 3) return null;
+        return simplified.ToArray();
     }
 
     private Vector2 Project(double lon, double lat)

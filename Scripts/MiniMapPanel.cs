@@ -45,16 +45,19 @@ public partial class MiniMapPanel : Node2D
         float sx = (PanelSize - 8f) / wm.MapSize.X;
         float sy = (PanelSize - 8f) / wm.MapSize.Y;
 
-        // Ülke poligonlarını küçültülmüş olarak çiz
+        // Ülke poligonlarını küçültülmüş olarak çiz (WorldMap'te bir kez temizlenmiş).
         foreach (var c in wm._countries)
         {
-            foreach (var ring in c.Rings)
+            foreach (var ring in c.CleanRings)
             {
-                if (ring.Length < 3) continue;
+                // Sıfır/nötr alanlı poligonu atla — DrawPolygon triüleyemez (güvenlik ağı).
+                if (Mathf.Abs(PolygonSignedArea(ring)) < 1.0f) continue;
                 var pts = new Vector2[ring.Length];
                 for (int i = 0; i < ring.Length; i++)
                     pts[i] = _mapRect.Position + new Vector2(ring[i].X * sx, ring[i].Y * sy);
-                var cols = new Color[ring.Length];
+                // Ekran-alanında çok küçük / bozulmuş poligonları da atla.
+                if (Mathf.Abs(PolygonSignedArea(pts)) < 0.5f) continue;
+                var cols = new Color[pts.Length];
                 for (int i = 0; i < cols.Length; i++) cols[i] = c.MapColor;
                 DrawPolygon(pts, cols);
             }
@@ -139,5 +142,17 @@ public partial class MiniMapPanel : Node2D
         _cameraRectScreen = new Rect2(
             _mapRect.Position + camTopLeft * new Vector2(sx, sy),
             new Vector2(ww * sx, hh * sy));
+    }
+
+    // İmzalı poligon alanı (shoelace). Sıfır/nötr alan → DrawPolygon triülenemez.
+    private static float PolygonSignedArea(Vector2[] pts)
+    {
+        float area = 0f;
+        for (int i = 0; i < pts.Length; i++)
+        {
+            int j = (i + 1) % pts.Length;
+            area += pts[i].X * pts[j].Y - pts[j].X * pts[i].Y;
+        }
+        return area * 0.5f;
     }
 }

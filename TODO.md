@@ -563,7 +563,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 |-----------|----------|--------------|-------|
 | 35.1 | Tüm panellerin 1152×648'e sığması (kod incelemesi + boyut sabitleri) | Panel boyutları 1152×648 sınırı içinde; kod incelemesi onaylı | [x] |
 | 35.2 | Harita girdisi açıkken blokla/kapanınca geri ver (MouseFilter denetimi) | MouseFilter.Stop backdrop testleri geçer | [x] |
-| 35.3 | Panel açma/kapama mouse davranışı regresyon listesi (sağ tık sürükleme, tekerlek, WASD, ülke seçimi) | Regresyon listesi yazıldı; kodla kontrol edildi; hiçbiri bozulmadı | [ ] |
+| 35.3 | Panel açma/kapama mouse davranışı regresyon listesi (sağ tık sürükleme, tekerlek, WASD, ülke seçimi) | Regresyon listesi yazıldı; kodla kontrol edildi; hiçbiri bozulmadı | [x] |
 | 35.4 | UI metinlerini düzelt (İngilizce UI, tutarsızlıklar) | Tüm UI metinleri İngilizce; tutarsızlık yok | [x] |
 
 ---

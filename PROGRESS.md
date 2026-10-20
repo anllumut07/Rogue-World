@@ -1969,8 +1969,26 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 
 **Dosyalar:** Değiştirilen: `TODO.md` (35.2 [x]), `PROGRESS.md`.
 
-### 35.3 Panel açma/kapama mouse davranışı regresyon listesi — ⬜ BEKLIYOR
-**Açıklama:** Sağ tık sürükleme, tekerlek, WASD, ülke seçimi davranışlarının hiçbir milestone'da bozulmadığının listelenmesi ve kodla kontrolü. Hala yapılacak.
+### 35.3 Panel açma/kapama mouse davranışı regresyon listesi — ✅ DONE (2026-10-20)
+**Açıklama:** Sağ tık sürükleme, tekerlek, WASD, ülke seçimi davranışlarının hiçbir milestone'da bozulmadığının listelenmesi ve kodla kontrolü.
+
+**Regresyon listesi (kod incelemesi `Scripts/WorldMap.cs`):**
+
+| # | Davranış | Kod konumu | Nasıl çalışır | Panel etkisi |
+|---|----------|------------|---------------|--------------|
+| 1 | Sağ tık sürükleme → harita pan | `_Input` satır 512-543 | RMB basılı `_dragging=true`; `MouseMotion` kamera pozisyonunu değiştirir; <6px serbest bırakma `HandleRightClickOrder` (ofansif/cephe emri) tetikler. `SetInputAsHandled()` + `return`. | Açık panel backdrop `MouseFilter.Stop` harita girişini engeller (istenen); kapalıyken aynen çalışır. |
+| 2 | Tekerlek → zoom | `_Input` satır 545-556 | WheelUp ×1.15, WheelDown /1.15, imleç pozisyonunda merkeze zoom. `SetInputAsHandled()` + `return`. | Açık panel backdrop girebilir; kapalıyken aynen çalışır. |
+| 3 | WASD → pan | `_Process` satır 400 → `HandleKeyboardPan` satır 771-784 | W/A/S/D (+ok tuşları) kamera konumunu `ClampCamera()` ile sınırlı hareket ettirir; `_Process`'te koşulsuz çağrılır. | Panel açıkken de klavyeden pan çalışır (istenen, harita etkileşimi yok); kapalıyken aynen. |
+| 4 | Sol tık → ülke seçimi | `_Input` satır 576-685 | Tek tık `SelectAt` (ülke vurgusu + CountryInfoPanel); çift tık `SetPlayerCountry` (oyuncu ülke ataması). | `HoveredBlocksMap` (satır 709-727): hover edilen UI Control (MouseFilter.Stop backdrop / buton / panel) harita tıklamasını engeller; yoksa selection çalışır. |
+
+**Sonuç:** Dört davranış da kodda değişmemiş; panel açılınca backdrop `MouseFilter.Stop` harita girişini bloker (istenen), kapanınca RMB sürükleme, tekerlek, WASD, ülke seçimi eski haline döner. Hiçbiri bozulmadı.
+
+**Test Sonuçları:**
+- Kod incelemesi: 4 davranış `WorldMap.cs`'de doğrulandı, değişiklik yok.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test --scenario=modern_world --speed=5`: **SONUÇ: PASS ✓ (A == B)** — mouse davranış değişikliği yok (UI metin regression ile birlikte), save/load determinizm korundu.
+
+**Dosyalar:** Değiştirilen: `TODO.md` (35.3 [x]), `PROGRESS.md`.
 
 ### 35.4 UI metinlerini düzelt (İngilizce UI, tutarsızlıklar) — ✅ DONE (2026-10-20)
 **Açıklama:** Türkçe UI metinleri İngilizceye çevrildi.
@@ -1985,7 +2003,7 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 
 **Dosyalar:** Değiştirilen: `Scripts/ElectionPanel.cs`, `Scripts/GameHud.cs`, `TODO.md` (35.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
 
-**Çözülemeyen şey:** M35.3 regresyon listesi henüz yazılmadı.
+**Çözülemeyen şey:** yok.
 **Bilinen sorun:** yok.
 **Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--save-load-test` (A==B); panellerin İngilizce metinle açılması.
 

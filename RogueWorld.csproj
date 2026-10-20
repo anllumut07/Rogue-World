@@ -3,5 +3,10 @@
     <TargetFramework>net8.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>RogueWorld</RootNamespace>
+    <!-- Godot.NET.Sdk's WriteCodeFragment already emits assembly attributes
+         (AssemblyAttributes.cs). Keep GenerateAssemblyInfo off to avoid
+         duplicate attribute CS0579 errors from a second AssemblyInfo.cs. -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
 </Project>

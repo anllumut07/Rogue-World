@@ -82,6 +82,10 @@ public partial class GameManager : Node
         SettingsSystem.Load();
         SettingsSystem.Apply();
 
+        // M13.1: Ses sistemi — menü/oyun müziği ve UI sfx (AudioStreamGenerator, prosedürel).
+        // SettingsSystem.MasterVolume üzerinden zaten kaydedilen ses seviyesi kullanılır.
+        AudioSystem.Initialize(this);
+
         // Geliştirici/test argümanları (headless test için):
         // --speed=N (0-5)
         // --country=XXX (oyuncu ülkesini seç, örn. --country=GER)

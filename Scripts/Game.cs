@@ -119,6 +119,9 @@ public partial class Game : Control
         _worldMap.CountrySelected += OnCountrySelected;
         _worldMap.CountryDeselected += OnCountryDeselected;
 
+        // M13.1: Oyun müziği (prosedürel, döngü).
+        AudioSystem.PlayGameMusic();
+
         // --- Render teşhisi: --mapshot=<yol> ile 30. karede PNG kaydet ve çık ---
         // Kullanım: godot --path . res://Scenes/game.tscn -- --mapshot=C:/g/shot.png
         foreach (var arg in OS.GetCmdlineUserArgs())

@@ -41,6 +41,9 @@ public partial class MainMenu : Control
 
         GD.Print("MainMenu: hazır (görsel #6 aktif)");
 
+        // M13.1: Menü müziği (prosedürel, döngü).
+        AudioSystem.PlayMenuMusic();
+
         // Test kancası: --library-test → Kütüphane panelini aç ve seçim simüle et.
         // Normal oyunda asla çalışmaz (yalnızca headless test argümanıyla).
         var args = OS.GetCmdlineUserArgs();

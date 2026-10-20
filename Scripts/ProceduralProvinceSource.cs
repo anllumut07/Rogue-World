@@ -96,6 +96,60 @@ public class ProceduralProvinceSource : IProvinceSource
         int totalLinks = 0;
         foreach (var p in provinces) totalLinks += p.NeighborIds.Count;
         GD.Print($"[ProceduralProvinceSource] Komşuluk grafi hazır: {provinces.Count} il, {totalLinks / 2} yönsüz bağlantı");
+
+        // M38.3: ülke sınırlarını aşan deniz/liman bağlantıları (kara kenar paylaşımından bağımsız).
+        BuildSeaLinks(provinces);
+    }
+
+    // M38.3: Kıyı illeri (kara ile okyanus arasında sınır paylaşmayan kenarı olan iller),
+    // farklı ülkeden ve birbirine yakın olanları deniz/liman hattı ile bağlar. Bu sayede
+    // dar boğaz / kalelik gibi denizden geçilen geçitler komşuluk grafiğine girer.
+    private void BuildSeaLinks(List<ProvinceData> provinces)
+    {
+        const float SeaLinkDistance = 40f; // projection birimi (~740 km); dar boğaz/kalelik mesafesi
+
+        // Kenar haritası: tek seferlik appearing eden kenar = deniz kıyısı (kara ile paylaşılmamış).
+        var edgeMap = new Dictionary<string, List<int>>();
+        for (int i = 0; i < provinces.Count; i++)
+        {
+            foreach (var ring in provinces[i].Rings)
+            {
+                int n = ring.Length;
+                for (int a = 0; a < n; a++)
+                {
+                    var p1 = ring[a];
+                    var p2 = ring[(a + 1) % n];
+                    string key = EdgeKey(p1, p2);
+                    if (!edgeMap.TryGetValue(key, out var list)) edgeMap[key] = list = new List<int>();
+                    list.Add(i);
+                }
+            }
+        }
+
+        var coastal = new HashSet<int>();
+        foreach (var kvp in edgeMap)
+            if (kvp.Value.Count == 1) coastal.Add(kvp.Value[0]);
+
+        var coastalList = new List<int>(coastal);
+        int links = 0;
+        for (int i = 0; i < coastalList.Count; i++)
+        {
+            var a = provinces[coastalList[i]];
+            for (int j = i + 1; j < coastalList.Count; j++)
+            {
+                var b = provinces[coastalList[j]];
+                if (a.CountryId == b.CountryId) continue;       // aynı ülke → kara komşusu olabilir
+                if (a.NeighborIds.Contains(b.Id)) continue;     // zaten komşu (kara sınırı)
+                if ((a.Centroid - b.Centroid).Length() <= SeaLinkDistance)
+                {
+                    AddNeighbor(a, b.Id);
+                    AddNeighbor(b, a.Id);
+                    links++;
+                }
+            }
+        }
+        foreach (var idx in coastal) provinces[idx].IsCoastal = true;
+        GD.Print($"[ProceduralProvinceSource] Deniz/liman hattı: {coastal.Count} kıyı ili, {links} sınır-aşan deniz bağlantısı");
     }
 
     private static void AddNeighbor(ProvinceData prov, string neighborId)

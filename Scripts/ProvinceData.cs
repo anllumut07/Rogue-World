@@ -15,4 +15,5 @@ public class ProvinceData
     public List<Vector2[]> Rings = new(); // dış halka + delikler (GeoJSON uyumlu)
     public List<string> NeighborIds = new(); // komşu il id'leri (18.2'de doldurulur)
     public bool IsCore = true;        // ülkenin asal mı değil mi (yeni ilhaklarda false)
+    public bool IsCoastal = false;    // deniz kıyısında / liman erişimi var (M38.3: deniz hattı komşuluğu)
 }

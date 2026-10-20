@@ -3522,7 +3522,21 @@ public partial class GameManager : Node
         var germanProvinces = ProvinceOwnershipSystem.GetProvincesByOwner("DEU");
         GD.Print($"[ProvinceTest] DEU illeri: {germanProvinces.Count}");
 
-        bool result = sameCount && sameIds && symmetric && unowned == 0;
+        // 6) Sınır aşan deniz/liman bağlantısı (M38.3): iki farklı ülkedeki kıyı ili komşu olmalı
+        int seaLinks = 0;
+        foreach (var p in provs1)
+        {
+            if (!p.IsCoastal) continue;
+            foreach (var n in p.NeighborIds)
+            {
+                var nb = provs1.FirstOrDefault(pp => pp.Id == n);
+                if (nb != null && nb.IsCoastal && nb.CountryId != p.CountryId) seaLinks++;
+            }
+        }
+        seaLinks /= 2; // yönsüz
+        GD.Print($"[ProvinceTest] Deniz/liman bağlantısı (ikisi de kıyı, farklı ülke): {seaLinks}");
+
+        bool result = sameCount && sameIds && symmetric && unowned == 0 && seaLinks > 0;
         GD.Print(result ? "[ProvinceTest] SONUÇ: PASS ✓" : "[ProvinceTest] SONUÇ: FAIL ✗");
         GetTree().Quit(result ? 0 : 1);
         GD.Print("=========================================");

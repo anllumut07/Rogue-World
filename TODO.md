@@ -600,7 +600,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 |-----------|----------|--------------|-------|
 | 38.1 | M16: Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılsın; yükleme sonrası bekleyen bildirimler korunur | `--save-load-test` sonrası NEXT EVENT kuyruğu A==B, bildirim kaybolmaz | [x] Bitti (2026-10-20) |
 | 38.2 | M16: Ajanda efektleri (MinisterLoyaltyBonus hariç) ilgili sisteme bağlanır, sadece loglanmaz | Her efekt etkili sistemde uygulanır, testle doğrulanır | [ ] |
-| 38.3 | İl komşuluğu: ülke sınırlarını aşan komşular (deniz/liman bağlantısı) eklenir | Komşuluk grafiği sınır aşımı destekler, `--province-test` PASS | [ ] |
+| 38.3 | İl komşuluğu: ülke sınırlarını aşan komşular (deniz/liman bağlantısı) eklenir | Komşuluk grafiği sınır aşımı destekler, `--province-test` PASS | [x] Bitti (2026-10-20) |
 | 38.4 | `ElectionSystem`/`ElectionCampaignSystem` çift başlatma (çift log satırı) düzeltilir | Tek başlatma onaylanır, tek log satırı | [ ] |
 | 38.5 | Kaydet/Yükle regresyonu: historical_1936 + modern_world A==B | İki senaryoda da `--save-load-test` A==B PASS, `dotnet build` 0/0 | [ ] |
 

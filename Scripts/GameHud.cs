@@ -1,4 +1,6 @@
 using Godot;
+using System;
+using System.Collections.Generic;
 
 // Üst HUD: sol=ülke+bayrak, orta=tarih+hız göstergesi, sağ=PP/Stability/WarSupport.
 // Alt çubuk: seçim bilgisi, oyun hızı metni.
@@ -18,6 +20,16 @@ public partial class GameHud : CanvasLayer
     // Alt çubuk
     private Label _selectedLabel;
     private Label _speedTextLabel;
+
+    // Üst bar panel düğmeleri: sığdığı kadarını satırda gösterir, kalanını
+    // "MORE ▾" açılır menüsüne taşır. (Kullanıcı şikayeti: sağ taraftaki uzun
+    // düğme listesi 1152x648'de pencereden taşıyordu.)
+    private HBoxContainer _sectionRow;
+    private MenuButton _moreBtn;
+    private PopupMenu _morePopup;
+    private readonly List<(string Text, string Tooltip, Action Open)> _sections = new();
+    private readonly List<Button> _sectionBtns = new();
+    private readonly List<Action> _moreActions = new();
 
     private GameManager GM => GameManager.Instance;
 
@@ -146,10 +158,10 @@ public partial class GameHud : CanvasLayer
             UITheme.AddHoverScale(b, 1.08f);
         }
 
-        // --- SAĞ: PP | Stability | War Support | ECONOMY | Pause ---
+        // --- SAĞ: PP | Stability | War Support | panel düğmeleri | MORE | NEXT EVENT | Pause ---
         var rightSection = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         rightSection.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        rightSection.AddThemeConstantOverride("separation", 20);
+        rightSection.AddThemeConstantOverride("separation", 12);
         bar.AddChild(rightSection);
 
         _ppLabel = new Label();
@@ -170,107 +182,98 @@ public partial class GameHud : CanvasLayer
         _warSupportLabel.TooltipText = "War Support % (affects war performance)";
         rightSection.AddChild(_warSupportLabel);
 
-        // RESEARCH butonu
-        var researchBtn = new Button { Text = "RESEARCH", FocusMode = Control.FocusModeEnum.None, TooltipText = "Technology tree (research slots, progress)" };
-        researchBtn.Pressed += () => ResearchPanel.OpenUnder(this);
-        rightSection.AddChild(researchBtn);
-        UITheme.AddHoverScale(researchBtn);
+        // Panel düğmeleri satırı: sığdığı kadarını gösterir, kalanı MORE menüsüne taşır.
+        _sectionRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
+        _sectionRow.AddThemeConstantOverride("separation", 10);
+        rightSection.AddChild(_sectionRow);
 
-        // ECONOMY butonu
-        var economyBtn = new Button { Text = "ECONOMY", FocusMode = Control.FocusModeEnum.None, TooltipText = "Economy panel (build queue, factories, resources)" };
-        economyBtn.Pressed += () => EconomyPanel.OpenUnder(this);
-        rightSection.AddChild(economyBtn);
-        UITheme.AddHoverScale(economyBtn);
+        // RESEARCH
+        AddSection("RESEARCH", "Technology tree (research slots, progress)",
+            () => ResearchPanel.OpenUnder(this));
 
-        // PRODUCTION butonu
-        var productionBtn = new Button { Text = "PRODUCTION", FocusMode = Control.FocusModeEnum.None, TooltipText = "Production lines, equipment, variant designer" };
-        productionBtn.Pressed += () => ProductionPanel.OpenUnder(this);
-        rightSection.AddChild(productionBtn);
-        UITheme.AddHoverScale(productionBtn);
+        // ECONOMY
+        AddSection("ECONOMY", "Economy panel (build queue, factories, resources)",
+            () => EconomyPanel.OpenUnder(this));
 
-        // ARMY butonu
-        var armyBtn = new Button { Text = "ARMY", FocusMode = Control.FocusModeEnum.None, TooltipText = "Army panel (divisions, templates, training, wars)" };
-        armyBtn.Pressed += () => ArmyPanel.OpenUnder(this);
-        rightSection.AddChild(armyBtn);
-        UITheme.AddHoverScale(armyBtn);
+        // PRODUCTION
+        AddSection("PRODUCTION", "Production lines, equipment, variant designer",
+            () => ProductionPanel.OpenUnder(this));
 
-        // DIPLOMACY butonu (M8)
-        var diplomacyBtn = new Button { Text = "DIPLOMACY", FocusMode = Control.FocusModeEnum.None, TooltipText = "Diplomacy panel (relations, factions, guarantees, peace)" };
-        diplomacyBtn.Pressed += () => DiplomacyPanel.OpenUnder(this);
-        rightSection.AddChild(diplomacyBtn);
-        UITheme.AddHoverScale(diplomacyBtn);
+        // ARMY
+        AddSection("ARMY", "Army panel (divisions, templates, training, wars)",
+            () => ArmyPanel.OpenUnder(this));
 
-        // FOCUS butonu (M9)
-        var focusBtn = new Button { Text = "FOCUS", FocusMode = Control.FocusModeEnum.None, TooltipText = "National focus tree (country-specific goals)" };
-        focusBtn.Pressed += () => FocusPanel.OpenUnder(this);
-        rightSection.AddChild(focusBtn);
-        UITheme.AddHoverScale(focusBtn);
+        // DIPLOMACY (M8)
+        AddSection("DIPLOMACY", "Diplomacy panel (relations, factions, guarantees, peace)",
+            () => DiplomacyPanel.OpenUnder(this));
 
-        // DECISIONS butonu (M10.2)
-        var decisionsBtn = new Button { Text = "DECISIONS", FocusMode = Control.FocusModeEnum.None, TooltipText = "Decisions panel (available decisions, active progress, cooldowns)" };
-        decisionsBtn.Pressed += () =>
+        // FOCUS (M9)
+        AddSection("FOCUS", "National focus tree (country-specific goals)",
+            () => FocusPanel.OpenUnder(this));
+
+        // DECISIONS (M10.2)
+        AddSection("DECISIONS", "Decisions panel (available decisions, active progress, cooldowns)",
+            () =>
+            {
+                GD.Print("[GameHud] DECISIONS butonu basıldı — DecisionPanel.OpenUnder çağrılıyor");
+                DecisionPanel.OpenUnder(this);
+            });
+
+        // LIBRARY (M15.2)
+        AddSection("LIBRARY", "Country encyclopedia and library",
+            () => LibraryPanel.OpenUnder(this));
+
+        // AGENDA (M16): haftalık ajanda — slotlar + aksiyonlar
+        AddSection("AGENDA", "Weekly agenda — leader's actions (meetings, rallies, summits)",
+            () =>
+            {
+                GD.Print("[GameHud] AGENDA butonu basıldı — AgendaPanel.OpenUnder çağrılıyor");
+                AgendaPanel.OpenUnder(this);
+            });
+
+        // STATISTICS (M20.1): ülke istatistik & bütçe göstergeleri
+        AddSection("STATISTICS", "Statistics & budget indicators (GDP, inflation, unemployment, corruption, ...)",
+            () =>
+            {
+                GD.Print("[GameHud] STATISTICS butonu basıldı — StatisticsPanel.OpenUnder çağrılıyor");
+                StatisticsPanel.OpenUnder(this);
+            });
+
+        // CABINET (M21.1): bakanlık atamaları ve bakanlık listesi
+        AddSection("CABINET", "Cabinet — ministries and minister assignments",
+            () =>
+            {
+                GD.Print("[GameHud] CABINET butonu basıldı — CabinetPanel.OpenUnder çağrılıyor");
+                CabinetPanel.OpenUnder(this);
+            });
+
+        // ORGANIZATIONS (M37.5): uluslararası örgütler (NATO, AB, BM...) üyelik + gündem + oy
+        AddSection("ORGANIZATIONS", "Organizations — memberships, agenda and voting (M37.5)",
+            () =>
+            {
+                GD.Print("[GameHud] ORGANIZATIONS butonu basıldı — OrganizationPanel.OpenUnder çağrılıyor");
+                OrganizationPanel.OpenUnder(this);
+            });
+
+        // ELECTION (M23.1): seçim takvimi + oy tahmini paneli
+        AddSection("ELECTION", "Elections — calendar and vote prediction",
+            () =>
+            {
+                GD.Print("[GameHud] ELECTION butonu basıldı — ElectionPanel.OpenUnder çağrılıyor");
+                ElectionPanel.OpenUnder(this);
+            });
+
+        // "MORE ▾": satıra sığmayan panel düğmeleri bu açılır menüde toplanır.
+        _moreBtn = new MenuButton
         {
-            GD.Print("[GameHud] DECISIONS butonu basıldı — DecisionPanel.OpenUnder çağrılıyor");
-            DecisionPanel.OpenUnder(this);
+            Text = "MORE ▾",
+            FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "More panels (did not fit in the bar)",
+            Visible = false
         };
-        rightSection.AddChild(decisionsBtn);
-        UITheme.AddHoverScale(decisionsBtn);
-
-        // LIBRARY butonu (M15.2)
-        var libraryBtn = new Button { Text = "LIBRARY", FocusMode = Control.FocusModeEnum.None, TooltipText = "Country encyclopedia and library" };
-        libraryBtn.Pressed += () => LibraryPanel.OpenUnder(this);
-        rightSection.AddChild(libraryBtn);
-        UITheme.AddHoverScale(libraryBtn);
-
-        // AGENDA butonu (M16): haftalık ajanda — slotlar + aksiyonlar
-        var agendaBtn = new Button { Text = "AGENDA", FocusMode = Control.FocusModeEnum.None, TooltipText = "Weekly agenda — leader's actions (meetings, rallies, summits)" };
-        agendaBtn.Pressed += () =>
-        {
-            GD.Print("[GameHud] AGENDA butonu basıldı — AgendaPanel.OpenUnder çağrılıyor");
-            AgendaPanel.OpenUnder(this);
-        };
-        rightSection.AddChild(agendaBtn);
-        UITheme.AddHoverScale(agendaBtn);
-
-        // STATISTICS butonu (M20.1): ülke istatistik & bütçe göstergeleri
-        var statisticsBtn = new Button { Text = "STATISTICS", FocusMode = Control.FocusModeEnum.None, TooltipText = "Statistics & budget indicators (GDP, inflation, unemployment, corruption, ...)" };
-        statisticsBtn.Pressed += () =>
-        {
-            GD.Print("[GameHud] STATISTICS butonu basıldı — StatisticsPanel.OpenUnder çağrılıyor");
-            StatisticsPanel.OpenUnder(this);
-        };
-        rightSection.AddChild(statisticsBtn);
-        UITheme.AddHoverScale(statisticsBtn);
-
-        // CABINET butonu (M21.1): bakanlık atamaları ve bakanlık listesi
-        var cabinetBtn = new Button { Text = "CABINET", FocusMode = Control.FocusModeEnum.None, TooltipText = "Cabinet — ministries and minister assignments" };
-        cabinetBtn.Pressed += () =>
-        {
-            GD.Print("[GameHud] CABINET butonu basıldı — CabinetPanel.OpenUnder çağrılıyor");
-            CabinetPanel.OpenUnder(this);
-        };
-        rightSection.AddChild(cabinetBtn);
-        UITheme.AddHoverScale(cabinetBtn);
-
-        // ORGANIZATIONS butonu (M37.5): uluslararası örgütler (NATO, AB, BM...) üyelik + gündem + oy
-        var orgBtn = new Button { Text = "ORGANIZATIONS", FocusMode = Control.FocusModeEnum.None, TooltipText = "Organizations — memberships, agenda and voting (M37.5)" };
-        orgBtn.Pressed += () =>
-        {
-            GD.Print("[GameHud] ORGANIZATIONS butonu basıldı — OrganizationPanel.OpenUnder çağrılıyor");
-            OrganizationPanel.OpenUnder(this);
-        };
-        rightSection.AddChild(orgBtn);
-        UITheme.AddHoverScale(orgBtn);
-
-        // ELECTION butonu (M23.1): seçim takvimi + oy tahmini paneli
-        var electionBtn = new Button { Text = "ELECTION", FocusMode = Control.FocusModeEnum.None, TooltipText = "Elections — calendar and vote prediction" };
-        electionBtn.Pressed += () =>
-        {
-            GD.Print("[GameHud] ELECTION butonu basıldı — ElectionPanel.OpenUnder çağrılıyor");
-            ElectionPanel.OpenUnder(this);
-        };
-        rightSection.AddChild(electionBtn);
-        UITheme.AddHoverScale(electionBtn);
+        _morePopup = _moreBtn.GetPopup();
+        _morePopup.IdPressed += OnMoreItemPressed;
+        rightSection.AddChild(_moreBtn);
 
         // NEXT EVENT butonu (M16.4): bekleyen bildirim varsa görünür
         _nextEventBtn = new Button
@@ -295,6 +298,89 @@ public partial class GameHud : CanvasLayer
         rightSection.AddChild(_pauseButton);
         UITheme.AddHoverScale(_pauseButton, 1.08f);
 
+        // Pencere boyutu değişince düğme dağılımını yeniden hesapla.
+        GetTree().Root.SizeChanged += ReflowSections;
+        ReflowSections();
+
+        // Üst barı sahneye ekle (BuildBottomBar alt barı ekler).
+        AddChild(margin);
+
+        BuildBottomBar();
+    }
+
+    // Üst bara bir panel düğmesi ekler. Düğme hemen oluşturulur ama görünürlüğü
+    // ReflowSections() tarafından pencere genişliğine göre ayarlanır.
+    private void AddSection(string text, string tooltip, Action open)
+    {
+        var btn = new Button
+        {
+            Text = text,
+            FocusMode = Control.FocusModeEnum.None,
+            TooltipText = tooltip
+        };
+        btn.Pressed += open;
+        UITheme.AddHoverScale(btn);
+        _sectionRow.AddChild(btn);
+        _sections.Add((text, tooltip, open));
+        _sectionBtns.Add(btn);
+    }
+
+    // Pencere genişliğine göre kaç panel düğmesinin satırda gösterileceğini hesaplar;
+    // kalanları "MORE ▾" açılır menüsüne taşır. Ölçüler tema bağımsız kabaca
+    // yazı uzunluğu + dolgu tahminidir (butonların gerçek min boyutu bu tahmine
+    // göre bir miktar büyük olabilir, bu yüzden güvenli pay bırakılır).
+    private void ReflowSections()
+    {
+        if (_sectionRow == null || _moreBtn == null || _morePopup == null) return;
+
+        float viewportW = _sectionRow.GetViewportRect().Size.X;
+        // Sabit alanlar: kenar boşlukları, sol bölüm (bayrak + ülke adı),
+        // orta bölüm (tarih + durum + 5 hız butonu), PP/Stability/WarSupport
+        // etiketleri, NEXT EVENT ve Pause.
+        const float fixedW = 40f + 210f + 270f + 250f + 100f + 46f;
+        const float moreW = 92f;
+        const float sepW = 10f;
+        const float charW = 7.6f;
+        const float btnPad = 30f;
+
+        float budget = Mathf.Max(0f, viewportW - fixedW - moreW);
+        _morePopup.Clear();
+        _moreActions.Clear();
+
+        float used = 0f;
+        int shown = 0;
+        for (int i = 0; i < _sectionBtns.Count; i++)
+        {
+            float w = _sections[i].Text.Length * charW + btnPad;
+            if (used + w + sepW > budget) break;
+            used += w + sepW;
+            shown++;
+        }
+
+        for (int i = 0; i < _sectionBtns.Count; i++)
+        {
+            bool visible = i < shown;
+            _sectionBtns[i].Visible = visible;
+            if (!visible)
+            {
+                int id = _morePopup.ItemCount;
+                _morePopup.AddItem(_sections[i].Text, id);
+                _moreActions.Add(_sections[i].Open);
+            }
+        }
+        _moreBtn.Visible = shown < _sectionBtns.Count;
+    }
+
+    // "MORE ▾" menüsünden bir panel seçildiğde ilgili paneli açar.
+    private void OnMoreItemPressed(long id)
+    {
+        if (id < 0 || id >= _moreActions.Count) return;
+        _moreActions[(int)id]();
+        _morePopup.Hide();
+    }
+
+    private void BuildBottomBar()
+    {
         // === ALT ÇUBUK ===
         var bottomMargin = new MarginContainer();
         bottomMargin.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
@@ -329,7 +415,6 @@ public partial class GameHud : CanvasLayer
         rightBottom.AddChild(_speedTextLabel);
 
         // HUD'u sahneye ekle (üst ve alt margin)
-        AddChild(margin);
         AddChild(bottomMargin);
     }
 

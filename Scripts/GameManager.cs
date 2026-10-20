@@ -2660,6 +2660,9 @@ public partial class GameManager : Node
         GD.Print("  M30.2: UZAY PROJE YÖNETİMİ TESTİ (--space-mgmt-test)");
         GD.Print("=========================================");
 
+        // modern_world senaryosuna geç (rocketry / satellite_technology sadece modern_world'de tanımlı)
+        ScenarioSystem.SetActive("modern_world");
+
         if (!HasPlayer) SetPlayerCountry("GER");
         if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 2000;
         if (Speed == 0) SetSpeed(0);

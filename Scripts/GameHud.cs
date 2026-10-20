@@ -298,12 +298,15 @@ public partial class GameHud : CanvasLayer
         rightSection.AddChild(_pauseButton);
         UITheme.AddHoverScale(_pauseButton, 1.08f);
 
+        // Üst barı sahneye ekle (BuildBottomBar alt barı ekler).
+        AddChild(margin);
+
         // Pencere boyutu değişince düğme dağılımını yeniden hesapla.
         GetTree().Root.SizeChanged += ReflowSections;
         ReflowSections();
-
-        // Üst barı sahneye ekle (BuildBottomBar alt barı ekler).
-        AddChild(margin);
+        // İlk yerleşim tamamlandıktan sonra bir kez daha hesapla: ağaç dışındayken
+        // ölçülen viewport genişliği 0 olur ve tüm düğmeler MORE menüsüne taşınırdı.
+        Callable.From(ReflowSections).CallDeferred();
 
         BuildBottomBar();
     }

@@ -4840,6 +4840,21 @@ private void RunBalanceTest()
     // --- Başarı kriterleri ---
     bool ok = true;
 
+    // --- M34.3: AI kapsamı — her ilahlı olmayan, oyuncu olmayan ülke AI yönetiminde olmalı ---
+    // (Oyuncu ülkesi tasarım gereği ASLA AI tarafından yönetilmez; 49 AI + 1 oyuncu = 50 aktif ülke.)
+    int totalNonAnnexed = CountryDatabase.All().Count(c => c != null && !c.IsAnnexed);
+    int playerIsNonAnnexed = (playerId != null && CountryDatabase.All().Any(c => c != null && c.Id == playerId && !c.IsAnnexed)) ? 1 : 0;
+    int expectedAi = totalNonAnnexed - playerIsNonAnnexed;
+    int aiCoveredNonPlayer = CountryDatabase.All()
+        .Count(c => c != null && !c.IsAnnexed && c.Id != playerId && CountryAI.IsAiCountry(c.Id));
+    bool aiCoverageOk = aiCoveredNonPlayer == expectedAi;
+    GD.Print($"[Balance] AI kapsami: {aiCoveredNonPlayer}/{expectedAi} ilahlı non-player ulke AI'de (oyuncu={playerId ?? "-"} hariç, ilahlanan disari)");
+    if (!aiCoverageOk)
+    {
+        GD.PrintErr("[Balance] AI kapsami EKSIK — bazi ilahlı olmayan ulkeler AI yonetiminin disinda.");
+        ok = false;
+    }
+
     if (totalWars == 0)
     {
         GD.PrintErr("[Balance] Hiç savaş başlamadı — denge testi anlamlı değil.");

@@ -1204,3 +1204,51 @@ Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--balance-test` (PASS, çıkış kodu 0).
 
 **TODO.md:** 34.1, 34.2 → `[x]`. `git commit` + `git push origin gece-calisma` yapılacak.
+
+## GECE-RAPOR — 2026-10-20 (gece-calisma dalı, otonom, M34.3 tamamlandı)
+
+**STOP.txt kontrolü:** yok — stop kancası engellemez, build/test/commit/push serbest.
+
+**ADIM — M34.3 (Denge — AI tüm 50 ülkede aktif):** `--balance-test`'e AI-kapsam denetimi eklendi ve PASS aldı.
+
+**İçerik:** `Scripts/GameManager.cs` `RunBalanceTest()` içinde yeni denetim:
+- `totalNonAnnexed` = ilahlı olmayan ülke sayısı; `expectedAi` = toplam − (oyuncu non-annexed ? 1 : 0).
+- `aiCoveredNonPlayer` = `CountryAI.IsAiCountry(c.Id)` true olan ilahlı non-player ülke sayısı.
+- Başarı kriteri: `aiCoveredNonPlayer == expectedAi` (hiçbir ilahlı non-player ülke AI yönetiminin dışında kalmasın); bozulma halinde `GD.PrintErr` + `ok = false` → `Quit(1)`.
+- Oyuncu ülkesi (DEU) tasarım gereği ASLA AI tarafından yönetilmez → 49 AI + 1 oyuncu = 50 aktif ülke; ilahlanan ülkeler `_states`'ten çıkarılır.
+
+**Test Sonuçları (headless, Godot 4.7.2 console exe, ~26 sn):**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--balance-test`: **SONUÇ: PASS ✓** — AI kapsamı: 39/39 ilahlı non-player ülke AI'de (oyuncu=DEU hariç, ilahlanan dışarı); `CountryAI hazır: 49 AI ülke` başlangıçta; AI saldırı oranı %10.3 (%5–%30); ekonomi invariantleri [Min,Max]; save_load_a_b=True; çıkış kodu 0.
+- `--save-load-test`: **SONUÇ: PASS ✓** (A == B).
+
+**ÖZET (M34.3 — 2026-10-20)**
+1. Değişen dosyalar: `Scripts/GameManager.cs` (M34.3 AI kapsam denetimi), `TODO.md` (34.3 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — 34.3 PASS.
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--balance-test` (PASS, çıkış kodu 0); `--save-load-test` (PASS).
+
+**TODO.md:** 34.1, 34.2, 34.3 → `[x]`. `git commit` + `git push origin gece-calisma` yapılacak.
+
+## GECE-RAPOR — 2026-10-20 (gece-calisma dalı, otonom, M34.4 tamamlandı)
+
+**STOP.txt kontrolü:** yok — stop kancası engellemez.
+
+**ADIM — M34.4 (Denge — Deterministik RNG / `new Random()` yok):** Kod taraması tamamlandı, gerçek `new Random()` çağrısı bulunamadı.
+
+**İçerik:**
+- `Scripts/` altında `new Random()` gerçek çağrı yok (0 eşleşme); yalnızca kural-yorumu satırları ("new Random() yok").
+- Tüm sistemler `DeterministicRNG` (xorshift64*, sabit tohum) kullanır; save/load RNG state'i korunur.
+
+**Test Sonuçları:**
+- `grep new Random() Scripts/`: 0 gerçek çağrı.
+- `--save-load-test`: **SONUÇ: PASS ✓** (A == B) — DeterministicRNG determinizm korundu.
+
+**ÖZET (M34.4 — 2026-10-20)**
+1. Değişen dosyalar: `TODO.md` (34.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md` (dokümantasyon; kod değişikliği yok).
+2. Çözülemeyen şey: yok — 34.4 PASS.
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0).
+
+**TODO.md:** 34.1, 34.2, 34.3, 34.4 → `[x]`. M34 tamamen tamamlandı. `git commit` + `git push origin gece-calisma` yapılacak.
+

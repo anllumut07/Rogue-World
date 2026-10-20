@@ -1933,3 +1933,19 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 - `--balance-test`: **SONUÇ: PASS ✓** — Ekonomi invariantleri: TÜM GÖSTERGELER [Min,Max] içinde (negatif GDP yok, enflasyon sınırlı, memnuniyet ≤100).
 
 **Dosyalar:** Değiştirilen: `Scripts/GameManager.cs` (balanceTest arg + dispatch + RunBalanceTest metodu + M34.2 ekonomı invariantleri), `TODO.md` (34.1, 34.2 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+### 34.3 AI tüm 50 ülkede aktif — ✅ DONE
+**Açıklama:** `--balance-test`'e eklenen AI-kapsam denetimi: her ilahlı olmayan, oyuncu olmayan ülkenin `CountryAI._states` ile AI yönetiminde olması zorunlu (oyuncu ülkesi DEU tasarım gereği ASLA AI tarafından yönetilmez → 49 AI + 1 oyuncu = 50 aktif ülke; ilahlanan ülkeler `_states`'ten çıkarılır). `aiCoveredNonPlayer == expectedAi` başarı kriteri; bozulma halinde Quit(1).
+
+**Test Sonuçları:**
+- `--balance-test`: **SONUÇ: PASS ✓** — AI kapsamı: 39/39 ilahlı non-player ülke AI'de (oyuncu=DEU hariç, ilahlanan dışarı); `CountryAI hazır: 49 AI ülke` başlangıçta; 300-günlük simülasyonda AI odak seçimi, inşaat ve tümen yetiştirme aktif.
+
+### 34.4 Deterministik RNG (`new Random()` yok) denetimi — ✅ DONE
+**Açıklama:** Kod taraması (`new Random()`) `Scripts/` dizininde hiçbir gerçek çağrı bulmuyor; tüm rastgelelik `DeterministicRNG` üzerinden (xorshift64*, sabit tohum). Yorum satırlarında "new Random() yok" işaretlemesi mevcut.
+
+**Test Sonuçları:**
+- `grep new Random() Scripts/`: gerçek çağrı yok (0 eşleşme), yalnızca kural yorumu.
+- `--save-load-test`: **SONUÇ: PASS ✓** (A == B) — DeterministicRNG determinizm korundu.
+
+**Dosyalar (M34 toplam):** Değiştirilen: `Scripts/GameManager.cs` (M34.3 AI kapsam denetimi), `TODO.md` (34.3, 34.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+

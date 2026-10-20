@@ -20,8 +20,6 @@ public partial class MainMenu : Control
         BuildBackground();
         StyleTitle();
         BuildFooter();
-
-        // Butonları bağla (unique_name_in_owner sahnede işaretli)
         var startBtn = GetNode<Button>("%StartButton");
         var loadBtn = GetNode<Button>("%LoadButton");
         var libraryBtn = GetNode<Button>("%LibraryButton");
@@ -116,6 +114,17 @@ public partial class MainMenu : Control
               .SetEase(Tween.EaseType.InOut).SetTrans(Tween.TransitionType.Sine);
         breathe.TweenProperty(_background, "color", new Color("#0B1018"), 14f)
               .SetEase(Tween.EaseType.InOut).SetTrans(Tween.TransitionType.Sine);
+
+        // M32.6: Üstteki koyu katman — tüm ekranı kaplayan yarı saydam karartma,
+        // grid'in altında, butonların üstünde görünür.
+        var darkOverlay = new ColorRect
+        {
+            Color = new Color(0.05f, 0.08f, 0.12f, 0.45f),
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        darkOverlay.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(darkOverlay);
+        MoveChild(darkOverlay, 2); // grid'in (index 1) üstünde, vinyetten (index 3) altında
     }
 
     private void StyleTitle()

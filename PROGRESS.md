@@ -1748,6 +1748,21 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Dosyalar:** Değiştirilen: `Scripts/WorldMap.cs`, `TODO.md` (32.5 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
 
 **Sonraki adım:** M32.6 Ana menü arka planı.
+
+---
+
+### M32.6: Ana Menü Arka Planı — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/MainMenu.cs`: `BuildBackground()`'a tüm ekranı kaplayan yarı saydam koyu overlay eklendi (`ColorRect`, renk `#05080C`, alpha 0.45, `MouseFilter = Ignore`); `MoveChild(overlay, 2)` → grid'in (index 1) üstünde, vinyetten (index 3) altında. Mevcut grid drift (yavaş yatay hareket), background breathe (lacivert tonları arası nefes), vignette (kenar koyulma) ve altın başlık nabzı korundu.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — M32.6 yalnızca görsel, oyun durumu etkilemez, determinizm korunuyor.
+
+**Dosyalar:** Değiştirilen: `Scripts/MainMenu.cs`, `TODO.md` (32.6 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 ### M32.2: Deniz Görünümü — ✅ DONE (2026-10-20)
 
 **Değişiklikler:**

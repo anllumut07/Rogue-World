@@ -974,6 +974,6 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 
 **M32.5 — ✅ DONE:** `Scripts/WorldMap.cs`: `DrawProvinceBorders()` her il poligonunun etrafında ince şeffaf çizgi; `DrawArmies()` daire içinde hareket yönünde ok işareti (unit icon); `DrawMovementPaths()` hataların sonuna ok başı ekledi. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.
 
-**M32.6 — Bekliyor:** Ana menü arka planı (yavaş kayan görsel, üstünde koyu katman) henüz başlanmadı.
+**M32.6 — ✅ DONE:** `Scripts/MainMenu.cs`: `BuildBackground()`'a tüm ekranı kaplayan yarı saydam koyu overlay eklendi (ColorRect, alpha 0.45). Grid drift, background breathe, vignette, altın başlık korundu. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.
 
-Tüm M1–M32.5 görevleri tamamlandı; M32.6 bekliyor.
+Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.

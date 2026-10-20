@@ -62,6 +62,7 @@ public static class SaveSystem
         public SupplySave Supply { get; set; } // M39.1: ikmal durumu
         public NavalInvasionSave NavalInvasion { get; set; } // M39.2: deniz invazyonu durumu
         public MoraleSave Morale { get; set; } // M39.3: ordu morali durumu
+        public AirSuperioritySave AirSuperiority { get; set; } // M39.4: hava üstünlüğü durumu
         public DiplomacySave Diplomacy { get; set; }
         public CasusBelliSave CasusBelli { get; set; } // M17A: gerekçe/ateşkes/meşruiyet
         public FocusSave Focus { get; set; }
@@ -210,6 +211,17 @@ public static class SaveSystem
     {
         public string ArmyId { get; set; }
         public int Morale { get; set; }
+    }
+
+    // ===== Hava üstünlüğü DTOs (M39.4) =====
+    public class AirSuperioritySave
+    {
+        public AirSuperiorityEntry[] States { get; set; }
+    }
+    public class AirSuperiorityEntry
+    {
+        public string ArmyId { get; set; }
+        public int AirSuperiority { get; set; }
     }
 
 
@@ -481,6 +493,7 @@ public static class SaveSystem
             Supply = SupplySystem.GetSaveData(), // M39.1: ikmal durumu
             NavalInvasion = NavalInvasionSystem.GetSaveData(), // M39.2: deniz invazyonu durumu
             Morale = MoraleSystem.GetSaveData(), // M39.3: ordu morali durumu
+            AirSuperiority = AirSuperioritySystem.GetSaveData(), // M39.4: hava üstünlüğü durumu
             Diplomacy = DiplomacySystem.GetSaveData(),
             CasusBelli = CasusBelliSystem.GetSaveData(),
             Focus = FocusSystem.GetSaveData(),
@@ -628,6 +641,7 @@ public static class SaveSystem
             SupplySystem.LoadSaveData(save.Supply); // M39.1: ikmal durumu
             NavalInvasionSystem.LoadSaveData(save.NavalInvasion); // M39.2: deniz invazyonu durumu
             MoraleSystem.LoadSaveData(save.Morale); // M39.3: ordu morali durumu
+            AirSuperioritySystem.LoadSaveData(save.AirSuperiority); // M39.4: hava üstünlüğü durumu
             DiplomacySystem.LoadSaveData(save.Diplomacy);
             CasusBelliSystem.LoadSaveData(save.CasusBelli);
             FocusSystem.LoadSaveData(save.Focus);

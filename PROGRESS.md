@@ -2175,6 +2175,17 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 
 **Dosyalar:** `Scripts/MoraleSystem.cs` (yeni), `Scripts/WarSystem.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (39.3 [x]), `PROGRESS.md` (M39.3 DONE), `GECE-RAPOR.md`.
 
-**Sonraki adım:** M39.4 (Hava üstünlüğü bonusu).
+### M39.4: Hava Üstünlüğü Bonusu — ✅ DONE (2026-10-20)
+
+- Yeni dosya: `Scripts/AirSuperioritySystem.cs` — statik sınıf, her ordu için hava üstünlüğü (0-100) takibi (`DefaultAirSuperiority=50`, `MinAirSuperiority=0`, `MaxAirSuperiority=100`); varsayılan değere günde ±1 drift. Hava üstünlüğü (0 ve altı) → %0.90 saldırı/savunma çarpanı, 100 ve üzeri → tam %1.10 (ara değerler lineer; 50 = %1.00 nötr). `DailyTick()`, `GetAirSuperiorityMultiplier(armyId)`, `GetAirSuperiority`/`SetAirSuperiority`/`ModifyAirSuperiority` API'leri.
+- `Scripts/WarSystem.cs`: `ResolveCombatDay`'de her tümen katkısı (`attP`/`defP`) ordunun hava üstünlüğü çarpanıyla çarpılır (`supMult * morMult * airMult`).
+- `Scripts/GameManager.cs`: `AirSuperioritySystem.Initialize(data)` (Initialize), `AirSuperioritySystem.ResetForNewGame()` (ResetForNewGame), `AirSuperioritySystem.DailyTick()` (DailyTick) entegrasyonu.
+- `Scripts/SaveSystem.cs`: `AirSuperioritySave`/`AirSuperiorityEntry` DTO'ları + `SaveFile.AirSuperiority` alanı; kaydet/yükle çağrıları eklendi.
+
+**Testler:** `dotnet build` 0 hata / 0 uyarı; `--save-load-test` (historical_1936) PASS (A==B); `--save-load-test --scenario=modern_world` PASS (A==B).
+
+**Dosyalar:** `Scripts/AirSuperioritySystem.cs` (yeni), `Scripts/WarSystem.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (39.4 [x]), `PROGRESS.md` (M39.4 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M40.1 (Tam regresyon — tüm M39 alt görevleri tamamlandı).
 
 

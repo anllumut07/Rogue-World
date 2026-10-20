@@ -16,6 +16,14 @@ public partial class WorldMap : Node2D
 
     public static WorldMap Instance { get; private set; }
 
+    // M13.3: Harita görünüm modları — Political (ülke renkleri), Terrain (biyom),
+    // Supply (tacviye), Factories (fabrika yoğunluğu), Resources (kaynak), AirZones (hava Bölgesi).
+    public enum MapMode { Political, Terrain, Supply, Factories, Resources, AirZones }
+    public MapMode CurrentMapMode { get; private set; } = MapMode.Political;
+
+    // Factories modu için en yüksek fabrika sayısı (parlaklık normalizasyonu).
+    private int _maxFactories = 1;
+
     [Export] public string GeoJsonPath { get; set; } = "res://Data/countries.geo.json";
     [Export] public Vector2 MapSize { get; set; } = new Vector2(2160, 1280);
     [Export] public float KeyPanSpeed { get; set; } = 900f;
@@ -779,31 +787,133 @@ public partial class WorldMap : Node2D
         _camera.Position = ClampCameraPos(_camera.Position);
     }
 
+    // M13.3: Harita görünüm modunu değiştirir ve haritayı yeniden boyar.
+    public void SetMapMode(MapMode mode)
+    {
+        if (CurrentMapMode == mode) return;
+        CurrentMapMode = mode;
+        _factoriesComputed = false; // fabrika sayımı veriye bağlı → yeniden hesapla
+        RefreshOwnershipColors();
+        RefreshProvinceColors();
+        QueueRedraw();
+        GD.Print($"WorldMap: harita modu = {mode}");
+    }
+
+    // M13.3: Geçerli harita moduna göre bir ülkenin dolgu rengi.
+    private Color ModeColor(Country c)
+    {
+        if (c == null) return Colors.Transparent;
+        var data = CountryDatabase.Get(c.Id);
+
+        switch (CurrentMapMode)
+        {
+            case MapMode.Political:
+                return c.MapColor;
+
+            case MapMode.Terrain:
+                // Biyom katmanının görünmesi için ülke dolgusu tamamen şeffaf.
+                return Colors.Transparent;
+
+            case MapMode.Factories:
+            {
+                int factories = data?.TotalFactories ?? 0;
+                EnsureMaxFactories();
+                float t = _maxFactories > 0 ? Mathf.Clamp((float)factories / (float)_maxFactories, 0f, 1f) : 0f;
+                // Az → koyu gri, çok → parlak altın (fabrika yoğunluğu haritası)
+                var from = new Color("#333333");
+                var to = new Color("#FFD700");
+                return new Color(
+                    from.R + (to.R - from.R) * t,
+                    from.G + (to.G - from.G) * t,
+                    from.B + (to.B - from.B) * t,
+                    from.A + (to.A - from.A) * t);
+            }
+
+            case MapMode.Resources:
+            {
+                if (data == null) return Colors.Transparent;
+                // Baskın kaynağa göre renk (öncelik sırası). Kaynak yok → şeffaf.
+                if (data.Oil > 0) return new Color("#8B4513");     // koyu kahverengi — petrol
+                if (data.Steel > 0) return new Color("#708090");   // slate gri — çelik
+                if (data.Rubber > 0) return new Color("#2E8B57");  // deniz yeşili — lastik
+                if (data.Aluminum > 0) return new Color("#B0C4DE");// açık mavi — alüminyum
+                if (data.Tungsten > 0) return new Color("#4B0082");// indigo — volfram
+                if (data.Chromium > 0) return new Color("#DC143C");// kızıl — kurya
+                return Colors.Transparent;
+            }
+
+            case MapMode.Supply:
+                // Tacviye/comşuluk: soluk mavi vurgu
+                return new Color(0.15f, 0.45f, 0.85f, 0.45f);
+
+            case MapMode.AirZones:
+                // Hava bölge overlay'i: soluk mavi-purpur
+                return new Color(0.5f, 0.35f, 0.9f, 0.35f);
+
+            default:
+                return c.MapColor;
+        }
+    }
+
+    // M13.3: Ülke ID'sine göre mod rengi (İl çizimi için).
+    private Color ModeColorForCountryId(string countryId)
+    {
+        if (string.IsNullOrEmpty(countryId)) return Colors.Transparent;
+        var country = _countries.FirstOrDefault(c => c.Id == countryId);
+        if (country == null) return Colors.Transparent;
+        return ModeColor(country);
+    }
+
+    private bool _factoriesComputed;
+    // M13.3: Factories modu için tüm ülkeler arasında en yüksek fabrika sayısı (parlaklık normalizasyonu).
+    private void EnsureMaxFactories()
+    {
+        if (_factoriesComputed) return;
+        _maxFactories = 1;
+        foreach (var data in CountryDatabase.All())
+        {
+            int f = data.TotalFactories;
+            if (f > _maxFactories) _maxFactories = f;
+        }
+        _factoriesComputed = true;
+        GD.Print($"WorldMap: factories modu normalizasyonu — max fabrika={_maxFactories}");
+    }
+
     public void RefreshOwnershipColors()
     {
         foreach (var c in _countries)
         {
-            Color target = c.MapColor;
+            Color target;
 
-            // M7: İlhaç edilmiş ülke → sahibinin rengiyle boyanır (toprak değişimi)
-            var data = CountryDatabase.Get(c.Id);
-            if (data != null && data.IsAnnexed && !string.IsNullOrEmpty(data.OwnerId))
+            if (CurrentMapMode != MapMode.Political)
             {
-                var owner = CountryDatabase.Get(data.OwnerId);
-                if (owner != null && owner.Id != c.Id)
+                target = ModeColor(c);
+            }
+            else
+            {
+                target = c.MapColor;
+
+                // M7: İlhaç edilmiş ülke → sahibinin rengiyle boyanır (toprak değişimi)
+                var data = CountryDatabase.Get(c.Id);
+                if (data != null && data.IsAnnexed && !string.IsNullOrEmpty(data.OwnerId))
                 {
-                    // Sahibin harita rengi (palet üretimi) — hafif koyulaştır ki "ilhak" okunsun
-                    target = ColorForId(owner.Id).Darkened(0.12f);
+                    var owner = CountryDatabase.Get(data.OwnerId);
+                    if (owner != null && owner.Id != c.Id)
+                    {
+                        // Sahibin harita rengi (palet üretimi) — hafif koyulaştır ki "ilhak" okunsun
+                        target = ColorForId(owner.Id).Darkened(0.12f);
+                    }
+                }
+
+                if (c == _selected) target = SelectedColor;
+                else if (c == _hovered) target = c.MapColor.Lightened(0.25f);
+                else
+                {
+                    // M32.3: ülke renk katmanı yarı saydam — arazi renginin altında görünür.
+                    target = new Color(target.R, target.G, target.B, CountryTerrainAlpha);
                 }
             }
 
-            if (c == _selected) target = SelectedColor;
-            else if (c == _hovered) target = c.MapColor.Lightened(0.25f);
-            else
-            {
-                // M32.3: ülke renk katmanı yarı saydam — arazi renginin altında görünür.
-                target = new Color(target.R, target.G, target.B, CountryTerrainAlpha);
-            }
             foreach (var node in c.Nodes) if (GodotObject.IsInstanceValid(node)) node.Color = target;
             // Sınır: normal koyu, oyuncu ülkesi → yarı saydam altın vurgu (seçili hariç)
             foreach (var outline in c.Outlines)
@@ -1609,12 +1719,20 @@ public partial class WorldMap : Node2D
             var nodes = new List<Polygon2D>();
             foreach (var ring in prov.Rings)
             {
-                var node = new Polygon2D { Polygon = ring, Color = ColorForId(prov.CountryId) };
+                var node = new Polygon2D { Polygon = ring, Color = ModeColorForProvince(prov) };
                 AddChild(node);
                 nodes.Add(node);
             }
             _provinceNodes[prov.Id] = nodes;
         }
+    }
+
+    // M13.3: Bir ilin sahibi ülkesine göre mod-rengi.
+    private Color ModeColorForProvince(ProvinceData prov)
+    {
+        if (CurrentMapMode == MapMode.Political)
+            return ColorForId(prov.CountryId);
+        return ModeColorForCountryId(prov.CountryId);
     }
 
     // İl sahipliği değişince tüm illerin rengini günceller (ilhak sonrası harita yeniden boyanır).
@@ -1623,7 +1741,7 @@ public partial class WorldMap : Node2D
         foreach (var kvp in _provinceNodes)
         {
             string owner = ProvinceOwnershipSystem.GetProvinceOwner(kvp.Key);
-            Color c = ColorForId(owner);
+            Color c = ModeColorForCountryId(owner);
             foreach (var node in kvp.Value)
                 if (GodotObject.IsInstanceValid(node)) node.Color = c;
         }

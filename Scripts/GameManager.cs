@@ -82,6 +82,9 @@ public partial class GameManager : Node
     private Control _ttBtn;
     private TooltipPanel _ttTip;
 
+    // M13.3: Harita görünüm modu sistemi test durumu (--map-mode-test).
+    private bool mapModeTest = false;
+
     public override void _Ready()
     {
         Instance = this;
@@ -272,6 +275,8 @@ public partial class GameManager : Node
                 aiNuclearTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
+            else if (arg == "--map-mode-test")
+                mapModeTest = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -604,6 +609,10 @@ public partial class GameManager : Node
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
             RunTooltipTest();
+
+        // M13.3: Harita görünüm modu testi — Political/Terrain/Supply/Factories/Resources/AirZones.
+        if (mapModeTest)
+            RunMapModeTest();
 
         // M17.1: Slot yükleme testi — mevcut kaydı yükler (v1 migration dahil). 0=auto, 1-10=slot.
         if (loadSlot >= 0)
@@ -4416,6 +4425,88 @@ public partial class GameManager : Node
 
         bool ok = _ttSetOk && _ttLayerOk && showNoThrow && hideOk && mouseFilterOk && unsetOk;
         GD.Print(ok ? "[TooltipTest] SONUÇ: PASS ✓" : "[TooltipTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M13.3: Harita görünüm modu sistemi testi. Tüm modları sırayla ayarlar ve
+    /// CurrentMapMode'nun güncellendiğini doğrular. Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunMapModeTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M13.3: HARITA GÖRÜNÜM MODU TESTİ (--map-mode-test)");
+        GD.Print("=========================================");
+
+        // WorldMap oyun sahnesinde (Game.OnMapFrameReady) oluşturulur; bu autoload
+        // bağlamında henüz yok olabilir. Bir kare erteler ve Instance'ı dene.
+        if (WorldMap.Instance != null)
+        {
+            RunMapModeTestExecute();
+            return;
+        }
+        CallDeferred(MethodName.RunMapModeTestDeferred);
+    }
+
+    private void RunMapModeTestDeferred()
+    {
+        if (WorldMap.Instance == null)
+        {
+            // Oyun sahnesi yüklü değil (headless menü): kendi bir WorldMap örneği yarat.
+            try
+            {
+                var wm = new WorldMap();
+                AddChild(wm); // _Ready eşzamanlı olarak çalışır, Instance atanır
+            }
+            catch (Exception e)
+            {
+                GD.PrintErr($"[MapModeTest] WorldMap örneği oluşturulamadı: {e.Message}");
+            }
+        }
+        RunMapModeTestExecute();
+    }
+
+    private void RunMapModeTestExecute()
+    {
+        var wm = WorldMap.Instance;
+        bool ok = wm != null;
+
+        if (ok)
+        {
+            WorldMap.MapMode[] modes =
+            {
+                WorldMap.MapMode.Political, WorldMap.MapMode.Terrain, WorldMap.MapMode.Supply,
+                WorldMap.MapMode.Factories, WorldMap.MapMode.Resources, WorldMap.MapMode.AirZones
+            };
+
+            foreach (var m in modes)
+            {
+                try
+                {
+                    wm.SetMapMode(m);
+                }
+                catch (Exception e)
+                {
+                    GD.PrintErr($"[MapModeTest] SetMapMode({m}) istisna: {e.Message}");
+                    ok = false;
+                    continue;
+                }
+                if (wm.CurrentMapMode != m)
+                {
+                    GD.PrintErr($"[MapModeTest] Mod beklenilmedi: {m} → {wm.CurrentMapMode}");
+                    ok = false;
+                }
+            }
+
+            GD.Print($"[MapModeTest] {modes.Length} harita modu sırayla ayarlandı ve okundu.");
+        }
+        else
+        {
+            GD.PrintErr("[MapModeTest] WorldMap.Instance erişilemedi (oyun sahnesi yüklü değil).");
+        }
+
+        GD.Print(ok ? "[MapModeTest] SONUÇ: PASS ✓" : "[MapModeTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

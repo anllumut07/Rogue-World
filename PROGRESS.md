@@ -1811,3 +1811,24 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 - `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — tooltip sistemi kayıt/yüklemeyi bozmuyor.
 
 **Dosyalar:** Yeni: `Scripts/TooltipSystem.cs`, `Scripts/TooltipPanel.cs`. Değiştirilen: `Scripts/GameManager.cs`, `TODO.md` (13.2 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+### M13.3: Harita Modları (Map Modes) — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:** yok.
+
+**Değişikler:**
+- `Scripts/WorldMap.cs`: `MapMode` enum (Political, Terrain, Supply, Factories, Resources, AirZones) + `CurrentMapMode` özelliği; `SetMapMode(mode)` mevcut modu değiştirip `RefreshProvinceColors()` ile yeniden boyar; `ModeColor(Country)` mod-bazlı renk (Political=hash paleti, Terrain=şeffaf, Factories=koyu gri→altın gradyanı `_maxFactories` ile normalize, Resources=köken bazlı renk, Supply=yarı saydam mavi, AirZones=yarı saydam mor); `ModeColorForCountryId(ownerId)` / `ModeColorForProvince()` yardımcıları; `EnsureMaxFactories()` `CountryDatabase.All()` üzerinden `_maxFactories` hesaplar. `DrawProvinces()`/`RefreshProvinceColors()` artık `ModeColorForCountryId` kullanır; `RefreshOwnershipColors()` non-Political modlarda ilhak/palette/seçili/hover mantığını atlar.
+- `Scripts/GameManager.cs`: `mapModeTest` alanı + `--map-mode-test` argümanı; `RunMapModeTest()`/`RunMapModeTestDeferred()`/`RunMapModeTestExecute()` tüm 6 modu dolaşır ve `CurrentMapMode`’ı assert eder.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--map-mode-test`: **SONUÇ: PASS ✓** (6 mod döndü, `CurrentMapMode` her modda doğru, çıkış kodu 0).
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — harita modu state'i kayıt/yüklemeyle korundu.
+
+**Çözülemeyen şey:** yok — M13.3 %100 tamamlandı.
+
+**Bilinen sorun:** yok.
+
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--map-mode-test` (PASS); `--save-load-test --scenario=modern_world` (A==B); fare kontrolleri (sağ tık sürükleme/tekerlek/WASD/ülke seçimi) bozulmamalı.
+
+**Dosyalar:** Değiştirilen: `Scripts/WorldMap.cs`, `Scripts/GameManager.cs`, `TODO.md` (13.3 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.

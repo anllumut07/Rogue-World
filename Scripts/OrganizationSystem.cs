@@ -22,6 +22,10 @@ public static class OrganizationSystem
         public string HeadquartersCountryId;
         public string[] Members = Array.Empty<string>();
         public string[] SpecialRules = Array.Empty<string>();
+        // Avantaj/ceza çarpanları (M37.3). Eksikse varsayılan 0 (çarpan etkisi yok).
+        public float MilitaryEfficiencyBonus; // ör. 0.10 = %10 askeri verimlilik (NATO)
+        public float TradeBonus;              // ör. 0.15 = %15 tek pazar ticaret (AB)
+        public float LegitimacyBonus;         // ör. 0.05 = %5 dünya itibar/legitimacy (BM)
     }
 
     private class OrganizationList { public OrganizationDef[] Organizations = Array.Empty<OrganizationDef>(); }
@@ -204,6 +208,48 @@ public static class OrganizationSystem
         else if (!string.IsNullOrEmpty(orgId)) weight = 0.25;
         // Kurgusal blok sadakati: deterministik, gerçek ülke/lider adı yok.
         return Math.Clamp(weight, 0, 1);
+    }
+
+    /// <summary>Bir ülkenin üye olduğu örgütlerden toplanan askeri verimlilik çarpanı (1.0 = başlangıç).</summary>
+    public static float GetMilitaryEfficiencyMultiplier(string countryId)
+    {
+        if (string.IsNullOrEmpty(countryId)) return 1f;
+        float mult = 1f;
+        if (_countryOrgs.TryGetValue(countryId, out var orgs))
+            foreach (var orgId in orgs)
+            {
+                var d = Get(orgId);
+                if (d != null) mult *= (1f + d.MilitaryEfficiencyBonus);
+            }
+        return mult;
+    }
+
+    /// <summary>Bir ülkenin üye olduğu örgütlerden toplanan ticaret çarpanı (1.0 = başlangıç).</summary>
+    public static float GetTradeMultiplier(string countryId)
+    {
+        if (string.IsNullOrEmpty(countryId)) return 1f;
+        float mult = 1f;
+        if (_countryOrgs.TryGetValue(countryId, out var orgs))
+            foreach (var orgId in orgs)
+            {
+                var d = Get(orgId);
+                if (d != null) mult *= (1f + d.TradeBonus);
+            }
+        return mult;
+    }
+
+    /// <summary>Bir ülkenin üye olduğu örgütlerden toplanan meşruiyet çarpanı (1.0 = başlangıç).</summary>
+    public static float GetLegitimacyMultiplier(string countryId)
+    {
+        if (string.IsNullOrEmpty(countryId)) return 1f;
+        float mult = 1f;
+        if (_countryOrgs.TryGetValue(countryId, out var orgs))
+            foreach (var orgId in orgs)
+            {
+                var d = Get(orgId);
+                if (d != null) mult *= (1f + d.LegitimacyBonus);
+            }
+        return mult;
     }
 
     /// <summary>Günlük toplantı denetimi (zirve = yıllık, bakanlar = aylık).</summary>

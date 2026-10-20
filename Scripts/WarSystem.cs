@@ -364,6 +364,11 @@ public static class WarSystem
         attP *= 1f + TechnologySystem.GetModifier("land_attack");
         defP *= 1f + TechnologySystem.GetModifier("land_defense");
 
+        // M37.3: Uluslararası örgüt askeri verimlilik çarpanı (ör. NATO üyesi %10).
+        float milMult = OrganizationSystem.GetMilitaryEfficiencyMultiplier(GM.PlayerCountryId);
+        attP *= milMult;
+        defP *= milMult;
+
         // --- Düşman gücü ---
         float enemyOrgFrac = war.EnemyDivisions > 0 ? Mathf.Clamp(war.EnemyOrgPool / (war.EnemyDivisions * EnemyDivisionOrg), 0f, 1f) : 0f;
         float attE = war.EnemyDivisions * EnemyAttackPerDivision * enemyOrgFrac;

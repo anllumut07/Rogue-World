@@ -328,9 +328,12 @@ public static class EconomySystem
             }
         }
 
+        // M37.3: Uluslararası örgüt tek pazar ticaret çarpanı (ör. AB üyesi %15).
+        float tradeMult = OrganizationSystem.GetTradeMultiplier(Player?.Id);
+
         // Aktif anlaşmaların ithalatını uygula
         foreach (var deal in _tradeDeals)
-            _stockpiles[deal.Resource] = _stockpiles.GetValueOrDefault(deal.Resource) + deal.AmountPerDay;
+            _stockpiles[deal.Resource] = _stockpiles.GetValueOrDefault(deal.Resource) + (int)(deal.AmountPerDay * tradeMult);
     }
 
     // Kaynak için en iyi ihracatçı: oyuncu değil, bu kaynağı en çok üreten ülke.

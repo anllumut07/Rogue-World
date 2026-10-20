@@ -7,7 +7,10 @@
       "FoundedDate": "1949-04-04",
       "HeadquartersCountryId": "BEL",
       "Members": ["USA", "DEU", "GBR", "FRA", "ITA", "CAN", "TUR", "POL", "NLD", "ESP", "NOR", "DNK", "BEL"],
-      "SpecialRules": ["Madde 5 toplu savunma (bir üyeye saldırı = hepsine saldırı)", "Askeri standartizasyon (+%10 askeri verimlilik)", "Ortak altyapı fonları", "Çıkış: 1 yıl bildirim süresi"]
+      "SpecialRules": ["Madde 5 toplu savunma (bir üyeye saldırı = hepsine saldırı)", "Askeri standartizasyon (+%10 askeri verimlilik)", "Ortak altyapı fonları", "Çıkış: 1 yıl bildirim süresi"],
+      "MilitaryEfficiencyBonus": 0.10,
+      "TradeBonus": 0.0,
+      "LegitimacyBonus": 0.0
     },
     {
       "Id": "eu",
@@ -16,7 +19,10 @@
       "FoundedDate": "1993-11-01",
       "HeadquartersCountryId": "BEL",
       "Members": ["DEU", "FRA", "ITA", "ESP", "NLD", "POL", "SWE", "BEL", "AUT", "DNK", "FIN", "IRL", "PRT", "GRC", "CZE", "HUN", "ROU", "BGR"],
-      "SpecialRules": ["Tek pazar (ticaret +%15)", "Yapısal fonlar (yıllık GSYİH %0.5)", "Hukuki uyum (+%5 istikrar)", "Tek oylama, uzun katılım süreci", "Çıkış: ticaret cezası + fon kaybı (Brexit tarzı)"]
+      "SpecialRules": ["Tek pazar (ticaret +%15)", "Yapısal fonlar (yıllık GSYİH %0.5)", "Hukuki uyum (+%5 istikrar)", "Tek oylama, uzun katılım süreci", "Çıkış: ticaret cezası + fon kaybı (Brexit tarzı)"],
+      "MilitaryEfficiencyBonus": 0.0,
+      "TradeBonus": 0.15,
+      "LegitimacyBonus": 0.0
     },
     {
       "Id": "un",
@@ -25,7 +31,10 @@
       "FoundedDate": "1945-10-24",
       "HeadquartersCountryId": "USA",
       "Members": ["USA", "CHN", "RUS", "GBR", "FRA", "DEU", "JPN", "IND", "BRA", "CAN", "AUS", "TUR", "IDN", "MEX", "KOR", "ZAF", "NGA", "EGY", "SAU", "ARG"],
-      "SpecialRules": ["Güvenlik Konseyi veto hakkı (USA, RUS, CHN, FRA, UK)", "Meşruiyet bonusu (+%5 dünya itibar/legitimacy)", "Barış güçleri katkısı", "Herkese açık üyelik"]
+      "SpecialRules": ["Güvenlik Konseyi veto hakkı (USA, RUS, CHN, FRA, UK)", "Meşruiyet bonusu (+%5 dünya itibar/legitimacy)", "Barış güçleri katkısı", "Herkese açık üyelik"],
+      "MilitaryEfficiencyBonus": 0.0,
+      "TradeBonus": 0.0,
+      "LegitimacyBonus": 0.05
     },
     {
       "Id": "brics",

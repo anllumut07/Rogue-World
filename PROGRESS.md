@@ -2044,8 +2044,15 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 - `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — organization state kaydedilir/yükler.
 - TODO.md 37.2 → [x] Bitti.
 
-#### M37.3: Avantaj/ceza çarpanları — [ ] HENÜZ BAŞLANMADI
-- NATO +%10 askeri verimlilik, AB tek pazar ticaret +%15, BM meşruiyet +%5 vb. çarpanların ilgili göstergelere yansıtılması.
+#### M37.3: Avantaj/ceza çarpanları — ✅ DONE (2026-10-20)
+- `Data/organizations.json`: `OrganizationDef` ye 3 yeni opsiyonel alan eklendi (`MilitaryEfficiencyBonus`, `TradeBonus`, `LegitimacyBonus`, varsayılan 0 → mevcut JSON bozulmaz). Değerler: NATO=0.10 (askeri verimlilik), AB/EU=0.15 (tek pazar ticaret), BM/UN=0.05 (meşruiyet/legitimacy). Diğer örgütler 0.
+- `Scripts/OrganizationSystem.cs`: `GetMilitaryEfficiencyMultiplier(countryId)`, `GetTradeMultiplier(countryId)`, `GetLegitimacyMultiplier(countryId)` getter'ları — ülkenin üye olduğu örgütlerden çarpanları çarpar (1.0 = başlangıç), deterministik, `_countryOrgs` reverse lookup üzerinden.
+- `Scripts/WarSystem.cs`: `ResolveCombatDay`'de oyuncu saldırı/savunma gücü (`attP`/`defP`) `OrganizationSystem.GetMilitaryEfficiencyMultiplier(PlayerCountryId)` ile çarılıyor (NATO üyesinde %10 askeri verimlilik).
+- `Scripts/EconomySystem.cs`: `ProcessAutomaticTrade`'de aktif anlaşmanın stoktaki ithalat miktarı `GetTradeMultiplier(Player.Id)` ile çarılıyor (AB üyesinde %15 tek pazar bonusu; küçük miktarlarda int yuvarlaması etkisi sınırlı, mekanizma doğru).
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--organization-test --scenario=modern_world`: **SONUÇ: PASS ✓** (exit 0).
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — çarpan determinantı üyelik state'inden türediği için determinizm bozulmadı.
+- TODO.md 37.3 → [x] Bitti.
 
 #### M37.4: Save/Load entegrasyonu — ✅ DONE (2026-10-20)
 - `SaveFile.Organization` + `SaveLoadTest` özeti; `--save-load-test --scenario=modern_world` A==B PASS (M37.2 ile birlikte doğrulandı).

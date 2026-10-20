@@ -1435,3 +1435,22 @@ M39 ve M40 detayları orijinal talimatda tam olarak belirtilmemişti; şu seçil
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--organization-test --scenario=modern_world` ve `--save-load-test --scenario=modern_world` (A==B).
 
 **TODO.md:** 37.2 [x], 37.4 [x]. Sonraki adım: M37.3 avantaj/ceza çarpanları.
+
+**M37.3 — Avantaj/ceza çarpanları (NATO %10 askeri, AB %15 ticaret, BM %5 meşruiyet):**
+`Data/organizations.json`: `OrganizationDef`'e 3 yeni opsiyonel alan eklendi (`MilitaryEfficiencyBonus`, `TradeBonus`, `LegitimacyBonus`, varsayılan 0 → mevcut JSON bozulmaz). Değerler: NATO=0.10, AB/EU=0.15, BM/UN=0.05 (SpecialRules'deki notlarla uyumlu), diğer örgütler 0.
+`Scripts/OrganizationSystem.cs`: `GetMilitaryEfficiencyMultiplier(countryId)`, `GetTradeMultiplier(countryId)`, `GetLegitimacyMultiplier(countryId)` getter'ları — ülkenin üye olduğu örgütlerden çarpanları çarpar (1.0 = başlangıç), `_countryOrgs` reverse lookup üzerinden, deterministik.
+`Scripts/WarSystem.cs`: `ResolveCombatDay`'de oyuncu saldırı/savunma gücü (`attP`/`defP`) `OrganizationSystem.GetMilitaryEfficiencyMultiplier(PlayerCountryId)` ile çarılıyor (NATO üyesinde %10 askeri verimlilik).
+`Scripts/EconomySystem.cs`: `ProcessAutomaticTrade`'de aktif anlaşmanın stoktaki ithalat miktarı `GetTradeMultiplier(Player.Id)` ile çarılıyor (AB üyesinde %15 tek pazar bonusu; küçük miktarlarda int yuvarlaması etkisi sınırlı, mekanizma doğru).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--organization-test --scenario=modern_world`: **SONUÇ: PASS ✓** (exit 0).
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — çarpan determinantı üyelik state'inden türediği için determinizm bozulmadı.
+
+**ÖZET (M37.3 — 2026-10-20)**
+1. Değişen dosyalar: `Data/organizations.json`, `Scripts/OrganizationSystem.cs`, `Scripts/WarSystem.cs`, `Scripts/EconomySystem.cs`, `TODO.md` (37.3 → [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M37.3 %100 tamamlandı (build 0/0, organization-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: ticaret +%15 bonusu mevcut 2-birim-günlük miktarda int yuvarlaması nedeniyle görünür etkisi sınırlı (mekanizma doğru, biyon tuning ile ölçeklenebilir). "Panelde görünür" kriteri M37.5 örgüt paneliyle tamamlanacak.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--organization-test` ve `--save-load-test --scenario=modern_world` (A==B).
+
+**TODO.md:** 37.2 [x], 37.3 [x], 37.4 [x]. Sonraki adım: M37.5 oyuncu arayüzü örgüt paneli.

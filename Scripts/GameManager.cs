@@ -4793,6 +4793,43 @@ private void RunBalanceTest()
     int playerAttackerWars = allWars.Count(w => w.AttackerId == playerId);
     int playerDefenderWars = allWars.Count(w => w.DefenderId == playerId);
 
+    // --- Ekonomi invariantleri (M34.2): negatif GDP yok, sonsuz enflasyon yok, %100+ memnuniyet yok ---
+    bool economyOk = true;
+    foreach (var c in CountryDatabase.All())
+    {
+        if (c == null || c.IsAnnexed) continue;
+        string id = c.Id;
+        double gdp = StatisticsSystem.GetValue(id, "gdp");
+        double inflation = StatisticsSystem.GetValue(id, "inflation");
+        if (!double.IsFinite(gdp) || gdp < 0.0)
+        {
+            GD.PrintErr($"[Balance] NEGATIF/GEÇERSİZ GDP: {id}={gdp:F2}");
+            economyOk = false;
+        }
+        if (!double.IsFinite(inflation))
+        {
+            GD.PrintErr($"[Balance] SONSUZ/GEÇERSİZ ENFLASYON: {id}={inflation:F2}");
+            economyOk = false;
+        }
+    }
+    var satSave = PublicSatisfactionSystem.GetSaveData();
+    if (satSave?.Countries != null)
+    {
+        foreach (var sc in satSave.Countries)
+        {
+            foreach (var v in sc.Satisfaction?.Values ?? Enumerable.Empty<double>())
+            {
+                if (v > 100.0)
+                {
+                    GD.PrintErr($"[Balance] %100+ MEMNUNIYET: {sc.CountryId}={v:F1}");
+                    economyOk = false;
+                }
+            }
+        }
+    }
+    if (economyOk)
+        GD.Print($"[Balance] Ekonomi invariantleri: TÜM GÖSTERGELER [Min,Max] içinde (negatif GDP yok, enflasyon sınırlı, memnuniyet ≤100).");
+
     // --- Rapor ---
     GD.Print($"[Balance] Süre: {elapsedDays} oyun günü ({sw.Elapsed.TotalSeconds:F1} sn)");
     GD.Print($"[Balance] Toplam savaş: {totalWars} (bitmiş={endedWars}, aktif={activeWars})");
@@ -4817,6 +4854,12 @@ private void RunBalanceTest()
     else
     {
         GD.Print($"[Balance] AI saldırı oranı %{aiAttackRate:F1} hedef aralığı (%5-%30) içinde.");
+    }
+
+    if (!economyOk)
+    {
+        GD.PrintErr("[Balance] Ekonomi invariantleri BOZULDU — denge testi FAIL.");
+        ok = false;
     }
 
     // --- Save/Load A==B kontrol noktası ---

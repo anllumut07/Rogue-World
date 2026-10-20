@@ -1177,3 +1177,30 @@ Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--balance-test` (PASS, çıkış kodu 0); `--save-load-test` (PASS).
 
 **TODO.md:** 34.1 → `[x]`. `git commit` + `git push origin gece-calisma` yapılacak.
+
+---
+
+## GECE-RAPOR — 2026-10-20 (gece-calisma dalı, otonom, M34.2 tamamlandı)
+
+**STOP.txt kontrolü:** yok — stop kancası engellemez, build/test/commit/push serbest.
+
+**ADIM — M34.2 (Denge — Ekonomi clamp/invariant testleri):** `--balance-test`'e ekonomi invariant kontrolleri eklendi ve PASS aldı.
+
+**İçerik:** `Scripts/GameManager.cs` `RunBalanceTest()` içinde yeni kontroller:
+- `StatisticsSystem.GetValue(id,"gdp")` ≥ 0 ve `double.IsFinite` (negatif/geçersiz GDP yok)
+- `StatisticsSystem.GetValue(id,"inflation")` `double.IsFinite` (sonsuz/geçersiz enflasyon yok)
+- `PublicSatisfactionSystem.GetSaveData()` tüm grupları ≤ 100 (%100+ memnuniyet yok)
+- Bozulma halinde `GD.PrintErr` + `ok = false` → `Quit(1)`.
+
+**Test Sonuçları (headless, Godot 4.7.2 console exe, ~26 sn):**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--balance-test`: **SONUÇ: PASS ✓** — Ekonomi invariantleri: TÜM GÖSTERGELER [Min,Max] içinde; AI saldırı oranı %10.3 (%5–%30); save_load_a_b=True; çıkış kodu 0.
+- `--save-load-test`: **SONUÇ: PASS ✓** (A == B).
+
+**ÖZET (M34.2 — 2026-10-20)**
+1. Değişen dosyalar: `Scripts/GameManager.cs` (M34.2 ekonomi invariantleri), `TODO.md` (34.2 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — 34.2 PASS.
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--balance-test` (PASS, çıkış kodu 0).
+
+**TODO.md:** 34.1, 34.2 → `[x]`. `git commit` + `git push origin gece-calisma` yapılacak.

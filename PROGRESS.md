@@ -1913,7 +1913,6 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 ## Milestone 34: Denge — ✅ DONE (2026-10-20)
 
 ### 34.1 `--balance-test` — ✅ DONE
-
 **Açıklama:** `--balance-test` arg'ıyla headless çalışır: DeterministicRNG tohum 0x20261021DEADBEEFUL, EventSystem.EnableAutoChooseTest(), FocusSystem.EnableAutoPickTest(), SetSpeed(5), 300 oyun günü (10 oyun yılı). Savaş dağılımı (sayı, bitişen/aktif, attacker/defender kazanı) + AI saldırı oranı (en az bir saldırı başlatan AI ülke / sarmış AI ülke) ölçülür. Başarı kriterleri: toplam savaş > 0, AI saldırı oranı %5–%30 arası, save/load A==B. Başarısızlıkta Quit(1).
 
 **Test Sonuçları (headless, Godot 4.7.2 console exe, ~26 sn):**
@@ -1927,4 +1926,10 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
   - Çıkış kodu: 0 (Quit(0))
 - `--save-load-test`: **SONUÇ: PASS ✓** (A == B)
 
-**Dosyalar:** Değiştirilen: `Scripts/GameManager.cs` (balanceTest arg + dispatch + RunBalanceTest metodu), `TODO.md` (34.1 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+### 34.2 Ekonomi clamp/invariant testleri — ✅ DONE
+**Açıklama:** `--balance-test`'e eklenen ekonomi invariant kontrolleri: tüm ülkeler için GDP ≥ 0 (negatif GDP yok), enflasyon sonsuz değil, tüm toplum grubu memnuniyeti ≤ 100 (%100+ yok). `StatisticsSystem.GetValue(id,"gdp"/"inflation")` + `PublicSatisfactionSystem.GetSaveData()` üzerinden denetlenir; bozulma halinde Quit(1).
+
+**Test Sonuçları:**
+- `--balance-test`: **SONUÇ: PASS ✓** — Ekonomi invariantleri: TÜM GÖSTERGELER [Min,Max] içinde (negatif GDP yok, enflasyon sınırlı, memnuniyet ≤100).
+
+**Dosyalar:** Değiştirilen: `Scripts/GameManager.cs` (balanceTest arg + dispatch + RunBalanceTest metodu + M34.2 ekonomı invariantleri), `TODO.md` (34.1, 34.2 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.

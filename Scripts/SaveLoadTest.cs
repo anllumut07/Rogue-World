@@ -333,6 +333,12 @@ public static class SaveLoadTest
         }
         sb.AppendLine($"Kampanya: ülke={campaignCountries}, aksiyon={campaignActions}, aktif_vaat={activePromises}");
 
+// --- M37: Uluslararası örgütler ---
+        var orgSave = OrganizationSystem.GetSaveData();
+        int orgMemberships = orgSave?.Memberships?.Length ?? 0;
+        int orgArt5 = orgSave?.Article5Activations?.Length ?? 0;
+        sb.AppendLine($"Örgütler: sayısı={OrganizationSystem.OrganizationCount}, üyelik={orgMemberships}, madde5={orgArt5}");
+
 // --- M17.2: Liderler ---
         int leaderCount = LeaderSystem.LoadedCount;
         sb.AppendLine($"Liderler: {leaderCount} ülke");

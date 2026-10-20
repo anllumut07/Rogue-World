@@ -2025,3 +2025,31 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 - `--settings-test`: **PASSED** (exit 0) — DefaultSpeed/VSync/Difficulty/Ironman DTO A==B doğrulandı.
 - `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — ayarlar kayıt/yükleme ile birlikte determinizm korundu.
 - Kod değişikliği gerekmedi; doğrulama tamamlandı. TODO.md 36.3 → [x].
+
+### M37: Uluslararası Örgütler — 🔄 DEVAM EDIYOR (2026-10-20)
+
+#### M37.1: Data/organizations.json (9 uluslararası örgüt) — ✅ DONE (2026-10-20)
+- `Data/organizations.json` (yeni): NATO/AB/BM/BRICS/ŞİO/AU/ASEAN/Arap Birliği/OPEC (9 örgüt); Id/Name/Type/FoundedDate/HeadquartersCountryId/Members/SpecialRules; `IncludeFields=true`.
+- Kayıt sayısı `GD.Print` ile başlangıçta loglanır: **9 uluslararası örgüt yüklendi**.
+- `dotnet build`: 0 hata / 0 uyarı.
+- TODO.md 37.1 → [x] Bitti.
+
+#### M37.2: Scripts/OrganizationSystem.cs — ✅ DONE (2026-10-20)
+- `Scripts/OrganizationSystem.cs` (yeni): `OrganizationDef` DTO, `OrgType` enum, üyelik/_members/_countryOrgs lookup'ları, `AddMember`/`RemoveMember`/`IsMember`/`Members`/`CountryOrgs`, `TriggerArticle5` (Askeri org'larda saldırgan → tüm üyeler `WarSystem.DeclareWar`), `AIVoteWeight` (0-1 deterministik), `DailyTick` (yıllık/ağır gündem logu), `ResetForNewGame` (Madde5 temizler, üyelik veri dosyasına döner), Save/Load DTO'ları (OrganizationSave, OrgMembershipSave, Article5ActivationSave), `GetSaveData`/`LoadSaveData`, `OrganizationCount`/`OrganizationIds`.
+- `Scripts/GameManager.cs`: `--organization-test` + `RunOrganizationTest()` (9 org, USA NATO/DEU EU/not RUS NATO, Add/Remove TUR SCO, TriggerArticle5 USA→RUS art5≥1, AIVoteWeight 0-1, Save/Load üyelik eşit, ResetForNewGame Madde5=0); `_Ready/DailyTick/ResetForNewGame` bağlama.
+- `Scripts/SaveSystem.cs`: `SaveFile.Organization` alanı + `Organization = OrganizationSystem.GetSaveData()` / `OrganizationSystem.LoadSaveData(save.Organization)`.
+- `Scripts/SaveLoadTest.cs`: BuildSummaryCore'ye "Örgütler: sayısı=..., üyelik=..., madde5=..." satırı eklendi.
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--organization-test --scenario=modern_world`: **SONUÇ: PASS ✓** (exit 0).
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — organization state kaydedilir/yükler.
+- TODO.md 37.2 → [x] Bitti.
+
+#### M37.3: Avantaj/ceza çarpanları — [ ] HENÜZ BAŞLANMADI
+- NATO +%10 askeri verimlilik, AB tek pazar ticaret +%15, BM meşruiyet +%5 vb. çarpanların ilgili göstergelere yansıtılması.
+
+#### M37.4: Save/Load entegrasyonu — ✅ DONE (2026-10-20)
+- `SaveFile.Organization` + `SaveLoadTest` özeti; `--save-load-test --scenario=modern_world` A==B PASS (M37.2 ile birlikte doğrulandı).
+- TODO.md 37.4 → [x] Bitti.
+
+#### M37.5: Oyuncu arayüzü: örgüt paneli — [ ] HENÜZ BAŞLANMADI
+- Panel 1152x648'e sığar, `MouseFilter.Stop` backdrop, ESC kapatır.

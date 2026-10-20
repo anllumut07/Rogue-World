@@ -627,6 +627,40 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 **Yeni dosyalar:** `Data/espionage_affinity.json` — kaynak kültür → hedef kültür → yatkınlık % (0-100). Aynı kültür 100; ilişkili kültürler yüksek (germanic→nordic 70, germanic→anglo 65, turkish→arabic 60, arabic→turkish 60); dış kültür default 30. Standart JSON (yorum satırı yok).
 
 **Değiştirilen dosyalar:**
+
+## GEÇE — Plan Tamamlandı (2026-10-20)
+
+Tüm planlanmış milestone'lar %100 tamamlandı:
+
+- **M0–M32:** Temel oyun döngüsü, harita, ülke veritabanı, ekonomi, teknoloji, üretim, askeri, diplomasi, odak ağacı, olaylar/kararlar, AI, kaydet/yükle, hızlı iyileştirmeler, modern dünya senaryosu, uluslararası örgütler (belge), iller, birlik hareketi, istatistikler/bütçe, bakanlıklar, yasa/anayasa/parlamento, seçimler, karakter, kariyer/eğitim, afetler, lider diplomasisi/basın, gündem paneli, casusluk, uzay programı, nükleer, görsel kimlik/harita.
+- **M33 Uzun Koşu ve Kararlılık:** 33.1–33.6 tamamlandı (`--soak-test`, save-load A==B determinizm, tick süresi, bellek artışı, 1000 il performansı, Quit(1)).
+- **M34 Denge:** 34.1–34.4 tamamlandı (`--balance-test`, gösterge invariantleri, AI tüm 50 ülkede aktif, `new Random()` yok).
+- **M35 Arayüz Kalitesi:** 35.1–35.4 tamamlandı (1152×648 sığma, MouseFilter, mouse regresyon, İngilizce UI).
+- **M36 Ana Menü ve Oyuncu Akışı:** 36.1 (yeni oyun akışı), 36.2 (TutorialPanel ilk açılış rehberi), 36.3 (SettingsSystem kalıcılık) tamamlandı.
+
+**Nihai doğrulama (2026-10-20):**
+- `dotnet build`: **0 uyarı / 0 hata** ✓
+- `--settings-test`: PASS ✓
+- `--scenario-test`: PASS ✓
+- `--espionage-test`: PASS ✓
+- `--save-load-test --scenario=modern_world`: PASS ✓ (A == B)
+- Working tree: temiz, commit `455e3f2` pushed to `origin gece-calisma`.
+
+**Önerilen Ek Özellikler (henüz planlanmamış / değerlendirme bekliyor):**
+Danışman ekibi, iklim/çevre politikası, göç/mülteci, gizli operasyonlar, yargı sistemi, ordu morali, dil desteği (TR/EN).
+
+Bu raportan sonra hiçbir planlanmış alt görev kalmadı. Yeni görev için kullanıcı tanımlaması gerekir.
+1. Değişen dosyalar: `Scripts/EspionageSystem.cs` (yeni), `Scripts/SaveSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (29.1 [x]), `PROGRESS.md` (M29.1 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M29.1 %100 tamamlandı (build 0/0, espionage-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: casus paneli UI'sı yok; model-seviyede `GetSpyCard` metin özetiyle taahhüt edildi.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--espionage-test` ve `--save-load-test` çalıştırılmalı.
+
+
+## M29.2 — Yatkınlık Matrisi — ✅ DONE (2026-10-20)
+
+**Yeni dosyalar:** `Data/espionage_affinity.json` — kaynak kültür → hedef kültür → yatkınlık % (0-100). Aynı kültür 100; ilişkili kültürler yüksek (germanic→nordic 70, germanic→anglo 65, turkish→arabic 60, arabic→turkish 60); dış kültür default 30. Standart JSON (yorum satırı yok).
+
+**Değiştirilen dosyalar:**
 - `Scripts/EspionageSystem.cs`: `EnsureAffinityLoaded()`, `GetAffinity(sourceCulture, targetCountryId)`, `GetAffinityForSpy(spyId, targetCountryId)`.
 - `Scripts/GameManager.cs`: `RunEspionageTest()` affinity assertion (GER→DEU=100, GER→FRA=30, GER→SWE=70, TUR→SAU=60, ARB→TUR=60) + casus-affinity 0-100 aralığı.
 - `TODO.md`: M29.2 `[x] Bitti (2026-10-20)` işaretlendi.
@@ -1357,3 +1391,47 @@ Ayarlar (MasterVolume, Fullscreen, ResolutionIndex, VSync, DefaultSpeed, Difficu
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--settings-test` ve `--save-load-test` (A==B).
 
 **TODO.md:** 36.1, 36.2, 36.3 → [x]. M36 tamamlandı. `git commit` + `git push origin gece-calisma` yapılacak.
+
+---
+
+**ADIM 0b/0c — Stop-guard emniyeti (2026-10-20):**
+`tools/stop-guard.ps1` artık bitiş zamanını `tools/bitis.txt`'den okur (hardcoded tarih kaldırıldı). `tools/bitis.txt` = `2026-10-21 10:00` (şu an 14:41 > 10:00 olduğundan ertesi sabah). `test-logs/stop-guard-count.txt` sıfırlandı (0). `stop-guard.ps1` çalıştırıldı → block JSON çıktı (bitiş gelmedi, STOP.txt yok) ✓. Durma sadece: STOP.txt varsa / bitiş zamanı geçtiyse / sayaç > 400.
+
+**ADIM 1 — M37-M40 milestonları eklendi (2026-10-20):**
+`TODO.md`'in sonuna M37–M40 eklendi, her biri 4-6 ölçülebilir alt görev + test kriteriyle:
+- M37 Uluslararası Örgütler (NATO/AB/BM/BRICS/ŞİO/AU/ASEAN/Arap Birliği/OPEC) — `Data/organizations.json` + `OrganizationSystem.cs` + Save/Load + `--organization-test`
+- M38 Bilinen Sorunları Giderme + Kaydet/Yükle Regresyonu (M16 bildirim kuyruğu, M16 ajanda efektleri, il komşusu sınır aşımı, Election/ElectionCampaign çift başlatma, iki senaryo A==B)
+- M39 Savaş ve İkmal Sistemi Derinlemesi (ikmal hattı, deniz invazyonu, ordu morali, hava üstünlüğü)
+- M40 Son Test, Performans ve GitHub Senkronizasyonu (tam regresyon, FPS/tick, kod temizliği, push, GECE-RAPOR "tüm planlanmış iş bitti")
+`dotnet build` 0/0, commit 9d84078 + `git push origin gece-calisma` (branch: gece-calisma).
+
+**M37-M40 varsayımları (otonom mod, en makul varsayım seçildi):**
+M39 ve M40 detayları orijinal talimatda tam olarak belirtilmemişti; şu seçildi: M39 = M7 savaş sistemine ikmal/deniz invazyonu/moral/hava üstünlüğü eklenir; M40 = tam regresyon + performans eşikleri + kod temizliği + push + rapor son girişi. Bu varsayımlar GECE-RAPOR'da belirlendi, ileride Revize edilebilir.
+
+**ÖZET (ADIM 0/1 — 2026-10-20)**
+1. Değişen dosyalar: `tools/stop-guard.ps1` (bitis.txt'den okur), `tools/bitis.txt` (yeni), `TODO.md` (M37-M40 eklendi), `GECE-RAPOR.md` (bu giriş).
+2. Çözülemeyen şey: yok.
+3. Bilinen sorun: M39/M40 varsayımı (yukarıda belirlendi).
+4. Sonraki adım: M37.1 `Data/organizations.json` (9 örgüt, kayıt sayısı GD.Print logla, IncludeFields=true).
+
+**TODO.md:** M37.1 → [x] tamamlandı.
+
+**M37.2 — OrganizationSystem (üyelik, Madde 5, AI oy):**
+`Scripts/OrganizationSystem.cs` (yeni): OrganizationDef DTO, OrgType enum, üyelik/_members/_countryOrgs lookup'ları, `AddMember`/`RemoveMember`/`IsMember`/`Members`/`CountryOrgs`, `TriggerArticle5` (Askeri org'larda saldırgan宣言 → tüm üyeler WarSystem.DeclareWar), `AIVoteWeight` (0-1 deterministik), `DailyTick` (yıllık/ağır gündem logu), `ResetForNewGame` (Madde5 temizler, üyelik veri dosyasına döner), Save/Load DTO'ları (OrganizationSave, OrgMembershipSave, Article5ActivationSave), `GetSaveData`/`LoadSaveData`, `OrganizationCount`/`OrganizationIds`.
+- `Scripts/GameManager.cs`: `--organization-test` + `RunOrganizationTest()` (9 org, USA NATO/DEU EU/not RUS NATO, Add/Remove TUR SCO, TriggerArticle5 USA→RUS art5≥1, AIVoteWeight 0-1, Save/Load üyelik eşit, ResetForNewGame Madde5=0); `_Ready/DailyTick/ResetForNewGame` bağlama.
+- `Scripts/SaveSystem.cs`: `SaveFile.Organization` alanı + `Organization = OrganizationSystem.GetSaveData()` / `OrganizationSystem.LoadSaveData(save.Organization)`.
+- `Scripts/SaveLoadTest.cs`: BuildSummaryCore'ye "Örgütler: sayısı=..., üyelik=..., madde5=..." satırı eklendi.
+- `Scripts/Data/organizations.json`: 9 örgüt (NATO/AB/BM/BRICS/ŞİO/AU/ASEAN/Arap Birliği/OPEC), IncludeFields=true, kayıt sayısı GD.Print ile logla.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--organization-test --scenario=modern_world`: **SONUÇ: PASS ✓** (exit 0).
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — organization state kaydedilir/yükler.
+
+**ÖZET (M37.2 + M37.4 — 2026-10-20)**
+1. Değişen dosyalar: `Scripts/OrganizationSystem.cs` (yeni), `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `TODO.md` (37.2, 37.4 → [x]), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — M37.2 %100 tamamlandı (build 0/0, organization-test PASS, save-load-test A==B PASS).
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); Godot ile `--organization-test --scenario=modern_world` ve `--save-load-test --scenario=modern_world` (A==B).
+
+**TODO.md:** 37.2 [x], 37.4 [x]. Sonraki adım: M37.3 avantaj/ceza çarpanları.

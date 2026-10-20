@@ -128,6 +128,7 @@ public partial class GameManager : Node
         bool armyTest = false;            // M19: ordu hareketi, düşman teması durdurma, save/load kimlik
         bool parliamentTest = false;      // M22.3: partiler, sandalye dağılımı, oylama, veto, koalisyon, referandum
         bool autoritarianTest = false;    // M22.4: parti kongresi + darbe riski
+        bool organizationTest = false;    // M37: uluslararası örgütler (üyelik, Madde 5, gündem, AI oy)
         bool electionTest = false;        // M23.1: seçim takvimi + oy tahmini
         bool characterTest = false;       // M24.1: karakter oluşturma + Save/Load determinizm
         bool careerTest = false;          // M25.1: siyasetçi kariyer yolu (eğitim → parti gençlik → yerel yönetim → milletvekili → bakanlık)
@@ -215,6 +216,8 @@ public partial class GameManager : Node
                 parliamentTest = true;
             else if (arg == "--autoritarian-test")
                 autoritarianTest = true;
+            else if (arg == "--organization-test")
+                organizationTest = true;
             else if (arg == "--election-test")
                 electionTest = true;
             else if (arg == "--character-test")
@@ -373,6 +376,9 @@ public partial class GameManager : Node
         // M22.4: Otoriter sistemler — parti kongresi ve darbe riski.
         AutoritarianSystem.LoadData();
 
+        // M37.1: Uluslararası örgütler — Data/organizations.json'dan üyelik ve kural tanımları.
+        OrganizationSystem.LoadData();
+
         // M23.1: Seçim takvimi ve oy tahmini.
         ElectionSystem.LoadData();
 
@@ -511,6 +517,10 @@ public partial class GameManager : Node
             RunParliamentTest();
         if (autoritarianTest)
             RunAutoritarianTest();
+
+        // M37: Uluslararası örgüt testi — normal oyunda asla çalışmaz
+        if (organizationTest)
+            RunOrganizationTest();
         if (electionTest)
             RunElectionTest();
         if (characterTest)
@@ -868,6 +878,9 @@ public partial class GameManager : Node
         // M16: Zaman ve Tempo — ajanda ilerlemesi, hafta reset, aylık rapor
         TimeTempoSystem.DailyTick(this);
 
+        // M37: Uluslararası örgütler — yıllık zirve / aylık bakanlar toplantısı denetimi.
+        OrganizationSystem.DailyTick(TotalDays);
+
         // M23.3: Seçim günü — oyuncu ülkesinde seçim sonucu çözümlenir (kazanma/kaybetme, lider değişikliği, yeni kabine)
         if (HasPlayer) ElectionSystem.ResolveElection(PlayerCountryId, TotalDays);
 
@@ -1111,6 +1124,9 @@ public partial class GameManager : Node
 
         // M31.2: Nükleer program durumunu yeni oyun için sıfırla.
         NuclearProgramSystem.ResetForNewGame();
+
+        // M37: Uluslararası örgütleri yeni oyun için sıfırla (üyelikler veri dosyasından yeniden yüklenir).
+        OrganizationSystem.ResetForNewGame();
 
         // M29.5: Casus kiralama havuzunu yeni oyun için başlat.
         EspionageSystem.InitializeRentalPool(TotalDays);
@@ -3671,6 +3687,76 @@ public partial class GameManager : Node
         GD.Print(result ? "[AutoritarianTest] SONUÇ: PASS ✓" : "[AutoritarianTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(result ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M37: Uluslararası örgüt headless testi — Data/organizations.json yükleme, üyelik,
+    /// Madde 5 kolektif savunma, toplantı gündemi, AI oy ağırlığı, Save/Load kimliği.
+    /// Normal oyunda ASLA çalışmaz (--organization-test).
+    /// </summary>
+    private void RunOrganizationTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M37: ULUSLARARASI ÖRGÜT TESTİ");
+        GD.Print("=========================================");
+
+        // 1) Veri dosyası yüklendi: 9 örgüt
+        int count = OrganizationSystem.OrganizationCount;
+        GD.Print($"[OrganizationTest] Örgüt sayısı: {count} (beklenen 9)");
+        bool ok = count == 9;
+
+        // 2) Üyelik sorgusu
+        bool usaNato = OrganizationSystem.IsMember("nato", "USA");
+        bool rusNato = OrganizationSystem.IsMember("nato", "RUS");
+        bool deuEu = OrganizationSystem.IsMember("eu", "DEU");
+        GD.Print($"[OrganizationTest] USA NATO üyesi: {usaNato} (beklenen True), RUS NATO üyesi: {rusNato} (beklenen False), DEU AB üyesi: {deuEu} (beklenen True)");
+        ok &= usaNato && !rusNato && deuEu;
+
+        // 3) Üye listeleri
+        var natoMembers = OrganizationSystem.Members("nato");
+        GD.Print($"[OrganizationTest] NATO üyeleri ({natoMembers.Count}): {string.Join(",", natoMembers)}");
+        ok &= natoMembers.Contains("USA") && natoMembers.Contains("DEU");
+
+        // 4) Ülke -> org lookup
+        var usaOrgs = OrganizationSystem.CountryOrgs("USA");
+        GD.Print($"[OrganizationTest] USA üyes olduğu org: {string.Join(",", usaOrgs)}");
+        ok &= usaOrgs.Contains("nato");
+
+        // 5) Üyelik ekle / çıkar (dinamik)
+        bool added = OrganizationSystem.AddMember("sco", "TUR");
+        bool removed = OrganizationSystem.RemoveMember("sco", "TUR");
+        GD.Print($"[OrganizationTest] TUR SCO'ya eklendi: {added}, çıkarıldı: {removed}");
+        ok &= added && removed && !OrganizationSystem.IsMember("sco", "TUR");
+
+        // 6) Madde 5 kolektif savunma (NATO: Askeri, USA üye)
+        OrganizationSystem.TriggerArticle5("USA", "RUS");
+        int art5 = OrganizationSystem.Article5Activations.Count;
+        GD.Print($"[OrganizationTest] Madde 5 etkinleri: {art5} (beklenen >= 1)");
+        ok &= art5 >= 1;
+
+        // 7) AI oy ağırlığı (0-1)
+        double wMember = OrganizationSystem.AIVoteWeight("nato", "DEU", "sanction_1");
+        double wNon = OrganizationSystem.AIVoteWeight("nato", "RUS", "sanction_1");
+        GD.Print($"[OrganizationTest] AI oy ağırlığı üye(DEU/NATO)={wMember:F2}, non-üye(RUS/NATO)={wNon:F2}");
+        ok &= wMember >= 0 && wMember <= 1 && wNon >= 0 && wNon <= 1;
+
+        // 8) Save/Load kimliği
+        var save = OrganizationSystem.GetSaveData();
+        int before = save.Memberships.Length;
+        OrganizationSystem.LoadSaveData(save);
+        var save2 = OrganizationSystem.GetSaveData();
+        int after = save2.Memberships.Length;
+        GD.Print($"[OrganizationTest] Save/Load üyelik: önce={before} sonra={after}");
+        ok &= before == after;
+
+        // 9) ResetForNewGame temizler Madde 5 etkinleri (üyelikler veri dosyasından korunur)
+        OrganizationSystem.ResetForNewGame();
+        GD.Print($"[OrganizationTest] Reset sonrası Madde5: {OrganizationSystem.Article5Activations.Count} (beklenen 0)");
+        ok &= OrganizationSystem.Article5Activations.Count == 0;
+
+        GD.Print(ok ? "[OrganizationTest] SONUÇ: PASS ✓" : "[OrganizationTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
     }
 
     /// <summary>

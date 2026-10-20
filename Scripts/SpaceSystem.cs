@@ -27,6 +27,7 @@ public static class SpaceSystem
         public int RewardPrestige = 0;     // tamamlandığında kazanılan prestij
         public Dictionary<string, float> RewardTechBonus = new(); // modifikatör bonusları
         public Dictionary<string, float> RewardSatisfaction = new(); // grupId -> memnuniyet delta (başarıda uygulanır)
+        public float RewardTension = 0f; // M30.4: başarılı görevle artan dünya gerilimi (uzay koşucu rekabeti)
         public MilitaryEffect MilitaryEffect = MilitaryEffect.None; // askeri kullanım (keşif uydusu / uydu karşıtı silah)
     }
 
@@ -199,6 +200,13 @@ public static class SpaceSystem
             {
                 DiplomacySystem.IncreaseTension(10f);
                 GD.Print($"[Space] Uydu karşıtı silah denemesi: {def.Name} — dünya gerilimi +10");
+            }
+
+            // M30.4: uluslararası rekabet — her başarılı uzay görevi dünya gerilimini artırır (uzay koşucu etkisi).
+            if (def.RewardTension > 0f)
+            {
+                DiplomacySystem.IncreaseTension(def.RewardTension);
+                GD.Print($"[Space] Dünya gerilimi +{def.RewardTension:F1} ({def.Name})");
             }
 
             GD.Print($"[Space] Görev tamamlandı: {def.Name} ({def.Level}) — başarı, prestij +{def.RewardPrestige}");

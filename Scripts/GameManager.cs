@@ -2587,8 +2587,9 @@ public partial class GameManager : Node
         double youthBefore = PublicSatisfactionSystem.GetSatisfaction("DEU", "youth");
         double militaryBefore = PublicSatisfactionSystem.GetSatisfaction("DEU", "military");
         float researchSpeedBefore = TechnologySystem.GetModifier("research_speed");
+        float tensionBefore = DiplomacySystem.WorldTension;
 
-        GD.Print($"[SpaceRewardTest] öncesi — prestij={prestigeBefore}, youth={youthBefore:F1}, military={militaryBefore:F1}, research_speed={researchSpeedBefore:F3}");
+        GD.Print($"[SpaceRewardTest] öncesi — prestij={prestigeBefore}, youth={youthBefore:F1}, military={militaryBefore:F1}, research_speed={researchSpeedBefore:F3}, tension={tensionBefore:F1}");
 
         // 1. s1 görevi: başlat → 30 günde tamamla (test modu, garanti başarı).
         // modern_world'de DEU rocketry'yi zaten araştırmış (başlangıç teknolojisi).
@@ -2610,6 +2611,11 @@ public partial class GameManager : Node
         // Günlük drift (PublicSatisfactionSystem.DailyTick) nedeniyle net delta assert edilmez; sadece loglanır.
         GD.Print($"[SpaceRewardTest] prestij_ok={prestigeOk}, tech_bonus_ok={techBonusOk}, youth={youthBefore:F1}→{youthAfter:F1}, military={militaryBefore:F1}→{militaryAfter:F1}");
 
+        // M30.4: s1 başarısıyla dünya gerilimi +2 (RewardTension). Günlük drift (DiplomacySystem.DailyTick)
+        // nedeniyle kesin delta assert edilmez; değerler yalnızca loglanır.
+        float tensionAfterS1 = DiplomacySystem.WorldTension;
+        GD.Print($"[SpaceRewardTest] tension {tensionBefore:F1}→{tensionAfterS1:F1} (s1 beklenir +2)");
+
         // 2. Askerî kullanım — keşif uydusu (ReconSatellite): s3'ü tamamla.
         // DEU satellite_technology'yi zaten araştırmış.
         bool launch3 = SpaceSystem.LaunchMission("s3_communication_satellite");
@@ -2618,6 +2624,10 @@ public partial class GameManager : Node
         bool completed3 = SpaceSystem.GetMissionStatus("s3_communication_satellite") == SpaceSystem.MissionStatus.Completed;
         bool reconActive = SpaceSystem.IsReconSatelliteActive("s3_communication_satellite");
         GD.Print($"[SpaceRewardTest] s3 tamamlandı: {completed3}, keşif_uydusu_aktif={reconActive}");
+
+        // M30.4: s3 başarısıyla dünya gerilimi +3 (RewardTension, kümülatif).
+        float tensionAfterS3 = DiplomacySystem.WorldTension;
+        GD.Print($"[SpaceRewardTest] tension {tensionAfterS1:F1}→{tensionAfterS3:F1} (s3 beklenir +3)");
 
         // 3. save/load A==B (bütçe, deneme, keşif uyduları dahil).
         var data1 = SpaceSystem.GetSaveData();

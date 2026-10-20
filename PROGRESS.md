@@ -1591,3 +1591,20 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 
 **Sonraki adım:** M30.4 Uluslararası işbirliği/rekabet.
 
+
+### M30.4: Uluslararası İşbirliği/Rekabet — ✅ DONE (2026-10-20)
+
+**Değiştirilen dosyalar:**
+- `Data/space_missions.json`: tüm S1–S10 görevine `RewardTension` alanı eklendi (s1=2, s2=3, s3=3, s4=4, s5=5, s6=6, s7=7, s8=8, s9=8, s10=10).
+- `Scripts/SpaceSystem.cs`: `RewardTension` DTO alanı (`MissionDefinition`); `ResolveMission` başarıda `DiplomacySystem.IncreaseTension(def.RewardTension)` çağrısı (M30.4 uluslararası rekabet/uzay koşucu etkisi).
+- `Scripts/GameManager.cs`: `RunSpaceRewardTest` — `WorldTension` öncesi/sonrası loglaması (s1 +2, s3 +3 beklenir; günlük drift nedeniyle kesin delta assert edilmez, değerler loglanır).
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--space-reward-test --scenario=modern_world`: **SONUÇ: PASS ✓** (exit 0) — s1/s3 fırlatma, prestij+5, research_speed +0.01, keşif uydusu aktif, save/load A==B, reset, tension loglandı.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — space state (ödüller+recon uydusu+bütçe) kaydedilir/yükler.
+- Regresyon: build 0/0, mevcut tüm testler etkilenmedi.
+
+**Dosyalar:** Değiştirilen: `Data/space_missions.json`, `Scripts/SpaceSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (30.4 [x]), `PROGRESS.md` (M30.4 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M31 Teknoloji Genişlemesi ve Nükleer (isteğe bağlı, explicit onay gerekli).

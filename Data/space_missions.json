@@ -11,6 +11,7 @@
     "RewardPrestige": 5,
     "RewardTechBonus": { "research_speed": 0.01 },
     "RewardSatisfaction": { "youth": 5 },
+    "RewardTension": 2,
     "MilitaryEffect": "None"
   },
   {
@@ -23,7 +24,9 @@
     "DurationDays": 45,
     "BaseSuccessProbability": 0.70,
     "RewardPrestige": 15,
-    "RewardTechBonus": { "research_speed": 0.02 }
+    "RewardTechBonus": { "research_speed": 0.02 },
+    "RewardTension": 3,
+    "MilitaryEffect": "None"
   },
   {
     "Id": "s3_communication_satellite",
@@ -37,6 +40,7 @@
     "RewardPrestige": 10,
     "RewardTechBonus": {},
     "RewardSatisfaction": { "military": 5 },
+    "RewardTension": 3,
     "MilitaryEffect": "ReconSatellite"
   },
   {
@@ -49,7 +53,9 @@
     "DurationDays": 75,
     "BaseSuccessProbability": 0.55,
     "RewardPrestige": 20,
-    "RewardTechBonus": { "research_speed": 0.01 }
+    "RewardTechBonus": { "research_speed": 0.01 },
+    "RewardTension": 4,
+    "MilitaryEffect": "None"
   },
   {
     "Id": "s5_lunar_lander",
@@ -61,7 +67,9 @@
     "DurationDays": 90,
     "BaseSuccessProbability": 0.50,
     "RewardPrestige": 25,
-    "RewardTechBonus": { "research_speed": 0.01 }
+    "RewardTechBonus": { "research_speed": 0.01 },
+    "RewardTension": 5,
+    "MilitaryEffect": "None"
   },
   {
     "Id": "s6_human_orbit",
@@ -75,6 +83,7 @@
     "RewardPrestige": 30,
     "RewardTechBonus": { "research_speed": 0.02 },
     "RewardSatisfaction": { "youth": 10, "military": 5 },
+    "RewardTension": 6,
     "MilitaryEffect": "None"
   },
   {
@@ -87,7 +96,9 @@
     "DurationDays": 120,
     "BaseSuccessProbability": 0.45,
     "RewardPrestige": 40,
-    "RewardTechBonus": { "research_speed": 0.02 }
+    "RewardTechBonus": { "research_speed": 0.02 },
+    "RewardTension": 7,
+    "MilitaryEffect": "None"
   },
   {
     "Id": "s8_moon_landing",
@@ -101,6 +112,7 @@
     "RewardPrestige": 60,
     "RewardTechBonus": { "research_speed": 0.03 },
     "RewardSatisfaction": { "youth": 10, "military": 10 },
+    "RewardTension": 8,
     "MilitaryEffect": "None"
   },
   {
@@ -115,6 +127,7 @@
     "RewardPrestige": 35,
     "RewardTechBonus": { "research_speed": 0.02 },
     "RewardSatisfaction": {},
+    "RewardTension": 8,
     "MilitaryEffect": "AntiSatelliteWeapon"
   },
   {
@@ -127,6 +140,8 @@
     "DurationDays": 240,
     "BaseSuccessProbability": 0.30,
     "RewardPrestige": 100,
-    "RewardTechBonus": { "research_speed": 0.05 }
+    "RewardTechBonus": { "research_speed": 0.05 },
+    "RewardTension": 10,
+    "MilitaryEffect": "None"
   }
 ]

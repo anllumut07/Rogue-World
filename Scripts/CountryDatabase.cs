@@ -47,6 +47,8 @@ public static class CountryDatabase
 
     private static Dictionary<string, CountryData> _byId = new();
     private static bool _loaded = false;
+    private static int _cacheVersion = 0;
+    private static CountryData[] _cachedAll = null;
 
     // GeoJSON'dan Id → (Name, Capital) cache'i (senaryo bağımsız, bir kez yüklenir)
     private static Dictionary<string, (string Name, string Capital)> _geoNames = new();
@@ -67,13 +69,24 @@ public static class CountryDatabase
 
         data = GenerateFallback(id, string.IsNullOrEmpty(name) ? id : name);
         _byId[id] = data;
+        InvalidateAllCache();
         return data;
     }
 
     public static IEnumerable<CountryData> All()
     {
         EnsureLoaded();
-        return _byId.Values.OrderBy(c => c.Id, StringComparer.Ordinal);
+        if (_cachedAll == null)
+        {
+            _cachedAll = _byId.Values.OrderBy(c => c.Id, StringComparer.Ordinal).ToArray();
+        }
+        return _cachedAll;
+    }
+
+    internal static void InvalidateAllCache()
+    {
+        _cacheVersion++;
+        _cachedAll = null;
     }
 
     // HOI4 takma adını (SOV vb.) veri dosyasındaki ISO A3'e çevirir.
@@ -225,6 +238,7 @@ public static class CountryDatabase
                         _byId[data.Id] = data;
                         count++;
                     }
+                    InvalidateAllCache();
                 }
                 GD.Print($"CountryDatabase hazır: {count} ülke (modern ham girdi + formüller, senaryo: {ScenarioSystem.ActiveId}).");
             }
@@ -239,6 +253,7 @@ public static class CountryDatabase
                         _byId[c.Id] = c;
                         count++;
                     }
+                InvalidateAllCache();
                 GD.Print($"CountryDatabase hazır: {count} ülke verisi yüklendi (senaryo: {ScenarioSystem.ActiveId}).");
             }
         }
@@ -490,6 +505,7 @@ public static class CountryDatabase
         _byId.Clear();
         _loaded = false;
         _formulasCached = null; // M17.4: formül cache'i de senaryoya bağlı
+        InvalidateAllCache();
     }
 
     // M17.1: Senaryo verisi yükle (ülke gerekmez) — LogLoadCountsForAll için
@@ -506,6 +522,7 @@ public static class CountryDatabase
         foreach (var c in countries)
             if (c?.Id != null) _byId[c.Id] = c;
         _loaded = true;
+        InvalidateAllCache();
         GD.Print($"CountryDatabase: {_byId.Count} ülke state'i yüklendi (save/load)");
     }
 }

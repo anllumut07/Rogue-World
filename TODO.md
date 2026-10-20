@@ -578,4 +578,60 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 ---
 
+### 📋 Milestone 37: Uluslararası Örgütler (NATO, AB, BM, BRICS, ŞİO vb.)
+
+**Hedef:** Uluslararası örgütleri kodda modellemek; üyelik, toplantı gündemi, kolektif savunma (Madde 5) ve yaptırım koordinasyonu. Tasarım: `Design/M17B_uluslararasi_orgutler.md`.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 37.1 | `Data/organizations.json`: 9 örgüt (NATO, EU, UN/BM, BRICS, SCO/ŞİO, AU, ASEAN, Arab League, OPEC) — Id, Name, Type, FoundedDate, HeadquartersCountryId, Members, SpecialRules | JSON geçerli, başlangıçta kayıt sayısı `GD.Print` ile loglanır (`IncludeFields=true`) | [ ] |
+| 37.2 | `Scripts/OrganizationSystem.cs`: üyelik yönetimi (katılma/ayrılma), Madde 5 kolektif savunma, toplantı gündemi (zirve/bakanlar/kriz), AI oy verme | Üyelik değişimi doğru, Madde 5 tetiklenir, `--organization-test` PASS | [ ] |
+| 37.3 | Avantaj/ceza çarpanları: NATO +%10 askeri verimlilik, AB tek pazar ticaret +%15, BM meşruiyet +%5, vb. | Çarpanlar ilgili göstergelere yansır, panelde görünür | [ ] |
+| 37.4 | Save/Load entegrasyonu: `SaveFile.Organization` + `SaveLoadTest` özeti | `--save-load-test --scenario=modern_world` A==B PASS, organization state kaydedilir | [ ] |
+| 37.5 | Oyuncu arayüzü: örgüt paneli (üyeler, gündem, oy kullanma/lobi) | Panel 1152x648'e sığar, `MouseFilter.Stop` backdrop, ESC kapatır | [ ] |
+
+---
+
+### 📋 Milestone 38: Bilinen Sorunları Giderme ve Kaydet/Yükle Regresyonu
+
+**Hedef:** Kalan bilinen sorunları düzeltmek ve iki senaryoda (historical_1936, modern_world) save/load A==B determinizmini tekrar doğrulamak.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 38.1 | M16: Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılsın; yükleme sonrası bekleyen bildirimler korunur | `--save-load-test` sonrası NEXT EVENT kuyruğu A==B, bildirim kaybolmaz | [ ] |
+| 38.2 | M16: Ajanda efektleri (MinisterLoyaltyBonus hariç) ilgili sisteme bağlanır, sadece loglanmaz | Her efekt etkili sistemde uygulanır, testle doğrulanır | [ ] |
+| 38.3 | İl komşuluğu: ülke sınırlarını aşan komşular (deniz/liman bağlantısı) eklenir | Komşuluk grafiği sınır aşımı destekler, `--province-test` PASS | [ ] |
+| 38.4 | `ElectionSystem`/`ElectionCampaignSystem` çift başlatma (çift log satırı) düzeltilir | Tek başlatma onaylanır, tek log satırı | [ ] |
+| 38.5 | Kaydet/Yükle regresyonu: historical_1936 + modern_world A==B | İki senaryoda da `--save-load-test` A==B PASS, `dotnet build` 0/0 | [ ] |
+
+---
+
+### 📋 Milestone 39: Savaş ve İkmal Sistemi Derinlemesi
+
+**Hedef:** M7'de soyutlanan savaş sistemine ikmal hattı, deniz invazyonu ve ordu morali eklenir.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 39.1 | İkmal hattı (supply): ordular için ikmal kaynağı, iksirsizlik cezası (savaş gücü düşer) | İkssiz orduda ceza uygulanır, `--war-test` PASS | [ ] |
+| 39.2 | Deniz invazyonu / amfibiy operasyon: denizden il işgali, filo gerektirir | Denizden saldırı doğru hesaplanır, `--naval-invasion-test` PASS | [ ] |
+| 39.3 | Ordu moralı: 0-100, savaşla düşer, düşük moralle saldırı cezası | Moral geçerli aralıkta, düşük moralle ceza uygulanır | [ ] |
+| 39.4 | Hava üstünlüğüBonus: hava kontrollü illerde askerî etkiye çarpan | Hava üstünlüğü saldırı/savunma çarpanı olarak uygulanır | [ ] |
+| 39.5 | Save/Load: ikmal, morali, deniz invazyon state kaydedilir | `--save-load-test` A==B PASS | [ ] |
+
+---
+
+### 📋 Milestone 40: Son Test, Performans ve GitHub Senkronizasyonu
+
+**Hedef:** Tüm sistemlerin birlikte çalışması, performans eşikleri ve repo'nun GitHub'a senkronize edilmesi.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 40.1 | Tam regresyon: tüm `--...-test` kancaları sırayla çalışır, çıkış kodu 0 | Tüm testler PASS, `dotnet build` 0/0 | [ ] |
+| 40.2 | Performans: tick başına ms, hız 5'te FPS > 30, 10 oyun yılı soak | Ortalama tick < 50 ms, FPS > 30, bellek artışı < %20 | [ ] |
+| 40.3 | Kod temizliği: test-only kod production'dan ayrılır, `--focus-test` vb. normal oyunda çalışmaz | Test kancaları sadece `--...-test` arg ile etkin | [ ] |
+| 40.4 | Tüm değişiklikler commit + `git push origin gece-calisma` | Tree temiz, remote ile senkron | [ ] |
+| 40.5 | `GECE-RAPOR.md` son girişi: "tüm planlanmış iş bitti" | Rapor güncel, tamamlandı işareti var | [ ] |
+
+---
+
 ## Notlar

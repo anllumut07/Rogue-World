@@ -23,7 +23,8 @@ $count++
 $count | Out-File -FilePath $CountFile -Encoding utf8
 
 $StopFile  = Join-Path $RepoRoot "STOP.txt"
-$EndTime   = [datetime]'2026-10-21 10:00'
+$BitisFile = Join-Path (Join-Path $RepoRoot "tools") "bitis.txt"
+$EndTime   = [datetime](Get-Content $BitisFile -ErrorAction SilentlyContinue)
 
 if (Test-Path $StopFile) { exit 0 }
 if ((Get-Date) -ge $EndTime) { exit 0 }

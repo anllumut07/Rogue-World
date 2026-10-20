@@ -272,7 +272,10 @@ public partial class WorldMap : Node2D
         // M19.2: Seçim — kutu seçimi çerçevesi + seçili il vurguları
         DrawSelection();
 
-        // M19.3: Hareket emri rotaları (çizgi + hedef/ara nokta çemberleri)
+        // M32.5: İl sınırları — her il poligonunun etrafında ince çizgi
+        DrawProvinceBorders();
+
+        // M19.3: Hareket emri rotaları (çizgi + hedef/ara nokta çemberleri + ok baştan)
         DrawMovementPaths();
 
         // M19.6: Cephe hatları (düşman sınırları) + ofansif plan okları
@@ -312,7 +315,7 @@ public partial class WorldMap : Node2D
 
             if (!havePos) continue;
 
-            // M19.7: Birlik alanına göre farklı işaret (kara kırmızı, deniz mavi, hava sarı-kırmızı)
+            // M32.5: Birlik ikonu — daire içinde ok/elmas işareti (hareket yönünde)
             Color armyColor;
             float armyRadius;
             switch (army.Domain)
@@ -331,6 +334,21 @@ public partial class WorldMap : Node2D
                     break;
             }
             DrawCircle(drawPos, armyRadius, armyColor);
+
+            // Ok işareti: hareket yönünde (moving) veya sabit yukarı (idle)
+            Vector2 dir = Vector2.Up;
+            if (army.IsMoving && army.MovementPathIndex < army.WaypointIds.Count)
+            {
+                var start = _provinceById.GetValueOrDefault(army.ProvinceId);
+                var next = _provinceById.GetValueOrDefault(army.WaypointIds[army.MovementPathIndex]);
+                if (start != null && next != null)
+                    dir = (next.Centroid - start.Centroid).Normalized();
+            }
+            float iconR = armyRadius * 0.55f;
+            var tip = drawPos + dir * iconR;
+            var left = drawPos - dir * iconR * 0.5f + new Vector2(-dir.Y, dir.X) * iconR * 0.6f;
+            var right = drawPos - dir * iconR * 0.5f - new Vector2(-dir.Y, dir.X) * iconR * 0.6f;
+            DrawPolygon(new[] { tip, left, right }, new[] { armyColor, armyColor, armyColor });
         }
     }
 
@@ -1196,6 +1214,28 @@ public partial class WorldMap : Node2D
         }
     }
 
+    // M32.5: İl sınırları — her il poligonunun etrafında ince şeffaf çizgi.
+    // Çizim HaritaGirlenın _Draw()'unda DrawArmies'den önce çağrılır (sınırlar askerin altında).
+    private void DrawProvinceBorders()
+    {
+        if (_provinceNodes == null) return;
+        foreach (var kvp in _provinceNodes)
+        {
+            foreach (var node in kvp.Value)
+            {
+                if (!GodotObject.IsInstanceValid(node)) continue;
+                var polygon = node.Polygon;
+                if (polygon.Length < 2) continue;
+                for (int i = 0; i < polygon.Length; i++)
+                {
+                    var p1 = polygon[i];
+                    var p2 = polygon[(i + 1) % polygon.Length];
+                    DrawLine(p1, p2, new Color(0.25f, 0.25f, 0.25f, 0.35f), 0.75f);
+                }
+            }
+        }
+    }
+
     // M19.3/19.4: Sağ tık kısa tıklamasıyla seçili illardaki tüm orduları hedef ili hareket ettirir.
     // shift=true → hedefi mevcut rotanın sonuna ekler (ara nokta). false → yeni rota.
     // Dönüş: true = hareket emri verildi (savaş emri devreye girmez), false = yok.
@@ -1308,7 +1348,18 @@ public partial class WorldMap : Node2D
                 if (_provinceById.TryGetValue(pid, out var p)) pts.Add(p.Centroid);
             if (pts.Count < 2) continue;
             for (int i = 1; i < pts.Count; i++)
+            {
                 DrawLine(pts[i - 1], pts[i], new Color(0.2f, 0.7f, 1f, 0.85f), 2f);
+                // M32.5: Ok başı — hareket yönünü gösterir
+                var seg = (pts[i] - pts[i - 1]).Normalized();
+                if (seg != Vector2.Zero)
+                {
+                    var tip = pts[i];
+                    var back = pts[i] - seg * 7f;
+                    var perp = new Vector2(-seg.Y, seg.X) * 3f;
+                    DrawPolygon(new[] { tip, back + perp, back - perp }, new[] { new Color(0.2f, 0.7f, 1f, 0.85f), new Color(0.2f, 0.7f, 1f, 0.85f), new Color(0.2f, 0.7f, 1f, 0.85f) });
+                }
+            }
             for (int i = 0; i < pts.Count; i++)
             {
                 bool isLast = i == pts.Count - 1;

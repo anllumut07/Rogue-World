@@ -1730,6 +1730,24 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 **Dosyalar:** Yeni: `Scripts/MiniMapPanel.cs`. Değiştirilen: `Scripts/Game.cs`, `Scripts/WorldMap.cs`, `TODO.md` (32.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
 
 **Sonraki adım:** M32.5 Birlik ikonları, il sınırları, yol/okların görsel cilası.
+
+---
+
+### M32.5: Birlik İkonları, İl Sınırları, Yol/Ok Cilası — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- `Scripts/WorldMap.cs`:
+  - `DrawProvinceBorders()` (yeni): her il poligonunun etrafında ince şeffaf (0.35 alpha) 0.75px çizgi çizer; `_Draw()`'da `DrawArmies`'den önce çağrılır (sınırlar orduların altında).
+  - `DrawArmies()`: daire içinde hareket yönünde ok/üçgen işareti (moving) veya sabit yukarı (idle); üç renk (kara kırmızı, deniz mavi, hava sarı) korunuyor.
+  - `DrawMovementPaths()`: her hareket hattının sonuna ok başı (uç noktada üçgen) eklendi → hareket yönü açıkça görünür.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test --scenario=modern_world`: **SONUÇ: PASS ✓ (A == B)** — M32.5 yalnızca görsel, oyun durumu etkilemez, determinizm korunuyor.
+
+**Dosyalar:** Değiştirilen: `Scripts/WorldMap.cs`, `TODO.md` (32.5 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**Sonraki adım:** M32.6 Ana menü arka planı.
 ### M32.2: Deniz Görünümü — ✅ DONE (2026-10-20)
 
 **Değişiklikler:**

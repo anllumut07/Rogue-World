@@ -972,6 +972,8 @@ M27.1 (görüşma/zirve), M27.2 (anlaşmalar), M27.3 (basın toplantısı/TV/mit
 
 **M32.4 — ✅ DONE:** `Scripts/MiniMapPanel.cs` (yeni): sağ-alt köşede mini harita, ülke poligonları ölçekli çizim, sarı kamera dikdörtgeni, tıklamayla kamera kaydırma, +/- zoom butonları. `Scripts/Game.cs`: `_miniMap` eklendi. `Scripts/WorldMap.cs`: kamera üyeleri `internal`. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.
 
-**M32.5–32.6 — Bekliyor:** Birlik ikonları, il sınırları, yol/okların görsel cilası; ana menü arka planı henüz başlanmadı.
+**M32.5 — ✅ DONE:** `Scripts/WorldMap.cs`: `DrawProvinceBorders()` her il poligonunun etrafında ince şeffaf çizgi; `DrawArmies()` daire içinde hareket yönünde ok işareti (unit icon); `DrawMovementPaths()` hataların sonuna ok başı ekledi. `dotnet build` 0/0; `--save-load-test --scenario=modern_world` A==B PASS.
 
-Tüm M1–M32.4 görevleri tamamlandı; M32.5–32.6 bekliyor.
+**M32.6 — Bekliyor:** Ana menü arka planı (yavaş kayan görsel, üstünde koyu katman) henüz başlanmadı.
+
+Tüm M1–M32.5 görevleri tamamlandı; M32.6 bekliyor.

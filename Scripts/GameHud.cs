@@ -104,7 +104,7 @@ public partial class GameHud : CanvasLayer
         _countryLabel = new Label();
         _countryLabel.AddThemeFontSizeOverride("font_size", 20);
         _countryLabel.AddThemeColorOverride("font_color", new Color(0.85f, 0.66f, 0.22f));
-        _countryLabel.TooltipText = "Oyuncu ülke";
+        _countryLabel.TooltipText = "Player country";
         leftSection.AddChild(_countryLabel);
 
         // --- ORTA: Tarih + Hız göstergesi (butonlar) ---
@@ -115,7 +115,7 @@ public partial class GameHud : CanvasLayer
 
         _dateLabel = new Label();
         _dateLabel.AddThemeFontSizeOverride("font_size", 20);
-        _dateLabel.TooltipText = "Oyun tarihi";
+        _dateLabel.TooltipText = "Game date";
         centerSection.AddChild(_dateLabel);
 
         _stateLabel = new Label();
@@ -155,19 +155,19 @@ public partial class GameHud : CanvasLayer
         _ppLabel = new Label();
         _ppLabel.AddThemeFontSizeOverride("font_size", 18);
         _ppLabel.AddThemeColorOverride("font_color", new Color(0.5f, 0.9f, 0.5f));
-        _ppLabel.TooltipText = "Political Power (günlük +1.5)";
+        _ppLabel.TooltipText = "Political Power (daily +1.5)";
         rightSection.AddChild(_ppLabel);
 
         _stabilityLabel = new Label();
         _stabilityLabel.AddThemeFontSizeOverride("font_size", 18);
         _stabilityLabel.AddThemeColorOverride("font_color", new Color(0.5f, 0.8f, 1f));
-        _stabilityLabel.TooltipText = "Stability % (düşükse direniş riski)";
+        _stabilityLabel.TooltipText = "Stability % (low means resistance risk)";
         rightSection.AddChild(_stabilityLabel);
 
         _warSupportLabel = new Label();
         _warSupportLabel.AddThemeFontSizeOverride("font_size", 18);
         _warSupportLabel.AddThemeColorOverride("font_color", new Color(1f, 0.6f, 0.4f));
-        _warSupportLabel.TooltipText = "War Support % (savaş performansını etkiler)";
+        _warSupportLabel.TooltipText = "War Support % (affects war performance)";
         rightSection.AddChild(_warSupportLabel);
 
         // RESEARCH butonu
@@ -304,7 +304,7 @@ public partial class GameHud : CanvasLayer
 
         _selectedLabel = new Label();
         _selectedLabel.AddThemeFontSizeOverride("font_size", 16);
-        _selectedLabel.TooltipText = "Seçili ülke";
+        _selectedLabel.TooltipText = "Selected country";
         leftBottom.AddChild(_selectedLabel);
 
         var rightBottom = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
@@ -315,7 +315,7 @@ public partial class GameHud : CanvasLayer
         _speedTextLabel = new Label();
         _speedTextLabel.AddThemeFontSizeOverride("font_size", 16);
         _speedTextLabel.AddThemeColorOverride("font_color", Colors.Gray);
-        _speedTextLabel.TooltipText = "Mevcut oyun hızı";
+        _speedTextLabel.TooltipText = "Current game speed";
         rightBottom.AddChild(_speedTextLabel);
 
         // HUD'u sahneye ekle (üst ve alt margin)
@@ -368,7 +368,7 @@ public partial class GameHud : CanvasLayer
         _pauseButton.Text = paused ? "PLAY" : "PAUSE";
         _stateLabel.Text = paused ? "PAUSED" : "";
         SyncSpeedButtons();
-        _speedTextLabel.Text = paused ? "Hız: Pause" : $"Hız: {speed}x";
+        _speedTextLabel.Text = paused ? "Speed: Pause" : $"Speed: {speed}x";
     }
 
     private void SyncSpeedButtons()
@@ -380,11 +380,11 @@ public partial class GameHud : CanvasLayer
     // WorldMap'ten seçim sinyali için public hook
     public void OnCountrySelected(string name)
     {
-        _selectedLabel.Text = $"Seçili: {name}";
+        _selectedLabel.Text = $"Selected: {name}";
     }
 
     public void OnCountryDeselected()
     {
-        _selectedLabel.Text = "Seçili: —";
+        _selectedLabel.Text = "Selected: —";
     }
 }

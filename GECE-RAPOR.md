@@ -1250,5 +1250,27 @@ Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.
 3. Bilinen sorun: yok.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0).
 
-**TODO.md:** 34.1, 34.2, 34.3, 34.4 → `[x]`. M34 tamamen tamamlandı. `git commit` + `git push origin gece-calisma` yapılacak.
+**TODO.md:** 34.1, 34.2, 34.3, 34.4 → `[x]`. M34 tamamen tamamlandı. `git commit` + `git push origin gece-calisma` yapıldı.
 
+
+## GECE-RAPOR — 2026-10-20 (gece-calisma dalı, otonom, M35.4 tamamlandı)
+
+**STOP.txt kontrolü:** yok — stop kancası engellemez.
+
+**ADIM — M35.4 (UI metinlerini düzelt, İngilizce UI):** Türkçe UI metinleri ElectionPanel.cs ve GameHud.cs'de İngilizceye çevrildi.
+
+**İçerik:**
+- `Scripts/ElectionPanel.cs`: başlık "ELECTIONS — Election Calendar and Vote Prediction", "Country:", "FULFILL PROMISE", "CLOSE", "No elections...", "Vote prediction: —", "Public satisfaction: —", "Next election: ...", "Predicted ruling party vote share: ...", "Average public satisfaction across 9 social groups: ...", "Factors: ...", "Active campaign bonus: +X votes", "Active promises (...)", "No active promises.", GD.Print debug log.
+- `Scripts/GameHud.cs`: tooltip'ler "Player country", "Game date", "Political Power (daily +1.5)", "Stability % (low means resistance risk)", "War Support % (affects war performance)", "Selected country", "Current game speed"; metinler "Speed: Pause" / "Speed: Nx", "Selected: {name}" / "Selected: —".
+
+**Test Sonuçları:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test --scenario=modern_world --speed=5`: **SONUÇ: PASS ✓ (A == B)**.
+
+**ÖZET (M35.4 — 2026-10-20)**
+1. Değişen dosyalar: `Scripts/ElectionPanel.cs`, `Scripts/GameHud.cs`, `TODO.md` (35.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — 35.4 PASS.
+3. Bilinen sorun: M35.3 mouse regresyon listesi henüz yazılmadı.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--save-load-test` (A==B).
+
+**TODO.md:** 35.1, 35.2, 35.4 → `[x]`. 35.3 bekliyor. `git commit` + `git push origin gece-calisma` yapılacak.

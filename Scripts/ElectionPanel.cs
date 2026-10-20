@@ -101,7 +101,7 @@ public partial class ElectionPanel : Control
         _root.AddChild(_content);
 
         // Başlık
-        _titleLabel = new Label { Text = "ELECTIONS — Seçim Takvimi ve Oy Tahmini" };
+        _titleLabel = new Label { Text = "ELECTIONS — Election Calendar and Vote Prediction" };
         _titleLabel.AddThemeFontSizeOverride("font_size", 22);
         _titleLabel.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.9f));
         _content.AddChild(_titleLabel);
@@ -109,7 +109,7 @@ public partial class ElectionPanel : Control
         // Ülke seçici
         var selRow = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         selRow.AddThemeConstantOverride("separation", 8);
-        var selLabel = new Label { Text = "Ülke:" };
+        var selLabel = new Label { Text = "Country:" };
         selLabel.AddThemeFontSizeOverride("font_size", 16);
         selRow.AddChild(selLabel);
 
@@ -157,7 +157,7 @@ public partial class ElectionPanel : Control
         _promisesLabel.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.5f));
         _content.AddChild(_promisesLabel);
 
-        _fulfillPromiseBtn = new Button { Text = "VAATİ YERİNE GETİR", FocusMode = Control.FocusModeEnum.None, Visible = false };
+        _fulfillPromiseBtn = new Button { Text = "FULFILL PROMISE", FocusMode = Control.FocusModeEnum.None, Visible = false };
         _fulfillPromiseBtn.Pressed += OnFulfillPromise;
         UITheme.AddHoverScale(_fulfillPromiseBtn);
         _content.AddChild(_fulfillPromiseBtn);
@@ -166,7 +166,7 @@ public partial class ElectionPanel : Control
 
         // Kapat butonu
         var btnRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
-        _closeButton = new Button { Text = "KAPAT", FocusMode = Control.FocusModeEnum.None };
+        _closeButton = new Button { Text = "CLOSE", FocusMode = Control.FocusModeEnum.None };
         _closeButton.Pressed += Close;
         btnRow.AddChild(_closeButton);
         UITheme.AddHoverScale(_closeButton);
@@ -215,29 +215,29 @@ public partial class ElectionPanel : Control
         // Seçim yoksa (monarşi / tek parti)
         if (p.DaysUntilElection < 0)
         {
-            _nextElectionLabel.Text = "Seçim: yok (monarşi / tek parti rejimi — M22.4 parti Kongresi ile yönetilir)";
-            _votePredictionLabel.Text = "Oy tahmini: —";
-            _breakdownLabel.Text = "Halk memnuniyeti: —";
-            _factorsLabel.Text = "Genel seçim yok — iktidar partisi partı kongresi üzerinden yönetilir.";
+            _nextElectionLabel.Text = "No elections (monarchy / one-party regime — governed by M22.4 party Congress)";
+            _votePredictionLabel.Text = "Vote prediction: —";
+            _breakdownLabel.Text = "Public satisfaction: —";
+            _factorsLabel.Text = "No general election — the ruling party is governed through the party Congress.";
             return;
         }
 
         // Sayaç
-        string dueText = p.ElectionDue ? " — SEÇİM GÜNÜ (M23.3 ile seçim gerçekleştirilebilir)" : "";
-        _nextElectionLabel.Text = $"Bir sonraki seçim: {p.DaysUntilElection} gün sonra{dueText} (dönem: {p.TermLengthYears} yıl, {p.GovernmentType})";
+        string dueText = p.ElectionDue ? " — ELECTION DAY (election can be held per M23.3)" : "";
+        _nextElectionLabel.Text = $"Next election: {p.DaysUntilElection} days{dueText} (term: {p.TermLengthYears} years, {p.GovernmentType})";
 
         // Oy tahmini
         Color voteColor = p.PredictedVote >= 60 ? new Color(0.5f, 1f, 0.5f)
                       : p.PredictedVote >= 40 ? new Color(1f, 1f, 0.4f)
                       : new Color(1f, 0.5f, 0.5f);
         _votePredictionLabel.AddThemeColorOverride("font_color", voteColor);
-        _votePredictionLabel.Text = $"Tahmini iktidar oy oranı: {p.PredictedVote:F1}% (taban memnuniyet: {p.BaseSatisfaction:F1})";
+        _votePredictionLabel.Text = $"Predicted ruling party vote share: {p.PredictedVote:F1}% (base satisfaction: {p.BaseSatisfaction:F1})";
 
         // Memnuniyet detayı
         var groups = PublicSatisfactionSystem.Groups;
         var top = groups.OrderByDescending(g => PublicSatisfactionSystem.GetSatisfaction(p.CountryId, g.Id)).First();
         var bottom = groups.OrderBy(g => PublicSatisfactionSystem.GetSatisfaction(p.CountryId, g.Id)).First();
-        _breakdownLabel.Text = $"9 toplum grubu ortalama memnuniyeti: {p.BaseSatisfaction:F1} | En yüksek: {top.Name} ({PublicSatisfactionSystem.GetSatisfaction(p.CountryId, top.Id):F0}) | En düşük: {bottom.Name} ({PublicSatisfactionSystem.GetSatisfaction(p.CountryId, bottom.Id):F0})";
+        _breakdownLabel.Text = $"Average public satisfaction across 9 social groups: {p.BaseSatisfaction:F1} | Highest: {top.Name} ({PublicSatisfactionSystem.GetSatisfaction(p.CountryId, top.Id):F0}) | Lowest: {bottom.Name} ({PublicSatisfactionSystem.GetSatisfaction(p.CountryId, bottom.Id):F0})";
 
         // Faktörler
         double gdpGrowth = StatisticsSystem.GetValue(p.CountryId, "gdp_growth");
@@ -255,21 +255,21 @@ public partial class ElectionPanel : Control
         }
 
         _factorsLabel.Text =
-            $"Faktörler: GDP büyümesi %{gdpGrowth:F1} | Bütçe açığı %{deficit:F1} | Devlet borcu %{debt:F0} | Enflasyon %{inflation:F1} | İşsizlik %{unemployment:F1} | Aktif skandal: {scandalCount}";
+            $"Factors: GDP growth %{gdpGrowth:F1} | Budget deficit %{deficit:F1} | State debt %{debt:F0} | Inflation %{inflation:F1} | Unemployment %{unemployment:F1} | Active scandals: {scandalCount}";
 
         // Kampanya bonusu
-        _campaignBonusLabel.Text = $"Aktif kampanya bonusu: +{p.CampaignBonus:F1} oy";
+        _campaignBonusLabel.Text = $"Active campaign bonus: +{p.CampaignBonus:F1} votes";
 
         // Aktif vaatler
         var promises = ElectionCampaignSystem.GetActivePromises(p.CountryId);
         if (promises.Count > 0)
         {
-            _promisesLabel.Text = $"Aktif vaatler ({promises.Count}): {string.Join(", ", promises.Select(pr => pr.ActionName))}";
+            _promisesLabel.Text = $"Active promises ({promises.Count}): {string.Join(", ", promises.Select(pr => pr.ActionName))}";
             _fulfillPromiseBtn.Visible = true;
         }
         else
         {
-            _promisesLabel.Text = "Aktif vaat yok.";
+            _promisesLabel.Text = "No active promises.";
             _fulfillPromiseBtn.Visible = false;
         }
     }
@@ -280,7 +280,7 @@ public partial class ElectionPanel : Control
         var promises = ElectionCampaignSystem.GetActivePromises(_selectedCountryId);
         if (promises.Count == 0) return;
         ElectionCampaignSystem.FulfillPromise(_selectedCountryId, 0);
-        GD.Print($"[ElectionPanel] {_selectedCountryId}: vaat yerine getirildi '{promises[0].ActionName}'");
+        GD.Print($"[ElectionPanel] {_selectedCountryId}: promise fulfilled '{promises[0].ActionName}'");
         Refresh();
     }
 }

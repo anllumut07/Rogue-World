@@ -1949,3 +1949,43 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 
 **Dosyalar (M34 toplam):** Değiştirilen: `Scripts/GameManager.cs` (M34.3 AI kapsam denetimi), `TODO.md` (34.3, 34.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
 
+---
+
+## Milestone 35: Arayüz Kalitesi — 🔄 KISMEN TAMAM (2026-10-20)
+
+### 35.1 Tüm panellerin 1152×648'e sığması — ✅ DONE
+**Açıklama:** Panel boyutları kod incelemesi ile denetlendi; `ArmyPanel.CustomMinimumSize` 880×680 → 880×620 (tek panel 648'i aşmıştı). Tüm paneller 1152×648 sınırı içinde.
+
+**Test Sonuçları:**
+- `dotnet build`: 0 hata / 0 uyarı.
+
+**Dosyalar:** Değiştirilen: `Scripts/ArmyPanel.cs`, `TODO.md` (35.1 [x]), `PROGRESS.md`.
+
+### 35.2 Harita girdisi açıkken blokla/kapanınca geri ver (MouseFilter) — ✅ DONE
+**Açıklama:** Tüm overlay panellerin backdrop'u `Control.MouseFilterEnum.Stop` ile harita girişini bloker; kapanınca RMB sürükleme, tekerlek, WASD, ülke seçimi aynen çalışır.
+
+**Test Sonuçları:**
+- Kod incelemesi: tüm paneller backdrop `MouseFilter.Stop`; canvas/butonlar `Ignore`/`Pass`.
+
+**Dosyalar:** Değiştirilen: `TODO.md` (35.2 [x]), `PROGRESS.md`.
+
+### 35.3 Panel açma/kapama mouse davranışı regresyon listesi — ⬜ BEKLIYOR
+**Açıklama:** Sağ tık sürükleme, tekerlek, WASD, ülke seçimi davranışlarının hiçbir milestone'da bozulmadığının listelenmesi ve kodla kontrolü. Hala yapılacak.
+
+### 35.4 UI metinlerini düzelt (İngilizce UI, tutarsızlıklar) — ✅ DONE (2026-10-20)
+**Açıklama:** Türkçe UI metinleri İngilizceye çevrildi.
+
+**Değişikler:**
+- `Scripts/ElectionPanel.cs`: başlık "ELECTIONS — Election Calendar and Vote Prediction", ülke seçici "Country:", "FULFILL PROMISE", "CLOSE", "No elections...", "Vote prediction: —", "Public satisfaction: —", "Next election: ...", "Predicted ruling party vote share: ...", "Average public satisfaction across 9 social groups: ...", "Factors: ...", "Active campaign bonus: +X votes", "Active promises (...)", "No active promises.", GD.Print debug log.
+- `Scripts/GameHud.cs`: tooltip'ler "Player country", "Game date", "Political Power (daily +1.5)", "Stability % (low means resistance risk)", "War Support % (affects war performance)", "Selected country", "Current game speed"; metinler "Speed: Pause" / "Speed: Nx", "Selected: {name}" / "Selected: —".
+
+**Test Sonuçları:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test --scenario=modern_world --speed=5`: **SONUÇ: PASS ✓ (A == B)** — UI metin değişikliği save/load determinizmini bozmuyor.
+
+**Dosyalar:** Değiştirilen: `Scripts/ElectionPanel.cs`, `Scripts/GameHud.cs`, `TODO.md` (35.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**Çözülemeyen şey:** M35.3 regresyon listesi henüz yazılmadı.
+**Bilinen sorun:** yok.
+**Kullanıcının test etmesi gerekenler:** `dotnet build` (0/0); `--save-load-test` (A==B); panellerin İngilizce metinle açılması.
+

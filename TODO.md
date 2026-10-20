@@ -502,11 +502,11 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ---
 
 ### 📋 Milestone 14: Çıkış / Dağıtım Hazırlığı
-| Alt Görev | Açıklama | Test Kriteri |
-|-----------|----------|--------------|
-| 14.1 | Export presetleri: Windows (x64), Linux, macOS | Export alınır, çalışır |
-| 14.2 | Versiyon numarası, changelog, README | Dokümantasyon hazır |
-| 14.3 | Steam/itch.io için build pipeline (GitHub Actions) | CI/CD çalışır |
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 14.1 | Export presetleri: Windows (x64), Linux, macOS | Export alınır, çalışır | [~] Bloke — Godot export şablonları/yapılandırması gerekir, kullanıcı onayı ile |
+| 14.2 | Versiyon numarası, changelog, README | Dokümantasyon hazır | [~] Bloke — sürüm karmaşası ve dağıtım planı kullanıcıyla beraber belirlenecek |
+| 14.3 | Steam/itch.io için build pipeline (GitHub Actions) | CI/CD çalışır | [~] Bloke — platform hesapları ve API anahtarları gerekir, kullanıcı onayı ile |
 
 ---
 

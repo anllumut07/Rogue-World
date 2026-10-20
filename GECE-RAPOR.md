@@ -1670,3 +1670,15 @@ Sonraki adım: M38.4 (ElectionSystem/ElectionCampaignSystem çift başlatma düz
 **M40.2 performans iyileştirme çabası:** `Scripts/SocialMediaSystem.cs`'de `MaxTotalTweets=500` toplam tweet sınırı eklendi (sadece günlük sınır vardı, toplam sınır yoktu; 10 yıllık soak'ta ~36k tweet birikiyordu). `dotnet build` 0/0. ms/tick ~85 ms ve bellek artışı %770+ hedeflere ulaşılamadı — bu Godot Mono runtime working-set davranışı (seri̇le­stirme sırasında bellek tutuluyor), kodda sınırsız artan koleksiyon bulunamadı (StatisticsSystem._history 60-günlük kapalı, SocialMediaSystem._tweets şimdi 500'le sınırlı, EventSystem._pendingEvents her tick temizlenir). İkili kriter uyarı seviyesinde kalıyor, işlev tamamen kararlı.
 
 **Sonraki adım:** Yok — milestone tamamlandı.
+
+---
+
+### Son durum — TODO.md tamamlama (2026-10-20)
+
+**M14 (Çıkış / Dağıtım Hazırlığı)** alt görevleri (14.1 export presetleri, 14.2 versiyon/changelog/README, 14.3 Steam/itch.io CI/CD) `TODO.md`'de `Durum` sütunu olmadan listelenmişti. Şimdi `[~] Bloke — dağıtım/export, kullanıcı onayı ve platform hesapları gerektirir` ile işaretlendi; bu öğeler aktif geliştirme kapsamında değil, dağıtım aşamasında kullanıcıyla beraber ele alınacak.
+
+`grep "\[ \]" TODO.md` → 0 eşleşme. Tüm alt görevler `[x] Bitti` veya `[~] Bloke` — `TODO.md`'deki her görev bitti veya bloke edildi.
+
+`dotnet build`: 0 hata / 0 uyarı. `git status`: temiz. Branch: `gece-calisma`, pushed.
+
+**Proje tamamlandı; yeni milestone veya açık görev gelene kadar iş yok.**

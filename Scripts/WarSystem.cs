@@ -351,8 +351,10 @@ public static class WarSystem
             var tpl = ArmySystem.GetTemplate(div.TemplateId);
             if (tpl == null) continue;
             float orgFrac = div.OrgPercent;
-            attP += tpl.Attack * orgFrac;
-            defP += tpl.Defense * orgFrac;
+            // M39.1: İkmal cezası — ikmalsız ordular daha zayıf saldırır/savunulur.
+            float supMult = SupplySystem.GetCombatMultiplier(div.ArmyId);
+            attP += tpl.Attack * orgFrac * supMult;
+            defP += tpl.Defense * orgFrac * supMult;
         }
         // General becerisi: +%5/skill
         float skill = GetAverageGeneralSkill();

@@ -798,6 +798,8 @@ public partial class GameManager : Node
         // M7: Ordu ve savaş sistemleri
         ArmySystem.DailyTick();
         WarSystem.DailyTick();
+        // M39.1: İkmal günlük tick'i (ordular için ikmal seviyesi güncellenir).
+        SupplySystem.DailyTick();
 
         // M8: Diplomasi sistemi
         DiplomacySystem.DailyTick();
@@ -1005,6 +1007,8 @@ public partial class GameManager : Node
         ArmySystem.Initialize(data);
         // Savaş sistemini sıfırla (M7)
         WarSystem.Initialize(data);
+        // İkmal sistemini başlat (M39.1)
+        SupplySystem.Initialize(data);
         // Diplomasi sistemini başlat (M8)
         DiplomacySystem.Initialize(data);
         // M17A: Casus belli sistemini başlat — gerekçe/iddia/ateşkes/meşruiyet
@@ -1125,6 +1129,9 @@ public partial class GameManager : Node
 
         // M37: Uluslararası örgütleri yeni oyun için sıfırla (üyelikler veri dosyasından yeniden yüklenir).
         OrganizationSystem.ResetForNewGame();
+
+        // M39.1: İkmal sistemini yeni oyun için sıfırla.
+        SupplySystem.ResetForNewGame();
 
         // M29.5: Casus kiralama havuzunu yeni oyun için başlat.
         EspionageSystem.InitializeRentalPool(TotalDays);

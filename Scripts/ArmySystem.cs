@@ -762,6 +762,8 @@ public static class ArmySystem
 
     public static DivisionTemplate GetTemplate(string id) => _templates.GetValueOrDefault(id);
 
+    public static Division GetDivision(string id) => _divisions.Find(d => d.Id == id);
+
     public static List<Division> GetDivisionsInArmy(string armyId) =>
         _divisions.Where(d => d.ArmyId == armyId).ToList();
 

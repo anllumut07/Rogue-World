@@ -2126,4 +2126,23 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 
 **Sonraki adım:** M39 — Savaş ve İkmal Sistemi Derinlemesi (ikmal hattı, deniz invazyonu, ordu morali, hava üstünlüğü).
 
+### M39.1: İkmal Hattı (Supply) — ✅ DONE (2026-10-20)
+
+**Değişiklikler:**
+- Yeni dosya: `Scripts/SupplySystem.cs` — statik sınıf, her ordu için ikmal seviyesi (0-100) takibi. Dost toprakta günde +8, düşman/topraksız yerde günde -12; eşik %20'nin altı = "ikmalsiz". `GetCombatMultiplier(armyId)` 0.6 (ikminsiz) … 1.0 (tam ikmal) döndürür.
+- `Scripts/ArmySystem.cs`: `GetDivision(string id)` public getter eklendi.
+- `Scripts/WarSystem.cs`: `ResolveCombatDay`'de her tümenin katkısı ordunun ikmal çarpanıyla çarpılır (ikminsiz ordular daha zayıf saldırır/savunulur).
+- `Scripts/GameManager.cs`: `SupplySystem.Initialize(data)` (Initialize), `SupplySystem.ResetForNewGame()` (ResetForNewGame), `SupplySystem.DailyTick()` (DailyTick) entegre edildi.
+- `Scripts/SaveSystem.cs`: `SaveFile.Supply` alanı + `SupplySave`/`SupplyEntry` DTO'ları eklendi; kaydet/yükle çağrıları eklendi.
+
+**Testler:**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--save-load-test` (historical_1936): PASS ✓ (A == B) — SupplySystem state kaydedilir/yüklenir ("state yüklendi — Ordular=1").
+- `--save-load-test --scenario=modern_world`: PASS ✓ (A == B).
+- `--war-test=POL` (doğrudan Godot, `--country=GER --speed=5`): Savaş ilanı, ofansif emrİ ve çatışma çözümü hata çalışmadı; SupplySystem "DEU için hazır — ordular=1" logladı.
+
+**Dosyalar:** `Scripts/SupplySystem.cs` (yeni), `Scripts/ArmySystem.cs`, `Scripts/WarSystem.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (39.1 [x]), `PROGRESS.md` (M39.1 DONE), `GECE-RAPOR.md`.
+
+**Sonraki adım:** M39.2 (Deniz invazyonu / amfibiy operasyon).
+
 

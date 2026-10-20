@@ -59,6 +59,7 @@ public static class SaveSystem
         public EquipmentSave Equipment { get; set; }
         public ArmySave Army { get; set; }
         public WarSave War { get; set; }
+        public SupplySave Supply { get; set; } // M39.1: ikmal durumu
         public DiplomacySave Diplomacy { get; set; }
         public CasusBelliSave CasusBelli { get; set; } // M17A: gerekçe/ateşkes/meşruiyet
         public FocusSave Focus { get; set; }
@@ -182,6 +183,20 @@ public static class SaveSystem
         public long EnemyCasualties { get; set; }
         public bool IsEnded { get; set; }
         public string EndReason { get; set; }
+    }
+
+    // ===== Supply DTOs (M39.1) =====
+    public class SupplySave
+    {
+        public SupplyEntry[] States { get; set; }
+    }
+    public class SupplyEntry
+    {
+        public string ArmyId { get; set; }
+        public string CountryId { get; set; }
+        public string ProvinceId { get; set; }
+        public float SupplyLevel { get; set; }
+        public int DaysOutOfSupply { get; set; }
     }
 
     // ===== Diplomacy DTOs =====
@@ -432,6 +447,7 @@ public static class SaveSystem
             Equipment = EquipmentSystem.GetSaveData(),
             Army = ArmySystem.GetSaveData(),
             War = WarSystem.GetSaveData(),
+            Supply = SupplySystem.GetSaveData(), // M39.1: ikmal durumu
             Diplomacy = DiplomacySystem.GetSaveData(),
             CasusBelli = CasusBelliSystem.GetSaveData(),
             Focus = FocusSystem.GetSaveData(),
@@ -576,6 +592,7 @@ public static class SaveSystem
             EquipmentSystem.LoadSaveData(save.Equipment);
             ArmySystem.LoadSaveData(save.Army);
             WarSystem.LoadSaveData(save.War);
+            SupplySystem.LoadSaveData(save.Supply); // M39.1: ikmal durumu
             DiplomacySystem.LoadSaveData(save.Diplomacy);
             CasusBelliSystem.LoadSaveData(save.CasusBelli);
             FocusSystem.LoadSaveData(save.Focus);

@@ -1557,3 +1557,17 @@ Sonraki adım: M38.4 (ElectionSystem/ElectionCampaignSystem çift başlatma düz
 
 **Sonraki adım:** M39 — Savaş ve İkmal Sistemi Derinlemesi (ikmal hattı, deniz invazyonu, ordu morali, hava üstünlüğü).
 
+## M39.1 — İkmal Hattı (Supply) — ✅ DONE (2026-10-20)
+
+- Yeni `Scripts/SupplySystem.cs`: statik sınıf, her ordu için ikmal seviyesi (0-100) takibi. Dost toprakta günde +8, düşman/topraksız yerde günde -12; %20 altı = ikminsiz. `GetCombatMultiplier(armyId)` 0.6 … 1.0 döndürür.
+- `Scripts/ArmySystem.cs`: `GetDivision(string id)` public getter eklendi.
+- `Scripts/WarSystem.cs`: `ResolveCombatDay`'de her tümen katkısı ordunun ikmal çarpanıyla çarpılır (ikminsiz ordular daha zayıf).
+- `Scripts/GameManager.cs`: `SupplySystem.Initialize` / `ResetForNewGame` / `DailyTick` entegre edildi.
+- `Scripts/SaveSystem.cs`: `SaveFile.Supply` + `SupplySave`/`SupplyEntry` DTO; kaydet/yükle bağlama eklendi.
+
+**Testler:** `dotnet build` 0 hata / 0 uyarı; `--save-load-test` (historical_1936) PASS (A==B); `--save-load-test --scenario=modern_world` PASS (A==B); `--war-test=POL` doğrudan çalıştırıldı: savaş ilanı + ofansif + çatışma çözümü hatasız, SupplySystem "DEU için hazır — ordular=1" logladı.
+
+**Dosyalar:** `Scripts/SupplySystem.cs` (yeni), `Scripts/ArmySystem.cs`, `Scripts/WarSystem.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `TODO.md` (39.1 [x]), `PROGRESS.md` (M39.1 DONE).
+
+**Sonraki adım:** M39.2 (Deniz invazyonu / amfibiy operasyon).
+

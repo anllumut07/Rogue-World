@@ -1907,3 +1907,24 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 **Dosyalar:** Değiştirilen: `Scripts/GameManager.cs` (RunSoakTest SetSpeed korumaları + FindDiff çıkışı), `Scripts/SaveLoadTest.cs` (GetSummaryCore public, FindDiff public, GD.Print diff), `TODO.md` (33.1–33.6 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
 
 **Bilinen sorun:** Bellek artışı %265 > %20 eşiği (M33.4 uyarı, hard fail değil). ms/tick 72–95 ms > 50 ms eşiği (M33.5 uyarı, hard fail değil). Her iki uyarı da raporlanır ancak test PASS olur.
+
+---
+
+## Milestone 34: Denge — ✅ DONE (2026-10-20)
+
+### 34.1 `--balance-test` — ✅ DONE
+
+**Açıklama:** `--balance-test` arg'ıyla headless çalışır: DeterministicRNG tohum 0x20261021DEADBEEFUL, EventSystem.EnableAutoChooseTest(), FocusSystem.EnableAutoPickTest(), SetSpeed(5), 300 oyun günü (10 oyun yılı). Savaş dağılımı (sayı, bitişen/aktif, attacker/defender kazanı) + AI saldırı oranı (en az bir saldırı başlatan AI ülke / sarmış AI ülke) ölçülür. Başarı kriterleri: toplam savaş > 0, AI saldırı oranı %5–%30 arası, save/load A==B. Başarısızlıkta Quit(1).
+
+**Test Sonuçları (headless, Godot 4.7.2 console exe, ~26 sn):**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--balance-test`: **SONUÇ: PASS ✓**
+  - Süre: 300 oyun günü, toplam savaş=12 (bitmiş=11, aktif=1)
+  - Sona eren: attacker_kazandı=9, defender_kazandı=2, karar_verilemedi=0
+  - AI saldırgan ülke: 4/39 = %10.3 (hedef aralığı %5–%30 içinde ✓)
+  - Oyuncu saldırgan=0, savunucu=1
+  - save_load_a_b=True ✓
+  - Çıkış kodu: 0 (Quit(0))
+- `--save-load-test`: **SONUÇ: PASS ✓** (A == B)
+
+**Dosyalar:** Değiştirilen: `Scripts/GameManager.cs` (balanceTest arg + dispatch + RunBalanceTest metodu), `TODO.md` (34.1 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.

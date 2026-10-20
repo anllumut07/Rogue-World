@@ -1150,3 +1150,30 @@ Tüm M1–M32.6 görevleri tamamlandı. Milestone 32 %100 tamam.
 4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--soak-test` (PASS, çıkış kodu 0); `--save-load-test` (PASS).
 
 **TODO.md:** 33.1–33.6 → `[x]`. **PROGRESS.md:** M33 DONE bölümü eklendi. `git commit` + `git push origin gece-calisma` yapılacak.
+
+---
+
+## GECE-RAPOR — 2026-10-20 (gece-calisma dalı, otonom, M34.1 tamamlandı)
+
+**STOP.txt kontrolü:** yok — stop kancası engellemez, build/test/commit/push serbest.
+
+**ADIM — M34.1 (Denge — --balance-test):** `--balance-test` kancağı yazıldı ve PASS aldı.
+
+**İçerik:** `Scripts/GameManager.cs` — `balanceTest` bayrağı, `--balance-test` arg-parsedi, `if (balanceTest) RunBalanceTest()` dispatch'i, `RunBalanceTest()` metodu.
+
+**RunBalanceTest akışı:** DeterministicRNG tohum 0x20261021DEADBEEFUL → EventSystem.EnableAutoChooseTest() + FocusSystem.EnableAutoPickTest() → SetSpeed(5) → 300 oyun günü (10 yıl) → WarSystem.Wars üzerinden savaş dağılımı (sayı, bitişen/aktif, attacker/defender kazanı) → AI saldırı oranı (saldıran AI ülke / sarmış AI ülke) → save/load A==B kontrol noktası → Quit(0/1).
+
+**Başarı kriterleri:** toplam savaş > 0; AI saldırı oranı %5–%30; save_load_a_b=True.
+
+**Test Sonuçları (headless, Godot 4.7.2 console exe, ~26 sn):**
+- `dotnet build`: 0 hata / 0 uyarı.
+- `--balance-test`: **SONUÇ: PASS ✓** — toplam savaş=12 (bitmiş=11, aktif=1), attacker_kazandı=9 / defender_kazandı=2, AI saldırgan=4/39 = %10.3 (%5–%30 içinde), save_load_a_b=True, çıkış kodu 0.
+- `--save-load-test`: **SONUÇ: PASS ✓** (A == B).
+
+**ÖZET (M34.1 — 2026-10-20)**
+1. Değişen dosyalar: `Scripts/GameManager.cs` (balanceTest arg + dispatch + RunBalanceTest), `TODO.md` (34.1 [x]), `PROGRESS.md` (M34 DONE), `GECE-RAPOR.md`.
+2. Çözülemeyen şey: yok — 34.1 PASS.
+3. Bilinen sorun: yok.
+4. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--balance-test` (PASS, çıkış kodu 0); `--save-load-test` (PASS).
+
+**TODO.md:** 34.1 → `[x]`. `git commit` + `git push origin gece-calisma` yapılacak.

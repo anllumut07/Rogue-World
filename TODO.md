@@ -550,7 +550,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 34.1 | `--balance-test`: savaş sonuçlarının dağılımı (savaş sayısı, kazanan/yenilen oranı) | Savaş dağılımı makul; AI saldırı oranı %5–%30 arası | [ ] |
+| 34.1 | `--balance-test`: savaş sonuçlarının dağılımı (savaş sayısı, kazanan/yenilen oranı) | Savaş dağılımı makul; AI saldırı oranı %5–%30 arası | [x] |
 | 34.2 | Ekonomi göstergeleri clamp/invariant testleri: negatif GDP, sonsuz enflasyon, %100+ memnuniyet yok | Tüm göstergeler [Min,Max] aralığında; negatif GDP yok | [ ] |
 | 34.3 | AI'nin tüm 50 ülkede aktif olması (sadece ~49 değil) | Tüm 50 ülkede AI odak/inşaat/savaş hareketi var | [ ] |
 | 34.4 | Deterministik RNG kullanımı kontrolü: `new Random()` yok | Kod taraması `new Random()` bulmuyor | [ ] |

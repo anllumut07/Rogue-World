@@ -162,6 +162,7 @@ public partial class GameManager : Node
         bool nuclearUseTest = false;        // M31.4: nükleer kullanım testi (--nuclear-use-test)
         bool aiNuclearTest = false;         // M31.5: AI nükleer davranış testi (--ai-nuclear-test)
         bool soakTest = false;              // M33: uzun koşu ve kararlılık testi (--soak-test)
+        bool balanceTest = false;           // M34.1: denge testi — savaş dağılımı + AI saldırı oranı (--balance-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -282,6 +283,8 @@ public partial class GameManager : Node
                 aiNuclearTest = true;
             else if (arg == "--soak-test")
                 soakTest = true;
+            else if (arg == "--balance-test")
+                balanceTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -622,6 +625,10 @@ public partial class GameManager : Node
 
         if (soakTest)
             RunSoakTest();
+
+        // M34.1: Denge testi — savaş dağılımı ve AI saldırı oranı (%5-%30).
+        if (balanceTest)
+            RunBalanceTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -4728,5 +4735,118 @@ public partial class GameManager : Node
         GD.Print("=========================================");
         SaveSystem.DeleteTestFile();
         GetTree().Quit(ok ? 0 : 1);
+}
+// M34.1: --balance-test — savaş sonuçlarının dağılımı ve AI saldırı oranı denge kontrolü.
+// Akış: sabit tohum → 300 oyun günü → savaş dağılımı (sayı, kazanan/yenilen) +
+// AI saldırı oranı (%5-%30) ölçülür → save/load A==B kontrol noktası → Quit(0/1).
+private void RunBalanceTest()
+{
+    GD.Print("=========================================");
+    GD.Print("  M34.1: DENGE TESTİ (--balance-test)");
+    GD.Print("  Savaş dağılımı + AI saldırı oranı (%5-%30)");
+    GD.Print("=========================================");
+
+    DeterministicRNG.InitializeForNewGame(0x20261021DEADBEEFUL);
+    EventSystem.EnableAutoChooseTest();
+    FocusSystem.EnableAutoPickTest();
+    SetSpeed(5); // headless maksimum hız
+    SaveSystem.DeleteTestFile();
+
+    if (!HasPlayer) SetPlayerCountry("DEU");
+    GD.Print($"[Balance] Oyuncu={PlayerCountryId}, Senaryo={ScenarioSystem.ActiveId}");
+
+    const int Days = 300; // 10 oyun yılı (her ay ~30 gün)
+    var sw = System.Diagnostics.Stopwatch.StartNew();
+
+    int startDay = TotalDays;
+    AdvanceDaysForTest(Days);
+    int elapsedDays = TotalDays - startDay;
+
+    // --- Savaş dağılımı analizi (tüm savaşlar: bitmiş + aktif) ---
+    var allWars = WarSystem.Wars.ToList();
+    int totalWars = allWars.Count;
+    int endedWars = allWars.Count(w => w.IsEnded);
+    int activeWars = totalWars - endedWars;
+
+    int attackerWins = 0, defenderWins = 0, undecided = 0;
+    foreach (var w in allWars.Where(w => w.IsEnded))
+    {
+        if (w.WarProgress >= 100f) attackerWins++;
+        else if (w.WarProgress <= 0f) defenderWins++;
+        else undecided++;
+    }
+
+    // AI saldırı oranı: en az bir saldırı başlatan AI ülke / sarmış (ilahlı olmayan) AI ülke sayısı
+    var aiCountries = CountryDatabase.All()
+        .Where(c => c != null && CountryAI.IsAiCountry(c.Id) && !c.IsAnnexed)
+        .ToList();
+    int aiCountryCount = aiCountries.Count;
+
+    int aiAttackers = allWars
+        .Where(w => aiCountries.Any(c => c.Id == w.AttackerId))
+        .Select(w => w.AttackerId)
+        .Distinct()
+        .Count();
+    double aiAttackRate = aiCountryCount > 0 ? (double)aiAttackers / aiCountryCount * 100.0 : 0.0;
+
+    string playerId = PlayerCountryId;
+    int playerAttackerWars = allWars.Count(w => w.AttackerId == playerId);
+    int playerDefenderWars = allWars.Count(w => w.DefenderId == playerId);
+
+    // --- Rapor ---
+    GD.Print($"[Balance] Süre: {elapsedDays} oyun günü ({sw.Elapsed.TotalSeconds:F1} sn)");
+    GD.Print($"[Balance] Toplam savaş: {totalWars} (bitmiş={endedWars}, aktif={activeWars})");
+    GD.Print($"[Balance] Sona eren: attacker_kazandı={attackerWins}, defender_kazandı={defenderWins}, karar_verilemedi={undecided}");
+    GD.Print($"[Balance] AI saldırgan ülke: {aiAttackers}/{aiCountryCount} = %{aiAttackRate:F1}");
+    GD.Print($"[Balance] Oyuncu saldırgan={playerAttackerWars}, savunucu={playerDefenderWars}");
+
+    // --- Başarı kriterleri ---
+    bool ok = true;
+
+    if (totalWars == 0)
+    {
+        GD.PrintErr("[Balance] Hiç savaş başlamadı — denge testi anlamlı değil.");
+        ok = false;
+    }
+
+    if (aiAttackRate < 5.0 || aiAttackRate > 30.0)
+    {
+        GD.PrintErr($"[Balance] AI saldırı oranı %{aiAttackRate:F1} hedef aralığı %5-%30 dışında.");
+        ok = false;
+    }
+    else
+    {
+        GD.Print($"[Balance] AI saldırı oranı %{aiAttackRate:F1} hedef aralığı (%5-%30) içinde.");
+    }
+
+    // --- Save/Load A==B kontrol noktası ---
+    SetSpeed(5); // olaylar pause yapabilir; test hızına geri dön
+    SaveSystem.SaveTestFile();
+    string summaryA = SaveLoadTest.GetSummaryCore();
+    bool loaded = SaveSystem.LoadTestFile();
+    if (!loaded)
+    {
+        GD.PrintErr("[Balance] Yükleme başarısız — test iptal");
+        ok = false;
+    }
+    else
+    {
+        SetSpeed(5); // SaveSystem.LoadTestFile oyununu duraklatır (SaveSystem:650)
+        string summaryB = SaveLoadTest.GetSummaryCore();
+        bool slOk = summaryA == summaryB;
+        GD.Print($"[Balance] save_load_a_b={slOk}");
+        if (!slOk)
+        {
+            GD.PrintErr("[Balance] Save/Load determinizm BOZULDU (A != B).");
+            SaveLoadTest.FindDiff(summaryA, summaryB);
+            ok = false;
+        }
+    }
+
+    GD.Print("=========================================");
+    GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+    GD.Print("=========================================");
+    SaveSystem.DeleteTestFile();
+    GetTree().Quit(ok ? 0 : 1);
 }
 }

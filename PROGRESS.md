@@ -1068,8 +1068,8 @@ PoliticalPower, Stability, WarSupport, Civ/Mil/Dock factories, ResearchSlots (ma
 - Eski tarihi içerik (1936 odak/olay/teknoloji) yalnızca Tarihi senaryoda kalır.
 - Ses dosyaları (müzik, tık sesleri) henüz yok, lisansı uygun dosyalar kullanıcı tarafından eklenecek.
 - Harita arazi dokusu ve deniz görünümü ertelendi (M32).
-- M16: Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılmıyor — kayıt yüklenince bekleyen bildirimler kaybolur (geçici UI bildirimleri; aylık rapor pending bayrağı kaydediliyor).
-- M16: Ajanda efektleri (MinisterLoyaltyBonus, ResearchSpeedBonus, AdminEfficiencyBonus, RelationBonusAllies, TensionReduction) ilgili sistemlere (bakanlık/teknoloji/diplomasi) henüz bağlı değil — loglanıyor.
+- M16: Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılmıyor — kayıt yüklenince bekleyen bildirimler kaybolur (geçici UI bildirimleri; aylık rapor pending bayrağı kaydediliyor). **[Çözüldü M38.1]** `TimeTempoSave.Notifications` + `LoadSaveData` kuyruk geri yüklemesi eklendi; `--save-load-test` A==B PASS.
+- M16: Ajanda efektleri (MinisterLoyaltyBonus, ResearchSpeedBonus, AdminEfficiencyBonus, RelationBonusAllies, TensionReduction) ilgili sistemlere (bakanlık/teknoloji/diplomasi) henüz bağlı değil — loglanıyor. **[Çözüldü M38.2]** `ApplyActionEffects` tüm etki anahtarları sistemlere bağlandı; `--agenda-test` PASS.
 - M17.2: `Data/countries.geo.json` fallback'i 0 kayıt veriyor (özelliklerde `iso_a3`/`capital` yok; `id` alanı ISO A3). Etkisiz — modern `countries.json`'da `Name`/`Capital` zaten var, tarihide `countries_data.json` doğrudan yükleniyor.
 
 ---
@@ -2065,7 +2065,7 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 - `--organization-test --scenario=modern_world` PASS; `--save-load-test --scenario=modern_world` PASS (A==B, organization state korunur).
 - TODO.md 37.5 → [x] Bitti.
 
-## Milestone 38: Bilinen Sorunları Giderme ve Kaydet/Yükle Regresyonu — 🔄 DEVAM EDIYOR (2026-10-20)
+## Milestone 38: Bilinen Sorunları Giderme ve Kaydet/Yükle Regresyonu — ✅ DONE (2026-10-20)
 
 ### M38.1: M16 Bildirim kuyruğu (NEXT EVENT öğeleri) kayıtlara yazılsın — ✅ DONE (2026-10-20)
 - `Scripts/TimeTempoSystem.cs`: `NotificationEventSave` DTO eklendi; `TimeTempoSave.Notifications` alanı; `GetSaveData()`'da kuyruk serileştirildi (`OnConfirm` delegate hariç), `LoadSaveData()`'da kuyruk geri yüklendi; `PendingNotificationCount` API eklendi.

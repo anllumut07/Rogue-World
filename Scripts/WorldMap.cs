@@ -84,6 +84,12 @@ public partial class WorldMap : Node2D
     private Dictionary<string, Rect2> _provinceBounds = new();
     private int _frameCounter;
 
+    // Task 4 (FPS): il uzamsal indeks — düz grid. FindProvinceAt eskiden 1000 ilin
+    // tamamını tek tek tarıyordu (her fare tıklamasında O(n)). Artık yalnızca
+    // imlecin bulunduğu hücredeki (ve bitişik 8 hücredeki) iller kontrol edilir.
+    private const float ProvinceCellSize = 128f;
+    private Dictionary<long, List<int>> _provinceGrid = new();
+
     // M19.2: Kutu seçimi (marquee) — sol tık sürüklemesiyle bölge seçimi
     private Vector2 _selectStart;
     private Vector2 _selectEnd;
@@ -460,12 +466,23 @@ public partial class WorldMap : Node2D
         UpdateBorderWidthsByZoom();
         AnimateZoom(fDelta);
 
-        // M18.4: FPS ölçümü (her 120 karede bir)
+        // M18.4 + Task 4: FPS ölçümü (her 120 karede bir).
+        // İller açık/kapalı ve zoom seviyesiyle birlikte loglanır; böylece
+        // "iller açık/kapalı, farklı zoom seviyelerinde" performans raporu çıkar.
         _frameCounter++;
         if (_frameCounter % 120 == 0)
         {
-            float fps = (float)Engine.GetFramesPerSecond();
-            GD.Print($"[WorldMap] FPS={fps:F1} provinces={_provinces.Count}");
+            float fps = 1f / Mathf.Max((float)delta, 0.0001f);
+            float zoom = _camera?.Zoom.X ?? 0f;
+            // process: kare başına (fizik+proses) süre ms; çizim tarafı
+            // ayrı render thread'inde olduğu için draw-call / primitive sayısıyla ölçülüyor.
+            float processMs = (float)Performance.GetMonitor(Performance.Monitor.TimeProcess);
+            int drawCalls = (int)Performance.GetMonitor(Performance.Monitor.RenderTotalDrawCallsInFrame);
+            int prims = (int)Performance.GetMonitor(Performance.Monitor.RenderTotalPrimitivesInFrame);
+            bool provincesOn = _provinceNodes != null && _provinceNodes.Count > 0;
+            bool bordersVisible = _camera == null || _camera.Zoom.X >= 0.5f;
+            GD.Print($"[PERF] FPS={fps:F1} process={processMs:F2}ms drawcalls={drawCalls} prims={prims} " +
+                     $"zoom={zoom:F2} provinces={_provinces.Count} (fill={provincesOn}, borders={bordersVisible})");
         }
 
         // M19.6: Savaş sayısı değişimi → cephe hatlarını yeniden hesapla
@@ -1499,6 +1516,10 @@ public partial class WorldMap : Node2D
     private void DrawProvinceBorders()
     {
         if (_provinceNodes == null) return;
+        // Task 4 (LOD): Uzak zoom'da (küyçük harita görünümü) il sınırları
+        // ~30.000 DrawLine çağrısı demek. Zoom 0.5 altındayken sınırları atla:
+        // bu mesafede bir pikselin altındalar ve hiçbir bilgi katmıyorlar.
+        if (_camera != null && _camera.Zoom.X < 0.5f) return;
         foreach (var kvp in _provinceNodes)
         {
             foreach (var node in kvp.Value)
@@ -1862,6 +1883,7 @@ public partial class WorldMap : Node2D
         _provinceById.Clear();
         foreach (var prov in _provinces)
             _provinceById[prov.Id] = prov;
+        BuildProvinceGrid(); // Task 4: hit-test uzaysal indeksi
         DrawProvinces();
         RefreshProvinceColors();
         QueueRedraw();
@@ -1927,21 +1949,60 @@ public partial class WorldMap : Node2D
     // M18.4: Hızlı hit-test — önce bounding-box önfiltresi, sonra nokta-İçinde-poligon testi.
     public ProvinceData FindProvinceAt(Vector2 worldPos)
     {
+        if (_provinces.Count == 0) return null;
+
+        // Grid hücresi ve bitişik 8 hücre (il sınırı hücreden taşabilir).
+        int cx = (int)Mathf.Floor(worldPos.X / ProvinceCellSize);
+        int cy = (int)Mathf.Floor(worldPos.Y / ProvinceCellSize);
+
         ProvinceData best = null;
         float bestArea = float.MaxValue;
-        foreach (var prov in _provinces)
+
+        for (int gy = cy - 1; gy <= cy + 1; gy++)
         {
-            if (!_provinceBounds.TryGetValue(prov.Id, out var box)) continue;
-            if (!box.HasPoint(worldPos)) continue;
-            foreach (var ring in prov.Rings)
-                if (Geometry2D.IsPointInPolygon(worldPos, ring))
+            for (int gx = cx - 1; gx <= cx + 1; gx++)
+            {
+                if (!_provinceGrid.TryGetValue(CellKey(gx, gy), out var bucket)) continue;
+                foreach (int idx in bucket)
                 {
-                    float area = Mathf.Abs((float)RingArea(ring));
-                    if (area < bestArea) { best = prov; bestArea = area; }
-                    break;
+                    var prov = _provinces[idx];
+                    if (!_provinceBounds.TryGetValue(prov.Id, out var box)) continue;
+                    if (!box.HasPoint(worldPos)) continue;
+                    foreach (var ring in prov.Rings)
+                        if (Geometry2D.IsPointInPolygon(worldPos, ring))
+                        {
+                            float area = Mathf.Abs((float)RingArea(ring));
+                            if (area < bestArea) { best = prov; bestArea = area; }
+                            break;
+                        }
                 }
+            }
         }
         return best;
+    }
+
+    private static long CellKey(int cx, int cy) => ((long)cx << 32) ^ (uint)cy;
+
+    // SetProvinces sırasında bir kez kurulur: il bbox'ı her katıldığı hücreye yazılır.
+    private void BuildProvinceGrid()
+    {
+        _provinceGrid.Clear();
+        for (int i = 0; i < _provinces.Count; i++)
+        {
+            if (!_provinceBounds.TryGetValue(_provinces[i].Id, out var box)) continue;
+            int x0 = (int)Mathf.Floor(box.Position.X / ProvinceCellSize);
+            int y0 = (int)Mathf.Floor(box.Position.Y / ProvinceCellSize);
+            int x1 = (int)Mathf.Floor(box.End.X / ProvinceCellSize);
+            int y1 = (int)Mathf.Floor(box.End.Y / ProvinceCellSize);
+            for (int gy = y0; gy <= y1; gy++)
+                for (int gx = x0; gx <= x1; gx++)
+                {
+                    long key = CellKey(gx, gy);
+                    if (!_provinceGrid.TryGetValue(key, out var bucket))
+                        _provinceGrid[key] = bucket = new List<int>(8);
+                    bucket.Add(i);
+                }
+        }
     }
 
     public partial class MapEffects : Node2D

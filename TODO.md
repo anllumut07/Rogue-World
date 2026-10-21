@@ -634,4 +634,60 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 ---
 
+### 📋 Milestone 41: Zafer Koşulları, Skor ve Oyun Sonu
+
+**Hedef:** Oyuna kazanma/kaybetme koşulu, canlı sıralama (skor tablosu) ve oyun sonu ekranı eklemek — grand strateji oyununda olmazsa olmaz çekirdek mekanik. Şu an oyun "sonsuz" akıyor, hiçbir sonuç ekranı yok.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 41.1 | `Data/victory_conditions.json`: senaryo (historical_1936, modern_world) başına zafer koşulları — `control_factory_percent`, `capitulate_majors`, `top_score`, `control_province_percent`, `survive_until_date`; her koşul Label/Description/Target/Weight | JSON geçerli, senaryo yükleme sayısı `GD.Print` ile loglanır (`IncludeFields=true`) | [ ] |
+| 41.2 | `Scripts/VictorySystem.cs`: koşulları günlük değerlendir (saf hesap, RNG yok), tamamlanan koşul → zafer bildirimi + auto-pause; oyuncu ve AI ayrı değerlendirilir | Oyuncu koşulu sağlanınca bildirim + duraklama; AI zaferi loglanır, `--victory-test` PASS | [ ] |
+| 41.3 | `Scripts/ScoreSystem.cs`: ülke skoru (fabrika / tümen / il / nüfus / teknoloji / ekonomi ağırlıkları) + canlı sıralama tablosu (tüm ülkeler, sıralı) | Skor geçerli aralıkta, sıralama tutarlı, `--score-test` PASS | [ ] |
+| 41.4 | `Scripts/GameOverPanel.cs`: zafer/yenilgi ekranı — zafer tipi, geçen süre, skor dökümü, sıralama, "MAIN MENU" / "CONTINUE" butonları | Panel 1152x648'e sığar, `MouseFilter.Stop` backdrop, ESC kapatır, harita girdisi bloklanır | [ ] |
+| 41.5 | Save/Load: Victory + Score state kaydedilir | `--save-load-test` (historical_1936 + modern_world) A==B PASS | [ ] |
+
+---
+
+### 📋 Milestone 42: Savaş Puanı ve Barış Konferansı
+
+**Hedef:** Savaşta "war score" biriktirip barışta il/ülke talebiyle toprak devri; HOI4 barış konferansının sadeleştirilmiş hâli. Şu an barış yalnız "beyaz barış" veya tam ilhak.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 42.1 | `Scripts/WarScoreSystem.cs`: savaş puanı birikimi — kazanılan çatışmalar, işgal edilen iller (`ProvinceOwnershipSystem`), düşman fabrika hasarı, düşman kapitülasyonu; iki taraf için ayrı skor | Skor [0,100] aralığında, işgal arttıkça artar, `--war-score-test` PASS | [ ] |
+| 42.2 | `Data/peace_terms.json` + `Scripts/PeaceConferenceSystem.cs`: puan harcama kuralları (il talebi, ülke ilhakı, kukla yapma, tazminat fabrika/PP), puan maliyeti hesaplama | Talep maliyeti doğru düşer, puan yetersizse reddedilir ve loglanır | [ ] |
+| 42.3 | Barış anlaşması uygula: iller `ProvinceOwnershipSystem` üzerinden devredilir + harita yeniden renklenir; fabrika/PP tazminatı `EconomySystem`'e yazılır | Devir sonrası il sahipliği doğru, harita güncellenir, `--peace-test` PASS | [ ] |
+| 42.4 | AI barış davranışı: skor eşiği aşınca beyaz barış / kukla / toprak talebi önermeye başlar; oyuncu kabul/ret | AI kabul/ret mantığı deterministik, loglanır, savaş doğru sonlanır | [ ] |
+| 42.5 | UI `Scripts/PeaceConferencePanel.cs` (talep listesi, harcanabilir puan, onay) + Save/Load entegrasyonu | Panel 1152x648'e sığar, ESC kapatır, A==B PASS (2 senaryo) | [ ] |
+
+---
+
+### 📋 Milestone 43: Deniz Hakimiyeti ve Konvoy Baskını
+
+**Hedef:** Deniz savaşı derinliği — bölgesel deniz hakimiyeti, denizaltı konvoy baskını ve ticaret yolu koruması. `EconomySystem` konvoy sayısını izliyor ama hiçbir sistem onları tehdit etmiyor.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 43.1 | `Data/sea_zones.json` + `Scripts/SeaZoneSystem.cs`: 12 deniz bölgesi, bölge başına deniz hakimiyeti (0-100), ülke filo ağırlığından hesaplanır | Bölge sayısı doğru yüklenir ve loglanır, hakimiyet [0,100], `--sea-zone-test` PASS | [ ] |
+| 43.2 | Denizaltı baskını: düşman hakimiyetindeki bölgede konvoy kaybı → kaynak ithalatı kesilir (oyuncu + AI ticaret anlaşmaları etkilenir) | İthalat kaybı hakimiyetle ters orantılı, loglanır, stoklar düşer | [ ] |
+| 43.3 | Deniz çatışması: bir bölgede iki ülkenin filosu çarpışır, hakimiyet güncellenir, kayıplar DTO'ya yazılır | Çatışma sonrası hakimiyet değişir, deterministik, `--naval-combat-test` PASS | [ ] |
+| 43.4 | Lend-Lease / konvoy koruma: müttefik konvoylarına koruma tahsisi, kayıp oranını düşürür | Koruma atanınca kayıp oranı azalır, `--lend-lease-test` PASS | [ ] |
+| 43.5 | Save/Load + `Scripts/SeaZonePanel.cs` UI (bölge listesi, hakimiyet barları, baskın/koruma butonları) | A==B PASS (2 senaryo), panel 1152x648'e sığar | [ ] |
+
+---
+
+### 📋 Milestone 44: Kurgu Kurulum (Formables) ve Yeni Ülke Çıkarma
+
+**Hedef:** Age of History tarzı kültür/il bazlı yeni ülke kurma ve mevcut ülkeleri bağımsız çıkarma — senaryo ve ülke içeriği zenginliği. `ProceduralProvinceSource` ~1000 il üretiyor ama kültür katmanı yok.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 44.1 | `Data/formable_nations.json`: 15 kurgu kurulabilir ülke (ad, renk, gerekli il sayısı/kültür, minimum kontrol yüzdesi, PP maliyeti, gün) | JSON geçerli, kayıt sayısı `GD.Print` ile loglanır (`IncludeFields=true`) | [ ] |
+| 44.2 | `Scripts/ProvinceCultureSystem.cs`: il başına kültür/nüfus katmanı, `DeterministicRNG` ile üretim, mevcut ~1000 ile uyumlu; `GetCultureDistribution(countryId)` | Kültür dağılımı tutarlı (toplam = il sayısı), `--culture-test` PASS | [ ] |
+| 44.3 | `Scripts/FormableSystem.cs`: kurma kararı (gerekli illerin kontrolü + PP + gün) → yeni ülke `CountryDatabase`'ye eklenir, harita yeniden renklenir, AI devralır | Koşul sağlanınca ülke oluşur, sağlanmayınca reddedilir + loglanır, `--formable-test` PASS | [ ] |
+| 44.4 | Releasable: ilhak edilmiş / kukla ülkeyi bağımsız çıkarma — il devri, fabrika payı, yeni AI devralır | Çıkarma sonrası yeni ülke + il devri doğru, sistemler çalışmaya devam eder | [ ] |
+| 44.5 | Save/Load + `Scripts/FormablePanel.cs` UI (kurulabilir ülkeler, kültür haritası özeti, kurma butonu) | A==B PASS (2 senaryo), panel 1152x648'e sığar | [ ] |
+
+---
+
 ## Notlar

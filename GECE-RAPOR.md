@@ -1769,3 +1769,26 @@ Piksel kolon analizi: gri bant kayboldu; yalnızca gerçek kıyı/harita kenarı
 8. Hata: `run-test.ps1` argümanını doğrudan çağırmak (iç içe PowerShell) Godot'u başlatamıyor; doğrudan Godot konsol exe ile `--headless ... -- <flag>` çalışıyor.
 9. Önceki durum tablosu (5 görev): hepsi **YARIM → TAMAMLANDI** olarak işaretlendi; işlevsel kod ve ekran görüntüleri mevcut.
 10. Kullanıcının test etmesi gerekenler: `dotnet build` (0/0); `--save-load-test --scenario=historical_1936` (A==B); `test-logs/screens/*.png` dosyalarını manuel inceleme.
+---
+
+## Yeni Milestone Tanımı — 2026-10-21 04:20 (otonom gece seansı)
+
+**Kapsam kararı:** Bu gece SADECE yeni özellik geliştirilecek. Bilinen görsel/arayüz hatalarına
+(minimap, arka plan, menü taşması, FPS cilası) dokunulmayacak. M14 (yayın/Steam) ve hesap/onay
+gerektiren işler yapılmayacak.
+
+**Seçilen 4 yeni milestone (M41–M44) ve gerekçeleri:**
+1. **M41 Zafer Koşulları + Skor + Oyun Sonu** — Repoda hiçbir victory/score/gameover kodu yok
+   (grep: boş). Grand strateji oyunu sonuç ekranı olmadan "sonsuz kum torbası" kalıyor; en büyük
+   çekirdek eksik. Oyuncu ilerleyişini ölçecek tek mekanik bu.
+2. **M42 Savaş Puanı + Barış Konferansı** — Barış şu an yalnız beyaz barış veya %100 ilhak.
+   ProvinceOwnershipSystem (~1000 il) hazır olduğu için HOI4'un en ikonik mekaniği olan il talebiyle
+   toprak devri artık uygulanabilir. Savaş sonu döngüsünü kapatır.
+3. **M43 Deniz Hakimiyeti + Konvoy Baskını** — EconomySystem konvoy sayısını izliyor ama hiçbir
+   sistem konvoyları tehdit etmiyor; deniz savaşı tamamen boşluk. Kaynak/ticaret zincirini tehlikeye
+   atan tek eksik katman.
+4. **M44 Formables + Kültür katmanı** — ProceduralProvinceSource ~1000 il üretiyor ama ilin kültürü
+   yok; Age of History'ın imza mekaniği olan "yeni ülke kur" mümkün değil. Senaryo/ülke içeriği
+   zenginliği için en yüksek getirili ek.
+
+Öncelik sırası: sonuç ekranı → savaş sonu → deniz derinliği → içerik zenginliği.

@@ -1,0 +1,82 @@
+{
+  "Version": 1,
+  "Terms": [
+    {
+      "Id": "province_demand",
+      "Label": "Demand Provinces",
+      "Description": "Take a number of provinces from the loser. Cost scales with the number of provinces taken.",
+      "Kind": "province",
+      "BaseCost": 8.0,
+      "CostPerUnit": 4.0,
+      "UnitLabel": "provinces",
+      "MaxUnits": 20,
+      "RequiresScoreAtLeast": 25.0,
+      "TensionCost": 5.0
+    },
+    {
+      "Id": "annex_country",
+      "Label": "Annex Nation",
+      "Description": "Fully annex the defeated nation and absorb its remaining industry.",
+      "Kind": "annex",
+      "BaseCost": 60.0,
+      "CostPerUnit": 0.0,
+      "UnitLabel": "",
+      "MaxUnits": 1,
+      "RequiresScoreAtLeast": 60.0,
+      "TensionCost": 15.0
+    },
+    {
+      "Id": "puppet_state",
+      "Label": "Puppet State",
+      "Description": "Turn the defeated nation into a puppet. Its factories stay but its actions are controlled by the winner.",
+      "Kind": "puppet",
+      "BaseCost": 35.0,
+      "CostPerUnit": 0.0,
+      "UnitLabel": "",
+      "MaxUnits": 1,
+      "RequiresScoreAtLeast": 35.0,
+      "TensionCost": 8.0
+    },
+    {
+      "Id": "liberate_nation",
+      "Label": "Liberate Nation",
+      "Description": "Release the defeated nation as an independent state that keeps its original territory.",
+      "Kind": "liberate",
+      "BaseCost": 10.0,
+      "CostPerUnit": 0.0,
+      "UnitLabel": "",
+      "MaxUnits": 1,
+      "RequiresScoreAtLeast": 10.0,
+      "TensionCost": -10.0
+    },
+    {
+      "Id": "war_reparations",
+      "Label": "War Reparations",
+      "Description": "Take civilian factories and political power from the loser as compensation.",
+      "Kind": "reparations",
+      "BaseCost": 15.0,
+      "CostPerUnit": 5.0,
+      "UnitLabel": "factory packages",
+      "MaxUnits": 6,
+      "RequiresScoreAtLeast": 15.0,
+      "TensionCost": 5.0
+    },
+    {
+      "Id": "demilitarize",
+      "Label": "Demilitarize",
+      "Description": "Force the loser to scrap military factories. Cheapest for the winner, lowers world tension.",
+      "Kind": "demilitarize",
+      "BaseCost": 12.0,
+      "CostPerUnit": 0.0,
+      "UnitLabel": "",
+      "MaxUnits": 1,
+      "RequiresScoreAtLeast": 12.0,
+      "TensionCost": -5.0
+    }
+  ],
+  "Limits": {
+    "MinScoreForAnyDemand": 10.0,
+    "MaxTermsPerDeal": 4,
+    "LiberateRemovesOverflow": true
+  }
+}

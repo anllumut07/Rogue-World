@@ -1,4 +1,4 @@
-# GECE-RAPOR — 2026-10-17 (gece-calisma dalı, otonom)
+﻿# GECE-RAPOR — 2026-10-17 (gece-calisma dalı, otonom)
 
 ## M18.1 — ✅ DONE
 - `Scripts/IProvinceSource.cs`, `Scripts/ProvinceData.cs`, `Scripts/ProceduralProvinceSource.cs`: ~1000 il, DeterministicRNG + sabit seed, dotnet build 0 hata / 0 uyarı.
@@ -1820,6 +1820,8 @@ gerektiren işler yapılmayacak.
 - **Not:** ScoreSystem state tutmadığı için save/load'a DTO eklenmesi gerekmez (TODO 41.5'in
   "Score state" kısmı bu nedenle Victory kaydıyla sınırlı kalır).
 
+## M41.1–41.5 — ✅ DONE (2026-10-21) — commit 98d5537 (push'ed origin gece-calisma)
+
 ## M41.4 — Oyun sonu paneli (2026-10-21)
 - `Scripts/GameOverPanel.cs` (yeni, CanvasLayer Layer=110 — PauseMenu ve rapor panellerinin
   üstünde): zafer/yenilgi başlığı, ülke adı, sağlanan koşul, geçen süre, skor dökümü
@@ -1839,5 +1841,8 @@ gerektiren işler yapılmayacak.
 - `GetSaveData()` / `ApplySave()`; eski kayıtlarda alan null — `ApplySave(null)` erken döner
   (geriye dönük uyumluluk). `PlayerVictoryDeclared` artık kayıtlı: yükleme sonrası zafer paneli
   yeniden tetiklenmez (oturum ömrü boyunca tek kez).
-- **Kullanılmayan alan temizliği:** GameOverPanel'deki gereksiz ternary ve kullanılmayan
-  `_continueButton` alanı kaldırıldı.
+- **Score state eklenmedi:** ScoreSystem saf hesap (state yok) — her an mevcut durumdan
+  hesaplanır, kaydedilecek bir şeyi yok.
+- **Test sonuçları:** `--score-test` PASS ✓, `--victory-test` PASS ✓, `--gameover-test` PASS ✓,
+  `--save-load-test` (historical_1936 ve modern_world) A==B PASS ✓, `dotnet build` 0 hata / 0 uyarı.
+

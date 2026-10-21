@@ -49,7 +49,8 @@ public partial class PauseMenu : CanvasLayer
                 || ArmyPanel.IsOpen
                 || DiplomacyPanel.IsOpen
                 || LoadGamePanel.IsOpen
-                || EventPopup.IsOpen) return;
+                || MonthlyReportPanel.IsOpen
+                || GameOverPanel.IsOpen) return;
 
             GetViewport().SetInputAsHandled();
             ToggleMenu();

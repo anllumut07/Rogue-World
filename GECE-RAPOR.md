@@ -1792,3 +1792,52 @@ gerektiren işler yapılmayacak.
    zenginliği için en yüksek getirili ek.
 
 Öncelik sırası: sonuç ekranı → savaş sonu → deniz derinliği → içerik zenginliği.
+
+---
+
+## M41.1 — Zafer koşulları verisi (2026-10-21)
+- `Data/victory_conditions.json`: iki senaryo (historical_1936, modern_world) × 5 koşul türü
+  (`control_factory_percent`, `capitulate_majors`, `control_province_percent`, `top_score`,
+  `survive_until_date`). Label/Description/Target/Weight alanları; BOM'suz UTF-8.
+- `Scripts/VictorySystem.cs`: JSON yükleyici (`IncludeFields=true`), idempotent `LoadData()`,
+  senaryo geçişinde `ResetForScenario()` cache temizliği. `LogSummary()` yüklenen set sayısını
+  ve koşulları `GD.Print` ile loglar.
+
+## M41.2 — Koşul değerlendirme (2026-10-21)
+- `VictorySystem.DailyTick`: oyuncu HER GÜN, AI 30 günde bir (performans) değerlendirilir.
+  Saf hesap — **DeterministicRNG kullanılmaz**, save/load determinizmi korunur.
+- Koşul sağlanınca: `GD.Print` bildirimi + `TimeTempoSystem.RequestAutoPause`.
+- `RecordCapitulation(winnerId, loserId, loserFactories)` — WarSystem kapitülasyon yollarından
+  çağrılır; `CapitulatedMajorCount` yalnızca `MajorFactoryThreshold(30)` üstü düşmanları sayar.
+- `ConditionProgress`: UI ilerleme göstergesi için 0-100 yüzdesi (zafer koşulu ekranı M41.4).
+
+## M41.3 — Skor ve sıralama (2026-10-21)
+- `Scripts/ScoreSystem.cs`: fabrika (sivil 8 / askeri 12 / tersane 15), tümen 1.5, il 0.4,
+  nüfus (milyon başına) 0.6, teknoloji seviyesi 25 ağırlıklı tek skor. State yok — her an
+  mevcut durumdan hesaplanır (deterministik, save/load güvenli).
+- `GetRanking()` azalan skor sırası + 1..N sıra no (ID eşitlik bozukluğunda ikincil sıralama);
+  `GetRank`, `IsTopCountry`, `GetLeaderId`, `ScoreBreakdown`, `LogTop`.
+- **Not:** ScoreSystem state tutmadığı için save/load'a DTO eklenmesi gerekmez (TODO 41.5'in
+  "Score state" kısmı bu nedenle Victory kaydıyla sınırlı kalır).
+
+## M41.4 — Oyun sonu paneli (2026-10-21)
+- `Scripts/GameOverPanel.cs` (yeni, CanvasLayer Layer=110 — PauseMenu ve rapor panellerinin
+  üstünde): zafer/yenilgi başlığı, ülke adı, sağlanan koşul, geçen süre, skor dökümü
+  (ScoreBreakdown azalan sırada) ve ilk 10 sıralama; CONTINUE + MAIN MENU butonları.
+- Panel 640x480 — 1152x648 ekrana sığar. Backdrop `MouseFilter.Stop` (harita girdisi bloklanır),
+  ESC kapatır (CONTINUE ile aynı), `ProcessMode.Always`.
+- Açılış yolları: `VictorySystem.EvaluatePlayer` (zafer), `WarSystem.PlayerCapitulates` (yenilgi).
+- **Karar:** Yenilgiyi de panelle göstermeye karar verdim — TODO 41.4 "zafer/yenilgi ekranı"
+  diyor, WarSystem'de kapitülasyon zaten "OYUN KAYBEDİLDİ" logluyordu ama ekranı yoktu.
+  CONTINUE ile oyuncu ülkesi ilhak edilmiş halde izlemeye devam edebilir.
+- **Test kancası:** `--gameover-test` — paneli zafer ve yenilgi olarak açar, içerik metinlerinin
+  dolu olmasını, panel boyutunun görünür alana sığmasını, ESC ile kapanmasını doğrular.
+
+## M41.5 — Save/Load (2026-10-21)
+- `SaveFile.Victory` (`VictorySystem.VictorySave`): `PlayerVictoryDeclared`, tamamlanan koşullar
+  (oyuncu + AI), kapitülasyon geçmişi (WinnerId/LoserId/LoserFactories/Day), son AI kontrol günü.
+- `GetSaveData()` / `ApplySave()`; eski kayıtlarda alan null — `ApplySave(null)` erken döner
+  (geriye dönük uyumluluk). `PlayerVictoryDeclared` artık kayıtlı: yükleme sonrası zafer paneli
+  yeniden tetiklenmez (oturum ömrü boyunca tek kez).
+- **Kullanılmayan alan temizliği:** GameOverPanel'deki gereksiz ternary ve kullanılmayan
+  `_continueButton` alanı kaldırıldı.

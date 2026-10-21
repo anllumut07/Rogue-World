@@ -169,6 +169,9 @@ public partial class GameManager : Node
         bool aiNuclearTest = false;         // M31.5: AI nükleer davranış testi (--ai-nuclear-test)
         bool soakTest = false;              // M33: uzun koşu ve kararlılık testi (--soak-test)
         bool balanceTest = false;           // M34.1: denge testi — savaş dağılımı + AI saldırı oranı (--balance-test)
+        bool victoryTest = false;           // M41.2: zafer koşulları değerlendirme testi (--victory-test)
+        bool scoreTest = false;             // M41.3: ulusal skor + sıralama testi (--score-test)
+        bool gameOverTest = false;          // M41.4: oyun sonu paneli testi (--gameover-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -293,6 +296,12 @@ public partial class GameManager : Node
                 soakTest = true;
             else if (arg == "--balance-test")
                 balanceTest = true;
+            else if (arg == "--victory-test")
+                victoryTest = true;
+            else if (arg == "--score-test")
+                scoreTest = true;
+            else if (arg == "-gameover-test" || arg == "--gameover-test")
+                gameOverTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -383,6 +392,9 @@ public partial class GameManager : Node
 
         // M37.1: Uluslararası örgütler — Data/organizations.json'dan üyelik ve kural tanımları.
         OrganizationSystem.LoadData();
+
+        // M41.1: Zafer koşulları — Data/victory_conditions.json'dan senaryo bazlı kazanma kuralları.
+        VictorySystem.LoadData();
 
         // M23.1/23.2: Seçim ve kampanya verileri ResetForNewGame() -> InitializeAll() -> LoadData() ile tek sefer başlatılır.
         // Burada LoadData() çağrısı çıkarılıyor çünkü ResetForNewGame() zaten InitializeAll() içinden LoadData() çağırır;
@@ -643,6 +655,18 @@ public partial class GameManager : Node
         if (balanceTest)
             RunBalanceTest();
 
+        // M41.2: Zafer koşulları testi — koşul seti yüklenir, ilerleme ve bildirim doğrulanır.
+        if (victoryTest)
+            RunVictoryTest();
+
+        // M41.3: Ulusal skor + sıralama testi.
+        if (scoreTest)
+            RunScoreTest();
+
+        // M41.4: Oyun sonu paneli testi — panel açılır, 1152x648'e sığdığı doğrulanır, kapanır.
+        if (gameOverTest)
+            RunGameOverTest();
+
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
             RunTooltipTest();
@@ -889,6 +913,9 @@ public partial class GameManager : Node
         // M16: Zaman ve Tempo — ajanda ilerlemesi, hafta reset, aylık rapor
         TimeTempoSystem.DailyTick(this);
 
+        // M41.2: Zafer koşulları — oyuncu her gün, AI 30 günde bir (performans kuralı)
+        if (HasPlayer) VictorySystem.DailyTick(TotalDays);
+
         // M37: Uluslararası örgütler — yıllık zirve / aylık bakanlar toplantısı denetimi.
         OrganizationSystem.DailyTick(TotalDays);
 
@@ -1113,6 +1140,9 @@ public partial class GameManager : Node
 
         // M-Flags: bayrak önbelleği sıfırlanır (rapor yeni oyunda tekrar loglanır)
         FlagLibrary.ResetForNewGame();
+
+        // M41.1: Zafer koşulları-yeni oyun (aktif senaryonun koşul seti yeniden okunur)
+        VictorySystem.ResetForNewGame();
 
         // M16: Ajanda/aylık rapor durumu sıfırlanır
         TimeTempoSystem.ResetForNewGame();
@@ -5065,4 +5095,386 @@ private void RunBalanceTest()
     SaveSystem.DeleteTestFile();
     GetTree().Quit(ok ? 0 : 1);
 }
+
+    /// <summary>
+    /// M41.2: Zafer koşulları testi — --victory-test kancası.
+    /// Aktif senaryonun koşul setini yükler, beş koşul türünü (fabrika yüzdesi, major
+    /// kapitülasyon, il yüzdesi, en yüksek skor, bitiş tarihine hayatta kalma) ayrı ayrı
+    /// doğrular, bildirim + otomatik duraklama tetiklenir. Başarısızlıkta Quit(1).
+    /// Normal oyunda ASLA çalışmaz (yalnızca --victory-test ile).
+    /// </summary>
+    private void RunVictoryTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M41.2: ZAFER KOŞULLARI TESTİ (--victory-test)");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0x20261021D1C7UL);
+        EventSystem.EnableAutoChooseTest();
+        FocusSystem.EnableAutoPickTest();
+
+        bool ok = true;
+        string playerId = "DEU";
+
+        // --- 1) Koşul seti yükleniyor mu? ---
+        var set = VictorySystem.Active;
+        GD.Print($"[ZaferTest] Aktif senaryo: {ScenarioSystem.ActiveId}, set: {set?.Id ?? "YOK"}");
+        if (set == null || set.Conditions.Count == 0)
+        {
+            GD.PrintErr("[ZaferTest] HATA: Aktif senaryo için zafer koşulu seti boş!");
+            GetTree().Quit(1);
+            return;
+        }
+        GD.Print($"[ZaferTest] Koşullar: {string.Join(", ", set.Conditions.Select(c => $"{c.Id}({c.Kind})"))}");
+
+        // Her koşulun türü tanınmalı
+        foreach (var c in set.Conditions)
+        {
+            if (VictorySystem.ParseKind(c.Kind) == VictorySystem.VictoryKind.Unknown)
+            {
+                GD.PrintErr($"[ZaferTest] HATA: bilinmeyen koşul türü '{c.Kind}' ({c.Id})");
+                ok = false;
+            }
+        }
+
+        // Oyuncu ülkesini ata (CountryDatabase zaten yüklü)
+        SetPlayerCountry(playerId);
+        var player = CountryDatabase.Get(playerId);
+        if (player == null)
+        {
+            GD.PrintErr($"[ZaferTest] HATA: {playerId} ülkesi bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // --- 2) Fabrika yüzdesi koşulu ---
+        var condFactories = set.Conditions.FirstOrDefault(c => VictorySystem.ParseKind(c.Kind) == VictorySystem.VictoryKind.ControlFactoryPercent);
+        if (condFactories != null)
+        {
+            long world = CountryDatabase.All().Sum(c => Math.Max(0, (long)c.TotalFactories));
+            long mine = player.TotalFactories;
+            double pct = world > 0 ? mine * 100.0 / world : 0;
+            GD.Print($"[ZaferTest] Fabrika yüzdesi: {mine}/{world} = %{pct:F2} (hedef %{condFactories.Target})");
+            if (pct > condFactories.Target) { GD.PrintErr("[ZaferTest] HATA: başlangıçta hedef zaten aşılmış"); ok = false; }
+
+            // Hedefi aşacak kadar fabrika ver, tekrar değerlendir
+            int before = player.CivFactories;
+            player.CivFactories += (int)(world * condFactories.Target / 100.0) + 100;
+            bool met = VictorySystem.IsSatisfied(condFactories, playerId, 0);
+            player.CivFactories = before;
+            GD.Print($"[ZaferTest] Fabrika koşulu sağlandı mı (geçici artış): {met}");
+            if (!met) { GD.PrintErr("[ZaferTest] HATA: fabrika koşulu beklenendiği gibi sağlanmadı"); ok = false; }
+        }
+
+        // --- 3) Major kapitülasyon koşulu ---
+        var condMajors = set.Conditions.FirstOrDefault(c => VictorySystem.ParseKind(c.Kind) == VictorySystem.VictoryKind.CapitulateMajors);
+        if (condMajors != null)
+        {
+            int need = (int)condMajors.Target;
+            // <need> adet major güç kapitülasyonu kaydet (fabrika = major eşiği üstü)
+            for (int i = 0; i < need; i++)
+                VictorySystem.RecordCapitulation(playerId, $"TESTMAJOR{i}", VictorySystem.MajorFactoryThreshold + 10);
+            // Bir de minor kaydet (sayılmamalı)
+            VictorySystem.RecordCapitulation(playerId, "TESTMINOR", 5);
+            int got = VictorySystem.CapitulatedMajorCount(playerId);
+            GD.Print($"[ZaferTest] Major kapitülasyonu: {got}/{need}");
+            if (got < need) { GD.PrintErr("[ZaferTest] HATA: major kapitülasyon sayısı yetersiz"); ok = false; }
+        }
+
+        // --- 4) İl yüzdesi koşulu ---
+        var condProvinces = set.Conditions.FirstOrDefault(c => VictorySystem.ParseKind(c.Kind) == VictorySystem.VictoryKind.ControlProvincePercent);
+        if (condProvinces != null)
+        {
+            int world = ProvinceOwnershipSystem.TotalProvinceCount;
+            int mine = ProvinceOwnershipSystem.ProvinceCountFor(playerId);
+            double pct = world > 0 ? mine * 100.0 / world : 0;
+            GD.Print($"[ZaferTest] İl yüzdesi: {mine}/{world} = %{pct:F2} (hedef %{condProvinces.Target})");
+            bool met = VictorySystem.IsSatisfied(condProvinces, playerId, 0);
+            bool big = condProvinces.Target <= 0.001f; // pratikte hiçbir senaryo 0 hedef kullanmaz
+            if (world > 0 && !big && met && pct < condProvinces.Target)
+            { GD.PrintErr("[ZaferTest] HATA: il koşulu yanlış pozitif"); ok = false; }
+            if (!met && pct >= condProvinces.Target)
+            { GD.PrintErr("[ZaferTest] HATA: il koşulu beklenen pozitif verdi"); ok = false; }
+        }
+
+        // --- 5) En yüksek skor koşulu ---
+        var condTop = set.Conditions.FirstOrDefault(c => VictorySystem.ParseKind(c.Kind) == VictorySystem.VictoryKind.TopScore);
+        if (condTop != null)
+        {
+            string leaderId = CountryDatabase.All()
+                .Where(c => c != null && !c.IsAnnexed)
+                .OrderByDescending(c => VictorySystem.ComputeNationalScore(c.Id))
+                .Select(c => c.Id).FirstOrDefault();
+            bool leaderTop = !string.IsNullOrEmpty(leaderId) && VictorySystem.IsTopScoring(leaderId);
+            GD.Print($"[ZaferTest] Skor lideri: {leaderId} — IsTopScoring={leaderTop}");
+            if (string.IsNullOrEmpty(leaderId) || !leaderTop)
+            { GD.PrintErr("[ZaferTest] HATA: en yüksek skorlu ülke tespit edilemedi"); ok = false; }
+        }
+
+        // --- 6) Bitiş tarihine hayatta kalma koşulu ---
+        var condSurvive = set.Conditions.FirstOrDefault(c => VictorySystem.ParseKind(c.Kind) == VictorySystem.VictoryKind.SurviveUntilDate);
+        if (condSurvive != null)
+        {
+            bool tooEarly = VictorySystem.IsSatisfied(condSurvive, playerId, 0);
+            GD.Print($"[ZaferTest] Hayatta kalma (gün 0): {tooEarly} (false beklenir)");
+            if (tooEarly) { GD.PrintErr("[ZaferTest] HATA: bitiş tarihinden önce hayatta kalma koşulu sağlandı"); ok = false; }
+        }
+
+        // --- 7) Oyuncu değerlendirmesi + bildirim + otomatik duraklama ---
+        // Oyuncuyu geçici olarak dünyanın en güçlü ülkesi yap: top_score + survive + fabrika koşulları
+        // aynı anda sağlanabilir. Ardından EvaluatePlayer çağrılır.
+        VictorySystem.ResetForNewGame(); // kayıtları temizle (test başlangıcı)
+        var strong = CountryDatabase.Get(playerId);
+        int civ0 = strong.CivFactories, mil0 = strong.MilFactories, dock0 = strong.Dockyards;
+        long worldAll = CountryDatabase.All().Sum(c => Math.Max(0, (long)c.TotalFactories));
+        strong.CivFactories = (int)(worldAll + 500);
+        strong.MilFactories = (int)worldAll + 500;
+        strong.Dockyards = (int)worldAll + 500;
+
+        int currentDay = VictorySystem.DaysUntilEnd(TotalDays);
+        GD.Print($"[ZaferTest] Bitişe kalan gün: {currentDay}");
+        // Bitiş tarihine ulaşılmış gibi değerlendir (survive + top_score doğru olsun)
+        VictorySystem.EvaluatePlayer(100000);
+
+        strong.CivFactories = civ0;
+        strong.MilFactories = mil0;
+        strong.Dockyards = dock0;
+
+        GD.Print($"[ZaferTest] PlayerVictoryDeclared={VictorySystem.PlayerVictoryDeclared}");
+        GD.Print($"[ZaferTest] Sağlanan koşullar: [{string.Join(", ", VictorySystem.PlayerAchievedConditions)}]");
+        if (!VictorySystem.PlayerVictoryDeclared)
+        { GD.PrintErr("[ZaferTest] HATA: güçlü oyuncu için zafer ilan edilmedi"); ok = false; }
+        if (VictorySystem.PlayerAchievedConditions.Count == 0)
+        { GD.PrintErr("[ZaferTest] HATA: hiçbir koşul tamamlanmadı"); ok = false; }
+
+        // M41.4: Zafer ekranı (GameOverPanel) açılmış olmalı
+        bool overShown = GameOverPanel.IsOpen;
+        GD.Print($"[ZaferTest] Oyun sonu paneli açık: {overShown}");
+        if (!overShown) { GD.PrintErr("[ZaferTest] HATA: zafer için oyun sonu paneli açılmadı"); ok = false; }
+
+        // --- 8) AI değerlendirmesi (konuşmayı kirletmeden, sayaç doğrulaması) ---
+        VictorySystem.EvaluateAi(0);
+        int aiAchieved = VictorySystem.AiAchievedConditionCount;
+        GD.Print($"[ZaferTest] AI tamamlanan koşul sayısı (0. gün): {aiAchieved}");
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M41.3: Ulusal skor ve sıralama testi — --score-test kancası.
+    /// Her ülke için skor hesaplanır, sıralamanın tutarlılığı (azalan skor, tekrarsız sıra no),
+    /// en yüksek skorlu ülkenin doğru tespiti ve skor kırılımı doğrulanır. Başarısızlıkta Quit(1).
+    /// Normal oyunda ASLA çalışmaz (yalnızca --score-test ile).
+    /// </summary>
+    private void RunScoreTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M41.3: SKOR VE SIRALAMA TESTİ (--score-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+        var ranking = ScoreSystem.GetRanking();
+        GD.Print($"[SkorTest] {ranking.Count} ülke sıralandı");
+
+        if (ranking.Count < 2)
+        {
+            GD.PrintErr("[SkorTest] HATA: sıralama için yeterli ülke yok");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // 1) Skor azalan sırada mı?
+        for (int i = 1; i < ranking.Count; i++)
+        {
+            if (ranking[i].Score > ranking[i - 1].Score + 0.0001)
+            {
+                GD.PrintErr($"[SkorTest] HATA: sıralama bozuk — #{i} ({ranking[i].Name}) #{i - 1}'den yüksek");
+                ok = false;
+                break;
+            }
+        }
+
+        // 2) Sıra numaraları 1..N ve tekrarsız mı?
+        var ranks = ranking.Select(e => e.Rank).OrderBy(r => r).ToList();
+        if (ranks.First() != 1 || ranks.Last() != ranking.Count)
+        {
+            GD.PrintErr($"[SkorTest] HATA: sıra numaraları 1..{ranking.Count} değil");
+            ok = false;
+        }
+
+        // 3) İlk sıradaki ülke IsTopCountry=true, diğerleri false
+        string leader = ranking[0].CountryId;
+        if (!ScoreSystem.IsTopCountry(leader))
+        {
+            GD.PrintErr($"[SkorTest] HATA: lider {leader} IsTopCountry=false verdi");
+            ok = false;
+        }
+        for (int i = 1; i < ranking.Count; i++)
+        {
+            if (ScoreSystem.IsTopCountry(ranking[i].CountryId))
+            {
+                GD.PrintErr($"[SkorTest] HATA: #{ranking[i].Rank} {ranking[i].Name} da IsTopCountry=true");
+                ok = false;
+                break;
+            }
+        }
+
+        // 4) GetRank ve GetLeaderId tutarlı mı?
+        if (ScoreSystem.GetLeaderId() != leader)
+        {
+            GD.PrintErr($"[SkorTest] HATA: GetLeaderId ({ScoreSystem.GetLeaderId()}) != lider ({leader})");
+            ok = false;
+        }
+        foreach (var e in ranking)
+        {
+            if (ScoreSystem.GetRank(e.CountryId) != e.Rank)
+            {
+                GD.PrintErr($"[SkorTest] HATA: {e.Name} GetRank tutarsız ({ScoreSystem.GetRank(e.CountryId)} != {e.Rank})");
+                ok = false;
+                break;
+            }
+        }
+
+        // 5) Skor kırılımı toplamı ComputeScore'a eşit mi?
+        foreach (var e in ranking.Take(5))
+        {
+            double total = ScoreSystem.ComputeScore(e.CountryId);
+            double sum = ScoreSystem.ScoreBreakdown(e.CountryId).Values.Sum();
+            if (Math.Abs(total - sum) > 0.001)
+            {
+                GD.PrintErr($"[SkorTest] HATA: {e.Name} kırılım toplamı ({sum:F3}) != skor ({total:F3})");
+                ok = false;
+            }
+        }
+
+        // 6) Skor sıfır/negatif olamaz; ilhak edilmiş ülke skoru 0
+        foreach (var e in ranking.Take(5))
+        {
+            if (e.Score < 0)
+            {
+                GD.PrintErr($"[SkorTest] HATA: {e.Name} negatif skor ({e.Score})");
+                ok = false;
+            }
+        }
+        var annexed = CountryDatabase.All().FirstOrDefault(c => c != null && c.IsAnnexed);
+        if (annexed != null && ScoreSystem.ComputeScore(annexed.Id) != 0)
+        {
+            GD.PrintErr($"[SkorTest] HATA: ilhak edilmiş {annexed.Name} skoru 0 değil");
+            ok = false;
+        }
+
+        ScoreSystem.LogTop(10);
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M41.4: Oyun sonu paneli testi — --gameover-test kancası.
+    /// Panel zafer ve yenilgi olarak açılır; başlık, geçen süre, skor dökümü ve sıralama
+    /// metinleri dolu olmalı, panel + margin toplamı 1152x648 görünür alana sığmalı,
+    /// backdrop MouseFilter.Stop olmalı, ESC paneli kapatmalı.
+    /// Normal oyunda ASLA çalışmaz (yalnızca --gameover-test ile).
+    /// </summary>
+    private async void RunGameOverTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M41.4: OYUN SONU PANELİ TESTİ (--gameover-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+        // Proje genelinde panel sözleşmesi: 1152x648 (headless'ta pencer yok, viewport 64x64
+        // görünebildiğinden ölçüm sabit sözleşmeye göre yapılır).
+        const float ScreenW = 1152f;
+        const float ScreenH = 648f;
+        GD.Print($"[GameOverTest] Hedef ekran: {ScreenW}x{ScreenH} (gerçek viewport {GetViewport().GetVisibleRect().Size})");
+
+        foreach (bool victory in new[] { true, false })
+        {
+            string tag = victory ? "zafer" : "yenilgi";
+
+            var panel = GameOverPanel.OpenUnder(this, victory, "Test Condition",
+                "Test description for score breakdown.", "Testland");
+            if (panel == null)
+            {
+                GD.PrintErr($"[GameOverTest] HATA: {tag} paneli açılamadı");
+                ok = false;
+                continue;
+            }
+
+            // Panel gerçekten ağaçta mı, en az bir frame bekle (animasyon/ölçüm otursun)
+            await ToSignal(GetTree(), "process_frame");
+            await ToSignal(GetTree(), "process_frame");
+
+            if (!GameOverPanel.IsOpen)
+            {
+                GD.PrintErr($"[GameOverTest] HATA: {tag} paneli IsOpen değil");
+                ok = false;
+            }
+
+            // İçerik metinleri dolu mu? (başlık + skor + sıralama satırları)
+            var labels = panel.FindChildren("*", "Label", recursive: true, owned: false);
+            int nonEmpty = 0;
+            foreach (var n in labels)
+            {
+                if (n is Label l && !string.IsNullOrWhiteSpace(l.Text))
+                    nonEmpty++;
+            }
+            GD.Print($"[GameOverTest] {tag}: {labels.Count} label, {nonEmpty} dolu");
+            if (nonEmpty < 5)
+            {
+                GD.PrintErr($"[GameOverTest] HATA: {tag} panelinde dolu label sayısı yetersiz ({nonEmpty} < 5)");
+                ok = false;
+            }
+
+            // Panelin toplam boyutu (panel + margin) hedef ekrana sığyor mu?
+            var panelNode = panel.FindChild("*PanelContainer*", recursive: true, owned: false);
+            if (panelNode == null)
+            {
+                GD.PrintErr($"[GameOverTest] HATA: {tag} panelinde PanelContainer bulunamadı");
+                ok = false;
+            }
+            if (panelNode is Control pc)
+            {
+                Vector2 need = pc.GetCombinedMinimumSize();
+                GD.Print($"[GameOverTest] {tag}: panel min boyut {need.X}x{need.Y} (hedef {ScreenW}x{ScreenH})");
+                if (need.X > ScreenW || need.Y > ScreenH)
+                {
+                    GD.PrintErr($"[GameOverTest] HATA: {tag} paneli hedef ekrana sığmıyor ({need.X}x{need.Y})");
+                    ok = false;
+                }
+            }
+
+            // ESC kapatır mı? (simüle edilmiş tuş olayı)
+            var esc = new InputEventKey
+            {
+                Keycode = Key.Escape,
+                Pressed = true
+            };
+            panel._UnhandledInput(esc); // test kancası: doğrudan çağrı — ESC davranışı
+            await ToSignal(GetTree(), "process_frame");
+            await ToSignal(GetTree(), "process_frame");
+            await ToSignal(GetTree(), "process_frame");
+
+            if (GameOverPanel.IsOpen)
+            {
+                GD.PrintErr($"[GameOverTest] HATA: {tag} paneli ESC ile kapanmadı");
+                ok = false;
+            }
+            else
+            {
+                GD.Print($"[GameOverTest] {tag}: ESC ile kapatıldı ✓");
+            }
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
 }

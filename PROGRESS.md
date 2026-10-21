@@ -2188,4 +2188,62 @@ Tüm M32 alt görevleri tamamlandı (M32.1–M32.6 ✅).
 
 **Sonraki adım:** M40.1 (Tam regresyon — tüm M39 alt görevleri tamamlandı).
 
+### M41.1: Zafer Koşulları Verisi — ✅ DONE (2026-10-21)
+
+- `Data/victory_conditions.json`: iki senaryo (historical_1936, modern_world) × 5 koşul türü
+  (`control_factory_percent`, `capitulate_majors`, `control_province_percent`, `top_score`,
+  `survive_until_date`). Label/Description/Target/Weight alanları; BOM'suz UTF-8.
+- `Scripts/VictorySystem.cs`: JSON yükleyici (`IncludeFields=true`, `PropertyNameCaseInsensitive`),
+  idempotent `LoadData()`, senaryo geçişinde `ResetForScenario()` cache temizliği, `LogSummary()`.
+
+### M41.2: Koşul Değerlendirme — ✅ DONE (2026-10-21)
+
+- `VictorySystem.DailyTick`: oyuncu her gün, AI 30 günde bir değerlendirilir (performans).
+  **Saf hesap — DeterministicRNG kullanılmaz**, save/load determinizmi korunur.
+- `IsSatisfied` (5 koşul türü) + `ConditionProgress` (UI için 0-100).
+- `RecordCapitulation` — WarSystem kapitülasyon yollarından çağrılır; `CapitulatedMajorCount`
+  yalnızca `MajorFactoryThreshold` (30 fabrika) üstü düşmanları sayar.
+- M41.4'te `QueueImportantNotification` kancası kaldırılıp doğrudan `GameOverPanel` açılmasına
+  geçildi (bildirim popup'ı oyun sonu ekranı içinde gereksizdi).
+
+### M41.3: Skor ve Sıralama — ✅ DONE (2026-10-21)
+
+- `Scripts/ScoreSystem.cs`: fabrika (sivil 8 / askeri 12 / tersane 15), tümen 1.5, il 0.4,
+  nüfus (milyon başına) 0.6, teknoloji seviyesi 25 ağırlıklı tek skor.
+- `GetRanking()` azalan skor + 1..N sıra no; `GetRank`, `IsTopCountry`, `GetLeaderId`,
+  `ScoreBreakdown`, `LogTop`. State yok — her an mevcut durumdan hesaplanır (deterministik).
+
+**Testler:** `--score-test` PASS ✓ (#1 USA 1305.8, 50 ülke sıralandı).
+
+### M41.4: Oyun Sonu Paneli — ✅ DONE (2026-10-21)
+
+- `Scripts/GameOverPanel.cs` (yeni, CanvasLayer Layer=110 — PauseMenu ve rapor panellerinin
+  üstünde): VICTORY/DEFEAT başlığı, ülke adı, sağlanan koşul, geçen süre, skor dökümü
+  (azalan sırada) ve ilk 10 sıralama; CONTINUE + MAIN MENU butonları.
+- Panel 640x480 (ölçülen 640x583) — 1152x648'e sığar. Backdrop `MouseFilter.Stop` (harita
+  girdisi bloklanır), ESC kapatır, `ProcessMode.Always`.
+- Açılış yolları: `VictorySystem.EvaluatePlayer` (zafer), `WarSystem.PlayerCapitulates` (yenilgi).
+  PauseMenu ESC listesine `GameOverPanel.IsOpen` eklendi.
+- `--gameover-test` (yeni kanca): zafer + yenilgi için panel açılır, içerik metinlerinin dolu
+  olması, panel boyutunun hedef ekrana sığması, ESC ile kapanma doğrulanır.
+
+**Testler:** `--gameover-test` PASS ✓ (640x583 ≤ 1152x648, 10 label dolu, ESC ✓).
+
+### M41.5: Save/Load — ✅ DONE (2026-10-21)
+
+- `SaveFile.Victory` (`VictorySystem.VictorySave`): `PlayerVictoryDeclared`, tamamlanan koşullar
+  (oyuncu + AI), kapitülasyon geçmişi, son AI kontrol günü. `GetSaveData()` / `ApplySave()`.
+- Eski kayıtlarda alan null → `ApplySave(null)` erken döner (geriye dönük uyumluluk).
+- ScoreSystem state tutmadığı için ayrı DTO eklenmedi (safsaf hesap).
+
+**Testler:** `--save-load-test` historical_1936 PASS (A==B); `--save-load-test --scenario=modern_world`
+PASS (A==B). `dotnet build` 0 hata / 0 uyarı.
+
+**Dosyalar:** `Data/victory_conditions.json` (yeni), `Scripts/VictorySystem.cs` (yeni),
+`Scripts/ScoreSystem.cs` (yeni), `Scripts/GameOverPanel.cs` (yeni), `Scripts/GameManager.cs`,
+`Scripts/SaveSystem.cs`, `Scripts/WarSystem.cs`, `Scripts/PauseMenu.cs`, `TODO.md`, `PROGRESS.md`,
+`GECE-RAPOR.md`.
+
+**Sonraki adım:** M42.1 (Savaş puanı birikimi).
+
 

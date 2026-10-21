@@ -317,6 +317,10 @@ public static class WarSystem
         winner.MilFactories += milGain;
         winner.Dockyards += dockGain;
 
+        // M41.2: major güç eşiği için toplam fabrika sayısı (kayıt öncesi)
+        int loserTotalFactories = loser.CivFactories + loser.MilFactories + loser.Dockyards;
+        VictorySystem.RecordCapitulation(winnerId, loserId, loserTotalFactories);
+
         loser.IsAnnexed = true;
         loser.OwnerId = winnerId;
 
@@ -505,11 +509,16 @@ public static class WarSystem
             loser.IsAnnexed = true;
             loser.OwnerId = winner.Id;
 
+            // M41.2: major güç eşiği için fabrika sayısı sıfırlanmadan ÖNCE alınır
+            int loserTotalFactories = loser.TotalFactories;
+
             // Savaş ganimeti: fabrikalar kazananına geçer (basit ilhak modeli)
             winner.CivFactories += loser.CivFactories;
             winner.MilFactories += loser.MilFactories;
             winner.Dockyards += loser.Dockyards;
             loser.CivFactories = loser.MilFactories = loser.Dockyards = 0;
+
+            VictorySystem.RecordCapitulation(winner.Id, loser.Id, loserTotalFactories);
 
             Player.StabilityPercent = Math.Min(100, Player.StabilityPercent + 5);
             Player.WarSupportPercent = Math.Max(0, Player.WarSupportPercent - 5);
@@ -543,6 +552,11 @@ public static class WarSystem
 
         GD.Print($"[War] *** OYUNCU KAPİTÜLE OLDU: {Player?.Name} teslim oldu ({reason}) — " +
                  $"OYUN KAYBEDİLDİ, {winner?.Name} kazandı ***");
+
+        // M41.4: Oyun sonu paneli — yenilgi. CONTINUE ile oyuncu izlemeye devam edebilir.
+        if (GameManager.IsAvailable)
+            GameOverPanel.OpenUnder(GameManager.Instance, false, "Capitulation",
+                $"Your nation surrendered: {reason}", Player?.Name ?? "");
 
         // M17A: Savaş bitti — ateşkes başlat
         CasusBelliSystem.NotifyWarEnded(war.AttackerId, war.DefenderId);

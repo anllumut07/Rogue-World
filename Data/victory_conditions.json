@@ -1,0 +1,94 @@
+[
+  {
+    "Id": "historical_1936",
+    "EndDate": "1948-01-01",
+    "Conditions": [
+      {
+        "Id": "economic_dominance",
+        "Kind": "control_factory_percent",
+        "Label": "Economic Dominance",
+        "Description": "Control at least 35% of the world's total industrial capacity (civilian, military and naval factories combined).",
+        "Target": 35.0,
+        "Weight": 1.0
+      },
+      {
+        "Id": "military_dominance",
+        "Kind": "capitulate_majors",
+        "Label": "Military Dominance",
+        "Description": "Capitulate 3 major powers (countries with 30 or more total factories).",
+        "Target": 3.0,
+        "Weight": 1.0
+      },
+      {
+        "Id": "territorial_dominance",
+        "Kind": "control_province_percent",
+        "Label": "Territorial Dominance",
+        "Description": "Hold at least 12% of all provinces in the world.",
+        "Target": 12.0,
+        "Weight": 0.7
+      },
+      {
+        "Id": "global_leader",
+        "Kind": "top_score",
+        "Label": "Global Leader",
+        "Description": "Finish the simulation holding the highest national score of any country in the world.",
+        "Target": 1.0,
+        "Weight": 1.0
+      },
+      {
+        "Id": "survival",
+        "Kind": "survive_until_date",
+        "Label": "Survival",
+        "Description": "Remain independent and uncapitulated until the end date. The strongest country to finish intact wins.",
+        "Target": 1948.0,
+        "Weight": 0.5
+      }
+    ]
+  },
+  {
+    "Id": "modern_world",
+    "EndDate": "2036-10-15",
+    "Conditions": [
+      {
+        "Id": "economic_dominance",
+        "Kind": "control_factory_percent",
+        "Label": "Economic Dominance",
+        "Description": "Control at least 25% of the world's total industrial capacity (civilian, military and naval factories combined).",
+        "Target": 25.0,
+        "Weight": 1.0
+      },
+      {
+        "Id": "military_dominance",
+        "Kind": "capitulate_majors",
+        "Label": "Military Dominance",
+        "Description": "Capitulate 3 major powers (countries with 30 or more total factories).",
+        "Target": 3.0,
+        "Weight": 1.0
+      },
+      {
+        "Id": "territorial_dominance",
+        "Kind": "control_province_percent",
+        "Label": "Territorial Dominance",
+        "Description": "Hold at least 10% of all provinces in the world.",
+        "Target": 10.0,
+        "Weight": 0.7
+      },
+      {
+        "Id": "global_leader",
+        "Kind": "top_score",
+        "Label": "Global Leader",
+        "Description": "Finish the simulation holding the highest national score of any country in the world.",
+        "Target": 1.0,
+        "Weight": 1.0
+      },
+      {
+        "Id": "survival",
+        "Kind": "survive_until_date",
+        "Label": "Survival",
+        "Description": "Remain independent and uncapitulated until the end date. The strongest country to finish intact wins.",
+        "Target": 2036.0,
+        "Weight": 0.5
+      }
+    ]
+  }
+]

@@ -640,11 +640,11 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 41.1 | `Data/victory_conditions.json`: senaryo (historical_1936, modern_world) başına zafer koşulları — `control_factory_percent`, `capitulate_majors`, `top_score`, `control_province_percent`, `survive_until_date`; her koşul Label/Description/Target/Weight | JSON geçerli, senaryo yükleme sayısı `GD.Print` ile loglanır (`IncludeFields=true`) | [ ] |
-| 41.2 | `Scripts/VictorySystem.cs`: koşulları günlük değerlendir (saf hesap, RNG yok), tamamlanan koşul → zafer bildirimi + auto-pause; oyuncu ve AI ayrı değerlendirilir | Oyuncu koşulu sağlanınca bildirim + duraklama; AI zaferi loglanır, `--victory-test` PASS | [ ] |
-| 41.3 | `Scripts/ScoreSystem.cs`: ülke skoru (fabrika / tümen / il / nüfus / teknoloji / ekonomi ağırlıkları) + canlı sıralama tablosu (tüm ülkeler, sıralı) | Skor geçerli aralıkta, sıralama tutarlı, `--score-test` PASS | [ ] |
-| 41.4 | `Scripts/GameOverPanel.cs`: zafer/yenilgi ekranı — zafer tipi, geçen süre, skor dökümü, sıralama, "MAIN MENU" / "CONTINUE" butonları | Panel 1152x648'e sığar, `MouseFilter.Stop` backdrop, ESC kapatır, harita girdisi bloklanır | [ ] |
-| 41.5 | Save/Load: Victory + Score state kaydedilir | `--save-load-test` (historical_1936 + modern_world) A==B PASS | [ ] |
+| 41.1 | `Data/victory_conditions.json`: senaryo (historical_1936, modern_world) başına zafer koşulları — `control_factory_percent`, `capitulate_majors`, `top_score`, `control_province_percent`, `survive_until_date`; her koşul Label/Description/Target/Weight | JSON geçerli, senaryo yükleme sayısı `GD.Print` ile loglanır (`IncludeFields=true`) | [x] |
+| 41.2 | `Scripts/VictorySystem.cs`: koşulları günlük değerlendir (saf hesap, RNG yok), tamamlanan koşul → GameOverPanel + auto-pause; oyuncu ve AI ayrı değerlendirilir | Oyuncu koşulu sağlanınca panel + duraklama; AI zaferi loglanır, `--victory-test` PASS | [x] |
+| 41.3 | `Scripts/ScoreSystem.cs`: ülke skoru (fabrika / tümen / il / nüfus / teknoloji / ekonomi ağırlıkları) + canlı sıralama tablosu (tüm ülkeler, sıralı) | Skor geçerli aralıkta, sıralama tutarlı, `--score-test` PASS | [x] |
+| 41.4 | `Scripts/GameOverPanel.cs`: zafer/yenilgi ekranı — zafer tipi, geçen süre, skor dökümü, sıralama, "MAIN MENU" / "CONTINUE" butonları | Panel 1152x648'e sığar, `MouseFilter.Stop` backdrop, ESC kapatır, harita girdisi bloklanır, `--gameover-test` PASS | [x] |
+| 41.5 | Save/Load: Victory + Score state kaydedilir (Score saf hesap olduğu için DTO'suz — sadece Victory) | `--save-load-test` (historical_1936 + modern_world) A==B PASS | [x] |
 
 ---
 

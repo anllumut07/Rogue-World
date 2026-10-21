@@ -127,6 +127,7 @@ public static class ScenarioSystem
         ArmySystem.ResetForScenario();
         EquipmentSystem.ResetForScenario();
         LeaderSystem.ResetForScenario();
+        VictorySystem.ResetForScenario();
 
         return true;
     }
@@ -198,6 +199,7 @@ public static class ScenarioSystem
             ArmySystem.ResetForScenario();
             EquipmentSystem.ResetForScenario();
             LeaderSystem.ResetForScenario();
+            VictorySystem.ResetForScenario();
 
             // Senaryo verilerini yükle (ülke gerekmez)
             CountryDatabase.LoadScenarioData();
@@ -211,6 +213,7 @@ public static class ScenarioSystem
             ArmySystem.LoadScenarioData();
             EquipmentSystem.LoadScenarioData();
             LeaderSystem.LoadScenarioData();
+            VictorySystem.LoadScenarioData();
 
             int c = CountryDatabase.All().Count();
             int fTrees = FocusSystem.Trees.Count;
@@ -225,8 +228,9 @@ public static class ScenarioSystem
             int dipRelations = DiplomacySystem.Relations.Count;
             int dipGuarantees = DiplomacySystem.Guarantees.Count;
             int leaders = LeaderSystem.LoadedCount;
+            int victoryConds = VictorySystem.Get(s.Id)?.Conditions.Count ?? 0;
 
-            GD.Print($"  Ülke: {c}, Odak Ağacı: {fTrees} ({fFocuses} odak), Olay: {e}, Karar: {d}, Teknoloji: {t}, Kütüphane: {lib}, Gerekçe Türü: {cbTypes}, Toprak İddiası: {cbClaims}, Faksiyon: {dipFactions}, İlişki: {dipRelations}, Garanti: {dipGuarantees}, Lider: {leaders}");
+            GD.Print($"  Ülke: {c}, Odak Ağacı: {fTrees} ({fFocuses} odak), Olay: {e}, Karar: {d}, Teknoloji: {t}, Kütüphane: {lib}, Gerekçe Türü: {cbTypes}, Toprak İddiası: {cbClaims}, Faksiyon: {dipFactions}, İlişki: {dipRelations}, Garanti: {dipGuarantees}, Lider: {leaders}, Zafer Koşulu: {victoryConds}");
         }
     }
 }

@@ -199,6 +199,13 @@ public static class TimeTempoSystem
     public static bool HasPendingNotifications => _notificationQueue.Count > 0;
     public static int PendingNotificationCount => _notificationQueue.Count;
 
+    /// <summary>M41.2: Bildirim kuyruğunda belirli türde bir bildirim var mı? (test doğrulaması için)</summary>
+    public static bool NotificationQueueContains(string type)
+    {
+        if (string.IsNullOrEmpty(type)) return false;
+        return _notificationQueue.Any(n => n != null && n.Type == type);
+    }
+
     /// <summary>Sistemi başlatır (GameManager._Ready'de çağrılır).</summary>
     public static void Initialize()
     {

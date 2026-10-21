@@ -2295,6 +2295,43 @@ puan 12→red, bilinmeyen tür→red). `dotnet build` 0 hata / 0 uyarı.
 **Dosyalar:** `Data/peace_terms.json` (yeni), `Scripts/PeaceConferenceSystem.cs` (yeni),
 `Scripts/GameManager.cs`, `TODO.md`, `PROGRESS.md`.
 
-**Sonraki adım:** M42.3 (barış anlaşması uygulama — il devri + tazminat).
+**Sonraki adım:** M42.4 (AI barış davranışı).
+
+---
+
+## M42.3 — Barış anlaşması uygulama — ✅ DONE (2026-10-21)
+
+**Commit:** `git log` ref: `feat(war): apply peace conference terms to world state`
+
+- `PeaceConferenceSystem.ApplyDeal` — talep listesini savaş puanına karşı doğrular,
+  kabul edilenleri `ApplyTerm` ile dünyaya uygular, reddedilenleri `DealResult.Rejected`
+  olarak döner. `MaxTermsPerDeal` (4) ve her talebin `RequiresScoreAtLeast` eşiği korunur;
+  puan bütçesi tükendikçe kalan talepler reddedilir.
+- İl devri: kaybedenin illeri **id sırasına göre** (deterministik, RNG yok)
+  `ProvinceOwnershipSystem.SetProvinceOwner` ile devredilir; `OnOwnerChanged` →
+  WorldMap `RefreshProvinceColors` haritayı otomatik yeniden renkler.
+- Talep türleri: `province` (il devri), `annex` (fabrika + kalan iller + `IsAnnexed`
+  + major güç kapitülasyon kaydı), `puppet` (fabrikalar korunur, kontrol kazananda),
+  `liberate` (ilhak kaldırılır), `reparations` (sivil→askeri fabrika sırasıyla +
+  paket başına 25 PP), `demilitarize` (askeri fabrikalar sepetlenir).
+- `FinishWar`: `IsEnded` + kapitülasyon bayrağı, `VictorySystem.RecordCapitulation`,
+  `CasusBelliSystem.NotifyWarEnded` (90 gün ateşkes), ilişki +10 yumuşaması.
+- `SuggestTerm` (M42.4 hazırlığı): kazananın puanına göre deterministik talep önerir.
+- `--peace-test`: 3 senaryo. Senaryo 1/2'de savaş sonrası 90 günlük ateşkes yeniden
+  savaşı engellediğinden **her senaryo farklı hedef** kullanır (RUS=110 il, CAN, USA).
+  Senaryo 1 il talebi + askersizleştirme (devir, fabrika sepeti, il sayıları), Senaryo 2
+  tazminat (fabrika + PP transferi), Senaryo 3 çok düşük puan → tüm talepler güvenli red.
+
+**Not — hedef seçimi:** Prosedürel üretim 50 ülke kodundan daha fazla kod üretir
+(`ATA`, `GRL`, `-99` gibi CountryDatabase'de kaydı olmayan sahipler). Test hedef
+filtresine `CountryDatabase.Get(v) != null` koşulu eklendi; aksi hâlde `enemy2.CivFactories`
+erişimi NullReferenceException atıyordu (bu hata gerçekten görüldü ve düzeltildi).
+
+**Testler:** `--peace-test` PASS ✓ (RUS→DEU 5 il + 25 askeri fabrika sepeti, CAN→DEU
+3 sivil fabrika + 30 PP, USA puan 1.6 → 3 talebin tamamı reddedildi ve dünya durumu
+değişmedi). `--save-load-test` A==B PASS ✓. `dotnet build` 0 hata / 0 uyarı.
+
+**Dosyalar:** `Scripts/PeaceConferenceSystem.cs`, `Scripts/GameManager.cs`,
+`TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
 
 

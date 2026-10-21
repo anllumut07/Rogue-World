@@ -173,7 +173,8 @@ public partial class GameManager : Node
         bool scoreTest = false;             // M41.3: ulusal skor + sıralama testi (--score-test)
         bool gameOverTest = false;          // M41.4: oyun sonu paneli testi (--gameover-test)
         bool warScoreTest = false;          // M42.1: savaş puanı testi (--war-score-test)
-        bool peaceTermsTest = false;        // M42.2: barış talebi maliyeti testi (--peace-terms-test)
+        bool peaceTermsTest = false;
+        bool peaceTest = false;             // M42.3: barış anlaşması uygulama testi (--peace-test)        // M42.2: barış talebi maliyeti testi (--peace-terms-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -308,6 +309,8 @@ public partial class GameManager : Node
                 warScoreTest = true;
             else if (arg == "--peace-terms-test")
                 peaceTermsTest = true;
+            else if (arg == "--peace-test")
+                peaceTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -680,6 +683,10 @@ public partial class GameManager : Node
         // M42.2: Barış talebi maliyeti testi — yetersiz puanda red, yeterlinde doğru düşüş.
         if (peaceTermsTest)
             RunPeaceTermsTest();
+
+        // M42.3: Barış anlaşması uygulama testi — il devri + tazminat + savaş sonu.
+        if (peaceTest)
+            RunPeaceTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -5776,6 +5783,297 @@ private void RunBalanceTest()
         if (unknown.Ok)
         {
             GD.PrintErr("[PeaceTermsTest] HATA: bilinmeyen talep türü kabul edildi");
+            ok = false;
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M42.3: Barış anlaşması uygulama testi (--peace-test).
+    /// İl devri, fabrika/PP tazminatı ve yetersiz puanda güvenli red doğrulanır.
+    /// Deterministik: RNG yok, il seçimi id sırasına göre sabit.
+    /// Her senaryo FARKLI hedef kullanır — barış sonrası 90 günlük ateşkes
+    /// aynı ülkeyle yeniden savaşı engellediği için.
+    /// </summary>
+    private void RunPeaceTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M42.3: BARIŞ ANLAŞMASI UYGULAMA TESTİ (--peace-test)");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0x20261023D2C7UL);
+        bool ok = true;
+
+        PeaceConferenceSystem.LoadData();
+
+        // Headless testte WorldMap sahnesi yüklenmez → illeri burada kur (M18 deseni).
+        if (ProvinceOwnershipSystem.TotalProvinceCount == 0)
+        {
+            var provinceSource = new ProceduralProvinceSource();
+            var provs = provinceSource.LoadProvinces();
+            ProvinceOwnershipSystem.InitializeFromProvinces(provs);
+            GD.Print($"[PeaceTest] İller yüklendi: {provs.Count} il");
+        }
+
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        string playerId = PlayerCountryId;
+
+        // Hedefler: oyuncu dışında en çok ili olan ülkeler (azalan, eşitlikte id sırası).
+        // Sıralama mevcut duruma göre sabit → deterministik, RNG yok.
+        var targets = ProvinceOwnershipSystem.GetSaveData().Values
+            .Where(v => !string.IsNullOrEmpty(v) && v != "?")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(v => !string.Equals(v, playerId, StringComparison.OrdinalIgnoreCase))
+            .Where(v => CountryDatabase.Get(v) != null)
+            .OrderByDescending(v => ProvinceOwnershipSystem.ProvinceCountFor(v))
+            .ThenBy(v => v, StringComparer.Ordinal)
+            .ToList();
+
+        if (targets.Count < 3)
+        {
+            GD.PrintErr($"[PeaceTest] HATA: en az 3 hedef ülke gerekli, bulunan={targets.Count}");
+            GetTree().Quit(1);
+            return;
+        }
+
+        foreach (var t in targets) GD.Print($"[PeaceTest] Hedef adayı: {t} ({ProvinceOwnershipSystem.ProvinceCountFor(t)} il)");
+
+        // Savaş ilanı önkoşulleri: PP + savaş desteği + casus belli gerekçesi.
+        void EnsureWarRequirements(string targetId)
+        {
+            if (PlayerCountryData != null)
+            {
+                if (PlayerCountryData.PoliticalPower < WarSystem.DeclareWarPPCost + 10)
+                    PlayerCountryData.PoliticalPower = WarSystem.DeclareWarPPCost + 10;
+                if (PlayerCountryData.WarSupportPercent < 50)
+                    PlayerCountryData.WarSupportPercent = 50;
+            }
+            CasusBelliSystem.GrantImmediateJustification(playerId, targetId, "historical_event");
+        }
+
+        // ---- Senaryo 1: il talebi + askersizleştirme ----
+        string e1 = targets[0];
+        var enemy1 = CountryDatabase.Get(e1);
+        int prov1Before = ProvinceOwnershipSystem.ProvinceCountFor(e1);
+        int deuBefore = ProvinceOwnershipSystem.ProvinceCountFor(playerId);
+        int mil1Before = enemy1.MilFactories;
+        GD.Print($"[PeaceTest] Senaryo 1 hedefi {e1}: il={prov1Before}, askeri fabrika={mil1Before}");
+
+        EnsureWarRequirements(e1);
+        if (!WarSystem.DeclareWar(e1))
+        {
+            GD.PrintErr($"[PeaceTest] HATA: ilk savaş başlatılamadı ({e1})");
+            GetTree().Quit(1);
+            return;
+        }
+        var w1 = WarSystem.Wars.FirstOrDefault(w => !w.IsEnded && w.DefenderId == e1);
+        if (w1 == null) { GD.PrintErr("[PeaceTest] HATA: aktif savaş bulunamadı"); GetTree().Quit(1); return; }
+
+        w1.WarProgress = 90f;
+        w1.EnemyDivisions = Math.Max(1, w1.StartEnemyDivisions / 4);
+        w1.AttackerBattlesWon = 20;
+        w1.DefenderBattlesWon = 2;
+        GD.Print($"[PeaceTest] Senaryo 1 puanı: saldıran={WarScoreSystem.AttackerScore(w1):F1}, savunan={WarScoreSystem.DefenderScore(w1):F1}");
+
+        int demandCount = Math.Min(5, prov1Before);
+        if (demandCount <= 0)
+        {
+            GD.PrintErr($"[PeaceTest] HATA: {e1} devredilecek ili yok ({prov1Before})");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var r1 = PeaceConferenceSystem.ApplyDeal(w1, new List<PeaceConferenceSystem.Demand>
+        {
+            new PeaceConferenceSystem.Demand("province_demand", demandCount),
+            new PeaceConferenceSystem.Demand("demilitarize", 1)
+        }, playerId, e1);
+
+        GD.Print($"[PeaceTest] Senaryo 1: ok={r1.Ok}, devredilen il={r1.ProvincesTransferred}, " +
+                 $"sepetlenen askeri fabrika={r1.FactoriesScrapped}, harcanan puan={r1.ScoreSpent:F1}, red={r1.Rejected.Count}");
+        foreach (var rej in r1.Rejected) GD.Print($"   reddedildi: {rej}");
+
+        if (!r1.Ok) { GD.PrintErr($"[PeaceTest] HATA: anlaşma uygulanamadı ({r1.Reason})"); ok = false; }
+        if (r1.ProvincesTransferred != demandCount)
+        {
+            GD.PrintErr($"[PeaceTest] HATA: {demandCount} il devredilmeli, devredilen={r1.ProvincesTransferred}");
+            ok = false;
+        }
+        foreach (var pid in r1.TransferredProvinceIds)
+        {
+            string owner = ProvinceOwnershipSystem.GetProvinceOwner(pid);
+            if (owner != playerId)
+            {
+                GD.PrintErr($"[PeaceTest] HATA: {pid} sahibi {playerId} değil ({owner})");
+                ok = false;
+            }
+        }
+        int prov1After = ProvinceOwnershipSystem.ProvinceCountFor(e1);
+        int deuAfter = ProvinceOwnershipSystem.ProvinceCountFor(playerId);
+        GD.Print($"[PeaceTest] Senaryo 1 sonrası: {e1} il={prov1After}, {playerId} il={deuAfter}");
+        if (prov1After != prov1Before - demandCount)
+        {
+            GD.PrintErr($"[PeaceTest] HATA: kaybeden il sayısı {prov1Before - demandCount} olmalı ({prov1After})");
+            ok = false;
+        }
+        if (deuAfter != deuBefore + demandCount)
+        {
+            GD.PrintErr($"[PeaceTest] HATA: kazanan il sayısı {deuBefore + demandCount} olmalı ({deuAfter})");
+            ok = false;
+        }
+        if (enemy1.MilFactories != 0)
+        {
+            GD.PrintErr($"[PeaceTest] HATA: kaybeden askeri fabrika sıfırlanmadı ({enemy1.MilFactories})");
+            ok = false;
+        }
+        if (r1.FactoriesScrapped != mil1Before)
+        {
+            GD.PrintErr($"[PeaceTest] HATA: sepetlenen askeri fabrika {mil1Before} olmalı ({r1.FactoriesScrapped})");
+            ok = false;
+        }
+        if (!w1.IsEnded)
+        {
+            GD.PrintErr("[PeaceTest] HATA: barış sonrası savaş bitmedi");
+            ok = false;
+        }
+        if (WarSystem.GetWarWith(e1) != null || WarSystem.IsAtWarWith(e1))
+        {
+            GD.PrintErr("[PeaceTest] HATA: savaş hâlâ aktif görünüyor");
+            ok = false;
+        }
+
+        // ---- Senaryo 2: tazminat — fabrika ve PP kazanana geçmeli ----
+        string e2 = targets[1];
+        var enemy2 = CountryDatabase.Get(e2);
+        double ppBefore = PlayerCountryData?.PoliticalPower ?? 0;
+        int civ2Before = enemy2.CivFactories;
+        int mil2Before = enemy2.MilFactories;
+        GD.Print($"[PeaceTest] Senaryo 2 hedefi {e2}: sivil={civ2Before}, askeri={mil2Before}, oyuncu PP={ppBefore:N0}");
+
+        EnsureWarRequirements(e2);
+        if (!WarSystem.DeclareWar(e2))
+        {
+            GD.PrintErr($"[PeaceTest] HATA: ikinci savaş başlatılamadı ({e2})");
+            GetTree().Quit(1);
+            return;
+        }
+        var w2 = WarSystem.Wars.FirstOrDefault(w => !w.IsEnded && w.DefenderId == e2);
+        if (w2 == null) { GD.PrintErr("[PeaceTest] HATA: ikinci aktif savaş bulunamadı"); GetTree().Quit(1); return; }
+
+        w2.WarProgress = 100f;
+        w2.EnemyDivisions = 0;
+        w2.AttackerBattlesWon = 30;
+        w2.DefenderBattlesWon = 0;
+        GD.Print($"[PeaceTest] Senaryo 2 puanı: saldıran={WarScoreSystem.AttackerScore(w2):F1}");
+
+        var r2 = PeaceConferenceSystem.ApplyDeal(w2, new List<PeaceConferenceSystem.Demand>
+        {
+            new PeaceConferenceSystem.Demand("war_reparations", 3)
+        }, playerId, e2);
+
+        GD.Print($"[PeaceTest] Senaryo 2: ok={r2.Ok}, alınan fabrika={r2.FactoriesTaken}, " +
+                 $"PP transferi={r2.PoliticalPowerTransferred:N0}, red={r2.Rejected.Count}");
+        foreach (var rej in r2.Rejected) GD.Print($"   reddedildi: {rej}");
+
+        if (!r2.Ok) { GD.PrintErr($"[PeaceTest] HATA: tazminat uygulanamadı ({r2.Reason})"); ok = false; }
+        if (r2.FactoriesTaken <= 0 && (civ2Before + mil2Before) > 0)
+        {
+            GD.PrintErr("[PeaceTest] HATA: tazminat fabrika transferi olmadı");
+            ok = false;
+        }
+        if (r2.PoliticalPowerTransferred <= 0)
+        {
+            GD.PrintErr("[PeaceTest] HATA: tazminat PP transferi olmadı");
+            ok = false;
+        }
+        double ppAfter = PlayerCountryData?.PoliticalPower ?? 0;
+        if (ppAfter <= ppBefore)
+        {
+            GD.PrintErr($"[PeaceTest] HATA: kazanan PP artmadı ({ppBefore:N0} → {ppAfter:N0})");
+            ok = false;
+        }
+        if ((civ2Before + mil2Before) > 0)
+        {
+            int expectedCiv = civ2Before - Math.Min(civ2Before, 3);
+            if (enemy2.CivFactories != expectedCiv)
+            {
+                GD.PrintErr($"[PeaceTest] HATA: kaybeden sivil fabrika {expectedCiv} olmalı ({enemy2.CivFactories})");
+                ok = false;
+            }
+        }
+
+        // ---- Senaryo 3: yetersiz puan — hiç talep uygulanmamalı, savaş bitmeli ----
+        string e3 = targets[2];
+        var enemy3 = CountryDatabase.Get(e3);
+        int prov3Before = ProvinceOwnershipSystem.ProvinceCountFor(e3);
+        int civ3Before = enemy3.CivFactories;
+        double pp3Before = enemy3.PoliticalPower;
+        GD.Print($"[PeaceTest] Senaryo 3 hedefi {e3}: il={prov3Before}, sivil fabrika={civ3Before}, ilhak mı: {enemy3.IsAnnexed}");
+
+        EnsureWarRequirements(e3);
+        if (!WarSystem.DeclareWar(e3))
+        {
+            GD.PrintErr($"[PeaceTest] HATA: üçüncü savaş başlatılamadı ({e3})");
+            GetTree().Quit(1);
+            return;
+        }
+        var w3 = WarSystem.Wars.FirstOrDefault(w => !w.IsEnded && w.DefenderId == e3);
+        if (w3 == null) { GD.PrintErr("[PeaceTest] HATA: üçüncü aktif savaş bulunamadı"); GetTree().Quit(1); return; }
+
+        w3.WarProgress = 3f;
+        w3.EnemyDivisions = w3.StartEnemyDivisions;
+        w3.AttackerBattlesWon = 0;
+        w3.DefenderBattlesWon = 1;
+        GD.Print($"[PeaceTest] Senaryo 3 puanı: saldıran={WarScoreSystem.AttackerScore(w3):F1}");
+
+        var r3 = PeaceConferenceSystem.ApplyDeal(w3, new List<PeaceConferenceSystem.Demand>
+        {
+            new PeaceConferenceSystem.Demand("annex_country", 1),
+            new PeaceConferenceSystem.Demand("puppet_state", 1),
+            new PeaceConferenceSystem.Demand("war_reparations", 2)
+        }, playerId, e3);
+
+        GD.Print($"[PeaceTest] Senaryo 3: ok={r3.Ok}, reddedilen={r3.Rejected.Count}, " +
+                 $"devredilen il={r3.ProvincesTransferred}, alınan fabrika={r3.FactoriesTaken}");
+        foreach (var rej in r3.Rejected) GD.Print($"   reddedildi: {rej}");
+
+        if (r3.Rejected.Count < 3)
+        {
+            GD.PrintErr("[PeaceTest] HATA: yetersiz puanda tüm talepler reddedilmeli");
+            ok = false;
+        }
+        if (r3.Ok)
+        {
+            GD.PrintErr("[PeaceTest] HATA: hiç talep uygulanmadıysa Ok=false olmalı");
+            ok = false;
+        }
+        if (r3.ProvincesTransferred > 0 || r3.FactoriesTaken > 0 || r3.Annexed || r3.Puppeted)
+        {
+            GD.PrintErr("[PeaceTest] HATA: reddedilen talepler dünyaya etki etmiş görünüyor");
+            ok = false;
+        }
+        if (enemy3.IsAnnexed)
+        {
+            GD.PrintErr("[PeaceTest] HATA: reddedilen ilhak uygulanmış görünüyor");
+            ok = false;
+        }
+        if (ProvinceOwnershipSystem.ProvinceCountFor(e3) != prov3Before)
+        {
+            GD.PrintErr("[PeaceTest] HATA: reddedilen talepler il devretmiş görünüyor");
+            ok = false;
+        }
+        if (enemy3.CivFactories != civ3Before || enemy3.PoliticalPower != pp3Before)
+        {
+            GD.PrintErr("[PeaceTest] HATA: reddedilen talep fabrika/PP değiştirmiş görünüyor");
+            ok = false;
+        }
+        if (!w3.IsEnded)
+        {
+            GD.PrintErr("[PeaceTest] HATA: boş anlaşma da savaşı bitirmeli");
             ok = false;
         }
 

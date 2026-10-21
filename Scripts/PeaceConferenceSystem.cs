@@ -5,15 +5,16 @@ using System.Linq;
 using System.Text.Json;
 
 /// <summary>
-/// Barış konferansı tercihleri ve puan harcama kuralları (M42.2).
+/// Barış konferansı: talep maliyetleri (M42.2) ve anlaşma uygulama (M42.3).
 ///
 /// `Data/peace_terms.json` taleplerin savaş puanı maliyetini tanımlar. Sistem
 /// saf hesaptır: rastgelelik YOKTUR ve talep listesi (state) tutulmaz —
 /// maliyet her çağrıda aynı veriden üretilir. Böylece ayrı bir DTO gerekmez
-/// (M42.5'te savaş sonu anlık görüntüsü WarSystem kaydında zaten duruyor).
+/// (uygulama anındaki dünya durumu zaten save/load ile korunur).
 ///
-/// Uygulama (il devri, fabrika tazminatı) M42.3'te `PeaceConferenceSystem`
-/// üzerine kurulacak; burada yalnızca maliyet/doğrulama mantığı var.
+/// M42.3: `ProposeDeal` / `ApplyDeal` — talepler doğrulanıp sırayla uygulanır:
+/// iller `ProvinceOwnershipSystem` üzerinden devredilir (harita sinyal zinciriyle
+/// yeniden renklenir), fabrika/PP tazminatı doğrudan `CountryData`'ya yazılır.
 /// </summary>
 public static class PeaceConferenceSystem
 {
@@ -246,4 +247,257 @@ public static class PeaceConferenceSystem
 
     /// <summary>Deal'de izin verilen en fazla talep sayısı.</summary>
     public static int MaxTermsPerDeal => Limits.MaxTermsPerDeal;
+
+    // ===== M42.3: Anlaşma uygulama =====
+
+    /// <summary>Tek bir onaylanmış talep (UI listesinden veya AI'dan gelir).</summary>
+    public class Demand
+    {
+        public string TermId = "";
+        public int Units = 1;
+
+        public Demand() { }
+        public Demand(string termId, int units) { TermId = termId; Units = units; }
+    }
+
+    /// <summary>Anlaşmanın uygulanma sonucu — UI ve test için özet.</summary>
+    public class DealResult
+    {
+        public bool Ok { get; set; }
+        public string Reason { get; set; } = "";
+        public float StartingScore { get; set; }
+        public float ScoreSpent { get; set; }
+        public float ScoreLeft { get; set; }
+        public int ProvincesTransferred { get; set; }
+        public int FactoriesTaken { get; set; }
+        public int FactoriesScrapped { get; set; }
+        public double PoliticalPowerTransferred { get; set; }
+        public bool Annexed { get; set; }
+        public bool Puppeted { get; set; }
+        public bool Liberated { get; set; }
+        public List<string> TransferredProvinceIds { get; } = new();
+        public List<string> Rejected { get; } = new();
+    }
+
+    /// <summary>
+    /// Talepleri savaş puanına karşı doğrular ve uygular. Reddedilen talepler
+    /// sonuçta `Rejected` olarak döner (loglanır), kabul edilenler sırayla
+    /// etki eder. Puan bütçesi tükendikçe kalan talep reddedilir.
+    /// </summary>
+    public static DealResult ApplyDeal(WarSystem.War war, List<Demand> demands, string winnerId, string loserId)
+    {
+        var res = new DealResult();
+
+        if (war == null || demands == null || string.IsNullOrEmpty(winnerId) || string.IsNullOrEmpty(loserId))
+        {
+            res.Reason = "invalid deal (war/demands/countries)";
+            return res;
+        }
+
+        var winner = CountryDatabase.Get(winnerId);
+        var loser = CountryDatabase.Get(loserId);
+        if (winner == null || loser == null)
+        {
+            res.Reason = $"unknown country ({winnerId}/{loserId})";
+            return res;
+        }
+
+        // Kazanan savaşı bitiren taraf mı? Puanı onun bakış açısından alıyoruz.
+        float score = WarScoreSystem.ScoreForSide(war, winnerId);
+        res.StartingScore = score;
+        float budget = score;
+
+        int applied = 0;
+        foreach (var d in demands)
+        {
+            if (applied >= MaxTermsPerDeal)
+            {
+                res.Rejected.Add($"{d.TermId}: deal already has max terms ({MaxTermsPerDeal})");
+                continue;
+            }
+
+            var check = Check(d.TermId, d.Units, budget);
+            if (!check.Ok)
+            {
+                res.Rejected.Add($"{d.TermId}: {check.Reason}");
+                continue;
+            }
+
+            ApplyTerm(war, check.Definition, check.Units, winner, loser, res);
+            budget -= (float)check.Cost;
+            res.ScoreSpent += (float)check.Cost;
+            applied++;
+        }
+
+        res.ScoreLeft = Math.Max(0, budget);
+        res.Ok = applied > 0 || demands.Count == 0;
+
+        FinishWar(war, winner, loser, res);
+
+        if (GameManager.IsAvailable)
+        {
+            GameManager.Instance.EmitSignal(GameManager.SignalName.CountryOwnershipChanged);
+            GameManager.Instance.EmitSignal(GameManager.SignalName.PlayerCountryDataChanged);
+        }
+
+        return res;
+    }
+
+    /// <summary>Doğrulanmış tek talebi dünya durumuna uygular.</summary>
+    private static void ApplyTerm(WarSystem.War war, TermDefinition def, int units,
+        CountryData winner, CountryData loser, DealResult res)
+    {
+        switch (def.KindEnum)
+        {
+            case TermKind.Province:
+            {
+                // Kaybedenin illerinden deterministik sırayla (id sırası) `units` kadarını devret.
+                // Id sırası sabit olduğu için RNG gerekmez — aynı durum her zaman aynı sonucu verir.
+                var candidates = ProvinceOwnershipSystem.GetProvincesByOwner(loser.Id)
+                    .OrderBy(id => id, StringComparer.Ordinal)
+                    .ToList();
+                int take = Math.Min(units, candidates.Count);
+                for (int i = 0; i < take; i++)
+                {
+                    ProvinceOwnershipSystem.SetProvinceOwner(candidates[i], winner.Id);
+                    res.TransferredProvinceIds.Add(candidates[i]);
+                }
+                res.ProvincesTransferred += take;
+                GD.Print($"[PeaceTerms] İl talebi: {take} il {loser.Id} → {winner.Id}");
+                break;
+            }
+
+            case TermKind.Annex:
+            {
+                int civ = loser.CivFactories, mil = loser.MilFactories, dock = loser.Dockyards;
+                loser.IsAnnexed = true;
+                loser.OwnerId = winner.Id;
+                winner.CivFactories += civ;
+                winner.MilFactories += mil;
+                winner.Dockyards += dock;
+                loser.CivFactories = loser.MilFactories = loser.Dockyards = 0;
+                res.FactoriesTaken += civ + mil + dock;
+                res.Annexed = true;
+
+                // İlhak: kaybedenin kalan tüm illeri de devredilir
+                var rest = ProvinceOwnershipSystem.GetProvincesByOwner(loser.Id)
+                    .OrderBy(id => id, StringComparer.Ordinal)
+                    .ToList();
+                foreach (var p in rest)
+                {
+                    ProvinceOwnershipSystem.SetProvinceOwner(p, winner.Id);
+                    res.TransferredProvinceIds.Add(p);
+                }
+                res.ProvincesTransferred += rest.Count;
+
+                // M41.2: major güç kapitülasyonu kaydı (fabrikalar sıfırlanmadan önce)
+                VictorySystem.RecordCapitulation(winner.Id, loser.Id, civ + mil + dock);
+
+                GD.Print($"[PeaceTerms] İLHAK: {loser.Id} → {winner.Id} " +
+                         $"({civ + mil + dock} fabrika, {rest.Count} il devredildi)");
+                break;
+            }
+
+            case TermKind.Puppet:
+            {
+                // Kukla: fabrikalar kaybedenin kalır, kontrol kazananda.
+                loser.IsAnnexed = true;
+                loser.OwnerId = winner.Id;
+                res.Puppeted = true;
+                GD.Print($"[PeaceTerms] KUKLA: {loser.Id} → {winner.Id} (fabrikalar korundu)");
+                break;
+            }
+
+            case TermKind.Liberate:
+            {
+                // Bağımsız çıkarma: ilhak/puppet bayraçları kalkar, iller kendisine kalır.
+                loser.IsAnnexed = false;
+                loser.OwnerId = "";
+                res.Liberated = true;
+                GD.Print($"[PeaceTerms] BAĞIMSIZ: {loser.Id} serbest bırakıldı (ilhak kaldırıldı)");
+                break;
+            }
+
+            case TermKind.Reparations:
+            {
+                int civTake = Math.Min(loser.CivFactories, units);
+                int milTake = Math.Min(loser.MilFactories, Math.Max(0, units - civTake));
+
+                loser.CivFactories -= civTake;
+                loser.MilFactories -= milTake;
+                winner.CivFactories += civTake;
+                winner.MilFactories += milTake;
+
+                // PP tazminatı: paket başına 25 PP (kaybedenin elindeki kadar)
+                double pp = Math.Min(loser.PoliticalPower, units * 25.0);
+                loser.PoliticalPower = Math.Max(0, loser.PoliticalPower - pp);
+                winner.PoliticalPower += pp;
+
+                res.FactoriesTaken += civTake + milTake;
+                res.PoliticalPowerTransferred += pp;
+                GD.Print($"[PeaceTerms] TAZMİNAT: {loser.Id} → {winner.Id} " +
+                         $"({civTake} sivil + {milTake} askeri fabrika, {pp:N0} PP)");
+                break;
+            }
+
+            case TermKind.Demilitarize:
+            {
+                int scrapped = loser.MilFactories;
+                loser.MilFactories = 0;
+                res.FactoriesScrapped += scrapped;
+                GD.Print($"[PeaceTerms] ASKERSİZLEŞTİRME: {loser.Id} {scrapped} askeri fabrikayı sepetledi");
+                break;
+            }
+
+            default:
+                res.Rejected.Add($"{def.Id}: kind '{def.Kind}' is not applicable");
+                break;
+        }
+
+        // Dünya gerilimi etkisi (tazminat/ilhak gerilimi artırır, bağımsızlaştırma azaltır)
+        if (Math.Abs(def.TensionCost) > 0.001f)
+            DiplomacySystem.IncreaseTension((float)def.TensionCost);
+    }
+
+    /// <summary>Savaşı barışla bitirir: kapitülasyon bayrakları + ateşkes + ilişki yumuşaması.</summary>
+    private static void FinishWar(WarSystem.War war, CountryData winner, CountryData loser, DealResult res)
+    {
+        war.IsEnded = true;
+        war.EndReason = "Peace conference";
+
+        bool attackerWon = string.Equals(war.AttackerId, winner.Id, StringComparison.OrdinalIgnoreCase);
+        if (attackerWon) war.DefenderCapitulated = true;
+        else war.AttackerCapitulated = true;
+
+        // Kaybeden kapitülasyon kaydı (zafer koşulları)
+        int loserFactories = loser.CivFactories + loser.MilFactories + loser.Dockyards;
+        VictorySystem.RecordCapitulation(winner.Id, loser.Id, loserFactories);
+
+        // M17A: Barış antlaşması — ateşkes başlat
+        CasusBelliSystem.NotifyWarEnded(war.AttackerId, war.DefenderId);
+
+        DiplomacySystem.ModifyRelation(winner.Id, loser.Id, +10);
+
+        GD.Print($"[PeaceTerms] BARIŞ: {war.AttackerId} ↔ {war.DefenderId} — " +
+                 $"harcanan puan {res.ScoreSpent:F1}, il devri {res.ProvincesTransferred}");
+    }
+
+    /// <summary>
+    /// Barış konferansı teklifi (AI kullanımı için): kazananın puanına göre
+    /// en pahalı uygulanabilir talebi önerir. Deterministik — RNG yok.
+    /// </summary>
+    public static Demand SuggestTerm(WarSystem.War war, string winnerId)
+    {
+        if (war == null) return null;
+        float score = WarScoreSystem.ScoreForSide(war, winnerId);
+
+        // Puanı yetmeyen talep için: beyaz barışçı talep (hiç talep yok) null döner.
+        foreach (var def in EnsureAll())
+        {
+            if (def.KindEnum == TermKind.Liberate) continue; // AI liberate önermez
+            var check = Check(def.Id, 1, score);
+            if (check.Ok) return new Demand(def.Id, 1);
+        }
+        return null;
+    }
 }

@@ -1878,3 +1878,32 @@ gerektiren işler yapılmayacak.
   puan 30 → red (eşik 60), puan 80 → maliyet 60 + kalan 20, kademeli 3 talep = 75/100 (aşım yok),
   puan 12 → red, bilinmeyen tür → red. `dotnet build` 0 hata / 0 uyarı.
 
+
+## M42.3 — Barış anlaşması uygulama (2026-10-21) — ✅ DONE
+- `PeaceConferenceSystem.ApplyDeal(war, demands, winnerId, loserId)`: talepleri puan bütçesine
+  karşı doğrular, kabul edilenleri `ApplyTerm` ile uygular, reddedilenleri `Rejected` listesinde
+  gerekçesiyle döner. Bütçe tükendikçe kalan talepler reddedilir (`MaxTermsPerDeal` = 4 sınırı).
+- İl devri: kaybedenin illeri **id sırasına göre** `SetProvinceOwner` ile devredilir (RNG yok,
+  deterministik). `OnOwnerChanged` → WorldMap `RefreshProvinceColors` haritayı yeniden renkler.
+- Talep etkileri: province (il devri), annex (fabrika + kalan iller + `IsAnnexed` +
+  `VictorySystem.RecordCapitulation`), puppet (fabrika korunur), liberate (ilhak kaldırılır),
+  reparations (sivil→askeri fabrika + paket başına 25 PP), demilitarize (askeri fabrika sepeti).
+  Her talep `DiplomacySystem.IncreaseTension(TensionCost)` uygular.
+- `FinishWar`: `IsEnded` + kapitülasyon bayrağı, kapitülasyon kaydı,
+  `CasusBelliSystem.NotifyWarEnded` (90 gün ateşkes), ilişki +10.
+- `SuggestTerm` (M42.4 hazırlığı): kazananın puanına göre deterministik talep önerir; liberate önermez.
+- **Tespit edilen hata + düzeltme:** Prosedürel üretim 50 ülke kodundan fazla sahip üretiyor
+  (`ATA` 66 il, `GRL` 26 il, `-99` 1 il). `CountryDatabase.Get` bunlara `null` döndüğünden testte
+  NullReferenceException oluştu. Hedef filtresine `CountryDatabase.Get(v) != null` eklendi.
+- **Test kancası:** `--peace-test` — barış sonrası 90 günlük ateşkes aynı ülkeyle yeniden savaşı
+  engellediğinden **3 farklı hedef** kullanılır (RUS=110 il, CAN=64 il, USA=44 il).
+- **Test sonuçları:** PASS ✓ — Senaryo 1: RUS→DEU 5 il devredildi, 25 askeri fabrika sepetlendi,
+  puan 40 harcandı, il sayıları doğru (110→105, 2→7). Senaryo 2: CAN→DEU 3 sivil fabrika + 30 PP,
+  kazanan PP arttı. Senaryo 3: puan 1.6 ile ilhak/kukla/tazminat taleplerinin 3'ü de güvenli reddedildi,
+  dünya durumu değişmedi, savaş yine bitti. `--save-load-test` A==B PASS ✓. `dotnet build` 0 hata.
+
+### ÖZET
+1. `Scripts/PeaceConferenceSystem.cs` (ApplyDeal/ApplyTerm/FinishWar/SuggestTerm), `Scripts/GameManager.cs` (`--peace-test`), `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md` değişti.
+2. AI barış davranışı (M42.4) henüz başlanmadı; UI paneli (M42.5) bekliyor.
+3. Prosedürel üretimin 50 ülke kodunden fazla sahip üretmesi test hedef seçimini kısıtlıyor — CountryDatabase filtresiyle geçiş yapıldı.
+4. Kullanıcı UI'dan barış konferansını henüz test edemez (panel M42.5'te); şimdilik sadece konsol testi geçerli.

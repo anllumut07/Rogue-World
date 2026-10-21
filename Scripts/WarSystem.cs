@@ -40,6 +40,20 @@ public static class WarSystem
             GameManager.IsAvailable &&
             (AttackerId == GameManager.Instance.PlayerCountryId ||
              DefenderId == GameManager.Instance.PlayerCountryId);
+
+        // ===== M42.1: savaş puanı (WarScoreSystem) verisi =====
+        /// <summary>Savaş başındaki düşman tümen sayısı (puan kırılımı için referans).</summary>
+        public int StartEnemyDivisions { get; set; }
+        /// <summary>Savaş başındaki düşman toplam fabrika sayısı.</summary>
+        public int StartEnemyFactories { get; set; }
+        /// <summary>Saldıranın kazandığı günlük çatışma sayısı.</summary>
+        public int AttackerBattlesWon { get; set; }
+        /// <summary>Savunanın kazandığı günlük çatışma sayısı.</summary>
+        public int DefenderBattlesWon { get; set; }
+        /// <summary>Saldıran kapitülasyonu (savaşı kaybetti).</summary>
+        public bool AttackerCapitulated { get; set; }
+        /// <summary>Savunan kapitülasyonu (savaşı kaybetti).</summary>
+        public bool DefenderCapitulated { get; set; }
     }
 
     // ===== Sabitler (HOI4 esinli, sadeleştirilmiş) =====
@@ -153,7 +167,11 @@ public static class WarSystem
             EnemyOrgPool = Math.Max(1, target.StartingDivisions) * EnemyDivisionOrg,
             WarProgress = 0,
             OffensiveActive = false,
-            FrontlineStance = false
+            FrontlineStance = false,
+            // M42.1: puan kırılımı için savaş başı düşman durumu
+            StartEnemyDivisions = Math.Max(1, target.StartingDivisions),
+            StartEnemyFactories = Math.Max(0, target.CivFactories) +
+                                  Math.Max(0, target.MilFactories) + Math.Max(0, target.Dockyards)
         };
         _wars.Add(war);
 
@@ -327,6 +345,12 @@ public static class WarSystem
         war.IsEnded = true;
         war.WarProgress = winnerId == war.AttackerId ? 100 : 0;
 
+        // M42.1: kaybeden tarafı işaretle (savaş puanı)
+        if (string.Equals(winnerId, war.AttackerId, StringComparison.OrdinalIgnoreCase))
+            war.DefenderCapitulated = true;
+        else
+            war.AttackerCapitulated = true;
+
         GD.Print($"[War][AI] KAPİTÜLASYON: {loser.Name} ({loserId}) → {winner.Name} ({winnerId}) " +
                  $"ilhaç edildi. Kazanan: +{civGain} sivil, +{milGain} askeri, +{dockGain} tersane");
 
@@ -428,6 +452,11 @@ public static class WarSystem
         else if (war.FrontlineStance)
             war.WarProgress = Math.Min(100, war.WarProgress + 0.2f);
 
+        // --- M42.1: Günlük çatışma kazanımı (savaş puanı) ---
+        // %20 üstünlük olmadan "berabere" sayılır — gürültüyü puanlamaya yazmayalım.
+        if (dealtToEnemy > dealtToPlayer * 1.2f) war.AttackerBattlesWon++;
+        else if (dealtToPlayer > dealtToEnemy * 1.2f) war.DefenderBattlesWon++;
+
         // --- Kapitülasyon kontrolleri ---
         if (war.EnemyDivisions <= 0)
         {
@@ -500,6 +529,7 @@ public static class WarSystem
     {
         war.IsEnded = true;
         war.EndReason = reason;
+        war.DefenderCapitulated = true; // M42.1: savaş puanı — savunan kaybetti
 
         var loser = CountryDatabase.Get(war.DefenderId);
         var winner = CountryDatabase.Get(war.AttackerId) ?? Player;
@@ -542,6 +572,8 @@ public static class WarSystem
     {
         war.IsEnded = true;
         war.EndReason = reason;
+        // M42.1: oyuncu saldıran taraf olarak kapitüle oluyor (savaş puanı — kaybeden taraf)
+        war.AttackerCapitulated = true;
 
         var winner = CountryDatabase.Get(war.DefenderId);
         if (Player != null)
@@ -650,6 +682,12 @@ public static class WarSystem
                 OffensiveActive = w.OffensiveActive,
                 FrontlineStance = w.FrontlineStance,
                 PlayerCasualties = w.PlayerCasualties,
+                    StartEnemyDivisions = w.StartEnemyDivisions,
+                    StartEnemyFactories = w.StartEnemyFactories,
+                    AttackerBattlesWon = w.AttackerBattlesWon,
+                    DefenderBattlesWon = w.DefenderBattlesWon,
+                    AttackerCapitulated = w.AttackerCapitulated,
+                    DefenderCapitulated = w.DefenderCapitulated,
                 EnemyCasualties = w.EnemyCasualties,
                 IsEnded = w.IsEnded,
                 EndReason = w.EndReason
@@ -677,6 +715,12 @@ public static class WarSystem
                     OffensiveActive = w.OffensiveActive,
                     FrontlineStance = w.FrontlineStance,
                     PlayerCasualties = w.PlayerCasualties,
+                    StartEnemyDivisions = w.StartEnemyDivisions,
+                    StartEnemyFactories = w.StartEnemyFactories,
+                    AttackerBattlesWon = w.AttackerBattlesWon,
+                    DefenderBattlesWon = w.DefenderBattlesWon,
+                    AttackerCapitulated = w.AttackerCapitulated,
+                    DefenderCapitulated = w.DefenderCapitulated,
                     EnemyCasualties = w.EnemyCasualties,
                     IsEnded = w.IsEnded,
                     EndReason = w.EndReason ?? ""

@@ -1846,3 +1846,35 @@ gerektiren işler yapılmayacak.
 - **Test sonuçları:** `--score-test` PASS ✓, `--victory-test` PASS ✓, `--gameover-test` PASS ✓,
   `--save-load-test` (historical_1936 ve modern_world) A==B PASS ✓, `dotnet build` 0 hata / 0 uyarı.
 
+## M42.1 — Savaş puanı birikimi (2026-10-21) — ✅ DONE
+- `Scripts/WarScoreSystem.cs` (yeni): HOI4 war score sadeleştirmesi. Ağırlıklar (toplam 100):
+  işgal 55 (`WarProgress`), düşman tümen kaybı 20, fabrika kaybı 15, çatışma kazanımı 10.
+  `AttackerScore` / `DefenderScore` — ikisi toplamı tam 100 yapar; `ScoreForSide`, `IsFavourable`
+  (beyaz barış eşiği 50), `Breakdown`, `LogScore`, `LogAll`.
+- Saf hesap: DeterministicRNG yok, state yok → ayrı DTO gerekmez (yalnızca sayaçlar War kaydında).
+- `WarSystem.War` alanları: `StartEnemyDivisions`, `StartEnemyFactories`, `AttackerBattlesWon`,
+  `DefenderBattlesWon`, `AttackerCapitulated`, `DefenderCapitulated`. `ResolveCombatDay` %20
+  üstünlükle günlük çatışma sayacını artırır; `EnemyCapitulates`/`PlayerCapitulates`/`AiCapitulate`
+  tarafları işaretler. `WarEntry` (SaveSystem) 6 alanı taşır.
+- **Test kancası:** `--war-score-test` — oyuncu DEU, hedef POL. Savaş ilanı önkoşulları (PP,
+  savaş desteği, `CasusBelliSystem.GrantImmediateJustification`) test içinde garanti edilir;
+  başka testlerdeki `if (!HasPlayer) SetPlayerCountry("GER")` deseni `SetPlayerCountry("DEU")`
+  olarak kullanıldı (geçmiş senaryosu).
+- **Test sonuçları:** PASS ✓ — başlangıç 5.0/95.0 (toplam=100), işgal 25→100% arttıkça saldıran
+  18.8→60.0, tümen yarılanınca 70.3, kapitülasyonda 100/0, save/load sonrası yeniden hesap 100/0.
+
+## M42.2 — Barış talep maliyetleri (2026-10-21) — ✅ DONE
+- `Data/peace_terms.json` (yeni): 6 talep türü — `province_demand` (8 + 4/il, max 20 il),
+  `annex_country` (60), `puppet_state` (35), `liberate_nation` (10),
+  `war_reparations` (15 + 5/paket, max 6), `demilitarize` (12). Her biri `RequiresScoreAtLeast`
+  eşiği ve `TensionCost` taşır; `Limits`: en az 10 puan, deal başına en fazla 4 talep.
+- `Scripts/PeaceConferenceSystem.cs` (yeni): saf hesap (RNG yok, state yok) — maliyet her çağrıda
+  aynı veriden üretilir, ayrı DTO gerekmez. `LoadData` (`IncludeFields=true`), `CostFor`,
+  `IsAvailable`, `Check` (doğrulama + kalan puan + okunabilir gerekçe), `MaxTermsPerDeal`.
+- `Check` red nedenleri: bilinmeyen tür, deal altı puan eşiği, talep eşiği altı, yetersiz maliyet.
+- **Test kancası:** `--peace-terms-test` — formül doğruluğu, üst sınır kırpma, kademeli harcama
+  (bütçe aşımı kontrolü), ekstrem puan reddi, bilinmeyen tür reddi.
+- **Test sonuçları:** PASS ✓ — 6 tür yüklendi, 3 il = 20.0 (beklenen 20.0), sınır aşımı 88.0 = max,
+  puan 30 → red (eşik 60), puan 80 → maliyet 60 + kalan 20, kademeli 3 talep = 75/100 (aşım yok),
+  puan 12 → red, bilinmeyen tür → red. `dotnet build` 0 hata / 0 uyarı.
+

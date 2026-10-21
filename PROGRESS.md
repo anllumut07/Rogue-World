@@ -2246,4 +2246,55 @@ PASS (A==B). `dotnet build` 0 hata / 0 uyarı.
 
 **Sonraki adım:** M42.1 (Savaş puanı birikimi).
 
+### M42.1: Savaş Puanı Birikimi — ✅ DONE (2026-10-21)
+
+- `Scripts/WarScoreSystem.cs` (yeni): HOI4 war score sadeleştirmesi. Ağırlıklar
+  (toplam 100): işgal 55, düşman tümen kaybı 20, fabrika kaybı 15, çatışma kazanımı 10.
+  `AttackerScore` / `DefenderScore` (ikisi toplamı tam 100), `ScoreForSide`, `IsFavourable`,
+  `Breakdown`, `LogScore`, `LogAll`.
+- Beyaz barış eşiği 50 (`WhitePeaceThreshold`) — 42.4'ün AI barış mantığı bu eşiği kullanır.
+- Biten savaşta puan sabitlenir: kapitülasyonda kazanan 100, kaybeden 0 (kısmi payların
+  toplamı 95'e düşebildiğinden için `IsEnded` kısa devresi).
+- `WarSystem.War` M42.1 alanları: `StartEnemyDivisions`, `StartEnemyFactories`,
+  `AttackerBattlesWon`, `DefenderBattlesWon`, `AttackerCapitulated`, `DefenderCapitulated`.
+  `ResolveCombatDay`'de %20 üstünlükle günlük çatışma sayacı; `DeclareWar` başlangıç
+  anlık görüntüsünü kaydeder; kapitülasyon yolları tarafları işaretler.
+- Save/Load: 6 yeni alan `WarEntry`'ye eklendi (`WarSystem.GetSaveData`/`LoadSaveData`).
+  WarScoreSystem state tutmaz → ayrı DTO gerekmez.
+- `--war-score-test`: oyuncu DEU, hedef POL. Savaş ilanı önkoşulleri (PP + savaş desteği +
+  `CasusBelliSystem.GrantImmediateJustification`) test içinde garanti edilir.
+
+**Testler:** `--war-score-test` PASS ✓ (başlangıç 5.0/95.0 toplam=100, işgal 25→100%
+arttıkça saldıran 18.8→60.0, tümen yarılanınca 70.3, kapitülasyonda 100/0, save/load sonrası
+yeniden hesaplama 100/0). `dotnet build` 0 hata.
+
+**Dosyalar:** `Scripts/WarScoreSystem.cs` (yeni), `Scripts/WarSystem.cs`, `Scripts/SaveSystem.cs`,
+`Scripts/GameManager.cs`, `TODO.md`, `PROGRESS.md`.
+
+**Sonraki adım:** M42.2 (`Data/peace_terms.json` + `Scripts/PeaceConferenceSystem.cs`).
+
+### M42.2: Barış Talebi Maliyetleri — ✅ DONE (2026-10-21)
+
+- `Data/peace_terms.json` (yeni): 6 talep türü — `province_demand` (8 + 4/il),
+  `annex_country` (60), `puppet_state` (35), `liberate_nation` (10),
+  `war_reparations` (15 + 5/paket), `demilitarize` (12). Her talep bir
+  `RequiresScoreAtLeast` eşiği ve `TensionCost` taşır; `Limits` bloğu
+  deal seviyesi sınırları (en az puan, deal başına en fazla talep).
+- `Scripts/PeaceConferenceSystem.cs` (yeni): saf hesap — rastgelelik yok, state yok,
+  ayrı DTO gerekmez. `LoadData` (`IncludeFields=true`), `CostFor`, `IsAvailable`,
+  `Check` (talep doğrulama + kalan puan + gerekçe), `MaxTermsPerDeal`.
+- `Check`, kapsamlı red/gerekçe mantığı: bilinmeyen tür, puan eşiği altı,
+  yetersiz maliyet → `Ok=false` ve okunabilir `Reason`.
+- `--peace-terms-test`: formül doğruluğu, üst sınır kırpma, kademeli harcama
+  (bütçe aşımı kontrolü), ekstrem puan reddi, bilinmeyen tür reddi doğrulanır.
+
+**Testler:** `--peace-terms-test` PASS ✓ (6 tür yüklendi, 3 il = 20.0, sınır aşımı
+88.0 = max, puan 30→red / puan 80→60 maliyet + 20 kalan, kademeli 3 talep = 75/100,
+puan 12→red, bilinmeyen tür→red). `dotnet build` 0 hata / 0 uyarı.
+
+**Dosyalar:** `Data/peace_terms.json` (yeni), `Scripts/PeaceConferenceSystem.cs` (yeni),
+`Scripts/GameManager.cs`, `TODO.md`, `PROGRESS.md`.
+
+**Sonraki adım:** M42.3 (barış anlaşması uygulama — il devri + tazminat).
+
 

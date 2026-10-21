@@ -172,6 +172,8 @@ public partial class GameManager : Node
         bool victoryTest = false;           // M41.2: zafer koşulları değerlendirme testi (--victory-test)
         bool scoreTest = false;             // M41.3: ulusal skor + sıralama testi (--score-test)
         bool gameOverTest = false;          // M41.4: oyun sonu paneli testi (--gameover-test)
+        bool warScoreTest = false;          // M42.1: savaş puanı testi (--war-score-test)
+        bool peaceTermsTest = false;        // M42.2: barış talebi maliyeti testi (--peace-terms-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -302,6 +304,10 @@ public partial class GameManager : Node
                 scoreTest = true;
             else if (arg == "-gameover-test" || arg == "--gameover-test")
                 gameOverTest = true;
+            else if (arg == "--war-score-test")
+                warScoreTest = true;
+            else if (arg == "--peace-terms-test")
+                peaceTermsTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -666,6 +672,14 @@ public partial class GameManager : Node
         // M41.4: Oyun sonu paneli testi — panel açılır, 1152x648'e sığdığı doğrulanır, kapanır.
         if (gameOverTest)
             RunGameOverTest();
+
+        // M42.1: Savaş puanı testi — iki tarafın puanı [0,100] aralığında ve tutarlı.
+        if (warScoreTest)
+            RunWarScoreTest();
+
+        // M42.2: Barış talebi maliyeti testi — yetersiz puanda red, yeterlinde doğru düşüş.
+        if (peaceTermsTest)
+            RunPeaceTermsTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -5470,6 +5484,299 @@ private void RunBalanceTest()
             {
                 GD.Print($"[GameOverTest] {tag}: ESC ile kapatıldı ✓");
             }
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M42.1: Savaş puanı testi — --war-score-test kancası.
+    /// Bir savaş başlatılır; savaşın ilerleyişine göre (işgal, düşman tümen kaybı,
+    /// kapitülasyon) iki tarafın puanının [0,100] aralığında kaldığı, toplamın 100
+    /// olduğu, ilerlemenin saldıran lehine işlediği ve save/load sonrası puanın
+    /// korunduğu doğrulanır. Normal oyunda ASLA çalışmaz (yalnızca --war-score-test).
+    /// </summary>
+    private void RunWarScoreTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M42.1: SAVAŞ PUANI TESTİ (--war-score-test)");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0x20261021D2C7UL);
+        bool ok = true;
+
+        // Oyuncu garantisi (diğer testlerle aynı desen): komut satırından --country
+        // verilmediyse geçmiş senaryoda DEU'yu seç. WarSystem.DeclareWar oyuncu ister.
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        string playerId = PlayerCountryId;
+        string enemyId = "POL";
+        GD.Print($"[WarScoreTest] Oyuncu: {playerId}, hedef: {enemyId}");
+
+        if (string.IsNullOrEmpty(playerId))
+        {
+            GD.PrintErr("[WarScoreTest] HATA: oyuncu ülkesi yok");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var enemy = CountryDatabase.Get(enemyId);
+        if (enemy == null || enemy.IsAnnexed)
+        {
+            GD.PrintErr($"[WarScoreTest] HATA: hedef ülke bulunamadı: {enemyId}");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Savaş ilanı önkoşullarını garanti et (--war-test deseni):
+        // PP yeterli + savaş desteği + casus belli gerekçesi.
+        if (PlayerCountryData != null)
+        {
+            if (PlayerCountryData.PoliticalPower < WarSystem.DeclareWarPPCost + 10)
+                PlayerCountryData.PoliticalPower = WarSystem.DeclareWarPPCost + 10;
+            if (PlayerCountryData.WarSupportPercent < 50)
+                PlayerCountryData.WarSupportPercent = 50;
+        }
+        CasusBelliSystem.GrantImmediateJustification(playerId, enemyId, "historical_event");
+
+        // --- 1) Savaş başlat ---
+        bool declared = WarSystem.DeclareWar(enemyId);
+        GD.Print($"[WarScoreTest] Savaş ilanı: {declared}");
+        if (!declared)
+        {
+            GD.PrintErr("[WarScoreTest] HATA: savaş başlatılamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var war = WarSystem.Wars.FirstOrDefault(w => !w.IsEnded && w.DefenderId == enemyId);
+        if (war == null)
+        {
+            GD.PrintErr("[WarScoreTest] HATA: aktif savaş bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+        GD.Print($"[WarScoreTest] Savaş: {war.Id} (başlangıç düşman tümen={war.StartEnemyDivisions}, " +
+                 $"fabrika={war.StartEnemyFactories})");
+
+        // --- 2) Başlangıç puanları: aralık ve toplam ---
+        float a0 = WarScoreSystem.AttackerScore(war);
+        float d0 = WarScoreSystem.DefenderScore(war);
+        GD.Print($"[WarScoreTest] Başlangıç: saldıran={a0:F1}, savunan={d0:F1}, toplam={a0 + d0:F1}");
+        if (a0 < 0f || a0 > 100f || d0 < 0f || d0 > 100f)
+        {
+            GD.PrintErr("[WarScoreTest] HATA: puanlar [0,100] aralığında değil");
+            ok = false;
+        }
+        if (Math.Abs(a0 + d0 - 100f) > 0.001f)
+        {
+            GD.PrintErr($"[WarScoreTest] HATA: iki taraf toplamı 100 değil ({a0 + d0:F1})");
+            ok = false;
+        }
+
+        // --- 3) İşgal arttıkça saldıran puanı artmalı ---
+        float prevA = a0;
+        foreach (float prog in new[] { 25f, 50f, 75f, 100f })
+        {
+            war.WarProgress = prog;
+            float a = WarScoreSystem.AttackerScore(war);
+            float d = WarScoreSystem.DefenderScore(war);
+            GD.Print($"[WarScoreTest] İlerleme {prog:F0}%: saldıran={a:F1}, savunan={d:F1}");
+            if (a < prevA - 0.001f)
+            {
+                GD.PrintErr($"[WarScoreTest] HATA: ilerleme arttı ama saldıran puanı düştü ({prevA:F1} → {a:F1})");
+                ok = false;
+            }
+            prevA = a;
+        }
+
+        // --- 4) Düşman tümen kaybı puanı eklemeli ---
+        float aBeforeManpower = WarScoreSystem.AttackerScore(war);
+        war.EnemyDivisions = Math.Max(0, war.StartEnemyDivisions / 2);
+        float aAfterManpower = WarScoreSystem.AttackerScore(war);
+        GD.Print($"[WarScoreTest] Tümen yarılandı: saldıran {aBeforeManpower:F1} → {aAfterManpower:F1}");
+        if (aAfterManpower < aBeforeManpower - 0.001f)
+        {
+            GD.PrintErr("[WarScoreTest] HATA: düşman tümen kaybı saldıran puanını artırmadı");
+            ok = false;
+        }
+
+        // --- 5) Kapitülasyon: saldıran 100, savunan 0 ---
+        war.DefenderCapitulated = true;
+        war.IsEnded = true;
+        war.EnemyDivisions = 0;
+        float aCap = WarScoreSystem.AttackerScore(war);
+        float dCap = WarScoreSystem.DefenderScore(war);
+        GD.Print($"[WarScoreTest] Savunan kapitülasyonu: saldıran={aCap:F1}, savunan={dCap:F1}");
+        if (aCap < 99f || dCap > 1f)
+        {
+            GD.PrintErr($"[WarScoreTest] HATA: kapitülasyonda puanlar 100/0 değil ({aCap:F1}/{dCap:F1})");
+            ok = false;
+        }
+
+        // --- 6) Save/Load sonrası puan korunuyor mu? ---
+        var save = WarSystem.GetSaveData();
+        int savedBattles = save.Wars.First()?.AttackerBattlesWon ?? -1;
+        war.AttackerBattlesWon = 12; // test verisi
+        war.DefenderBattlesWon = 4;
+        save = WarSystem.GetSaveData();
+        WarSystem.LoadSaveData(save);
+
+        var reloaded = WarSystem.Wars.FirstOrDefault(w => w.Id == war.Id);
+        if (reloaded == null)
+        {
+            GD.PrintErr("[WarScoreTest] HATA: yükleme sonrası savaş bulunamadı");
+            ok = false;
+        }
+        else
+        {
+            GD.Print($"[WarScoreTest] Yükleme: çatışma {reloaded.AttackerBattlesWon}/{reloaded.DefenderBattlesWon}, " +
+                     $"kapitülasyon (savunan)={reloaded.DefenderCapitulated}");
+            if (reloaded.AttackerBattlesWon != 12 || reloaded.DefenderBattlesWon != 4)
+            {
+                GD.PrintErr("[WarScoreTest] HATA: çatışma sayaçları kayıttan yüklenmedi");
+                ok = false;
+            }
+            if (!reloaded.DefenderCapitulated)
+            {
+                GD.PrintErr("[WarScoreTest] HATA: kapitülasyon bayrağı kayıttan yüklenmedi");
+                ok = false;
+            }
+            float aR = WarScoreSystem.AttackerScore(reloaded);
+            float dR = WarScoreSystem.DefenderScore(reloaded);
+            GD.Print($"[WarScoreTest] Yeniden hesaplanan puan: saldıran={aR:F1}, savunan={dR:F1}");
+            if (Math.Abs(aR - aCap) > 0.5f)
+            {
+                GD.PrintErr($"[WarScoreTest] HATA: yükleme sonrası skor bozuldu ({aCap:F1} → {aR:F1})");
+                ok = false;
+            }
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M42.2: Barış talebi maliyeti testi — --peace-terms-test kancası.
+    /// Saf hesap: RNG yok, state yok. Talep maliyetinin doğru düştüğü, puan
+    /// yetersizse reddedilip loglandığı doğrulanır. Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunPeaceTermsTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M42.2: BARIŞ TALEBİ MALİYETİ TESTİ (--peace-terms-test)");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0x20261022D2C7UL);
+        bool ok = true;
+
+        PeaceConferenceSystem.LoadData();
+        int termCount = PeaceConferenceSystem.TermCount;
+        GD.Print($"[PeaceTermsTest] Yüklenen talep türü sayısı: {termCount}");
+        if (termCount < 4)
+        {
+            GD.PrintErr("[PeaceTermsTest] HATA: en az 4 talep türü bekleniyor");
+            ok = false;
+        }
+
+        // --- 1) İl talebi maliyeti: taban + birim × adet ---
+        var prov = PeaceConferenceSystem.Get("province_demand");
+        if (prov == null)
+        {
+            GD.PrintErr("[PeaceTermsTest] HATA: 'province_demand' tanımı yok");
+            GetTree().Quit(1);
+            return;
+        }
+        double c3 = PeaceConferenceSystem.CostFor("province_demand", 3);
+        double expect3 = prov.BaseCost + prov.CostPerUnit * 3;
+        GD.Print($"[PeaceTermsTest] 3 il talebi: {c3:F1} (beklenen {expect3:F1})");
+        if (Math.Abs(c3 - expect3) > 0.001)
+        {
+            GD.PrintErr("[PeaceTermsTest] HATA: il talebi maliyeti formüle uymuyor");
+            ok = false;
+        }
+        if (c3 <= prov.BaseCost)
+        {
+            GD.PrintErr("[PeaceTermsTest] HATA: adet arttıkça maliyet artmıyor");
+            ok = false;
+        }
+
+        // Birim adedi üst sınırı aşamaz
+        double cOver = PeaceConferenceSystem.CostFor("province_demand", prov.MaxUnits + 25);
+        double cMax = PeaceConferenceSystem.CostFor("province_demand", prov.MaxUnits);
+        GD.Print($"[PeaceTermsTest] Sınır aşımı: {cOver:F1} (max {cMax:F1})");
+        if (Math.Abs(cOver - cMax) > 0.001)
+        {
+            GD.PrintErr("[PeaceTermsTest] HATA: adet üst sınırı aşılabiliyor");
+            ok = false;
+        }
+
+        // --- 2) Yetersiz puan: reddedilmeli + sebep loglanmalı ---
+        var low = PeaceConferenceSystem.Check("annex_country", 1, 30f);
+        GD.Print($"[PeaceTermsTest] Puan 30 ile ilhak: ok={low.Ok}, sebep=\"{low.Reason}\"");
+        if (low.Ok || string.IsNullOrEmpty(low.Reason))
+        {
+            GD.PrintErr("[PeaceTermsTest] HATA: yetersiz puanda talep reddedilmedi veya sebep loglanmadı");
+            ok = false;
+        }
+
+        // --- 3) Yeterli puan: maliyet düşmeli, kalan puan tutmalı ---
+        float rich = 80f;
+        var okAnnex = PeaceConferenceSystem.Check("annex_country", 1, rich);
+        GD.Print($"[PeaceTermsTest] Puan {rich:F0} ile ilhak: ok={okAnnex.Ok}, maliyet={okAnnex.Cost:F1}, kalan={okAnnex.RemainingScore:F1}");
+        if (!okAnnex.Ok)
+        {
+            GD.PrintErr($"[PeaceTermsTest] HATA: yeterli puanda talep reddedildi ({okAnnex.Reason})");
+            ok = false;
+        }
+        if (Math.Abs(okAnnex.RemainingScore - (rich - okAnnex.Cost)) > 0.01f)
+        {
+            GD.PrintErr($"[PeaceTermsTest] HATA: kalan puan yanlış ({okAnnex.RemainingScore:F1} ≠ {rich - okAnnex.Cost:F1})");
+            ok = false;
+        }
+
+        // --- 4) Ara talepler toplamı, mevcut puanı aşmamalı ---
+        float budget = 100f;
+        double spent = 0;
+        int accepted = 0;
+        foreach (var t in new[] { "demilitarize", "puppet_state" })
+        {
+            var r = PeaceConferenceSystem.Check(t, 1, (float)(budget - spent));
+            if (r.Ok) { spent += r.Cost; accepted++; }
+        }
+        var provR = PeaceConferenceSystem.Check("province_demand", 5, (float)(budget - spent));
+        if (provR.Ok) { spent += provR.Cost; accepted++; }
+        GD.Print($"[PeaceTermsTest] Kademeli harcama: {accepted} talep, toplam {spent:F1}/{budget:F0}");
+        if (spent > budget + 0.001)
+        {
+            GD.PrintErr("[PeaceTermsTest] HATA: toplam talep maliyeti puan bütçesini aştı");
+            ok = false;
+        }
+        if (accepted < 3)
+        {
+            GD.PrintErr("[PeaceTermsTest] HATA: 100 puanla 3 temel talep kabul edilmeli");
+            ok = false;
+        }
+
+        // --- 5) Çok ekstrem: puan bittiğinde red ---
+        var broke = PeaceConferenceSystem.Check("province_demand", prov.MaxUnits, 12f);
+        GD.Print($"[PeaceTermsTest] Puan 12 ile {prov.MaxUnits} il: ok={broke.Ok}, sebep=\"{broke.Reason}\"");
+        if (broke.Ok)
+        {
+            GD.PrintErr("[PeaceTermsTest] HATA: 12 puanla maksimum il talebi kabul edildi");
+            ok = false;
+        }
+
+        // --- 6) Tanımsız tür: güvenli red ---
+        var unknown = PeaceConferenceSystem.Check("fly_me_to_the_moon", 1, 100f);
+        if (unknown.Ok)
+        {
+            GD.PrintErr("[PeaceTermsTest] HATA: bilinmeyen talep türü kabul edildi");
+            ok = false;
         }
 
         GD.Print("=========================================");

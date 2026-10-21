@@ -187,6 +187,13 @@ public static class SaveSystem
         public long EnemyCasualties { get; set; }
         public bool IsEnded { get; set; }
         public string EndReason { get; set; }
+        // M42.1: savaş puanı durumu
+        public int StartEnemyDivisions { get; set; }
+        public int StartEnemyFactories { get; set; }
+        public int AttackerBattlesWon { get; set; }
+        public int DefenderBattlesWon { get; set; }
+        public bool AttackerCapitulated { get; set; }
+        public bool DefenderCapitulated { get; set; }
     }
 
     // ===== Supply DTOs (M39.1) =====

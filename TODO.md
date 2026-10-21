@@ -654,8 +654,8 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 42.1 | `Scripts/WarScoreSystem.cs`: savaş puanı birikimi — kazanılan çatışmalar, işgal edilen iller (`ProvinceOwnershipSystem`), düşman fabrika hasarı, düşman kapitülasyonu; iki taraf için ayrı skor | Skor [0,100] aralığında, işgal arttıkça artar, `--war-score-test` PASS | [ ] |
-| 42.2 | `Data/peace_terms.json` + `Scripts/PeaceConferenceSystem.cs`: puan harcama kuralları (il talebi, ülke ilhakı, kukla yapma, tazminat fabrika/PP), puan maliyeti hesaplama | Talep maliyeti doğru düşer, puan yetersizse reddedilir ve loglanır | [ ] |
+| 42.1 | `Scripts/WarScoreSystem.cs`: savaş puanı birikimi — kazanılan çatışmalar, işgal edilen iller (`ProvinceOwnershipSystem`), düşman fabrika hasarı, düşman kapitülasyonu; iki taraf için ayrı skor | Skor [0,100] aralığında, işgal arttıkça artar, `--war-score-test` PASS | [x] |
+| 42.2 | `Data/peace_terms.json` + `Scripts/PeaceConferenceSystem.cs`: puan harcama kuralları (il talebi, ülke ilhakı, kukla yapma, tazminat fabrika/PP), puan maliyeti hesaplama | Talep maliyeti doğru düşer, puan yetersizse reddedilir ve loglanır | [x] |
 | 42.3 | Barış anlaşması uygula: iller `ProvinceOwnershipSystem` üzerinden devredilir + harita yeniden renklenir; fabrika/PP tazminatı `EconomySystem`'e yazılır | Devir sonrası il sahipliği doğru, harita güncellenir, `--peace-test` PASS | [ ] |
 | 42.4 | AI barış davranışı: skor eşiği aşınca beyaz barış / kukla / toprak talebi önermeye başlar; oyuncu kabul/ret | AI kabul/ret mantığı deterministik, loglanır, savaş doğru sonlanır | [ ] |
 | 42.5 | UI `Scripts/PeaceConferencePanel.cs` (talep listesi, harcanabilir puan, onay) + Save/Load entegrasyonu | Panel 1152x648'e sığar, ESC kapatır, A==B PASS (2 senaryo) | [ ] |

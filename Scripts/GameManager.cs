@@ -180,6 +180,7 @@ public partial class GameManager : Node
         bool seaZoneTest = false;            // M43.1: deniz bölgesi / hakimiyet testi (--sea-zone-test)
         bool convoyRaidTest = false;         // M43.2: denizaltı baskını / konvoy kaybı testi (--convoy-raid-test)
         bool navalCombatTest = false;        // M43.3: deniz çatışması testi (--naval-combat-test)
+        bool lendLeaseTest = false;          // M43.4: müttefik konvoy koruması testi (--lend-lease-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -326,6 +327,8 @@ public partial class GameManager : Node
                 convoyRaidTest = true;
             else if (arg == "--naval-combat-test")
                 navalCombatTest = true;
+            else if (arg == "--lend-lease-test")
+                lendLeaseTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -722,6 +725,10 @@ public partial class GameManager : Node
         // M43.3: Deniz çatışması testi — filo hasarı, hakimiyet değişimi, determinizm.
         if (navalCombatTest)
             RunNavalCombatTest();
+
+        // M43.4: Müttefik konvoy koruması testi — eskort kaybı azaltır, save/load.
+        if (lendLeaseTest)
+            RunLendLeaseTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -1248,6 +1255,7 @@ public partial class GameManager : Node
         // M39.4: Hava üstünlüğü sistemini yeni oyun için sıfırla.
         AirSuperioritySystem.ResetForNewGame();
         NavalCombatSystem.ResetForNewGame(); // M43.3: deniz çatışması filo hasarı
+        ConvoyRaidSystem.ResetForNewGame(); // M43.4: müttefik konvoy koruma tahsisleri
 
         // M29.5: Casus kiralama havuzunu yeni oyun için başlat.
         EspionageSystem.InitializeRentalPool(TotalDays);
@@ -7507,6 +7515,339 @@ private void RunBalanceTest()
                     z.AdjacentCountryIds = saved;
             }
             GD.Print("[NavalCombatTest] Dünya verisi geri yüklendi");
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M43.4: Müttefik konvoy koruması testi (--lend-lease-test).
+    /// Müttefik filo güzergâha koruma atanır; etkin hakimiyet yükselir, günlük
+    /// konvoy kaybı ve risk göstergesi düşer. Tahsis save/load'a yazılır ve
+    /// yüklenir; geçersiz tahsis (müttefiklik bozulunca) elenir.
+    /// </summary>
+    private void RunLendLeaseTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M43.4: MÜTTEFİK KONVOY KORUMASI TESTİ (--lend-lease-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        SeaZoneSystem.LoadData();
+        NavalCombatSystem.ResetForNewGame();
+        ConvoyRaidSystem.ResetForNewGame();
+
+        string protectedId = "POL"; // konvoyları batıyor
+        string protectorId = "DEU"; // koruma verecek müttefik
+        string enemyId = "SOV";     // güzergâhı tehdit eden rakip
+
+        var protectedCountry = CountryDatabase.Get(protectedId);
+        var protector = CountryDatabase.Get(protectorId);
+        var enemy = CountryDatabase.Get(enemyId);
+        if (protectedCountry == null || protector == null || enemy == null)
+        {
+            GD.PrintErr("[LendLeaseTest] HATA: POL/DEU/SOV ülkeleri bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // ---- 1) Dünya verisi yedekle ----
+        int protDockBefore = protector.Dockyards;
+        double protPpBefore = protector.PoliticalPower;
+        int protDockEnemy = enemy.Dockyards;
+        int protDockProtected = protectedCountry.Dockyards;
+        double protPpProtected = protectedCountry.PoliticalPower;
+        int relBefore = DiplomacySystem.GetRelation(protectorId, protectedId);
+        int opBefore = DiplomacySystem.GetOpinion(protectorId, protectedId);
+
+        var zoneSnapshot = new Dictionary<string, List<string>>();
+        foreach (var z in SeaZoneSystem.All)
+            zoneSnapshot[z.Id] = new List<string>(z.AdjacentCountryIds);
+        var factionSnapshot = new Dictionary<string, List<string>>();
+        foreach (var f in DiplomacySystem.Factions.Values)
+            factionSnapshot[f.Id] = new List<string>(f.MemberIds);
+
+        var zone = SeaZoneSystem.All.FirstOrDefault(z => z.Id == "baltic");
+        if (zone == null)
+        {
+            GD.PrintErr("[LendLeaseTest] HATA: baltic bölgesi bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        try
+        {
+            // ---- 2) Müttefiklik kur: DEU lider, POL üye ----
+            GD.Print("[LendLeaseTest] 1) Müttefiklik kurulumu ve reddedilen tahsisler");
+            foreach (var f in DiplomacySystem.Factions.Values)
+                f.MemberIds.Clear(); // mevcut üyelikleri geçici olarak boşalt
+
+            bool needRelationBoost = DiplomacySystem.GetOpinion(protectorId, protectedId) < 50;
+            if (needRelationBoost)
+                DiplomacySystem.ModifyRelation(protectorId, protectedId, +100);
+
+            protector.PoliticalPower = 1000;        // fraksiyon kurma maliyeti
+            protectedCountry.PoliticalPower = 1000; // katılım maliyeti
+
+            bool factionOk = DiplomacySystem.CreateFaction("ll_test", "Test Alliance", protectorId, "democratic");
+            bool joinOk = DiplomacySystem.RequestJoinFaction("ll_test", protectedId);
+            if (!factionOk || !joinOk || !ConvoyRaidSystem.IsAllied(protectorId, protectedId))
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: müttefiklik kurulamadı (faksiyon={factionOk}, katılım={joinOk})");
+                ok = false;
+            }
+
+            // ---- 3) Reddedilen tahsisler ----
+            var self = ConvoyRaidSystem.AssignEscort(protectedId, protectedId);
+            if (self.Accepted || self.Reason != ConvoyRaidSystem.EscortReason.SelfProtection)
+            {
+                GD.PrintErr("[LendLeaseTest] HATA: kendi konvoylarını korumak reddedilmeli");
+                ok = false;
+            }
+
+            var unknown = ConvoyRaidSystem.AssignEscort("ZZZ", protectedId);
+            if (unknown.Accepted || unknown.Reason != ConvoyRaidSystem.EscortReason.UnknownCountry)
+            {
+                GD.PrintErr("[LendLeaseTest] HATA: bilinmeyen ülke reddedilmeli");
+                ok = false;
+            }
+
+            var nonAlly = ConvoyRaidSystem.AssignEscort(enemyId, protectedId);
+            if (nonAlly.Accepted || nonAlly.Reason != ConvoyRaidSystem.EscortReason.NotAllies)
+            {
+                GD.PrintErr("[LendLeaseTest] HATA: müttefik olmayan ülke koruma verememeli");
+                ok = false;
+            }
+
+            protector.Dockyards = 0;
+            var noFleet = ConvoyRaidSystem.AssignEscort(protectorId, protectedId);
+            if (noFleet.Accepted || noFleet.Reason != ConvoyRaidSystem.EscortReason.ProtectorHasNoFleet)
+            {
+                GD.PrintErr("[LendLeaseTest] HATA: filosu olmayan ülke koruma verememeli");
+                ok = false;
+            }
+
+            if (ConvoyRaidSystem.EscortOf(protectedId) != null)
+            {
+                GD.PrintErr("[LendLeaseTest] HATA: reddedilen tahsis kaydedilmemeli");
+                ok = false;
+            }
+
+            // ---- 4) Bölgeleri üç ülkeye indir: POL'ün tek komşusu baltic ----
+            foreach (var z in SeaZoneSystem.All)
+                z.AdjacentCountryIds.Clear();
+            zone.AdjacentCountryIds = new List<string> { protectedId, protectorId, enemyId };
+
+            // ---- 5) Korumasız taban çizgisi (M43.2 davranışı korunmalı) ----
+            GD.Print("[LendLeaseTest] 2) Korumasız taban çizgisi");
+            protector.Dockyards = 100;
+            enemy.Dockyards = 100;
+            protectedCountry.Dockyards = 10;
+
+            float ownSup = SeaZoneSystem.Supremacy(zone, protectedId);
+            float effSupNoEscort = ConvoyRaidSystem.EffectiveSupremacy(zone, protectedId);
+            if (Mathf.Abs(effSupNoEscort - ownSup) > 0.01f)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: koruma yokken etkin hakimiyet kendi hakimiyetine eşit olmalı ({ownSup:F2} → {effSupNoEscort:F2})");
+                ok = false;
+            }
+
+            float riskBefore = ConvoyRaidSystem.TotalRiskPercent(protectedId);
+            int lostBefore = ConvoyRaidSystem.ComputeDailyRaids(protectedId, 1000, 500).ConvoysLost;
+            if (riskBefore <= 0f || lostBefore <= 0)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: düşman hakimiyetinde kayıp bekleniyordu (risk={riskBefore:F1}%, kayıp={lostBefore})");
+                ok = false;
+            }
+            GD.Print($"[LendLeaseTest] korumasız → hakimiyet={ownSup:F1}, risk=%{riskBefore:F1}, kayıp={lostBefore}");
+
+            // ---- 6) Zayıf koruma: DEU 20 tersane ----
+            GD.Print("[LendLeaseTest] 3) Zayıf koruma (DEU=20)");
+            protector.Dockyards = 20;
+            var assigned = ConvoyRaidSystem.AssignEscort(protectorId, protectedId);
+            if (!assigned.Accepted)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: geçerli tahsis kabul edilmeli ({assigned.Reason})");
+                ok = false;
+            }
+
+            float effSupWeak = ConvoyRaidSystem.EffectiveSupremacy(zone, protectedId);
+            float reductionWeak = ConvoyRaidSystem.EscortReductionPercent(protectedId);
+            float riskWeak = ConvoyRaidSystem.TotalRiskPercent(protectedId);
+            int lostWeak = ConvoyRaidSystem.ComputeDailyRaids(protectedId, 1000, 500).ConvoysLost;
+
+            if (effSupWeak <= ownSup)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: koruma etkin hakimiyeti yükseltmeli ({ownSup:F1} → {effSupWeak:F1})");
+                ok = false;
+            }
+            if (riskWeak >= riskBefore || lostWeak >= lostBefore)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: koruma riski ve kaybı düşürmeli (risk {riskBefore:F1}→{riskWeak:F1}, kayıp {lostBefore}→{lostWeak})");
+                ok = false;
+            }
+            if (reductionWeak <= 0f)
+            {
+                GD.PrintErr("[LendLeaseTest] HATA: koruma azalma yüzdesi pozitif olmalı");
+                ok = false;
+            }
+            GD.Print($"[LendLeaseTest] zayıf koruma → hakimiyet={effSupWeak:F1} (-%{reductionWeak:F0}), risk=%{riskWeak:F1}, kayıp={lostWeak}");
+
+            // ---- 7) Güçlü koruma: DEU 400 tersane → azalma daha da büyük ----
+            GD.Print("[LendLeaseTest] 4) Güçlü koruma (DEU=400)");
+            protector.Dockyards = 400;
+            float effSupStrong = ConvoyRaidSystem.EffectiveSupremacy(zone, protectedId);
+            float riskStrong = ConvoyRaidSystem.TotalRiskPercent(protectedId);
+            int lostStrong = ConvoyRaidSystem.ComputeDailyRaids(protectedId, 1000, 500).ConvoysLost;
+
+            if (effSupStrong <= effSupWeak || lostStrong >= lostWeak)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: güçlü koruma daha çok korumalı (hakimiyet {effSupWeak:F1}→{effSupStrong:F1}, kayıp {lostWeak}→{lostStrong})");
+                ok = false;
+            }
+            // Kaybın taban çizgisine göre azaldığı, ama sıfır olmadığı doğrulanır
+            // (mükemmel koruma bile denizaltı riskini tam silmez).
+            if (lostStrong <= 0)
+            {
+                GD.PrintErr("[LendLeaseTest] HATA: güçlü korumada bile kayıp sıfır olmamalı");
+                ok = false;
+            }
+            if (lostStrong >= lostBefore)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: güçlü koruma taban çizgisinin altında kalmalı ({lostStrong} vs {lostBefore})");
+                ok = false;
+            }
+            GD.Print($"[LendLeaseTest] güçlü koruma → hakimiyet={effSupStrong:F1}, risk=%{riskStrong:F1}, kayıp={lostStrong}");
+
+            // ---- 8) Determinizm: saf fonksiyon, aynı girdi → aynı çıktı ----
+            int repeatA = ConvoyRaidSystem.ComputeDailyRaids(protectedId, 1000, 500).ConvoysLost;
+            int repeatB = ConvoyRaidSystem.ComputeDailyRaids(protectedId, 1000, 500).ConvoysLost;
+            if (repeatA != repeatB || repeatA != lostStrong)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: koruma hesabı deterministik olmalı ({lostStrong}/{repeatA}/{repeatB})");
+                ok = false;
+            }
+
+            // Monotonluk: daha çok konvoy → en az kadar kayıp.
+            int lostMoreConvoys = ConvoyRaidSystem.ComputeDailyRaids(protectedId, 2000, 1000).ConvoysLost;
+            if (lostMoreConvoys < lostStrong)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: konvoy sayısı artınca kayıp azalmamalı ({lostStrong} → {lostMoreConvoys})");
+                ok = false;
+            }
+
+            // ---- 9) Koruyucu bölgeye komşu değilse koruma etkisiz ----
+            zone.AdjacentCountryIds = new List<string> { protectedId, enemyId };
+            // Koruyucu bölgeden çıkınca kendi hakimiyet de değişir (artık düşman
+            // ağırlığı sayılmaz) → karşılaştırma GÜNCEL kendi hakimiyete göre yapılır.
+            float ownSupFar = SeaZoneSystem.Supremacy(zone, protectedId);
+            float effSupFar = ConvoyRaidSystem.EffectiveSupremacy(zone, protectedId);
+            if (Mathf.Abs(effSupFar - ownSupFar) > 0.01f)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: komşu olmayan koruyucu filo etki etmemeli ({ownSupFar:F1} → {effSupFar:F1})");
+                ok = false;
+            }
+            GD.Print("[LendLeaseTest] komşu olmayan koruyucu → etki yok ✓");
+            zone.AdjacentCountryIds = new List<string> { protectedId, protectorId, enemyId };
+
+            // ---- 10) Filoyu kaybeden koruyucu koruma sağlayamaz ----
+            protector.Dockyards = 0;
+            float ownSupNoFleet = SeaZoneSystem.Supremacy(zone, protectedId);
+            float effSupNoFleet = ConvoyRaidSystem.EffectiveSupremacy(zone, protectedId);
+            if (Mathf.Abs(effSupNoFleet - ownSupNoFleet) > 0.01f)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: filosuz koruyucu etki etmemeli ({ownSupNoFleet:F1} → {effSupNoFleet:F1})");
+                ok = false;
+            }
+            GD.Print("[LendLeaseTest] filoyu kaybeden koruyucu → etki yok ✓");
+            protector.Dockyards = 400; // save/load doğrulaması için güçlü filoya dön
+
+            // ---- 11) Save/Load: tahsis kaydedilir ve geri yüklenir ----
+            GD.Print("[LendLeaseTest] 5) Save/Load");
+            float effSupBeforeSave = ConvoyRaidSystem.EffectiveSupremacy(zone, protectedId);
+            var saveData = ConvoyRaidSystem.GetSaveData();
+            if (saveData.Escorts == null || saveData.Escorts.Length != 1 ||
+                saveData.Escorts[0].ProtectorId != protectorId)
+            {
+                GD.PrintErr("[LendLeaseTest] HATA: save verisi tek tahsis içermeli");
+                ok = false;
+            }
+
+            ConvoyRaidSystem.ResetForNewGame();
+            if (ConvoyRaidSystem.EscortOf(protectedId) != null)
+            {
+                GD.PrintErr("[LendLeaseTest] HATA: yeni oyun sıfırlaması tahsisleri temizlemeli");
+                ok = false;
+            }
+            float ownSupNow = SeaZoneSystem.Supremacy(zone, protectedId);
+            float effSupAfterClear = ConvoyRaidSystem.EffectiveSupremacy(zone, protectedId);
+            if (Mathf.Abs(effSupAfterClear - ownSupNow) > 0.01f)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: tahsis temizlenince etkin hakimiyet kendi hakimiyetine düşmeli ({ownSupNow:F1} → {effSupAfterClear:F1})");
+                ok = false;
+            }
+
+            ConvoyRaidSystem.LoadSaveData(saveData);
+            if (ConvoyRaidSystem.EscortOf(protectedId) != protectorId)
+            {
+                GD.PrintErr("[LendLeaseTest] HATA: yükleme sonrası koruyucu geri gelmeli");
+                ok = false;
+            }
+            float effSupAfterLoad = ConvoyRaidSystem.EffectiveSupremacy(zone, protectedId);
+            if (Mathf.Abs(effSupAfterLoad - effSupBeforeSave) > 0.01f)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: yükleme sonrası etkin hakimiyet aynı kalmalı ({effSupBeforeSave:F2} → {effSupAfterLoad:F2})");
+                ok = false;
+            }
+            GD.Print($"[LendLeaseTest] save/load → koruyucu={ConvoyRaidSystem.EscortOf(protectedId)}, hakimiyet={effSupAfterLoad:F1} ✓");
+
+            // ---- 12) Müttefiklik bozulunca tahsis elenir ----
+            var faction = DiplomacySystem.GetFactionOf(protectedId);
+            if (faction != null) faction.MemberIds.Remove(protectedId);
+            int pruned = ConvoyRaidSystem.PruneInvalidEscorts();
+            if (pruned != 1 || ConvoyRaidSystem.EscortOf(protectedId) != null)
+            {
+                GD.PrintErr($"[LendLeaseTest] HATA: müttefikliği bozulan tahsis elenmeli (elenen={pruned})");
+                ok = false;
+            }
+            else
+            {
+                GD.Print("[LendLeaseTest] müttefiklik bozulunca tahsis elendi ✓");
+            }
+        }
+        finally
+        {
+            // ---- 13) Dünya verisini geri yükle ----
+            protector.Dockyards = protDockBefore;
+            enemy.Dockyards = protDockEnemy;
+            protectedCountry.Dockyards = protDockProtected;
+            protector.PoliticalPower = protPpBefore;
+            protectedCountry.PoliticalPower = protPpProtected;
+
+            int relNow = DiplomacySystem.GetRelation(protectorId, protectedId);
+            if (relNow != relBefore)
+                DiplomacySystem.ModifyRelation(protectorId, protectedId, relBefore - relNow);
+            int opNow = DiplomacySystem.GetOpinion(protectorId, protectedId);
+            if (opNow != opBefore)
+                DiplomacySystem.ModifyRelation(protectorId, protectedId, opBefore - opNow);
+
+            ConvoyRaidSystem.ResetForNewGame();
+
+            foreach (var z in SeaZoneSystem.All)
+            {
+                if (zoneSnapshot.TryGetValue(z.Id, out var saved))
+                    z.AdjacentCountryIds = saved;
+            }
+            foreach (var f in DiplomacySystem.Factions.Values)
+            {
+                if (factionSnapshot.TryGetValue(f.Id, out var members))
+                    f.MemberIds = members;
+            }
+            GD.Print("[LendLeaseTest] Dünya verisi geri yüklendi");
         }
 
         GD.Print("=========================================");

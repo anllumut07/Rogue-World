@@ -2503,3 +2503,35 @@ uyguluyor, savaş bitiyor, kaybeden ilhak ediliyor, iller devrediliyor).
 **Dosyalar:** `Scripts/NavalCombatSystem.cs` (yeni), `Scripts/SeaZoneSystem.cs`,
 `Scripts/SaveSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (43.3 [x]),
 `PROGRESS.md`, `GECE-RAPOR.md`.
+
+### Milestone 43.4: Lend-Lease / Müttefik Konvoy Koruması — ✅ DONE (2026-10-22)
+
+- **Model — koruma saf ağırlık oyunu:** Yeni bir "hakimiyet" kavramı eklenmedi.
+  Koruyucu müttefikin bölge filo ağırlığı korunanın tarafına eklenir ve düşman
+  toplamından çıkarılır; ortaya çıkan **etkin hakimiyet** yükseldiği için
+  `ConvoyRaidSystem` kayıp oranı düşer. Böylece M43.1/M43.2'nin tek doğruluk
+  kaynağı (filo ağırlığı oranı) korunur.
+- **Sınırlandırma:** Korumanın azaltma oranı `MaxEscortEffect` = 0.70 ile sınırlı —
+  eskort hiçbir koşulda kaybı sıfırlamaz. Azaltma oranı
+  `LossReduction = (korumasızKayıp − korumalıKayıp) / korumasızKayıp` olarak
+  ölçülür ve [0,1] aralığına kıstırılır.
+- **Rastgelelik yok:** Korumanın etkisi beklenen değer hesabıdır; M43.2 gibi
+  günlük gürültü eklenmez.
+- **Koşullar:** Koruyucu ≠ korunan; çalışan (+ilhak edilmemiş) ülkeler; **müttefik** =
+  aynı fraksiyon VEYA karşılıklı garanti (`IsAllied`); koruyucunun filo ağırlığı > 0;
+  koruyucunun bölgeye komşu olması gerekir (komşu değilse etki sıfır).
+- **Kendi kendini onarma:** `ApplyDailyRaids` öncesi `PruneInvalidEscorts()`
+  çalışır; müttefiklik bozulursa, ülke ilhak edilirse ya da filo yok olursa tahsis
+  sessizce düşer.
+- **Save/Load:** `SaveSystem.ConvoyRaidSave` DTO (korunan → koruyan dizisi),
+  `WriteSave`/`LoadGameInternal` bağlandı, `ResetForNewGame` temizler.
+- **Test:** `--lend-lease-test` PASS ✓ (korumasız hakimiyet=4.8 / risk=%28.6 /
+  kayıp=286 → zayıf koruma 23.1 (−%17) / 245 → güçlü koruma 80.4 / 129; red
+  yolları: kendini koruma, bilinmeyen ülke, müttefik değil, filosuz koruyucu;
+  komşu olmayan ve filosuz koruyucu etkisiz; save/load round-trip koruyucu=DEU
+  ve hakimiyet 80.4; determinizm; müttefiklik bozulunca tahsis elenir).
+- `--save-load-test` A==B PASS ✓ (historical_1936 + modern_world).
+  `dotnet build` 0 hata / 0 uyarı.
+
+**Dosyalar:** `Scripts/ConvoyRaidSystem.cs`, `Scripts/SaveSystem.cs`,
+`Scripts/GameManager.cs`, `TODO.md` (43.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.

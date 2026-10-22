@@ -2069,3 +2069,40 @@ gerektiren işler yapılmayacak.
 2. M43.4 (Lend-Lease / konvoy koruma) sıradaki alt görev.
 3. Bilinen: AI ticaret anlaşmalarına konvoy kaybı uygulanmıyor (M43.2'den kalan sınır; oyuncu tarafı tam).
 4. Kullanıcının test etmesi gereken: yok — bu alt görev tamamen headless testlerle doğrulandı.
+
+---
+
+## 2026-10-22 — M43.4: Lend-Lease / Müttefik Konvoy Koruması ✅ BİTTİ
+
+- **Yapılanlar:** `Scripts/ConvoyRaidSystem.cs` (müttefik eskort tahsisi
+  `AssignEscort`/`RevokeEscort`/`EscortOf`, `EffectiveSupremacy`, `IsAllied`,
+  `PruneInvalidEscorts`, `MaxEscortEffect`=0.70 sınırı), `Scripts/SaveSystem.cs`
+  (`ConvoyRaidSave`/`ConvoyEscortEntry` DTO + yazma/yükleme),
+  `Scripts/GameManager.cs` (`--lend-lease-test` kancası + DailyTick/Initialize/
+  ResetForNewGame), `TODO.md` (43.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+- **Mimari karar:** Koruma ayrı bir "koruma puanı" değil, filo ağırlığının
+  yeniden dağıtılmasıdır — koruyucunun bölge ağırlığı korumanın tarafına
+  eklenir ve düşman toplamından çıkarılır; M43.1'in "hakimiyet = ağırlık oranı"
+  modeli bozulmaz. Etkin hakimiyet yükselir → konvoy kaybı düşer.
+- **Kapsam kararı:** Azaltma %70 ile sınırlandı, böylece eskort kaybı asla
+  sıfırlamaz (oyuncudan "korumayı aç, konvoy sorununu unut" davranışı çıkmaz).
+- **Koşullar:** müttefik = aynı fraksiyon VEYA karşılıklı garanti; koruyucu
+  bölgeye komşu olmalı; çalışan, filosu olan ülkeler; kendi ülkesine tahsis
+  reddedilir.
+- **Test sonuçları:** `--lend-lease-test` PASS ✓ (12 kontrol; korumasız
+  hakimiyet=4.8/risk=%28.6/kayıp=286 → zayıf koruma 23.1/245 → güçlü koruma
+  80.4/129; dört ret yolu; komşu olmayan ve filosuz koruyucu etkisiz;
+  save/load round-trip DEU + 80.4; determinizm; mütefiklik bozulunca tahsis
+  düşer). `--save-load-test` A==B PASS ✓ (historical_1936 + modern_world).
+  `dotnet build` 0 hata / 0 uyarı.
+- **Not (düzeltme süreci):** İlk test koşusunda 3 hata vardı — test, DEU'nun
+  bölgeden çıkarılmasıyla *meşru* şekilde değişen kendi hakimiyetini kalıntı
+  bir değere karşı ölçüyordu; her noktada güncel hakimiyet yeniden hesaplanacak
+  şekilde düzeltildi. Ayrıca ilk yazımda `MaxEscortEffect`'i etkisiz bırakan bir
+  `* 0f` ifadesi temizlendi.
+
+### ÖZET
+1. `Scripts/ConvoyRaidSystem.cs`, `Scripts/SaveSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (43.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md` değişti.
+2. Sıradaki alt görev M43.5 (Save/Load + `Scripts/SeaZonePanel.cs` UI).
+3. Bilinen: AI ticaret anlaşmalarına konvoy kaybı uygulanmıyor (M43.2'den kalan sınır); SeaZonePanel henüz yazılmadı (M43.5).
+4. Kullanıcının test etmesi gereken: yok — bu alt görev tamamen headless testlerle doğrulandı.

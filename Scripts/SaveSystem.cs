@@ -65,6 +65,9 @@ public static class SaveSystem
         public AirSuperioritySave AirSuperiority { get; set; } // M39.4: hava üstünlüğü durumu
         public NavalCombatSave NavalCombat { get; set; }
         public ConvoyRaidSave ConvoyRaid { get; set; } // M43.4: müttefik konvoy koruması // M43.3: deniz çatışması filo hasarı
+        public CultureSave Culture { get; set; } // M44.2: il kültür/nüfus katmanı
+        public FormableSave Formable { get; set; } // M44.3: sürmekte olan kurgu ülke kurulumları
+        public ReleasableSave Releasable { get; set; } // M44.4: ilhak/kukla kayıtları
         public VictorySystem.VictorySave Victory { get; set; } // M41.2: zafer koşulu durumu
         public DiplomacySave Diplomacy { get; set; }
         public CasusBelliSave CasusBelli { get; set; } // M17A: gerekçe/ateşkes/meşruiyet
@@ -572,6 +575,9 @@ public static class SaveSystem
             AirSuperiority = AirSuperioritySystem.GetSaveData(), // M39.4: hava üstünlüğü durumu
             NavalCombat = NavalCombatSystem.GetSaveData(),
             ConvoyRaid = ConvoyRaidSystem.GetSaveData(), // M43.4: müttefik konvoy koruması // M43.3: deniz çatışması filo hasarı
+            Culture = ProvinceCultureSystem.GetSaveData(), // M44.2: il kültür/nüfus katmanı
+            Formable = FormableSystem.GetSaveData(), // M44.3: sürmekte olan kurgu ülke kurulumları
+            Releasable = ReleasableSystem.GetSaveData(), // M44.4: ilhak/kukla kayıtları
             Victory = VictorySystem.GetSaveData(), // M41.2: zafer koşulu durumu
             Diplomacy = DiplomacySystem.GetSaveData(),
             CasusBelli = CasusBelliSystem.GetSaveData(),
@@ -723,6 +729,12 @@ public static class SaveSystem
             AirSuperioritySystem.LoadSaveData(save.AirSuperiority);
             NavalCombatSystem.LoadSaveData(save.NavalCombat);
             ConvoyRaidSystem.LoadSaveData(save.ConvoyRaid); // M43.4: müttefik konvoy koruması // M43.3: deniz çatışması filo hasarı // M39.4: hava üstünlüğü durumu
+            if (save.Culture != null)
+                ProvinceCultureSystem.LoadSaveData(save.Culture); // M44.2: il kültür/nüfus katmanı
+            if (save.Formable != null)
+                FormableSystem.LoadSaveData(save.Formable); // M44.3: sürmekte olan kurgu ülke kurulumları
+            if (save.Releasable != null)
+                ReleasableSystem.LoadSaveData(save.Releasable); // M44.4: ilhak/kukla kayıtları
             VictorySystem.ApplySave(save.Victory); // M41.2: zafer koşulu durumu
             DiplomacySystem.LoadSaveData(save.Diplomacy);
             CasusBelliSystem.LoadSaveData(save.CasusBelli);

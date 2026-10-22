@@ -2306,3 +2306,46 @@ gerektiren işler yapılmayacak.
    (M44.5); otomatik serbest bırakma/AI talebi yok, AdvanceDay boş; ilhak
    edilenin halkının memnuniyeti/ayaklanma etkisi yok.
 4. Kullanıcının test etmesi gerekenler: yok — headless testlerle doğrulandı.
+
+---
+
+## 2026-10-22 — M44.5 (Save/Load entegrasyonu + kurgu ülke paneli)
+
+- **Alt görev:** TODO.md satır 44.5 — Save/Load + FormablePanel UI.
+- **Ne yapıldı:**
+  - Scripts/SaveSystem.cs: kök kayda Culture (M44.2), Formable (M44.3),
+    Releasable (M44.4) alanları eklendi; yüklemede null güvenli geri yüklenecek.
+  - Scripts/SaveLoadTest.cs: (a) BuildSummaryCore özetine üç sistemin kayıt
+    sayısı, nüfus ve hash'i eklendi — A==B karşılaştırması artık onları kapsıyor;
+    (b) headless akışta WorldMap yüklenmediği için iller + kültür katmanı burada kuruluyor.
+  - Scripts/FormablePanel.cs (yeni, 1080x600): sola ebe kaynağı olan kurgu
+    ülkeler + seçilenin 5 koşul maddesi; sağa oyuncunun il kültürü haritası
+    özeti; FORM NATION / CANCEL; ESC ile kapatma; arka plan harita girdisini bloklar.
+  - Scripts/GameHud.cs: FORMABLE bölüm butonu eklendi.
+- **Bulunan gerçek hata (giderildi):** WorldMap.SetProvinces il sahipliğini
+  kuruyordu AMA kültür katmanını üretmiyordu. Yani formable koşulları ve kültür
+  paneli normal oyunda hiç dolu olmuyordu (yalnızca headless testler kendi
+  dünyasını kurduğu için geçiyordu). Artık RecordCount == 0 ise katman
+  ScenarioSystem.ActiveId ile orada üretiliyor.
+- **Karar (varsayım):** FormablePanel kalıcı durum tutmuyor — kurulum durumu
+  FormableSystem'te ve save/load oradan bağlandı. Panel testi dünya verisini
+  yedekleyip geri yüklüyor (save-load testini etkilemesin diye).
+- **Karar (varsayım):** Kültür satırları il sayısına göre azalan sıralanıyor;
+  nüfus payı toplam nüfus üzerinden hesaplanıyor, toplam 0 ise il oranına düşülüyor.
+- **Doğrulama:** dotnet build 0 hata / 0 uyarı; --formable-panel-test PASS ✓;
+  --formable-test PASS ✓; --save-load-test A==B PASS (2 senaryo):
+  historical_1936 → kültür 637 kayıt / 4.134.248.032 nüfus / hash -930449890,
+  ilhak 2 kayıt; modern_world → 637 kayıt / 10.888.088.527 nüfus / hash -777922268.
+
+### ÖZET
+1. Scripts/SaveSystem.cs, Scripts/SaveLoadTest.cs, Scripts/FormablePanel.cs
+   (yeni), Scripts/WorldMap.cs, Scripts/GameHud.cs, Scripts/GameManager.cs,
+   TODO.md (44.5 [x]) değişti.
+2. Çözülemeyen: yok.
+3. Bilinen: WorldMap'ın kültür üretimi yalnızca katman boşsa çalışır; il devri
+   sonrası kültür dağılımı anında yenilenmiyor (ReassignCountry yapıyor, panel
+   yeniden açıldığında güncel değeri görüyor). Releasable için ayrı panel yok
+   (sadece save/load ve sistem seviyesinde var).
+4. Kullanıcının test etmesi gerekenler: oyunda FORMABLE butonunun paneli
+   açması, kültür haritası özetinin dolu görünmesi, kurma butonunun kültür
+   koşulu sağlanınca açık olması.

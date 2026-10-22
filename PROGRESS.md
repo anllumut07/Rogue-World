@@ -2666,3 +2666,29 @@ sonradan bağımsız çıkarılabilir.
 Scripts/WarSystem.cs, Scripts/PeaceConferenceSystem.cs,
 Scripts/DiplomacySystem.cs, Scripts/EventSystem.cs, Scripts/GameManager.cs,
 TODO.md (44.4 [x]), PROGRESS.md, GECE-RAPOR.md.
+
+---
+
+## M44.5 — Save/Load entegrasyonu + kurgu ülke paneli
+
+M44.2–M44.4'ün üç sistemi kalıcı hale getirildi ve arayüze bağlandı.
+
+- **Save/Load** (`Scripts/SaveSystem.cs`): kök kayda `Culture`, `Formable`,
+  `Releasable` alanları eklendi. `SaveLoadTest.BuildSummaryCore` özetine üç
+  sistemin kayıt/nüfus/hash'i eklendi — A==B karşılaştırması artık onları
+  gerçekten kapsıyor (önceden yalnızca il sahipliği karşılaştırılıyordu).
+- **Arayüz** (`Scripts/FormablePanel.cs`, 1080x600 — 1152x648'e sığar): solda
+  ebe kaynağı olan kurgu ülkeler ve seçilenin 5 koşul maddesi, sağda oyuncunun
+  il kültürü haritası özeti (il sayısı + nüfus payı), FORM NATION / CANCEL,
+  ESC ile kapatma, arka plan harita girdisini bloklar. `GameHud`'a FORMABLE
+  bölüm butonu eklendi.
+- **Gerçek hata giderildi**: `WorldMap.SetProvinces` il sahipliğini kuruyordu
+  ama kültür katmanını üretmiyordu — formable koşulları ve panel normal oyunda
+  hiç dolu olmuyordu. Artık katman boşsa orada üretiliyor.
+- **Doğrulama**: build 0/0; `--formable-panel-test` PASS ✓; `--formable-test`
+  PASS ✓; `--save-load-test` A==B PASS (2 senaryo, üç sistemin hash'i birebir
+  aynı).
+
+**Dosyalar:** Scripts/SaveSystem.cs, Scripts/SaveLoadTest.cs,
+Scripts/FormablePanel.cs (yeni), Scripts/WorldMap.cs, Scripts/GameHud.cs,
+Scripts/GameManager.cs, TODO.md (44.5 [x]), PROGRESS.md, GECE-RAPOR.md.

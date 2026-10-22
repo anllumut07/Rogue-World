@@ -1877,6 +1877,15 @@ public partial class WorldMap : Node2D
     {
         _provinces = new List<ProvinceData>(provinces);
         ProvinceOwnershipSystem.InitializeFromProvinces(_provinces);
+
+        // M44.2: il kültür/nüfus katmanı — sahiplikle aynı anda üretilir ki
+        // formable koşulları ve kültür paneli normal oyunda da dolu olsun.
+        if (ProvinceCultureSystem.RecordCount == 0)
+        {
+            ProvinceCultureSystem.GenerateFor(_provinces, ScenarioSystem.ActiveId ?? "historical_1936");
+            GD.Print($"WorldMap: {ProvinceCultureSystem.RecordCount} il kültür kaydı üretildi.");
+        }
+
         _provinceBounds.Clear();
         foreach (var prov in _provinces)
             _provinceBounds[prov.Id] = ComputeBounds(prov);

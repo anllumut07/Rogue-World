@@ -43,6 +43,18 @@ public static class SaveLoadTest
         FocusSystem.EnableAutoPickTest();
         GD.Print("[Test] Event auto-choose + Focus auto-pick etkin");
 
+        // M44.2/M44.5: iller ve kültür katmanı — headless akışta WorldMap sahnesi
+        // yüklenmez, o yüzden katman burada kurulur (normal oyunda WorldMap.SetProvinces yapar).
+        if (ProvinceOwnershipSystem.TotalProvinceCount == 0)
+        {
+            var provinceSource = new ProceduralProvinceSource();
+            var provs = provinceSource.LoadProvinces().ToList();
+            ProvinceOwnershipSystem.InitializeFromProvinces(provs);
+            ProvinceCultureSystem.GenerateFor(provs, ScenarioSystem.ActiveId ?? "historical_1936");
+            GD.Print($"[Test] İller + kültür katmanı kuruldu: {provs.Count} il, " +
+                     $"{ProvinceCultureSystem.RecordCount} kayıt");
+        }
+
         // 4) 100 gün ilerlet
         GD.Print($"[Test] Faz 1: {DaysPhase1} gün ilerletiliyor...");
         gm.AdvanceDaysForTest(DaysPhase1);
@@ -364,6 +376,43 @@ public static class SaveLoadTest
         // M18.5: İl sahipliği özeti
         var provOwners = ProvinceOwnershipSystem.GetSaveData();
         sb.AppendLine($"İller: {provOwners.Count} kayıt (provinceId -> countryId)");
+
+        // M44.2: İl kültür/nüfus katmanı özeti (save/load A==B karşılaştırması kapsar)
+        var cultureSave = ProvinceCultureSystem.GetSaveData();
+        int cultureRecords = cultureSave?.Records?.Length ?? 0;
+        long culturePopulation = cultureSave?.Records?.Sum(r => r.Population) ?? 0L;
+        int cultureHash = 0;
+        if (cultureSave?.Records != null)
+        {
+            foreach (var r in cultureSave.Records)
+                cultureHash = cultureHash * 31 + (r.ProvinceId + "|" + r.Culture + "|" + r.Population).GetHashCode();
+        }
+        sb.AppendLine($"KültürKatmanı: kayıt={cultureRecords}, nüfus={culturePopulation}, hash={cultureHash}");
+
+        // M44.3: Kurgu ülke kurulumları özeti
+        var formableSave = FormableSystem.GetSaveData();
+        int pending = formableSave?.Pending?.Length ?? 0;
+        int formableHash = 0;
+        if (formableSave?.Pending != null)
+        {
+            foreach (var p in formableSave.Pending)
+                formableHash = formableHash * 31 +
+                    (p.CountryId + "|" + p.FormableId + "|" + p.DaysElapsed + "|" + p.DaysRequired).GetHashCode();
+        }
+        sb.AppendLine($"KurguKurulum: bekleyen={pending}, hash={formableHash}");
+
+        // M44.4: İlhak/kukla kayıtları özeti
+        var releasableSave = ReleasableSystem.GetSaveData();
+        int subjects = releasableSave?.Subjects?.Length ?? 0;
+        int releasableHash = 0;
+        if (releasableSave?.Subjects != null)
+        {
+            foreach (var s in releasableSave.Subjects)
+                releasableHash = releasableHash * 31 +
+                    (s.CountryId + "|" + s.OverlordId + "|" + s.IsPuppet + "|" + s.FactoriesTaken +
+                     "|" + (s.ProvinceIds?.Length ?? 0)).GetHashCode();
+        }
+        sb.AppendLine($"İlakKayıtları: kayıt={subjects}, hash={releasableHash}");
         if (leaderCount > 0)
         {
             foreach (var kv in LeaderSystem.All.OrderBy(k => k.Key))

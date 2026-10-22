@@ -247,6 +247,14 @@ public partial class GameHud : CanvasLayer
                 SeaZonePanel.OpenUnder(this);
             });
 
+        // FORMABLE (M44.5): kurgu ülke kurma — kültür haritası ve kurma eylemi
+        AddSection("FORMABLE", "Formable nations — culture map, formation conditions and founding",
+            () =>
+            {
+                GD.Print("[GameHud] FORMABLE butonu basıldı — FormablePanel.OpenUnder çağrılıyor");
+                FormablePanel.OpenUnder(this);
+            });
+
         // CABINET (M21.1): bakanlık atamaları ve bakanlık listesi
         AddSection("CABINET", "Cabinet — ministries and minister assignments",
             () =>

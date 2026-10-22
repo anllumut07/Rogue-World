@@ -186,6 +186,7 @@ public partial class GameManager : Node
         bool cultureTest = false;            // M44.2: il kültür katmanı testi (--culture-test)
         bool formableTest = false;           // M44.3: kurgu ülke kurma testi (--formable-test)
         bool releasableTest = false;         // M44.4: ilhak/kukla ülkeyi bağımsız çıkarma testi
+        bool formablePanelTest = false;      // M44.5: kurgu ülke paneli testi (--formable-panel-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -344,6 +345,8 @@ public partial class GameManager : Node
                 formableTest = true;
             else if (arg == "--releasable-test")
                 releasableTest = true;
+            else if (arg == "--formable-panel-test")
+                formablePanelTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -764,6 +767,10 @@ public partial class GameManager : Node
         // M44.4: Bağımsız çıkarma testi — ilhak kaydı düşer, iller/fabrika payı geri döner.
         if (releasableTest)
             RunReleasableTest();
+
+        // M44.5: Kurgu ülke paneli testi — kurgu ülkeler, kültür haritası, kurma/iptal.
+        if (formablePanelTest)
+            RunFormablePanelTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -8952,4 +8959,412 @@ private void RunBalanceTest()
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }
+
+    /// <summary>
+    /// M44.5: Kurgu ülke paneli headless testi (--formable-panel-test).
+    ///
+    /// Panelin açılışı, kurgu ülke listesi, kültür haritası özeti, koşul
+    /// satırları, FORM NATION / CANCEL eylemleri ve ESC ile kapanması
+    /// doğrulanır. Ayrıca panel veri mutasyonu yapmaz (save/load A==B
+    /// etkilenmez) — bu yüzden dünya verisi yedeklenip geri yüklenir.
+    ///
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private async void RunFormablePanelTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M44.5: KURGU ÜLKE PANELİ TESTİ (--formable-panel-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        FormableSystem.ResetForNewGame();
+        GD.Print($"[FormablePanelTest] İl: {provinces.Count}, kültür kaydı: {ProvinceCultureSystem.RecordCount}");
+
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        string playerId = PlayerCountryId;
+        var player = CountryDatabase.Get(playerId);
+        if (player == null)
+        {
+            GD.PrintErr($"[FormablePanelTest] HATA: oyuncu ülkesi ({playerId}) bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // ---- 1) Dünya verisini yedekle ----
+        double ppBefore = player.PoliticalPower;
+        var provinceOwnerBackup = new Dictionary<string, string>();
+        foreach (var p in provinces)
+            provinceOwnerBackup[p.Id] = p.CountryId ?? "";
+        var cultureBackup = new Dictionary<string, string>();
+        foreach (var r in ProvinceCultureSystem.ForCountry(playerId))
+            cultureBackup[r.ProvinceId] = r.Culture ?? "";
+
+        // ---- 2) DEU'ye kurabileceği bir kurgu ülke kur ----
+        // Ebe kaynakları arasında DEU olan bir tanım seç (prosedürel dünyada
+        // DEU'nun kendi kültür dağılımı farklı olabilir, illeri elle veriyoruz).
+        var parentDef = FormableDataSystem.ForParent(playerId)
+            .OrderBy(d => d.Id, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (parentDef == null)
+        {
+            GD.PrintErr($"[FormablePanelTest] HATA: {playerId} ebe kaynağı olan formable tanımı yok");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var def = FormableDataSystem.Get(parentDef.Id);
+        if (def == null)
+        {
+            GD.PrintErr($"[FormablePanelTest] HATA: {parentDef.Id} tanımı yüklenemedi");
+            GetTree().Quit(1);
+            return;
+        }
+
+        int needed = def.RequiredProvinces;
+        var donor = provinces
+            .Where(p => !string.Equals(p.CountryId, playerId, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(p => p.CountryId, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.Count())
+            .Select(g => new { Id = g.Key, Provs = g.ToList() })
+            .FirstOrDefault();
+        if (donor == null || donor.Provs.Count < needed)
+        {
+            GD.PrintErr($"[FormablePanelTest] HATA: bağışçı ülkede {needed} il yok " +
+                        $"({donor?.Provs.Count ?? 0} bulundu)");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var movedIds = donor.Provs.Select(p => p.Id).Take(needed).ToList();
+        foreach (var pid in movedIds)
+            ProvinceOwnershipSystem.SetProvinceOwner(pid, playerId);
+        ProvinceCultureSystem.ReassignCountry(movedIds, playerId);
+        foreach (var pid in movedIds)
+            ProvinceCultureSystem.SetCulture(pid, def.Culture);
+        player.PoliticalPower = Math.Max(player.PoliticalPower, def.PoliticalPowerCost + 100);
+
+        var host = new Control { Name = "FormablePanelTestHost" };
+        host.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(host);
+
+        try
+        {
+            // ---- 3) Paneli aç ----
+            GD.Print("[FormablePanelTest] 1) Panel açılışı");
+            FormablePanel.OpenUnder(host);
+            await ToSignal(GetTree(), "process_frame");
+            await ToSignal(GetTree(), "process_frame");
+
+            var panel = FindFormablePanel();
+            if (panel == null)
+            {
+                GD.PrintErr("[FormablePanelTest] HATA: panel düğümü bulunamadı");
+                GetTree().Quit(1);
+                return;
+            }
+            if (!FormablePanel.IsOpen)
+            {
+                GD.PrintErr("[FormablePanelTest] HATA: panel açılmadı");
+                ok = false;
+            }
+            if (panel.PlayerId != playerId)
+            {
+                GD.PrintErr($"[FormablePanelTest] HATA: panel oyuncusu yanlış ({panel.PlayerId} != {playerId})");
+                ok = false;
+            }
+
+            // ---- 4) Ölçü sınırı: 1152x648'e sığmalı ----
+            Vector2 designed = panel.DesignedSize;
+            GD.Print($"[FormablePanelTest] Panel tasarım boyutu: {designed.X}x{designed.Y}");
+            if (designed.X <= 0f || designed.Y <= 0f)
+            {
+                GD.PrintErr("[FormablePanelTest] HATA: panel boyutu okunamadı");
+                ok = false;
+            }
+            if (designed.X > 1152 || designed.Y > 648)
+            {
+                GD.PrintErr($"[FormablePanelTest] HATA: panel 1152x648'e sığmıyor ({designed.X}x{designed.Y})");
+                ok = false;
+            }
+
+            // ---- 5) Kurgu ülke satırları ----
+            int rows = panel.FormableRowCount;
+            var parents = FormableDataSystem.ForParent(playerId).ToList();
+            GD.Print($"[FormablePanelTest] Kurgu ülke satırı: {rows} (ebe kaynak: {parents.Count})");
+            if (rows != parents.Count)
+            {
+                GD.PrintErr($"[FormablePanelTest] HATA: satır sayısı ebe kaynak sayısına eşit olmalı " +
+                            $"({rows} != {parents.Count})");
+                ok = false;
+            }
+            if (parents.Count == 0)
+            {
+                GD.PrintErr("[FormablePanelTest] HATA: panel hiç kurgu ülke listelemedi");
+                ok = false;
+            }
+
+            // ---- 6) Kültür haritası satırları ----
+            int cultureRows = panel.CultureRowCount;
+            var distribution = ProvinceCultureSystem.GetCultureDistribution(playerId);
+            GD.Print($"[FormablePanelTest] Kültür satırı: {cultureRows} " +
+                     $"(dağılım: {distribution.Count} kültür, " +
+                     $"{string.Join(", ", distribution.OrderByDescending(kv => kv.Value).Take(3).Select(kv => $"{kv.Key}={kv.Value}"))})");
+            if (cultureRows != distribution.Count)
+            {
+                GD.PrintErr($"[FormablePanelTest] HATA: kültür satırı dağılıma eşit olmalı " +
+                            $"({cultureRows} != {distribution.Count})");
+                ok = false;
+            }
+            else if (cultureRows > 0)
+            {
+                // Satırlar il sayısına göre azalan sıralanmalı
+                bool sorted = true;
+                for (int i = 1; i < panel.CultureCounts.Count; i++)
+                    if (panel.CultureCounts[i] > panel.CultureCounts[i - 1]) { sorted = false; break; }
+                if (!sorted)
+                {
+                    GD.PrintErr("[FormablePanelTest] HATA: kültür satırları il sayısına göre sıralı değil");
+                    ok = false;
+                }
+                if (panel.CultureCounts[0] < needed)
+                {
+                    GD.PrintErr($"[FormablePanelTest] HATA: ilk satır en az {needed} il göstermeli " +
+                                $"({panel.CultureCounts[0]})");
+                    ok = false;
+                }
+            }
+
+            // ---- 7) Koşul satırları ----
+            int conditions = panel.ConditionMet.Count;
+            GD.Print($"[FormablePanelTest] Koşul satırı: {conditions}");
+            if (conditions != 5)
+            {
+                GD.PrintErr($"[FormablePanelTest] HATA: 5 koşul maddesi gösterilmeli ({conditions})");
+                ok = false;
+            }
+            int metCount = panel.ConditionMet.Count(m => m);
+            GD.Print($"[FormablePanelTest] Sağlanan koşul: {metCount}/{conditions}");
+
+            // ---- 8) Seçim: koşulları sağlanan ilk kurgu ülkeyi seç ----
+            var formableIds = parents.Select(d => d.Id).ToList();
+            int targetIndex = -1;
+            for (int i = 0; i < formableIds.Count; i++)
+                if (FormableSystem.CanForm(playerId, formableIds[i])) { targetIndex = i; break; }
+            if (targetIndex < 0)
+            {
+                GD.PrintErr("[FormablePanelTest] HATA: koşulları sağlayan kurgu ülke yok (kurulum hatalı)");
+                ok = false;
+            }
+            else
+            {
+                GD.Print($"[FormablePanelTest] 2) Kurgu ülke seçimi: {formableIds[targetIndex]}");
+                var list = FindItemList(panel);
+                if (list == null)
+                {
+                    GD.PrintErr("[FormablePanelTest] HATA: kurgu ülke listesi (ItemList) bulunamadı");
+                    ok = false;
+                }
+                else
+                {
+                    list.Select(targetIndex);
+                    list.EmitSignal(ItemList.SignalName.ItemSelected, targetIndex);
+                    await ToSignal(GetTree(), "process_frame");
+
+                    if (panel.SelectedFormableId != formableIds[targetIndex])
+                    {
+                        GD.PrintErr($"[FormablePanelTest] HATA: seçim alınmadı " +
+                                    $"({panel.SelectedFormableId} != {formableIds[targetIndex]})");
+                        ok = false;
+                    }
+
+                    // ---- 9) FORM NATION ----
+                    GD.Print("[FormablePanelTest] 3) Kurma başlatma");
+                    if (panel.FormDisabled)
+                    {
+                        GD.PrintErr("[FormablePanelTest] HATA: koşullar sağlanınca FORM NATION açık olmalı");
+                        ok = false;
+                    }
+                    var formBtn = FindButton(panel, "FORM NATION");
+                    if (formBtn == null)
+                    {
+                        GD.PrintErr("[FormablePanelTest] HATA: FORM NATION butonu bulunamadı");
+                        ok = false;
+                    }
+                    else
+                    {
+                        formBtn.EmitSignal(BaseButton.SignalName.Pressed);
+                        await ToSignal(GetTree(), "process_frame");
+
+                        if (!FormableSystem.IsPending(playerId))
+                        {
+                            GD.PrintErr("[FormablePanelTest] HATA: kurma süreci başlamadı");
+                            ok = false;
+                        }
+                        var state = FormableSystem.State(playerId);
+                        if (state != null && state.FormableId != formableIds[targetIndex])
+                        {
+                            GD.PrintErr($"[FormablePanelTest] HATA: yanlış kurgu ülke kuruluyor " +
+                                        $"({state.FormableId} != {formableIds[targetIndex]})");
+                            ok = false;
+                        }
+                        // Form sonrası CANCEL açılmalı, FORM kapanmalı
+                        if (panel.CancelDisabled)
+                        {
+                            GD.PrintErr("[FormablePanelTest] HATA: kurulum varken CANCEL açık olmalı");
+                            ok = false;
+                        }
+                        GD.Print($"[FormablePanelTest] Kurulum: {state?.FormableId} " +
+                                 $"({state?.DaysElapsed:N0}/{state?.DaysRequired:N0} gün), " +
+                                 $"mesaj=\"{panel.FeedbackText}\"");
+
+                        // ---- 10) Save/Load: kurulum durumu korunur ----
+                        GD.Print("[FormablePanelTest] 4) Save/Load");
+                        FormableSystem.AdvanceDay(playerId); // ilerlemeyi görünür kıl
+                        var save = FormableSystem.GetSaveData();
+                        if (save.Pending == null || save.Pending.Length != 1)
+                        {
+                            GD.PrintErr($"[FormablePanelTest] HATA: tek bekleyen kurulum kaydedilmeli " +
+                                        $"({save.Pending?.Length ?? 0})");
+                            ok = false;
+                        }
+                        FormableSystem.ResetForNewGame();
+                        if (FormableSystem.IsPending(playerId))
+                        {
+                            GD.PrintErr("[FormablePanelTest] HATA: sıfırlama bekleyen kurulumu temizlemeli");
+                            ok = false;
+                        }
+                        FormableSystem.LoadSaveData(save);
+                        var loaded = FormableSystem.State(playerId);
+                        if (loaded == null)
+                        {
+                            GD.PrintErr("[FormablePanelTest] HATA: yükleme sonrası kurulum geri gelmeli");
+                            ok = false;
+                        }
+                        else
+                        {
+                            GD.Print($"[FormablePanelTest] save/load → kurulum {loaded.FormableId} " +
+                                     $"({loaded.DaysElapsed:N0}/{loaded.DaysRequired:N0}) ✓");
+                        }
+
+                        // ---- 11) CANCEL ----
+                        GD.Print("[FormablePanelTest] 5) Kurma iptal");
+                        var cancelBtn = FindButton(panel, "CANCEL");
+                        if (cancelBtn == null)
+                        {
+                            GD.PrintErr("[FormablePanelTest] HATA: CANCEL butonu bulunamadı");
+                            ok = false;
+                        }
+                        else if (cancelBtn.Disabled)
+                        {
+                            GD.PrintErr("[FormablePanelTest] HATA: CANCEL butonu kapalı");
+                            ok = false;
+                        }
+                        else
+                        {
+                            cancelBtn.EmitSignal(BaseButton.SignalName.Pressed);
+                            await ToSignal(GetTree(), "process_frame");
+
+                            if (FormableSystem.IsPending(playerId))
+                            {
+                                GD.PrintErr("[FormablePanelTest] HATA: iptal sonrası kurulum kalmamalı");
+                                ok = false;
+                            }
+                            if (!panel.CancelDisabled)
+                            {
+                                GD.PrintErr("[FormablePanelTest] HATA: iptal sonrası CANCEL kapanmalı");
+                                ok = false;
+                            }
+                            if (panel.FormDisabled)
+                            {
+                                GD.PrintErr("[FormablePanelTest] HATA: iptal sonrası FORM NATION açık olmalı");
+                                ok = false;
+                            }
+                            GD.Print($"[FormablePanelTest] iptal sonrası mesaj=\"{panel.FeedbackText}\"");
+                        }
+                    }
+                }
+            }
+
+            // ---- 12) ESC ile kapatma ----
+            GD.Print("[FormablePanelTest] 6) ESC ile kapatma");
+            panel._UnhandledInput(new InputEventKey { Keycode = Key.Escape, Pressed = true });
+            if (!panel.CloseRequested)
+            {
+                GD.PrintErr("[FormablePanelTest] HATA: ESC kapatma isteği üretmedi");
+                ok = false;
+            }
+
+            // PopOut tween'i 0.1 sn sürdüğü için sabit frame sayısı bekle yetmez;
+            // panel ağaçtan çıkana kadar frame bekle.
+            for (int i = 0; i < 40 && FormablePanel.IsOpen; i++)
+                await ToSignal(GetTree(), "process_frame");
+
+            if (FormablePanel.IsOpen)
+            {
+                GD.PrintErr("[FormablePanelTest] HATA: ESC paneli kapatmadı");
+                ok = false;
+            }
+            else
+            {
+                GD.Print("[FormablePanelTest] ESC paneli kapattı ✓");
+            }
+        }
+        finally
+        {
+            // ---- 13) Dünya verisini geri yükle ----
+            foreach (var kv in provinceOwnerBackup)
+            {
+                if (PaProvinceOwner(provinces, kv.Key, out int idx))
+                    provinces[idx].CountryId = kv.Value;
+            }
+            ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+            ProvinceCultureSystem.ResetForNewGame();
+            ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+            FormableSystem.ResetForNewGame();
+            player.PoliticalPower = ppBefore;
+            GD.Print("[FormablePanelTest] Dünya verisi geri yüklendi");
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>FormablePanel düğümünü bulur (test yardımcısı).</summary>
+    private FormablePanel FindFormablePanel()
+    {
+        foreach (var n in FindChildrenIn(this))
+            if (n is FormablePanel fp) return fp;
+        return null;
+    }
+
+    /// <summary>ItemList düğümünü bulur (test yardımcısı).</summary>
+    private ItemList FindItemList(Node root)
+    {
+        foreach (var n in FindChildrenIn(root))
+            if (n is ItemList il) return il;
+        return null;
+    }
+
+    /// <summary>İl listesinde kimliği eşleşen ilin indeksini verir (test yardımcısı).</summary>
+    private static bool PaProvinceOwner(List<ProvinceData> provinces, string provinceId, out int index)
+    {
+        for (int i = 0; i < provinces.Count; i++)
+        {
+            if (string.Equals(provinces[i].Id, provinceId, StringComparison.Ordinal))
+            {
+                index = i;
+                return true;
+            }
+        }
+        index = -1;
+        return false;
+    }
 }
+

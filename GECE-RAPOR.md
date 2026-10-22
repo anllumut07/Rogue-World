@@ -1909,7 +1909,7 @@ gerektiren işler yapılmayacak.
 4. Kullanıcı UI'dan barış konferansını henüz test edemez (panel M42.5'te); şimdilik sadece konsol testi geçerli.
 
 
-## M42.4 — AI barış davranışı (2026-10-23) — ✅ DONE
+## M42.4 — AI barış davranışı (2026-10-22) — ✅ DONE
 - `CountryAI.EvaluatePeace(countryId)`: aktif savaştaki rakibe karşı deterministik karar
   (RNG yok) — `none` / `white:{enemy}` / `demand:{enemy}:{n}` / `puppet:{enemy}` /
   `annex:{enemy}`. Savaş puanı `WarScoreSystem` üzerinden okunur; eşikler sabit.
@@ -1941,3 +1941,32 @@ gerektiren işler yapılmayacak.
 2. M42.5 (PeaceConferencePanel UI) henüz yapılmadı — sıradaki alt görev.
 3. Log dosyalarındaki Türkçe karakter mojibake'i (PowerShell/Godot konsol kodlaması) gözlemlendi; test mantığını etkilemiyor, bilinen bir kozmetik sorun olarak kaydedildi.
 4. Kullanıcının test etmesi gereken: yok — bu alt görev tamamen headless testlerle doğrulandı (UI değişikliği içermiyor).
+
+---
+
+## M42.5 — Barış konferansı paneli (2026-10-22) — ✅ DONE
+
+- **Yapılanlar:** `Scripts/PeaceConferencePanel.cs` (900x520, 1152x648'e sığar),
+  `Scenes/peace_conference_panel.tscn`, `Scripts/DiplomacyPanel.cs` içine
+  "PEACE CONFERENCE (DEMANDS)" giriş butonu, `Scripts/GameManager.cs` içine
+  `--peace-panel-test` kancası.
+- **Kök neden (test iki kez FAIL oldu):** (a) `Input.ParseInputEvent(escKey)` olayı
+  yalnızca kuyruğa alır; aynı frame içinde `_UnhandledInput` çalışmaz → assert erken
+  yapılıyordu. (b) `IsOpen` statik bayrağı `_ExitTree`'de sıfırlanır, `QueueFree`
+  ise bir frame sonra işlenir → ikinci `OpenUnder` "zaten açık" diye erken dönüyor,
+  bulunan buton birinci (zaten bitmiş) panelin butonuydu.
+- **Çözüm:** projedeki diğer UI testleriyle aynı desen — olay doğrudan
+  `panel._UnhandledInput(escKey)` ile verildi, ardından `await ToSignal(GetTree(), "process_frame")`
+  ile 3 frame beklenip `IsOpen` doğrulandı; aşama 2'ye geçmeden önce panelin tamamen
+  silinmesi için 2 frame daha beklendi. `CloseRequested` senkron gözlemlenebilir
+  bayrak eklendi.
+- **Test sonuçları:** `--peace-panel-test` PASS ✓ (tasarlanan boyut 900x520, 6 talep
+  satırı, ADD→1 seçili talep, CONFIRM→110 il devri + savaş bitişi, ESC kapatma,
+  beyaz barış kapitülasyonsuz savaşı bitiriyor). `--save-load-test` A==B PASS ✓
+  (historical_1936 + modern_world). `dotnet build` 0 hata / 0 uyarı.
+
+### ÖZET
+1. `Scripts/PeaceConferencePanel.cs` (yeni), `Scenes/peace_conference_panel.tscn` (yeni), `Scripts/DiplomacyPanel.cs` (giriş butonu), `Scripts/GameManager.cs` (`--peace-panel-test`), `TODO.md` (42.5 [x]), `PROGRESS.md`, `GECE-RAPOR.md` değişti.
+2. M43 (deniz üstünlüğü / konvoy baskını) sıradaki alt görev.
+3. Bilinen sorun: log dosyalarındaki Türkçe mojibake (konsol kodlaması) — kozmetik, test mantığını etkilemiyor.
+4. Kullanıcının test etmesi gereken: yok — bu alt görev tamamen headless testlerle doğrulandı.

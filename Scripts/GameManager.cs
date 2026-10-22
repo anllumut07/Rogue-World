@@ -176,6 +176,7 @@ public partial class GameManager : Node
         bool peaceTermsTest = false;        // M42.2: barış talebi maliyeti testi (--peace-terms-test)
         bool peaceTest = false;             // M42.3: barış anlaşması uygulama testi (--peace-test)
         bool aiPeaceTest = false;            // M42.4: AI barış davranışı testi (--ai-peace-test)
+        bool peacePanelTest = false;         // M42.5: barış konferansı paneli testi (--peace-panel-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -314,6 +315,8 @@ public partial class GameManager : Node
                 peaceTest = true;
             else if (arg == "--ai-peace-test")
                 aiPeaceTest = true;
+            else if (arg == "--peace-panel-test")
+                peacePanelTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -694,6 +697,10 @@ public partial class GameManager : Node
         // M42.4: AI barış davranışı testi — eşikler, güvenli red, savaş sonu.
         if (aiPeaceTest)
             RunAiPeaceTest();
+
+        // M42.5: Barış konferansı paneli testi — ölçü, liste, talep onayı, ESC kapatma.
+        if (peacePanelTest)
+            RunPeacePanelTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -6346,5 +6353,338 @@ private void RunBalanceTest()
         GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M42.5: Barış konferansı paneli testi (--peace-panel-test).
+    /// Panelin ölçü sınırına sığdığı, talep listesinin dolduğu, onayın dünya
+    /// durumuna yazdığı, beyaz barışın kapitülasyonsuz savaşı kapattığı ve
+    /// ESC'nin paneli kapattığı gerçek UI üzerinden doğrulanır.
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private async void RunPeacePanelTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M42.5: BARIŞ KONFERANSI PANELİ TESTİ (--peace-panel-test)");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0x4D34325D2B0UL);
+        PeaceConferenceSystem.LoadData();
+        bool ok = true;
+
+        if (ProvinceOwnershipSystem.TotalProvinceCount == 0)
+        {
+            var provinceSource = new ProceduralProvinceSource();
+            var provs = provinceSource.LoadProvinces();
+            ProvinceOwnershipSystem.InitializeFromProvinces(provs);
+            GD.Print($"[PeacePanelTest] İller yüklendi: {provs.Count} il");
+        }
+
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        string playerId = PlayerCountryId;
+
+        // Oyuncu savaştığı, çok ili olan bir AI hedefi seç (il talebi anlamlı olsun).
+        var target = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed && c.Id != playerId &&
+                        ProvinceOwnershipSystem.ProvinceCountFor(c.Id) >= 5)
+            .OrderByDescending(c => ProvinceOwnershipSystem.ProvinceCountFor(c.Id))
+            .FirstOrDefault();
+
+        if (target == null)
+        {
+            GD.PrintErr("[PeacePanelTest] HATA: hedef AI ülkesi bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        string targetId = target.Id;
+        var playerData = CountryDatabase.Get(playerId);
+        if (playerData == null)
+        {
+            GD.PrintErr("[PeacePanelTest] HATA: oyuncu verisi okunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        playerData.WarSupportPercent = 50;
+        playerData.PoliticalPower = 200;
+        CasusBelliSystem.GrantImmediateJustification(playerId, targetId, "historical_event");
+        if (!WarSystem.DeclareWar(playerId, targetId))
+        {
+            var failed = CasusBelliSystem.CheckWarPreconditions(playerId, targetId);
+            foreach (var item in failed.Items.Where(i => !i.Met))
+                GD.PrintErr($"[PeacePanelTest]   ✗ {item.Label} — {item.Detail}");
+            GD.PrintErr("[PeacePanelTest] HATA: oyuncu savaşı başlatılamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var war = WarSystem.GetWarWith(targetId);
+        if (war == null)
+        {
+            GD.PrintErr("[PeacePanelTest] HATA: aktif savaş bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Puanı ezici kur: çok çatışma kazanılmış + düşman fabrikaları sıfır.
+        war.StartEnemyDivisions = Math.Max(1, target.StartingDivisions);
+        war.AttackerBattlesWon = 60;
+        war.DefenderBattlesWon = 0;
+        war.EnemyDivisions = 0;
+        war.StartEnemyFactories = Math.Max(1, target.TotalFactories);
+        target.CivFactories = 0;
+        target.MilFactories = 0;
+        target.Dockyards = 0;
+        war.WarProgress = 100f;
+
+        // Panel gerçek bir Control ağacında açılsın (viewport ölçüsü anlamlı olsun).
+        var host = new Control { Name = "PeacePanelTestHost" };
+        host.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(host);
+
+        int playerProvincesBefore = ProvinceOwnershipSystem.ProvinceCountFor(playerId);
+        int targetProvincesBefore = ProvinceOwnershipSystem.ProvinceCountFor(targetId);
+        GD.Print($"[PeacePanelTest] Savaş {playerId}→{targetId}: puan={WarScoreSystem.ScoreForSide(war, playerId):F1}, " +
+                 $"oyuncu il={playerProvincesBefore}, hedef il={targetProvincesBefore}");
+
+        PeaceConferencePanel.OpenUnder(host, war, playerId);
+
+        if (!PeaceConferencePanel.IsOpen)
+        {
+            GD.PrintErr("[PeacePanelTest] HATA: panel açılmadı");
+            ok = false;
+        }
+        else
+        {
+            var panel = PeaceConferencePanel.IsOpen ? FindPanel() : null;
+            if (panel == null)
+            {
+                GD.PrintErr("[PeacePanelTest] HATA: panel düğümü bulunamadı");
+                ok = false;
+            }
+            else
+            {
+                // ---- 1) Ölçü sınırı: 1152x648'e sığmalı ----
+                Vector2 designed = panel.DesignedSize;
+                GD.Print($"[PeacePanelTest] Panel tasarım boyutu: {designed.X}x{designed.Y}");
+                if (designed.X <= 0 || designed.Y <= 0)
+                {
+                    GD.PrintErr("[PeacePanelTest] HATA: panel boyutu okunamadı");
+                    ok = false;
+                }
+                if (designed.X > 1152 || designed.Y > 648)
+                {
+                    GD.PrintErr($"[PeacePanelTest] HATA: panel 1152x648'e sığmıyor ({designed.X}x{designed.Y})");
+                    ok = false;
+                }
+
+                // ---- 2) Talep listesi dolmuş olmalı ----
+                int rows = panel.DemandRowCount;
+                GD.Print($"[PeacePanelTest] Talep satırı sayısı: {rows}");
+                if (rows <= 0)
+                {
+                    GD.PrintErr("[PeacePanelTest] HATA: talep listesi boş");
+                    ok = false;
+                }
+
+                // ---- 3) "ADD" butonuyla il talebi eklenir ----
+                var addBtn = FindButton(panel, "ADD");
+                if (addBtn == null)
+                {
+                    GD.PrintErr("[PeacePanelTest] HATA: ADD butonu bulunamadı");
+                    ok = false;
+                }
+                else
+                {
+                    addBtn.EmitSignal(BaseButton.SignalName.Pressed);
+                    int selectedAfterAdd = panel.SelectedTermCount;
+                    GD.Print($"[PeacePanelTest] ADD sonrası seçili talep: {selectedAfterAdd}");
+                    if (selectedAfterAdd != 1)
+                    {
+                        GD.PrintErr("[PeacePanelTest] HATA: talepler eklenmedi");
+                        ok = false;
+                    }
+                    else
+                    {
+                        // ---- 4) "CONFIRM DEAL" dünya durumuna yazmalı ----
+                        var confirmBtn = FindButton(panel, "CONFIRM DEAL");
+                        if (confirmBtn == null || confirmBtn.Disabled)
+                        {
+                            GD.PrintErr("[PeacePanelTest] HATA: CONFIRM DEAL butonu bulunamadı veya kapalı");
+                            ok = false;
+                        }
+                        else
+                        {
+                            confirmBtn.EmitSignal(BaseButton.SignalName.Pressed);
+                            int playerProvincesAfter = ProvinceOwnershipSystem.ProvinceCountFor(playerId);
+                            int targetProvincesAfter = ProvinceOwnershipSystem.ProvinceCountFor(targetId);
+                            GD.Print($"[PeacePanelTest] Onay sonrası: oyuncu il={playerProvincesAfter}, " +
+                                     $"hedef il={targetProvincesAfter}");
+                            if (playerProvincesAfter <= playerProvincesBefore ||
+                                targetProvincesAfter >= targetProvincesBefore)
+                            {
+                                GD.PrintErr("[PeacePanelTest] HATA: onay illeri devretmedi");
+                                ok = false;
+                            }
+                            if (!war.IsEnded)
+                            {
+                                GD.PrintErr("[PeacePanelTest] HATA: onay savaşı bitirmedi");
+                                ok = false;
+                            }
+                        }
+                    }
+                }
+
+                // ---- 5) ESC paneli kapatmalı ----
+                var escKey = new InputEventKey
+                {
+                    Keycode = Key.Escape,
+                    Pressed = true
+                };
+                // Projedeki diğer UI testleriyle aynı desen: olay doğrudan panele
+                // verilir (Input.ParseInputEvent olayı kuyruğa alır, aynı frame'de
+                // _UnhandledInput'a ulaşmaz), sonra animasyon/PopOut'un QueueFree'si
+                // tamamlanması için frame beklenir.
+                panel._UnhandledInput(escKey);
+                if (!panel.CloseRequested)
+                {
+                    GD.PrintErr("[PeacePanelTest] HATA: ESC kapatma isteği üretmedi");
+                    ok = false;
+                }
+
+                await ToSignal(GetTree(), "process_frame");
+                await ToSignal(GetTree(), "process_frame");
+                await ToSignal(GetTree(), "process_frame");
+
+                if (PeaceConferencePanel.IsOpen)
+                {
+                    GD.PrintErr("[PeacePanelTest] HATA: ESC paneli kapatmadı");
+                    ok = false;
+                }
+                else
+                {
+                    GD.Print("[PeacePanelTest] ESC paneli kapattı ✓");
+                }
+
+                // Panel tamamen silinmeden ikinci OpenUnder "zaten açık" diye
+                // erken dönüyor; bu yüzden aşama 2'ye geçmeden önce bekleniyor.
+                await ToSignal(GetTree(), "process_frame");
+                await ToSignal(GetTree(), "process_frame");
+            }
+        }
+
+        // ---- 6) Beyaz barış: kapitülasyon kaydı oluşturmadan savaşı bitirir ----
+        // Aynı hedefle yeniden (ateşkes yeni başladığı için farklı bir hedef seç).
+        var whiteTarget = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed && c.Id != playerId && c.Id != targetId &&
+                        ProvinceOwnershipSystem.ProvinceCountFor(c.Id) >= 5)
+            .OrderByDescending(c => ProvinceOwnershipSystem.ProvinceCountFor(c.Id))
+            .FirstOrDefault();
+
+        if (whiteTarget == null)
+        {
+            GD.PrintErr("[PeacePanelTest] HATA: beyaz barış hedefi bulunamadı");
+            ok = false;
+        }
+        else
+        {
+            string wtId = whiteTarget.Id;
+            playerData.WarSupportPercent = 50;
+            playerData.PoliticalPower = 200;
+            CasusBelliSystem.GrantImmediateJustification(playerId, wtId, "historical_event");
+            if (!WarSystem.DeclareWar(playerId, wtId))
+            {
+                var failed2 = CasusBelliSystem.CheckWarPreconditions(playerId, wtId);
+                foreach (var item in failed2.Items.Where(i => !i.Met))
+                    GD.PrintErr($"[PeacePanelTest]   ✗ {item.Label} — {item.Detail}");
+                GD.PrintErr("[PeacePanelTest] HATA: beyaz barış savaşı başlatılamadı");
+                ok = false;
+            }
+            else
+            {
+                var war2 = WarSystem.GetWarWith(wtId);
+                if (war2 == null)
+                {
+                    GD.PrintErr("[PeacePanelTest] HATA: beyaz barış savaşı bulunamadı");
+                    ok = false;
+                }
+                else
+                {
+                    war2.WarProgress = 100f;
+                    PeaceConferencePanel.OpenUnder(host, war2, playerId);
+                    var panel2 = FindPanel();
+                    if (panel2 == null || !PeaceConferencePanel.IsOpen)
+                    {
+                        GD.PrintErr("[PeacePanelTest] HATA: beyaz barış paneli açılmadı");
+                        ok = false;
+                    }
+                    else
+                    {
+                        var whiteBtn = FindButton(panel2, "WHITE PEACE (STATUS QUO)");
+                        if (whiteBtn == null)
+                        {
+                            GD.PrintErr("[PeacePanelTest] HATA: WHITE PEACE butonu bulunamadı");
+                            ok = false;
+                        }
+                        else
+                        {
+                            whiteBtn.EmitSignal(BaseButton.SignalName.Pressed);
+                            if (!war2.IsEnded)
+                            {
+                                GD.PrintErr("[PeacePanelTest] HATA: beyaz barış savaşı bitirmedi");
+                                ok = false;
+                            }
+                            if (war2.AttackerCapitulated || war2.DefenderCapitulated)
+                            {
+                                GD.PrintErr("[PeacePanelTest] HATA: beyaz barış kapitülasyon kaydı oluşturdu");
+                                ok = false;
+                            }
+                            GD.Print($"[PeacePanelTest] Beyaz barış: isEnded={war2.IsEnded}, " +
+                                     $"EndReason=\"{war2.EndReason}\", kapitülasyon=" +
+                                     $"(A:{war2.AttackerCapitulated},D:{war2.DefenderCapitulated})");
+                        }
+                    }
+                }
+            }
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>Test yardımcısı: ağaçtaki PeaceConferencePanel örneğini bulur.</summary>
+    private PeaceConferencePanel FindPanel()
+    {
+        foreach (var n in FindChildrenIn(this))
+        {
+            if (n is PeaceConferencePanel p) return p;
+        }
+        return null;
+    }
+
+    /// <summary>Test yardımcısı: panel ağacındaki butonu metnine göre bulur.</summary>
+    private Button FindButton(Node root, string text)
+    {
+        if (root == null) return null;
+        foreach (var b in FindChildrenIn(root))
+        {
+            if (b is Button btn && btn.Text == text)
+                return btn;
+        }
+        return null;
+    }
+
+    /// <summary>Test yardımcısı: bir alt ağaçtaki tüm düğümleri (kök hariç) dolaşır.</summary>
+    private IEnumerable<Node> FindChildrenIn(Node root)
+    {
+        foreach (Node child in root.GetChildren())
+        {
+            yield return child;
+            foreach (var grand in FindChildrenIn(child))
+                yield return grand;
+        }
     }
 }

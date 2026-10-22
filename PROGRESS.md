@@ -2336,7 +2336,7 @@ değişmedi). `--save-load-test` A==B PASS ✓. `dotnet build` 0 hata / 0 uyarı
 
 ---
 
-## M42.4 — AI barış davranışı — ✅ DONE (2026-10-23)
+## M42.4 — AI barış davranışı — ✅ DONE (2026-10-22)
 
 - `CountryAI.EvaluatePeace` — aktif savaştaki rakibe karşı AI'ın barış kararını
   **deterministik** üretir (RNG yok): `none` / `white:{enemy}` / `demand:{enemy}:{n}` /
@@ -2381,3 +2381,39 @@ uyguluyor, savaş bitiyor, kaybeden ilhak ediliyor, iller devrediliyor).
 `TODO.md` (42.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
 
 
+
+---
+
+## M42.5 — Barış Konferansı Paneli — ✅ DONE (2026-10-22)
+
+- **Amaç:** Oyuncunun savaş puanını harcayarak talepler derdiği UI + beyaz barış çıkışı.
+- **Eklenenler:** `Scripts/PeaceConferencePanel.cs` (900x520 — 1152x648'e sığdığı testle
+  doğrulandı), `Scenes/peace_conference_panel.tscn`, `Scripts/DiplomacyPanel.cs` içinde
+  "PEACE CONFERENCE (DEMANDS)" giriş butonu, `Scripts/GameManager.cs` içinde
+  `--peace-panel-test` kancası.
+- **Panel davranışı:** Talepler `PeaceConferenceSystem.All` sıralı listelenir; puan
+  eşiğinin altındakiler kırmızıyla "requires ≥ N score" yazar. Çok birimli taleplerde
+  SpinBox, tek birimlilerde sabit etiket. ADD/REMOVE ile sepet, "CONFIRM DEAL" ile
+  `PeaceConferenceSystem.ApplyDeal`, "WHITE PEACE (STATUS QUO)" ile
+  `WhitePeaceDeal` çağrılır. ESC kapatır. Kayıt modalda açılırken harita girdisini
+  durdurur (backdrop `MouseFilter.Stop`).
+- **Kök neden (iki test hatası):**
+  1. `Input.ParseInputEvent(escKey)` olayı yalnızca kuyruğa alıyor — aynı frame'de
+     `_UnhandledInput` çalışmıyordu → assert erken yapılıyordu. Projedeki diğer UI
+     testleriyle aynı desen: `panel._UnhandledInput(escKey)` doğrudan çağrı + 3 frame
+     `process_frame` bekleme. Senkron doğrulanabilir bayrak için `CloseRequested` eklendi.
+  2. `IsOpen` `_ExitTree`'de sıfırlanıyor, `QueueFree` bir frame sonra işleniyordu →
+     ikinci `OpenUnder` "zaten açık" diye erken dönüyor, bulunan buton birinci panelin
+     (zaten sonlanmış savaşa bağlı) butonuydu. Aşama 2 öncesi panelin tamamen
+     silinmesi için 2 frame daha beklendi.
+- **Save/Load:** Panel kalıcı durum tutmaz (talep sepeti anlıktır) — bu yüzden
+  save/load'a veri yazmaz. Kalıcı durum (savaş, il sahipliği, puan) zaten M42.1–M42.4
+  sistemlerinde. `--save-load-test` A==B PASS (historical_1936 + modern_world) bundan
+  etkilenmez.
+- **Test sonuçları:** `--peace-panel-test` PASS ✓ (900x520, 6 talep satırı, ADD→1,
+  CONFIRM→110 il devri + savaş bitişi, ESC kapatma, beyaz barış kapitülasyonsuz).
+  `--save-load-test` A==B PASS ✓ (iki senaryo). `dotnet build` 0 hata / 0 uyarı.
+
+**Dosyalar:** `Scripts/PeaceConferencePanel.cs` (yeni),
+`Scenes/peace_conference_panel.tscn` (yeni), `Scripts/DiplomacyPanel.cs`,
+`Scripts/GameManager.cs`, `TODO.md` (42.5 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.

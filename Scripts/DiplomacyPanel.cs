@@ -568,6 +568,13 @@ public partial class DiplomacyPanel : Control
                 };
                 UITheme.AddHoverScale(whiteBtn);
                 _actionsBox.AddChild(whiteBtn);
+
+                // M42.5: Barış konferansı paneli — puan harcayarak talep der
+                var confBtn = new Button { Text = "PEACE CONFERENCE (DEMANDS)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(220, 30) };
+                confBtn.TooltipText = "Spend your war score on demands (territory, puppet, reparations)";
+                confBtn.Pressed += () => PeaceConferencePanel.OpenUnder(this, war, playerId);
+                UITheme.AddHoverScale(confBtn);
+                _actionsBox.AddChild(confBtn);
             }
         }
 

@@ -2389,3 +2389,43 @@ boşluğa karşılık geliyor (hipotez değil, kodda görüldü):
    hiç çağırmıyor. Savaşlar/barışlar ülkeleri değiştiriyor ama hiç kimse yeni
    bir ulus kurmuyor, dünya statik kalıyor. AI'ın kendi kültürel taleplerini
    gündeme getirmesi M45+M46 üzerine kurulur ve dünyayı canlandırır.
+---
+
+## 2026-10-22 — M45.1 (Bağımlı ülkeler paneli — ReleasablePanel)
+
+- **Alt görev:** TODO.md satır 45.1 — HUD'dan ilhak/kukla ülkeleri serbest bırakma.
+- **Ne yapıldı:**
+  - Scripts/ReleasablePanel.cs (yeni, 1080x600): sol sütunda oyuncunun ilhak
+    ettiği/kukla yaptığı ülkeler (tür, ilhak anındaki il sayısı, alınan fabrika
+    payı); sağ sütunda seçili bağımlının ayrıntısı — hâlâ bizde durup iade
+    edilecek il sayısı, civ/mil/dock fabrika dağılımı, kayıtlı illerin kültür
+    haritası, bağımsızlık bayrağı durumu. RELEASE NATION + ESC ile kapatma,
+    arka plan harita girdisini bloklar.
+  - Scripts/ReleasableSystem.cs: SubjectsOf(overlordId) sorgusu eklendi
+    (kimliğe göre artan, bağımlılığı hâlâ geçerli olan kayıtlar).
+  - Scripts/GameHud.cs: SUBJECTS bölüm butonu.
+  - Scripts/GameManager.cs: --releasable-panel-test kancası + 10 adımlı test
+    ve FindReleasablePanel yardımcısı.
+- **Karar (varsayım):** Panel yalnızca SubjectsOf(oyuncu) listeler — ilhak
+  eden taraf görürüyor. Kendi halkının bağımsızlık talebi M48.2'ye bırakıldı.
+- **Karar (varsayım):** Kukla kayıtta fabrika payı zaten 0/0/0 olduğu için
+  RELEASE yalnızca bağımsızlık bayraklarını kaldırır (illeri kuklada kalır) —
+  bu, ReleasableSystem'ın mevcut anlamıyla tutarlı.
+- **Doğrulama:** dotnet build 0/0; --releasable-panel-test PASS ✓
+  (RUS ilhak 110 il + c40/m25/t10 fabrika, ATA kukla 66 il → panel 1080x600,
+  2 bağımlı satırı, 20 detay satırı, RELEASE sonrası 110/110 il ve c40/m25/t10
+  fabrika iade, bayraklar kalktı, kukla listede kaldı, save/load round-trip
+  kukla kaydını korudu, ESC kapattı); --releasable-test regresyon PASS ✓;
+  --save-load-test A==B PASS (historical_1936 + modern_world).
+
+### ÖZET
+1. Değişen: Scripts/ReleasablePanel.cs (yeni), Scripts/ReleasableSystem.cs,
+    Scripts/GameHud.cs, Scripts/GameManager.cs, TODO.md (45.1 [x]).
+2. Çözülemeyen: yok.
+3. Bilinen: Save-load A==B özetindeki "İlakKayıtları" satırı bu senaryolarda
+    kayıt=0/hash=0 çünkü save-load testi ilhak üretmiyor — M45.4'te test
+    dünyasına bir bağımlı kaydı eklenerek kapatılacak. ReleasableSystem
+    AdvanceDay hâlâ boş (otomatik talep M48.2).
+4. Kullanıcının test etmesi gerekenler: oyunda SUBJECTS butonunun paneli
+    açması, ilhak edilen ülkenin RELEASE NATION ile bağımsız olması ve
+    haritanın yeniden boyanması.

@@ -187,6 +187,7 @@ public partial class GameManager : Node
         bool formableTest = false;           // M44.3: kurgu ülke kurma testi (--formable-test)
         bool releasableTest = false;         // M44.4: ilhak/kukla ülkeyi bağımsız çıkarma testi
         bool formablePanelTest = false;      // M44.5: kurgu ülke paneli testi (--formable-panel-test)
+        bool releasablePanelTest = false;    // M45.1: bağımsız çıkarma paneli testi (--releasable-panel-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -347,6 +348,8 @@ public partial class GameManager : Node
                 releasableTest = true;
             else if (arg == "--formable-panel-test")
                 formablePanelTest = true;
+                else if (arg == "--releasable-panel-test")
+                    releasablePanelTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -771,6 +774,9 @@ public partial class GameManager : Node
         // M44.5: Kurgu ülke paneli testi — kurgu ülkeler, kültür haritası, kurma/iptal.
         if (formablePanelTest)
             RunFormablePanelTest();
+
+        if (releasablePanelTest)
+            RunReleasablePanelTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -9341,6 +9347,401 @@ private void RunBalanceTest()
     {
         foreach (var n in FindChildrenIn(this))
             if (n is FormablePanel fp) return fp;
+        return null;
+    }
+
+    /// <summary>
+    /// M45.1: Bağımsız çıkarma paneli testi. Paneli açar, ilhak/kukla bağımlıları
+    /// listeler, RELEASE NATION ile illerin + fabrika payının geri döndüğünü ve
+    /// serbest bırakma sonrası listenin yenilendiğini doğrular. Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private async void RunReleasablePanelTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M45.1: BAĞIMSIZ ÇIKARMA PANELİ TESTİ (--releasable-panel-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ReleasableSystem.ResetForNewGame();
+        GD.Print($"[ReleasablePanelTest] İl: {provinces.Count}, kültür kaydı: {ProvinceCultureSystem.RecordCount}");
+
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        string playerId = PlayerCountryId;
+        var player = CountryDatabase.Get(playerId);
+        if (player == null)
+        {
+            GD.PrintErr($"[ReleasablePanelTest] HATA: oyuncu ülkesi ({playerId}) bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // ---- 1) Dünya verisini yedekle ----
+        var provinceOwnerBackup = new Dictionary<string, string>();
+        foreach (var p in provinces)
+            provinceOwnerBackup[p.Id] = p.CountryId ?? "";
+        var countryBackup = new Dictionary<string, (bool Annexed, string Owner, int Civ, int Mil, int Dock)>();
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c == null) continue;
+            countryBackup[c.Id] = (c.IsAnnexed, c.OwnerId, c.CivFactories, c.MilFactories, c.Dockyards);
+        }
+
+        // ---- 2) İki bağımlı kur: biri ilhak (iller devredilir), biri kukla (iller kalır) ----
+        var donors = provinces
+            .Where(p => !string.Equals(p.CountryId, playerId, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(p => p.CountryId, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.Count())
+            .Select(g => new { Id = g.Key, Provs = g.ToList() })
+            .ToList();
+
+        var annexDonor = donors.FirstOrDefault(d => d.Provs.Count >= 3);
+        var puppetDonor = donors.FirstOrDefault(d =>
+            d.Provs.Count >= 1 &&
+            !string.Equals(d.Id, annexDonor?.Id ?? "", StringComparison.OrdinalIgnoreCase));
+
+        if (annexDonor == null || puppetDonor == null)
+        {
+            GD.PrintErr($"[ReleasablePanelTest] HATA: bağımlı kurulacak ülke bulunamadı " +
+                        $"(ilhak={annexDonor?.Id ?? "-"}, kukla={puppetDonor?.Id ?? "-"})");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var annexData = CountryDatabase.GetOrCreate(annexDonor.Id, "");
+        var puppetData = CountryDatabase.GetOrCreate(puppetDonor.Id, "");
+
+        // İlhak: kayıt iller DEVREDİLMEDEN ÖNCE düşülür (snapshot kurbanın elinde).
+        var annexProvs = annexDonor.Provs.Select(p => p.Id).ToList();
+        int civTaken = annexData.CivFactories;
+        int milTaken = annexData.MilFactories;
+        int dockTaken = annexData.Dockyards;
+        ReleasableSystem.RecordSubject(annexDonor.Id, playerId, false, civTaken, milTaken, dockTaken);
+
+        foreach (var pid in annexProvs)
+            ProvinceOwnershipSystem.SetProvinceOwner(pid, playerId);
+        ProvinceCultureSystem.ReassignCountry(annexProvs, playerId);
+        annexData.IsAnnexed = true;
+        annexData.OwnerId = playerId;
+        annexData.CivFactories = 0;
+        annexData.MilFactories = 0;
+        annexData.Dockyards = 0;
+        player.CivFactories += civTaken;
+        player.MilFactories += milTaken;
+        player.Dockyards += dockTaken;
+
+        // Kukla: illeri ve fabrikaları kendinde kalır, yalnızca bağımlılık bayrağı.
+        ReleasableSystem.RecordSubject(puppetDonor.Id, playerId, true, 0, 0, 0);
+        puppetData.IsAnnexed = true;
+        puppetData.OwnerId = playerId;
+
+        GD.Print($"[ReleasablePanelTest] Kurulan bağımlılar — ilhak {annexDonor.Id} " +
+                 $"({annexProvs.Count} il, c{civTaken}/m{milTaken}/t{dockTaken}), " +
+                 $"kukla {puppetDonor.Id} ({puppetDonor.Provs.Count} il)");
+
+        if (ReleasableSystem.SubjectsOf(playerId).Count != 2)
+        {
+            GD.PrintErr($"[ReleasablePanelTest] HATA: iki bağımlı kaydı olmalı " +
+                        $"({ReleasableSystem.SubjectsOf(playerId).Count})");
+            ok = false;
+        }
+
+        var host = new Control { Name = "ReleasablePanelTestHost" };
+        host.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(host);
+
+        try
+        {
+            // ---- 3) Paneli aç ----
+            GD.Print("[ReleasablePanelTest] 1) Panel açılışı");
+            ReleasablePanel.OpenUnder(host);
+            await ToSignal(GetTree(), "process_frame");
+            await ToSignal(GetTree(), "process_frame");
+
+            var panel = FindReleasablePanel();
+            if (panel == null)
+            {
+                GD.PrintErr("[ReleasablePanelTest] HATA: panel düğümü bulunamadı");
+                GetTree().Quit(1);
+                return;
+            }
+            if (!ReleasablePanel.IsOpen)
+            {
+                GD.PrintErr("[ReleasablePanelTest] HATA: panel açılmadı");
+                ok = false;
+            }
+            if (panel.PlayerId != playerId)
+            {
+                GD.PrintErr($"[ReleasablePanelTest] HATA: panel oyuncusu yanlış ({panel.PlayerId} != {playerId})");
+                ok = false;
+            }
+
+            // ---- 4) Ölçü sınırı: 1152x648'e sığmalı ----
+            Vector2 designed = panel.DesignedSize;
+            GD.Print($"[ReleasablePanelTest] Panel tasarım boyutu: {designed.X}x{designed.Y}");
+            if (designed.X <= 0f || designed.Y <= 0f)
+            {
+                GD.PrintErr("[ReleasablePanelTest] HATA: panel boyutu okunamadı");
+                ok = false;
+            }
+            if (designed.X > 1152 || designed.Y > 648)
+            {
+                GD.PrintErr($"[ReleasablePanelTest] HATA: panel 1152x648'e sığmıyor ({designed.X}x{designed.Y})");
+                ok = false;
+            }
+
+            // ---- 5) Bağımlı satırları ----
+            int rows = panel.SubjectRowCount;
+            GD.Print($"[ReleasablePanelTest] Bağımlı satırı: {rows}");
+            if (rows != 2)
+            {
+                GD.PrintErr($"[ReleasablePanelTest] HATA: iki bağımlı satırı gösterilmeli ({rows})");
+                ok = false;
+            }
+            if (!panel.SubjectIds.Contains(annexDonor.Id) || !panel.SubjectIds.Contains(puppetDonor.Id))
+            {
+                GD.PrintErr("[ReleasablePanelTest] HATA: kurulan bağımlılar listede yok " +
+                            $"[{string.Join(", ", panel.SubjectIds)}]");
+                ok = false;
+            }
+
+            // ---- 6) Kimliğe göre artan sıralama ----
+            bool sorted = true;
+            for (int i = 1; i < panel.SubjectIds.Count; i++)
+                if (string.CompareOrdinal(panel.SubjectIds[i - 1], panel.SubjectIds[i]) > 0) { sorted = false; break; }
+            if (!sorted)
+            {
+                GD.PrintErr("[ReleasablePanelTest] HATA: bağımlı satırları kimliğe göre sıralı değil");
+                ok = false;
+            }
+
+            // ---- 7) Detay satırları (varsayılan seçim) ----
+            int detailRows = panel.DetailRowCount;
+            GD.Print($"[ReleasablePanelTest] Detay satırı: {detailRows}, seçili={panel.SelectedSubjectId}");
+            if (detailRows < 5)
+            {
+                GD.PrintErr($"[ReleasablePanelTest] HATA: detay en az 5 satır göstermeli ({detailRows})");
+                ok = false;
+            }
+
+            // ---- 8) İlhak edilen ülkeyi seç + RELEASE NATION ----
+            int annexIndex = -1;
+            for (int i = 0; i < panel.SubjectIds.Count; i++)
+                if (string.Equals(panel.SubjectIds[i], annexDonor.Id, StringComparison.OrdinalIgnoreCase))
+                { annexIndex = i; break; }
+            if (annexIndex < 0)
+            {
+                GD.PrintErr("[ReleasablePanelTest] HATA: ilhak edilen ülke listede bulunamadı");
+                ok = false;
+            }
+            else
+            {
+                GD.Print($"[ReleasablePanelTest] 2) Seçim: {panel.SubjectIds[annexIndex]}");
+                var list = FindItemList(panel);
+                if (list == null)
+                {
+                    GD.PrintErr("[ReleasablePanelTest] HATA: bağımlı listesi (ItemList) bulunamadı");
+                    ok = false;
+                }
+                else
+                {
+                    list.Select(annexIndex);
+                    list.EmitSignal(ItemList.SignalName.ItemSelected, annexIndex);
+                    await ToSignal(GetTree(), "process_frame");
+
+                    if (panel.SelectedSubjectId != annexDonor.Id)
+                    {
+                        GD.PrintErr($"[ReleasablePanelTest] HATA: seçim alınmadı ({panel.SelectedSubjectId})");
+                        ok = false;
+                    }
+
+                    // Detayda "hâlâ bizde duran il" sayısı kayıttaki il sayısına eşit olmalı
+                    var detailText = string.Join(" | ", panel.DetailTexts);
+                    if (!detailText.Contains($"Still held by you (returned): {annexProvs.Count}"))
+                    {
+                        GD.PrintErr("[ReleasablePanelTest] HATA: detayda iade edilecek il sayısı yanlış " +
+                                    $"→ {detailText}");
+                        ok = false;
+                    }
+
+                    if (panel.ReleaseDisabled)
+                    {
+                        GD.PrintErr("[ReleasablePanelTest] HATA: RELEASE NATION kapalı");
+                        ok = false;
+                    }
+                    var releaseBtn = FindButton(panel, "RELEASE NATION");
+                    if (releaseBtn == null)
+                    {
+                        GD.PrintErr("[ReleasablePanelTest] HATA: RELEASE NATION butonu bulunamadı");
+                        ok = false;
+                    }
+                    else
+                    {
+                        GD.Print("[ReleasablePanelTest] 3) Serbest bırakma");
+                        int playerCivBefore = player.CivFactories;
+                        int playerMilBefore = player.MilFactories;
+                        int playerDockBefore = player.Dockyards;
+
+                        releaseBtn.EmitSignal(BaseButton.SignalName.Pressed);
+                        await ToSignal(GetTree(), "process_frame");
+
+                        var result = ReleasableSystem.Get(annexDonor.Id);
+                        if (result != null)
+                        {
+                            GD.PrintErr("[ReleasablePanelTest] HATA: serbest bırakma kaydı silinmedi");
+                            ok = false;
+                        }
+                        if (annexData.IsAnnexed || !string.IsNullOrEmpty(annexData.OwnerId))
+                        {
+                            GD.PrintErr("[ReleasablePanelTest] HATA: bağımsızlık bayrakları kalkmadı");
+                            ok = false;
+                        }
+
+                        // İller kurvana geri dönmeli
+                        int returned = 0;
+                        foreach (var pid in annexProvs)
+                            if (string.Equals(ProvinceOwnershipSystem.GetProvinceOwner(pid),
+                                              annexDonor.Id, StringComparison.OrdinalIgnoreCase))
+                                returned++;
+                        GD.Print($"[ReleasablePanelTest] İade edilen il: {returned}/{annexProvs.Count}");
+                        if (returned != annexProvs.Count)
+                        {
+                            GD.PrintErr($"[ReleasablePanelTest] HATA: tüm iller kurvana dönmeli " +
+                                        $"({returned}/{annexProvs.Count})");
+                            ok = false;
+                        }
+
+                        // Fabrika payı kurvana geri dönmeli, oyuncudan düşmeli
+                        if (annexData.CivFactories != civTaken ||
+                            annexData.MilFactories != milTaken ||
+                            annexData.Dockyards != dockTaken)
+                        {
+                            GD.PrintErr($"[ReleasablePanelTest] HATA: fabrika payı kurvana dönmedi " +
+                                        $"(c{annexData.CivFactories}/m{annexData.MilFactories}/t{annexData.Dockyards} " +
+                                        $"≠ c{civTaken}/m{milTaken}/t{dockTaken})");
+                            ok = false;
+                        }
+                        if (player.CivFactories != playerCivBefore - civTaken ||
+                            player.MilFactories != playerMilBefore - milTaken ||
+                            player.Dockyards != playerDockBefore - dockTaken)
+                        {
+                            GD.PrintErr($"[ReleasablePanelTest] HATA: oyuncunun fabrikası doğru düşmedi " +
+                                        $"(c{player.CivFactories}/m{player.MilFactories}/t{player.Dockyards})");
+                            ok = false;
+                        }
+
+                        // Kukla bağımlı listede kalmalı
+                        if (!panel.SubjectIds.Contains(puppetDonor.Id))
+                        {
+                            GD.PrintErr("[ReleasablePanelTest] HATA: kukla bağımlı listeden kayboldu");
+                            ok = false;
+                        }
+                        if (panel.SubjectRowCount != 1)
+                        {
+                            GD.PrintErr($"[ReleasablePanelTest] HATA: serbest bırakma sonrası bir satır kalmalı " +
+                                        $"({panel.SubjectRowCount})");
+                            ok = false;
+                        }
+                        GD.Print($"[ReleasablePanelTest] mesaj=\"{panel.FeedbackText}\"");
+                        if (panel.ReleaseDisabled)
+                        {
+                            GD.PrintErr("[ReleasablePanelTest] HATA: kukla seçiliyken RELEASE NATION açık olmalı");
+                            ok = false;
+                        }
+
+                        // ---- 9) Save/Load round-trip (kukla kaydı) ----
+                        GD.Print("[ReleasablePanelTest] 4) Save/Load");
+                        var save = ReleasableSystem.GetSaveData();
+                        if (save.Subjects == null || save.Subjects.Length != 1)
+                        {
+                            GD.PrintErr($"[ReleasablePanelTest] HATA: tek bağımlı kaydı korunmalı " +
+                                        $"({save.Subjects?.Length ?? 0})");
+                            ok = false;
+                        }
+                        ReleasableSystem.ResetForNewGame();
+                        if (ReleasableSystem.RecordCount != 0)
+                        {
+                            GD.PrintErr("[ReleasablePanelTest] HATA: sıfırlama kayıtları temizlemeli");
+                            ok = false;
+                        }
+                        ReleasableSystem.LoadSaveData(save);
+                        if (ReleasableSystem.Get(puppetDonor.Id) == null)
+                        {
+                            GD.PrintErr("[ReleasablePanelTest] HATA: yükleme sonrası kukla kaydı geri gelmedi");
+                            ok = false;
+                        }
+                        else
+                        {
+                            GD.Print($"[ReleasablePanelTest] save/load → kukla kaydı {puppetDonor.Id} korundu ✓");
+                        }
+                    }
+                }
+            }
+
+            // ---- 10) ESC ile kapatma ----
+            GD.Print("[ReleasablePanelTest] 5) ESC ile kapatma");
+            panel._UnhandledInput(new InputEventKey { Keycode = Key.Escape, Pressed = true });
+            if (!panel.CloseRequested)
+            {
+                GD.PrintErr("[ReleasablePanelTest] HATA: ESC kapatma isteği üretmedi");
+                ok = false;
+            }
+
+            // PopOut tween'i 0.1 sn sürdüğü için sabit frame sayısı bekle yetmez;
+            // panel ağaçtan çıkana kadar frame bekle.
+            for (int i = 0; i < 40 && ReleasablePanel.IsOpen; i++)
+                await ToSignal(GetTree(), "process_frame");
+
+            if (ReleasablePanel.IsOpen)
+            {
+                GD.PrintErr("[ReleasablePanelTest] HATA: ESC paneli kapatmadı");
+                ok = false;
+            }
+            else
+            {
+                GD.Print("[ReleasablePanelTest] ESC paneli kapattı ✓");
+            }
+        }
+        finally
+        {
+            // ---- 11) Dünya verisini geri yükle ----
+            foreach (var kv in provinceOwnerBackup)
+            {
+                if (PaProvinceOwner(provinces, kv.Key, out int idx))
+                    provinces[idx].CountryId = kv.Value;
+            }
+            ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+            foreach (var kv in countryBackup)
+            {
+                var c = CountryDatabase.Get(kv.Key);
+                if (c == null) continue;
+                c.IsAnnexed = kv.Value.Annexed;
+                c.OwnerId = kv.Value.Owner;
+                c.CivFactories = kv.Value.Civ;
+                c.MilFactories = kv.Value.Mil;
+                c.Dockyards = kv.Value.Dock;
+            }
+            ProvinceCultureSystem.ResetForNewGame();
+            ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+            ReleasableSystem.ResetForNewGame();
+            GD.Print("[ReleasablePanelTest] Dünya verisi geri yüklendi");
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>ReleasablePanel düğümünü bulur (test yardımcısı).</summary>
+    private ReleasablePanel FindReleasablePanel()
+    {
+        foreach (var n in FindChildrenIn(this))
+            if (n is ReleasablePanel rp) return rp;
         return null;
     }
 

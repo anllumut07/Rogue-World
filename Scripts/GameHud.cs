@@ -255,6 +255,14 @@ public partial class GameHud : CanvasLayer
                 FormablePanel.OpenUnder(this);
             });
 
+        // SUBJECTS (M45.1): ilhak edilen / kukla ülkeleri serbest bırakma
+        AddSection("SUBJECTS", "Subjects — release annexed or puppet nations",
+            () =>
+            {
+                GD.Print("[GameHud] SUBJECTS butonu basıldı — ReleasablePanel.OpenUnder çağrılıyor");
+                ReleasablePanel.OpenUnder(this);
+            });
+
         // CABINET (M21.1): bakanlık atamaları ve bakanlık listesi
         AddSection("CABINET", "Cabinet — ministries and minister assignments",
             () =>

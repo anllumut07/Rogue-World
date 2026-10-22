@@ -83,6 +83,28 @@ public static class ReleasableSystem
         => !string.IsNullOrEmpty(countryId) && _records.TryGetValue(countryId, out var r) ? r : null;
 
     /// <summary>
+    /// Bir overlord'un serbest bırakılabilecek bağımlıları (M45.1 paneli,
+    /// M45.2/M48.2 özerklik ve AI talepleri de bu listeyi kullanır).
+    /// Kimliğe göre artan sıralıdır.
+    /// </summary>
+    public static List<SubjectRecord> SubjectsOf(string overlordId)
+    {
+        var result = new List<SubjectRecord>();
+        if (string.IsNullOrEmpty(overlordId)) return result;
+
+        foreach (var r in _records.Values)
+        {
+            if (!string.Equals(r.OverlordId, overlordId, StringComparison.OrdinalIgnoreCase))
+                continue;
+            var country = CountryDatabase.Get(r.CountryId);
+            if (country != null && country.IsAnnexed)
+                result.Add(r);
+        }
+        result.Sort((a, b) => string.CompareOrdinal(a.CountryId, b.CountryId));
+        return result;
+    }
+
+    /// <summary>
     /// Serbest bırakılabilecek ülkeler: hâlâ ilhak edilmiş ve kaydı olanlar.
     /// </summary>
     public static List<SubjectRecord> Releasable()

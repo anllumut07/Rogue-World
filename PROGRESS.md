@@ -2692,3 +2692,27 @@ M44.2–M44.4'ün üç sistemi kalıcı hale getirildi ve arayüze bağlandı.
 **Dosyalar:** Scripts/SaveSystem.cs, Scripts/SaveLoadTest.cs,
 Scripts/FormablePanel.cs (yeni), Scripts/WorldMap.cs, Scripts/GameHud.cs,
 Scripts/GameManager.cs, TODO.md (44.5 [x]), PROGRESS.md, GECE-RAPOR.md.
+
+---
+
+## M45.1 — Bağımlı Ülkeler Paneli (ReleasablePanel) ✅ DONE (2026-10-22)
+
+**Yeni dosya:** Scripts/ReleasablePanel.cs
+
+**Değişen dosyalar:** Scripts/ReleasableSystem.cs (SubjectsOf sorgusu),
+Scripts/GameHud.cs (SUBJECTS butonu), Scripts/GameManager.cs
+(--releasable-panel-test + FindReleasablePanel).
+
+**Ne yapıldı:** M44.4'te yazılan ReleasableSystem.Release() mekaniği oyunda
+hiçbir yolu olmadığı için ölü kalmıştı. Bu görev paneli ekler: oyuncu ilhak
+ettiği/kukla yaptığı ülkeleri görür, RELEASE NATION ile illeri (sahip oldukları)
+ve ilhak anındaki fabrika payını geri verir, bağımsızlık bayraklarını kaldırır ve
+ülkeyi AI devralması için bırakır. Panel ayrıca serbest bırakmanın kültür
+bedelini (kayıtlı illerin kültür haritası) gösterir.
+
+**Testler:** dotnet build 0/0; --releasable-panel-test PASS ✓ (RUS ilhak
+110 il + c40/m25/t10 fabrika, ATA kukla 66 il); --releasable-test PASS ✓;
+--save-load-test A==B PASS (2 senaryo).
+
+**Bilinen sorun:** Save-load özetindeki "İlakKayıtları" satırı bu senaryolarda
+kayıt=0 çünkü test ilhak üretmiyor → M45.4'te kapatılacak.

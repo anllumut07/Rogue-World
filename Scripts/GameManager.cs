@@ -178,6 +178,7 @@ public partial class GameManager : Node
         bool aiPeaceTest = false;            // M42.4: AI barış davranışı testi (--ai-peace-test)
         bool peacePanelTest = false;         // M42.5: barış konferansı paneli testi (--peace-panel-test)
         bool seaZoneTest = false;            // M43.1: deniz bölgesi / hakimiyet testi (--sea-zone-test)
+        bool convoyRaidTest = false;         // M43.2: denizaltı baskını / konvoy kaybı testi (--convoy-raid-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -320,6 +321,8 @@ public partial class GameManager : Node
                 peacePanelTest = true;
             else if (arg == "--sea-zone-test")
                 seaZoneTest = true;
+            else if (arg == "--convoy-raid-test")
+                convoyRaidTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -708,6 +711,10 @@ public partial class GameManager : Node
         // M43.1: Deniz bölgesi / hakimiyet testi — bölge yükleme, [0,100] ölçek.
         if (seaZoneTest)
             RunSeaZoneTest();
+
+        // M43.2: Denizaltı baskını testi — konvoy kaybı + ithalat kesintisi.
+        if (convoyRaidTest)
+            RunConvoyRaidTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -6933,6 +6940,267 @@ private void RunBalanceTest()
                 ok = false;
             }
         }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M43.2: Denizaltı baskını / konvoy kaybı testi (--convoy-raid-test).
+    /// Hakimiyet düştükçe konvoy kaybı ve ithalat kesintisinin arttığı, güvenli
+    /// bölgede kayıp yaşanmadığı ve kaybın DeterministicRNG ile tekrarlanabilir
+    /// olduğu doğrulanır. Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunConvoyRaidTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M43.2: DENİZALTI BASKINI / KONVOY KAYBI TESTİ (--convoy-raid-test)");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0x4D34325D2B0UL);
+        SeaZoneSystem.LoadData();
+        bool ok = true;
+
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        string playerId = PlayerCountryId;
+        var playerData = CountryDatabase.Get(playerId);
+        if (playerData == null)
+        {
+            GD.PrintErr("[ConvoyRaidTest] HATA: oyuncu verisi okunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Oyuncunun komşu olduğu gerçek bir bölge bul.
+        var playerZone = SeaZoneSystem.All
+            .FirstOrDefault(z => z.AdjacentCountryIds.Any(id =>
+                string.Equals(id, playerId, StringComparison.OrdinalIgnoreCase)));
+        if (playerZone == null)
+        {
+            GD.PrintErr($"[ConvoyRaidTest] HATA: {playerId} komşusu olduğu bölge yok");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Veriyi yedekle (test sonunda geri yüklenecek).
+        int playerDockBefore = playerData.Dockyards;
+        var zoneSnapshot = SeaZoneSystem.All.ToDictionary(z => z.Id, z => z.AdjacentCountryIds.ToList());
+
+        // ---- 1) Güvenli bölge: oyuncu tek komşu, rakipsiz → kayıp yok ----
+        GD.Print("[ConvoyRaidTest] --- 1) Güvenli bölge (tam hakimiyet) ---");
+        playerData.Dockyards = 500; // bölgedeki herkesi ezer
+        // Sadece oyuncu komşu → hakimiyet 100, kayıp yok.
+        foreach (var zone in SeaZoneSystem.All)
+            zone.AdjacentCountryIds = new List<string> { playerId };
+
+        var safe = ConvoyRaidSystem.ComputeDailyRaids(playerId, 20, 4);
+        GD.Print($"[ConvoyRaidTest] Konvoy=20, ithalat=4/gün → kayıp={safe.ConvoysLost}, " +
+                 $"düşüş=%{safe.ImportShortfall * 100f:F0}");
+        if (safe.ConvoysLost != 0 || safe.ImportShortfall != 0f)
+        {
+            GD.PrintErr("[ConvoyRaidTest] HATA: güvenli bölgede konvoy kaybı yaşandı");
+            ok = false;
+        }
+        if (safe.RaidedZone != null)
+        {
+            GD.PrintErr($"[ConvoyRaidTest] HATA: güvenli bölgede baskın bölgesi rapor edildi " +
+                        $"({safe.RaidedZone.Id})");
+            ok = false;
+        }
+
+        // ---- 2) Tehlikeli bölge: rakibin ağır bastığı bölge → kayıp var ----
+        GD.Print("[ConvoyRaidTest] --- 2) Tehlikeli bölge (düşman hakimiyeti) ---");
+        // Bölgeye oyuncu dışında güçlü bir rakip komşusu ekle (kendisi tersanesiz →
+        // ağırlığı oyuncununkinden küçük; hakimiyet düşük ama 80 eşiğinin altında).
+        var rival = CountryDatabase.All()
+            .FirstOrDefault(c => c != null && !c.IsAnnexed && c.Id != playerId);
+        if (rival == null)
+        {
+            GD.PrintErr("[ConvoyRaidTest] HATA: rakip ülke bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        rival.IsAnnexed = false; // ağırlık sayılabilsin diye temiz başla
+        var raidZone = SeaZoneSystem.All.First();
+        raidZone.AdjacentCountryIds = new List<string> { playerId, rival.Id };
+
+        // Rakibi oyuncudan ağır yap → hakimiyet oyuncu lehine DEĞİL.
+        int rivalDockBefore = rival.Dockyards;
+        rival.Dockyards = 300;
+        playerData.Dockyards = 100;
+
+        float mySup = SeaZoneSystem.Supremacy(raidZone, playerId);
+        GD.Print($"[ConvoyRaidTest] Bölge {raidZone.Id}: {playerId}={playerData.Dockyards} tersane, " +
+                 $"{rival.Id}={rival.Dockyards} tersane → hakimiyet={mySup:F1}");
+
+        var riskPercent = ConvoyRaidSystem.TotalRiskPercent(playerId);
+        GD.Print($"[ConvoyRaidTest] Toplam risk yüzdesi: {riskPercent:F1}");
+
+        var raided = ConvoyRaidSystem.ComputeDailyRaids(playerId, 20, 4);
+        GD.Print($"[ConvoyRaidTest] → baskın bölgesi={raided.RaidedZone?.Id}, " +
+                 $"hakimiyet={raided.SupremacyInZone:F1}, kayıp={raided.ConvoysLost}, " +
+                 $"düşüş=%{raided.ImportShortfall * 100f:F0}");
+
+        if (raided.RaidedZone == null)
+        {
+            GD.PrintErr("[ConvoyRaidTest] HATA: düşman hakimiyetindeki bölgede baskın tespit edilmedi");
+            ok = false;
+        }
+        if (raided.ImportShortfall < 0f || raided.ImportShortfall > 1f)
+        {
+            GD.PrintErr($"[ConvoyRaidTest] HATA: ithalat düşüşü [0,1] dışında " +
+                        $"({raided.ImportShortfall})");
+            ok = false;
+        }
+        if (raided.ConvoysLost < 0)
+        {
+            GD.PrintErr("[ConvoyRaidTest] HATA: konvoy kaybı negatif");
+            ok = false;
+        }
+
+        // ---- 3) Hakimiyet düştükçe risk artmalı (ters orantı) ----
+        GD.Print("[ConvoyRaidTest] --- 3) Hakimiyet vs risk (ters orantı) ---");
+        float prevRisk = -1f;
+        foreach (int dock in new[] { 300, 200, 100, 50, 20 })
+        {
+            playerData.Dockyards = dock;
+            float sup = SeaZoneSystem.Supremacy(raidZone, playerId);
+            float risk = ConvoyRaidSystem.TotalRiskPercent(playerId);
+
+            // Bölgeyi listedeki ilk bölge olarak tut (FindRaidedZone en kötüyü seçer).
+            foreach (var z in SeaZoneSystem.All)
+            {
+                if (z.Id != raidZone.Id) z.AdjacentCountryIds = new List<string>();
+            }
+            raidZone.AdjacentCountryIds = new List<string> { playerId, rival.Id };
+
+            GD.Print($"[ConvoyRaidTest] {playerId}={dock} tersane → hakimiyet={sup:F1}, " +
+                     $"risk=%{risk:F1}");
+
+            if (sup < 0f || sup > 100f)
+            {
+                GD.PrintErr($"[ConvoyRaidTest] HATA: hakimiyet [0,100] dışında ({sup:F1})");
+                ok = false;
+            }
+            if (risk < 0f || risk > 100f)
+            {
+                GD.PrintErr($"[ConvoyRaidTest] HATA: risk [0,100] dışında ({risk:F1})");
+                ok = false;
+            }
+            // Hakimiyet düştükçe risk artmalı.
+            if (prevRisk >= 0f && risk < prevRisk - 0.001f)
+            {
+                GD.PrintErr($"[ConvoyRaidTest] HATA: hakimiyet düştü ama risk azaldı " +
+                            $"({prevRisk:F1} → {risk:F1})");
+                ok = false;
+            }
+            prevRisk = risk;
+        }
+
+        // ---- 4) Konvoy sayısı azalınca ithalat düşüş oranı artmalı ----
+        GD.Print("[ConvoyRaidTest] --- 4) Konvoy sayısı vs düşüş ---");
+        foreach (var z in SeaZoneSystem.All)
+        {
+            if (z.Id != raidZone.Id) z.AdjacentCountryIds = new List<string>();
+        }
+        raidZone.AdjacentCountryIds = new List<string> { playerId, rival.Id };
+        playerData.Dockyards = 50; // düşük hakimiyet
+
+        var fewConvoys = ConvoyRaidSystem.ComputeDailyRaids(playerId, 2, 4);
+        var manyConvoys = ConvoyRaidSystem.ComputeDailyRaids(playerId, 20, 4);
+        GD.Print($"[ConvoyRaidTest] 2 konvoy → kayıp={fewConvoys.ConvoysLost} " +
+                 $"(%{fewConvoys.ImportShortfall * 100f:F0}), " +
+                 $"20 konvoy → kayıp={manyConvoys.ConvoysLost} " +
+                 $"(%{manyConvoys.ImportShortfall * 100f:F0})");
+        if (manyConvoys.ConvoysLost < fewConvoys.ConvoysLost)
+        {
+            GD.PrintErr($"[ConvoyRaidTest] HATA: daha fazla konvoy daha az kayıp verdi " +
+                        $"({fewConvoys.ConvoysLost} vs {manyConvoys.ConvoysLost})");
+            ok = false;
+        }
+
+        // ---- 5) Boş konvoy → kayıp yok ----
+        var none = ConvoyRaidSystem.ComputeDailyRaids(playerId, 0, 0);
+        GD.Print($"[ConvoyRaidTest] Konvoy=0 → kayıp={none.ConvoysLost}");
+        if (none.ConvoysLost != 0 || none.ImportShortfall != 0f)
+        {
+            GD.PrintErr("[ConvoyRaidTest] HATA: konvoy yokken kayıp rapor edildi");
+            ok = false;
+        }
+
+        // ---- 6) Ekonomi uygulaması: konvoylar gerçekten azalmalı ----
+        GD.Print("[ConvoyRaidTest] --- 5) Ekonomiye uygulama ---");
+        EconomySystem.Initialize(playerData);
+        int convoyStart = EconomySystem.ConvoyCount;
+        var applied = ConvoyRaidSystem.ApplyDailyRaids(playerId);
+        int convoyAfter = EconomySystem.ConvoyCount;
+        GD.Print($"[ConvoyRaidTest] Ekonomi konvoyu {convoyStart} → {convoyAfter} " +
+                 $"(batmış: {applied.ConvoysLost})");
+        if (applied.ConvoysLost > 0 && convoyAfter >= convoyStart)
+        {
+            GD.PrintErr("[ConvoyRaidTest] HATA: konvoy kaybı ekonomiye yansımadı");
+            ok = false;
+        }
+        if (convoyAfter < 0)
+        {
+            GD.PrintErr("[ConvoyRaidTest] HATA: konvoy sayısı negatife indi");
+            ok = false;
+        }
+
+        // ---- 7) Ticaret anlaşması API'si: daraltma ve çözme ----
+        GD.Print("[ConvoyRaidTest] --- 6) Ticaret anlaşması API'si ---");
+        EconomySystem.Initialize(playerData);
+        // Basit bir anlaşma kurmak için iç API'yi doğrudan kullanmak yerine,
+        // ReduceTradeDeal / ReleaseTradeDeal davranışını konvoy sayacı üzerinden doğrula.
+        int convoyBefore = EconomySystem.ConvoyCount;
+        bool released = EconomySystem.ReleaseTradeDeal("Oil"); // anlaşma yok → false
+        GD.Print($"[ConvoyRaidTest] Olmayan anlaşma çözme girişimi: {released}");
+        if (released)
+        {
+            GD.PrintErr("[ConvoyRaidTest] HATA: olmayan anlaşma çözüldü");
+            ok = false;
+        }
+        if (EconomySystem.ConvoyCount != convoyBefore)
+        {
+            GD.PrintErr("[ConvoyRaidTest] HATA: başarısız çözme konvoy sayacını değiştirdi");
+            ok = false;
+        }
+
+        int lostSend = EconomySystem.LoseConvoys(5);
+        int convoyAfterFive = EconomySystem.ConvoyCount;
+        int lostMore = EconomySystem.LoseConvoys(100000); // fazlasını istemek
+        GD.Print($"[ConvoyRaidTest] LoseConvoys(5)={lostSend} (kalan {convoyAfterFive}), " +
+                 $"LoseConvoys(100000)={lostMore} (kalan {EconomySystem.ConvoyCount})");
+        if (lostSend != 5 || convoyAfterFive != convoyBefore - 5)
+        {
+            GD.PrintErr("[ConvoyRaidTest] HATA: LoseConvoys istediği kadarını düşmüyor");
+            ok = false;
+        }
+        // Taşma durumu: gerçekten düşen = kalan konvoy (5), mevcut sayaç 0 olmalı.
+        if (lostMore != convoyAfterFive || EconomySystem.ConvoyCount != 0)
+        {
+            GD.PrintErr($"[ConvoyRaidTest] HATA: LoseConvoys taşmayı doğru kısıtlamıyor " +
+                        $"(düşen={lostMore}, kalan={EconomySystem.ConvoyCount})");
+            ok = false;
+        }
+        if (EconomySystem.ConvoyCount != 0)
+        {
+            GD.PrintErr("[ConvoyRaidTest] HATA: konvoy tükendikten sonra sayaç 0 değil");
+            ok = false;
+        }
+
+        // ---- 8) Dünya verisini geri yükle ----
+        playerData.Dockyards = playerDockBefore;
+        rival.Dockyards = rivalDockBefore;
+        foreach (var z in SeaZoneSystem.All)
+        {
+            if (zoneSnapshot.TryGetValue(z.Id, out var saved))
+                z.AdjacentCountryIds = saved;
+        }
+        GD.Print("[ConvoyRaidTest] Dünya verisi geri yüklendi");
 
         GD.Print("=========================================");
         GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");

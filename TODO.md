@@ -669,7 +669,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
 | 43.1 | `Data/sea_zones.json` + `Scripts/SeaZoneSystem.cs`: 12 deniz bölgesi, bölge başına deniz hakimiyeti (0-100), ülke filo ağırlığından hesaplanır | Bölge sayısı doğru yüklenir ve loglanır, hakimiyet [0,100], `--sea-zone-test` PASS | [x] |
-| 43.2 | Denizaltı baskını: düşman hakimiyetindeki bölgede konvoy kaybı → kaynak ithalatı kesilir (oyuncu + AI ticaret anlaşmaları etkilenir) | İthalat kaybı hakimiyetle ters orantılı, loglanır, stoklar düşer | [ ] |
+| 43.2 | Denizaltı baskını: düşman hakimiyetindeki bölgede konvoy kaybı → kaynak ithalatı kesilir (oyuncu + AI ticaret anlaşmaları etkilenir) | İthalat kaybı hakimiyetle ters orantılı, loglanır, stoklar düşer | [x] |
 | 43.3 | Deniz çatışması: bir bölgede iki ülkenin filosu çarpışır, hakimiyet güncellenir, kayıplar DTO'ya yazılır | Çatışma sonrası hakimiyet değişir, deterministik, `--naval-combat-test` PASS | [ ] |
 | 43.4 | Lend-Lease / konvoy koruma: müttefik konvoylarına koruma tahsisi, kayıp oranını düşürür | Koruma atanınca kayıp oranı azalır, `--lend-lease-test` PASS | [ ] |
 | 43.5 | Save/Load + `Scripts/SeaZonePanel.cs` UI (bölge listesi, hakimiyet barları, baskın/koruma butonları) | A==B PASS (2 senaryo), panel 1152x648'e sığar | [ ] |

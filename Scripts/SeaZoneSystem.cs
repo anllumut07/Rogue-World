@@ -60,6 +60,14 @@ public static class SeaZoneSystem
     private static readonly Dictionary<string, ZoneDefinition> _zones = new(StringComparer.OrdinalIgnoreCase);
     private static bool _loaded;
 
+    /// <summary>
+    /// Konvoy güvenliği eşiği: bu hakimiyetin ÜZERİNDEKİ bölgeler güvenli sayılır
+    /// (M43.2 denizaltı baskını bunun altını "güzergâh riski" olarak okur).
+    /// 80 = bölgeyi gerçekten biz tutuyoruz; altında düşman ağırlıklıdır ve risk
+    /// doğar çünkü kayıp oranı düşman hakimiyetiyle orantılıdır.
+    /// </summary>
+    public const float SafeSupremacyThreshold = 80f;
+
     /// <summary>Toplam deniz bölgesi sayısı (log/yükleme doğrulaması için).</summary>
     public static int ZoneCount
     {

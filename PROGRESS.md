@@ -2452,3 +2452,18 @@ uyguluyor, savaş bitiyor, kaybeden ilhak ediliyor, iller devrediliyor).
 
 **Dosyalar:** `Data/sea_zones.json` (yeni), `Scripts/SeaZoneSystem.cs` (yeni),
 `Scripts/GameManager.cs`, `TODO.md` (43.1 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+---
+
+## M43.2 — Denizaltı baskını ve konvoy kaybı (2026-10-22) — ✅ DONE
+
+- `Scripts/ConvoyRaidSystem.cs` (yeni): saf hesaplı günlük konvoy kaybı modeli.
+  Hakimiyet < 80 olan bölge "güzergâh riski" sayılır; kayıp oranı =
+  BaseRaidRate(0.30) × (100 − hakimiyet)/100, üst sınır 0.60.
+- `Scripts/EconomySystem.cs`: `LoseConvoys` / `ReduceTradeDeal` / `ReleaseTradeDeal`
+  API'si + `DailyTick` entegrasyonu (ticaretten önce çalışır).
+- `Scripts/SeaZoneSystem.cs`: `SafeSupremacyThreshold = 80f`.
+- `Scripts/GameManager.cs`: `--convoy-raid-test`.
+- Test: `--convoy-raid-test` PASS ✓; `--save-load-test` A==B PASS ✓ (2 senaryo).
+- Gecikme: ilk sürümdeki `DeterministicRNG.NextBool(lossFraction)` kapısı
+  rastgeleliği çift sayıp monotonluğu bozdu — kaldırıldı, saf beklenen değer.

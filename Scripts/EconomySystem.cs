@@ -166,6 +166,11 @@ public static class EconomySystem
             }
         }
 
+        // 3.5) M43.2: Denizaltı baskını — düşman hakimiyetindeki bölgede konvoy kaybı.
+        // Ticaretten ÖNCE çalışır: battığı bilinen konvoyların ithalat hacmi zaten azalmış olur.
+        if (Player != null && _convoyCount > 0)
+            ConvoyRaidSystem.ApplyDailyRaids(Player.Id);
+
         // 4) Otomatik ticaret (M4.5): eksik kaynak → konvoyla ithalat
         ProcessAutomaticTrade();
 
@@ -377,6 +382,42 @@ public static class EconomySystem
     public static int ConvoyCount => _convoyCount;
     public static IReadOnlyDictionary<string, long> Stockpiles => _stockpiles;
     public static IReadOnlyList<TradeDeal> TradeDeals => _tradeDeals;
+
+    // ===== M43.2: Denizaltı baskını API'si (ConvoyRaidSystem için) =====
+
+    /// <summary>Konvoyları batır (denizaltı blandığı çağrılır). Sayı negatif olamaz.</summary>
+    public static int LoseConvoys(int amount)
+    {
+        if (amount <= 0) return 0;
+        int lost = Math.Min(amount, _convoyCount);
+        _convoyCount -= lost;
+        return lost;
+    }
+
+    /// <summary>Bir ticaret anlaşmasını kıs: miktarı düşür ve farkı konvoy havuzuna ver.</summary>
+    public static bool ReduceTradeDeal(string resource, int newAmountPerDay)
+    {
+        var deal = _tradeDeals.Find(t => t.Resource == resource);
+        if (deal == null) return false;
+
+        int old = deal.AmountPerDay;
+        if (newAmountPerDay >= old) return false;
+
+        deal.AmountPerDay = Math.Max(1, newAmountPerDay);
+        _convoyCount += old - deal.AmountPerDay; // kullanılmayan konvoylar geri döner
+        return true;
+    }
+
+    /// <summary>Bir ticaret anlaşmasını tamamen çöz ve konvoylarını geri ver.</summary>
+    public static bool ReleaseTradeDeal(string resource)
+    {
+        var deal = _tradeDeals.Find(t => t.Resource == resource);
+        if (deal == null) return false;
+
+        _convoyCount += deal.AmountPerDay;
+        _tradeDeals.Remove(deal);
+        return true;
+    }
 
     // Fabrika sayıları CountryData'dan okunur (tek doğruluk kaynağı)
     public static int TotalCivFactories => Player?.CivFactories ?? 0;

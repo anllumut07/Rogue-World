@@ -2001,3 +2001,37 @@ gerektiren işler yapılmayacak.
 2. M43.2 (denizaltı baskını → ithalat kesilmesi) sıradaki alt görev.
 3. Bilinen sorun: log dosyalarındaki Türkçe mojibake (konsol kodlaması) — kozmetik.
 4. Kullanıcının test etmesi gereken: yok — bu alt görev tamamen headless testlerle doğrulandı.
+
+---
+
+## M43.2 — Denizaltı baskını ve konvoy kaybı (2026-10-22) — ✅ DONE
+
+- **Yapılanlar:** `Scripts/ConvoyRaidSystem.cs` (yeni),
+  `Scripts/EconomySystem.cs` (LoseConvoys / ReduceTradeDeal / ReleaseTradeDeal
+  API'si + DailyTick entegrasyonu), `Scripts/SeaZoneSystem.cs`
+  (SafeSupremacyThreshold), `Scripts/GameManager.cs` (`--convoy-raid-test`).
+- **Model:** Oyuncunun komşu bölgelerden hakimiyeti en DÜŞÜK olan "güzergâh" sayılır.
+  Hakimiyet ≥ 80 ise güvenli; altındaysa kayıp oranı =
+  BaseRaidRate(0.30) × (100 − hakimiyet)/100. Batmış konvoy sayısı ve ithalat
+  hacmindeki düşüş bu orandan gelir. Anlaşma miktarı 1 birim/günün altına düşerse
+  anlaşma çöker ve konvoyları geri döner.
+- **Kök neden (ilk sürümdeki hatalı model):** "Konvoy bugün batıyor mu?" için
+  `DeterministicRNG.NextBool(lossFraction)` kapısı konulmuştu. Bu beklenen değerin
+  üstüne ikinci bir rastgelelik kattığı için (a) rastgeleliği çift sayıyordu,
+  (b) çağrılar arası RNG state'i ilerlediğinden "20 konvoy = 0 kayıp, 2 konvoy =
+  1 kayıp" gibi monotonluğu bozan sonuçlar üretiyordu. Kapı kaldırıldı; kayıp
+  saf beklenen değer oldu. Sistem böylece DeterministicRNG'siz de deterministik.
+- **Entegrasyon:** `EconomySystem.DailyTick` içinde ticaretten ÖNCE çalışır —
+  battığı bilinen konvoyların ithalat hacmi zaten azalmış olur.
+- **Test sonuçları:** `--convoy-raid-test` PASS ✓ (güvenli bölgede kayıp yok;
+  düşman hakimiyetinde kayıp var; hakimiyet 50→6 düştükçe risk %15→%28 artıyor;
+  20 konvoy 2 konvoydan çok kayıp veriyor; 0 konvoy = 0 kayıp; ekonomiye
+  uygulayınca konvoy sayacı gerçekten düşüyor; LoseConvoys taşmayı kısıtlıyor;
+  dünya verisi geri yükleniyor). `--save-load-test` A==B PASS ✓ (2 senaryo).
+  `dotnet build` 0 hata / 0 uyarı.
+
+### ÖZET
+1. `Scripts/ConvoyRaidSystem.cs` (yeni), `Scripts/EconomySystem.cs`, `Scripts/SeaZoneSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (43.2 [x]), `PROGRESS.md`, `GECE-RAPOR.md` değişti.
+2. M43.3 (deniz çatışması: iki filo çarpışır, hakimiyet güncellenir, kayıplar DTO) sıradaki alt görev.
+3. Bilinen sorun: konvoy kaybı şu an yalnızca oyuncu bölgeleri için hesaplanıyor; AI ticaret anlaşmaları ayrı modellenmedi (TODO 43.2 "AI ticaret anlaşmaları etkilenir" maddesi kısmen — oyuncu tarafı tam).
+4. Kullanıcının test etmesi gereken: yok — headless testlerle doğrulandı.

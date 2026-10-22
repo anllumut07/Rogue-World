@@ -2349,3 +2349,43 @@ gerektiren işler yapılmayacak.
 4. Kullanıcının test etmesi gerekenler: oyunda FORMABLE butonunun paneli
    açması, kültür haritası özetinin dolu görünmesi, kurma butonunun kültür
    koşulu sağlanınca açık olması.
+
+---
+
+## 2026-10-22 — M45+ YOL HARİTASI TANIMI (M44 tamamlandı, 4 yeni milestone)
+
+**Neden bitti:** M44 (44.1 formable veri, 44.2 kültür katmanı, 44.3 kurgu kurma,
+44.4 serbest bırakma, 44.5 save/load + panel) tümü commit + push edildi.
+Sonraki dört milestone, M44 çalışmasının doğrulayarak bulduğu DÖRT GERÇEK
+boşluğa karşılık geliyor (hipotez değil, kodda görüldü):
+
+1. **M45 — Bağımlılık, Özerklik ve Direniş.**
+   ReleasableSystem.Release() yalnızca GameManager testinden çağrılıyor;
+   oyunda ona ulaşan hiçbir yol (panel/AI) yok — yani serbest bırakma mekaniği
+   ölü kod. Ek olarak PoliticalUnrestSystem tamamen oyuncu ülkesinin iç
+   politikasına kilitli; farklı kültürden ilhak edilmiş halk hiç baskı
+   üretmiyor. HOI4/AoH'ta işgal yönetiminin özü budur: işgal edilen halk ya
+   direnir ya özerklik kazanır. Bu milestone mekaniği oyuncunun eline verir ve
+   ilhakı karar ağacına dönüştürür.
+
+2. **M46 — Kültür Haritası Görünümü.**
+   M44.2 ile il başına kültür/nüfus üretiliyor ama WorldMap.MapMode enum'u
+   yalnızca 6 mod biliyor (Political, Terrain, Supply, Factories, Resources,
+   AirZones) ve kültür verisi haritada hiç görünmüyor. Kültür, M44.1-M44.5'in
+   tüm dayanağı olduğu halde oyuncu onu göremiyor; kurgu kurma koşulları
+   karanlıkta tahmin ediliyor. Harita modu eklemek düşük riskli (mevcut
+   ModeColor* altyapısı var) ve oyuncu değeri yüksek.
+
+3. **M47 — İl Bazlı Ekonomi Dengesi.**
+   CountryData fabrika/kaynak/nüfus alanları sabit; il devri (M42 barış
+   konferansı, M44.4 serbest bırakma, M44.3 kurgu kurma) ekonomiyi yeniden
+   hesaplamıyor. Dünyanın yarısını alan bir ülke, küçük bir ülkenin tüm
+   fabrikalarını alabiliyor çünkü hiçbir yer il bazlı üretim ağırlığı
+   tutmuyor. M44.4'te fabrika payı elle çıkarıldı ama genel bir çerçeve yok;
+   bu milestone o çerçeveyi kurar.
+
+4. **M48 — AI Destekli Dinamik Ülkeler.**
+   FormableSystem yalnızca oyuncu panelinden tetiklenebiliyor; CountryAI
+   hiç çağırmıyor. Savaşlar/barışlar ülkeleri değiştiriyor ama hiç kimse yeni
+   bir ulus kurmuyor, dünya statik kalıyor. AI'ın kendi kültürel taleplerini
+   gündeme getirmesi M45+M46 üzerine kurulur ve dünyayı canlandırır.

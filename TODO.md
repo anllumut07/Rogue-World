@@ -690,4 +690,56 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 ---
 
+### 📋 Milestone 45: Bağımlılık, Özerklik ve Direniş
+
+**Hedef:** İlhak edilmiş ve kukla ülkelerin yönetimi. `ReleasableSystem.Release()` mevcut ama oyunda hiçbir yolu yok (yalnızca testten çağrılıyor) — serbest bırakma ölü kod. `PoliticalUnrestSystem` de ilhak edilmiş halkın baskısını hiç modellemiyor. Bu milestone ilhakı gerçek bir karar ağacına dönüştürür: işgal edilen halk ya direnir ya özerklik kazanır.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 45.1 | `Scripts/ReleasablePanel.cs` (yeni): HUD'dan ilhak/kukla ülkelerini listele (sahip iller, fabrika payı, kültür), RELEASE NATION / CANCEL; `GameHud`'a RELEASE/PUPPETS butonu | Panel 1152x648'e sığar, ESC kapatır, harita girdisini bloklar, `--releasable-panel-test` PASS | [ ] |
+| 45.2 | `Scripts/AutonomySystem.cs` (yeni): bağımlı ülkede özerklik seviyesi (0-100), günlük kayma, overlord kontrolü (özerklik ver/geri al); özerklik fabrika/kaynak çıkarımını ve overlord stabilitesini etkiler | Özerklik yükseldikçe çıkarım düşer, stabilite etkisi ters yönde, deterministik, `--autonomy-test` PASS | [ ] |
+| 45.3 | `Scripts/ResistanceSystem.cs` (yeni): kültür uyumsuzluğu + düşük özerklik → il bazlı direniş; deterministik partizan eylemi (fabrika hasarı, overlord stabilite/memnuniyet kaybı) | Direniş oranı uyumsuzlukla artar, özerklik azaltır, etkiler deterministik ve loglanır, `--resistance-test` PASS | [ ] |
+| 45.4 | Üç sistemin Save/Load entegrasyonu + `SaveLoadTest.BuildSummaryCore` özetine eklenmesi + gerçek oyun kancaları (GameManager günlük tick) | A==B PASS (2 senaryo), üç sistemin hash'i özette görünür | [ ] |
+
+---
+
+### 📋 Milestone 46: Kültür Haritası Görünümü
+
+**Hedef:** M44.2'nin ürettiği il kültür/nüfus katmanının haritada görünmesi. `WorldMap.MapMode` yalnızca 6 mod biliyor (Political, Terrain, Supply, Factories, Resources, AirZones) ve kültür verisi hiç gösterilmiyor — oysa tüm kurgu kurma koşulları kültür üzerine kurulu.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 46.1 | `MapMode.Culture` ekle + kültür rengi (kültür kimliğinden deterministik HSV, FNV-1a) + `ModeColorForProvinceCulture`; mevcut 6 mod bozulmaz | Kültür modunda iller kültür rengini alır, diğer modlar değişmeden çalışır, `--map-mode-test` hâlâ PASS | [ ] |
+| 46.2 | `Scripts/CultureLegendPanel.cs` (yeni): kültür listesi (il sayısı + nüfus payı + bar), tıklayınca o kültürün sahibi olduğu ülkeleri vurgula | Panel 1152x648'e sığar, sıralama nüfus/il payına göre, `--culture-legend-test` PASS | [ ] |
+| 46.3 | Kültür modunda seçili ilin/ülkenin kültür bilgisi (tooltip + `CountryInfoPanel`), kültür eşleşmeyen illerin kontur vurgusu | Fare kontrolü bozulmaz (sağ tık sürükleme, tekerlek, WASD, ülke seçimi), bilgi doğru | [ ] |
+| 46.4 | Harita modu + kültür vurgu durumunun Save/Load'da korunması | A==B PASS (2 senaryo) | [ ] |
+
+---
+
+### 📋 Milestone 47: İl Bazlı Ekonomi Dengesi
+
+**Hedef:** `CountryData` fabrika/kaynak/nüfus alanları sabit — il devri (M42 barış konferansı, M44.4 serbest bırakma, M44.3 kurgu kurma) ekonomiyi yeniden hesaplamıyor. Dünyanın yarısını alan ülke küçük bir ülkenin tüm fabrikalarını alabiliyor. M47 il bazlı üretim ağırlığı çerçevesi kurar.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 47.1 | `Scripts/ProvinceEconomySystem.cs` (yeni): il başına kaynak/fabrika/nüfus ağırlığı (alan + nüfus + kıyı + şehir), `DeterministicRNG` ile üretim; ülke toplamı `CountryData` ile harmanlanır (üretim kaybolmaz, kaynak taşınır) | Ağırlık tutarlı (il toplamı = ülke toplamı ±harman payı), `--province-economy-test` PASS | [ ] |
+| 47.2 | İl devri sonrası yeniden hesaplama: `ProvinceOwnershipSystem.SetProvinceOwner`, ilhak, serbest bırakma ve kurgu kurma sonrası ülke ekonomisi güncellenir (M42/M44.3/M44.4 çağrı noktalarına kanca) | Devir sonrası veren/alan ülkenin kaynağı doğru kayar, toplam kaya korunur, loglanır | [ ] |
+| 47.3 | Kaynak açğının ekonomik sonucu: eksik kaynak → ithalat maliyeti/ceza (M43 konvoy sistemiyle uyum), zengin kaynak → ticaret geliri | Açık olan ülkede kaynak çıkarımı düşer ve maliyet artar, `EconomySystem` bütçesine yazılır | [ ] |
+| 47.4 | Save/Load entegrasyonu + `SaveLoadTest.BuildSummaryCore` özetine eklenmesi | A==B PASS (2 senaryo), il ekonomisi hash'i özette görünür | [ ] |
+
+---
+
+### 📋 Milestone 48: AI Destekli Dinamik Ülkeler
+
+**Hedef:** `FormableSystem` yalnızca oyuncu panelinden tetiklenebiliyor; `CountryAI` hiç çağırmıyor. Savaşlar/barışlar ülkeleri değiştiriyor ama hiç kimse yeni bir ulus kurmuyor, dünya statik kalıyor. AI'ın kendi kültürel taleplerini gündeme getirmesi M45+M46 üzerine kurulur ve dünyayı canlandırır.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 48.1 | `CountryAI` kurgu ülke değerlendirmesi: kendi topraklarında yeterli kültür iline + PP varsa `FormableSystem.TryStart` ile kurulum başlatır (insan oynayanı dışarıda tutar) | AI koşulu sağlayınca kurulum başlatır, sağlamıyorsa hiç dokunmaz, deterministik | [ ] |
+| 48.2 | İlhak edilen ülkenin AI talebi: `AutonomySystem` düşük özerklik + yüksek direniş → serbest bırakma talebi; overlord AI bunu değerlendirir (M45 sistemleriyle) | Talep koşulu doğru üretilir, overlord yanıtı deterministik ve loglanır | [ ] |
+| 48.3 | Yeni/bağımsız ülkenin diplomatik yansıması: tanınma, ilişki puanı, olası bağımsızlık savaşı (M23 sistemleriyle) | Olay/durum değişimi loglanır, mevcut diplomasi testi bozulmaz | [ ] |
+| 48.4 | Save/Load entegrasyonu + regresyon (mevcut formable/AI testleri) | A==B PASS (2 senaryo), `--formable-test` ve `--intervention-test` hâlâ PASS | [ ] |
+
+---
+
 ## Notlar

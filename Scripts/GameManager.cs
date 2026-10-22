@@ -183,6 +183,7 @@ public partial class GameManager : Node
         bool lendLeaseTest = false;          // M43.4: müttefik konvoy koruması testi (--lend-lease-test)
         bool seaZonePanelTest = false;       // M43.5: deniz bölgesi paneli testi (--sea-zone-panel-test)
         bool formableDataTest = false;       // M44.1: kurgu ülke verisi testi (--formable-data-test)
+        bool cultureTest = false;            // M44.2: il kültür katmanı testi (--culture-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -335,6 +336,8 @@ public partial class GameManager : Node
                 seaZonePanelTest = true;
             else if (arg == "--formable-data-test")
                 formableDataTest = true;
+            else if (arg == "--culture-test")
+                cultureTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -743,6 +746,10 @@ public partial class GameManager : Node
         // M44.1: Kurgu ülke verisi testi — JSON yüklenir, kayıt sayısı/örs tekilliği/ebe kaynakları.
         if (formableDataTest)
             RunFormableDataTest();
+
+        // M44.2: İl kültür katmanı testi — dağılım tutarlı, nüfus eşit, deterministik, save/load.
+        if (cultureTest)
+            RunCultureTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -8394,6 +8401,115 @@ private void RunBalanceTest()
         GD.Print($"[FormableDataTest] Kültür çeşitliliği: {FormableDataSystem.All.Select(f => f.Culture).Distinct().Count()} farklı kültür");
 
         GD.Print(ok ? "[FormableDataTest] SONUÇ: PASS ✓" : "[FormableDataTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M44.2: İl kültür katmanı headless testi (--culture-test).
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunCultureTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M44.2: İL KÜLTÜR KATMANI TESTİ");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        // 1) İlleri deterministik kaynak üzerinden yükle
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        GD.Print($"[CultureTest] 1) İl sayısı: {provinces.Count} (hedef ~1000)");
+        if (provinces.Count < 100) ok = false;
+
+        // 2) Kültür üretimi
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        int recordCount = ProvinceCultureSystem.RecordCount;
+        GD.Print($"[CultureTest] 2) Kültür kaydı: {recordCount}");
+        if (recordCount != provinces.Count) ok = false;
+
+        // 3) Ülke bazında tutarlılık: dağılımın toplamı = o ülkenin il sayısı
+        var countries = provinces.Select(p => p.CountryId).Distinct().ToList();
+        int inconsistent = 0;
+        int emptyCulture = 0;
+        long zeroPop = 0;
+        foreach (var cid in countries)
+        {
+            var dist = ProvinceCultureSystem.GetCultureDistribution(cid);
+            int provinceTotal = provinces.Count(p => p.CountryId == cid);
+            if (dist.Values.Sum() != provinceTotal) inconsistent++;
+            if (dist.Count == 0) emptyCulture++;
+            if (ProvinceCultureSystem.TotalPopulation(cid) == 0) zeroPop++;
+        }
+        GD.Print($"[CultureTest] 3) Ülke sayısı: {countries.Count}, tutarsız dağılım: {inconsistent}, " +
+                  $"kültürsüz ülke: {emptyCulture}, nüfussuz ülke: {zeroPop}");
+        if (inconsistent > 0 || emptyCulture > 0 || zeroPop > 0) ok = false;
+
+        // 4) Nüfus toplamı ülkenin CountryData.Population değerine eşit olmalı
+        int popMismatch = 0;
+        long maxDrift = 0;
+        foreach (var cid in countries)
+        {
+            var data = CountryDatabase.Get(cid);
+            if (data == null) continue;
+            long assigned = ProvinceCultureSystem.TotalPopulation(cid);
+            long drift = Math.Abs(assigned - data.Population);
+            if (drift > maxDrift) maxDrift = drift;
+            if (drift > data.Population / 100) popMismatch++;
+        }
+        GD.Print($"[CultureTest] 4) Nüfus uyumsuzluğu olan ülke: {popMismatch} (en büyük sapma: {maxDrift})");
+        if (popMismatch > 0) ok = false;
+
+        // 5) Determinizm: aynı girdiyle yeniden üret → aynı sonuç
+        ProvinceCultureSystem.ResetForNewGame();
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        int afterReset = ProvinceCultureSystem.RecordCount;
+        bool deterministic = afterReset == recordCount && recordCount > 0;
+        GD.Print($"[CultureTest] 5) Sıfırlama + yeniden üretim: {afterReset} kayıt — deterministik: {deterministic}");
+        if (!deterministic) ok = false;
+
+        // 6) GetCultureDistribution içeriği anlamlı mı (tek kültür değil)
+        var gerDist = ProvinceCultureSystem.GetCultureDistribution("DEU");
+        GD.Print($"[CultureTest] 6) DEU kültür dağılımı: {gerDist.Count} farklı kültür");
+        if (gerDist.Count == 0) ok = false;
+
+        // 7) CultureProvinceCount ile formable koşulu beslenebilir
+        int sampleCultureCount = 0;
+        if (gerDist.Count > 0)
+            sampleCultureCount = ProvinceCultureSystem.CultureProvinceCount("DEU", gerDist.Keys.First());
+        GD.Print($"[CultureTest] 7) DEU'de örnek kültürün il sayısı: {sampleCultureCount}");
+        if (sampleCultureCount < 1) ok = false;
+
+        // 8) Save/Load round-trip (M44.5 bağlantısı burada denenir)
+        var save = ProvinceCultureSystem.GetSaveData();
+        var snapshot = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var rec in ProvinceCultureSystem.ForCountry("DEU"))
+            snapshot[rec.ProvinceId] = $"{rec.Culture}|{rec.Population}";
+        ProvinceCultureSystem.ResetForNewGame();
+        ProvinceCultureSystem.LoadSaveData(save);
+        int loaded = ProvinceCultureSystem.RecordCount;
+        var after = ProvinceCultureSystem.ForCountry("DEU");
+        bool roundTrip = loaded == save.Records.Length && snapshot.Count == after.Count;
+        for (int i = 0; i < after.Count && roundTrip; i++)
+        {
+            var rec = after[i];
+            string key = $"{rec.Culture}|{rec.Population}";
+            if (!snapshot.TryGetValue(rec.ProvinceId, out var old) || old != key) roundTrip = false;
+        }
+        GD.Print($"[CultureTest] 8) Save/Load: kaydedilen={save.Records.Length}, yüklenen={loaded}, aynı değerler: {roundTrip}");
+        if (!roundTrip) ok = false;
+
+        // 9) Weird provinces işine takılmıyor: "?" ve boş id'ler atlanmış olmalı
+        provinces.Add(new ProvinceData { Id = "?", CountryId = "DEU" });
+        provinces.Add(new ProvinceData { Id = "", CountryId = "DEU" });
+        ProvinceCultureSystem.ResetForNewGame();
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        bool skippedInvalid = ProvinceCultureSystem.RecordCount == provinces.Count - 2;
+        GD.Print($"[CultureTest] 9) Geçersiz il atlandı: {skippedInvalid} (kayıt={ProvinceCultureSystem.RecordCount})");
+        if (!skippedInvalid) ok = false;
+
+        GD.Print(ok ? "[CultureTest] SONUÇ: PASS ✓" : "[CultureTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

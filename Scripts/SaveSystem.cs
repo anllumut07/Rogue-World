@@ -256,6 +256,19 @@ public static class SaveSystem
         public string ProtectorId { get; set; }
     }
 
+    // ===== İl kültür katmanı DTOs (M44.2) =====
+    public class CultureSave
+    {
+        public CultureEntry[] Records { get; set; }
+    }
+    public class CultureEntry
+    {
+        public string ProvinceId { get; set; }
+        public string CountryId { get; set; }
+        public string Culture { get; set; }
+        public long Population { get; set; }
+    }
+
 
     // ===== Deniz invazyonu DTOs (M39.2) =====
     public class NavalInvasionSave

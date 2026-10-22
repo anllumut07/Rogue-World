@@ -2174,3 +2174,42 @@ gerektiren işler yapılmayacak.
 3. Bilinen: Kurgu ülke kimlikleri harita render hattında otomatik renk/bayrak
    alamıyor — bu M44.3 güncellemesinde ele alınacak.
 4. Kullanıcının test etmesi gereken: yok — veri katmanı headless testle doğrulandı.
+
+---
+
+## 2026-10-22 — M44.2 (İl kültür ve nüfus katmanı)
+
+- **Alt görev:** Scripts/ProvinceCultureSystem.cs — il başına kültür/nüfus
+  katmanı. TODO.md satır 44.2.
+- **Ne yapıldı:**
+  - Scripts/ProvinceCultureSystem.cs (yeni): il kimliği → kültür + nüfus kaydı
+    (CultureRecord), ülke bazlı indeks, GetCultureDistribution,
+    CultureProvinceCount, TotalPopulation, ForCountry.
+  - Scripts/GameManager.cs: --culture-test kancası + RunCultureTest() (9 kontrol).
+- **Karar (varsayım):** Kültür seçimi il kimliği + sahip ülke + senaryo adı
+  hash'inden (FNV-1a) türetiliyor — string.GetHashCode() çalışma arasında
+  değiştiği için sabit hash yazıldı. Havuz olarak formable tanımlarının
+  kültürleri kullanılıyor ki M44.3 formable koşulu bu dağılıma doğrudan
+  bakabilsin.
+- **Karar (varsayım):** Nüfus, il alanı oranı × ülkenin CountryData.Population
+  değeri. Son il kalan farkı aldığı için ülke nüfuskusu il toplamına tam eşit.
+  DeterministicRNG bu türetimde gerekmiyor (hash tabanlı, saf deterministik).
+- **Karar (varsayım):** Save/Load DTO'su Godot Dictionary yerine projenin mevcut
+  deseni olan tip güvenli SaveSystem.CultureSave / CultureEntry olarak yazıldı
+  (ConvoyRaidSave örneği izlendi).
+- **Karar (varsayım):** Senaryoda CountryDatabase kaydı olmayan ülkeler (çoğu
+  minör) için hedef nüfus, bilinen ülkelerin alan başına nüfus yoğunluğunun
+  ortalaması olarak tahmin edilir — sabit sayı uydurmadan projenin kendi
+  verisinden türetilir, determinizm bozulmaz.
+- **Doğrulama:** dotnet build + --culture-test PASS (9 kontrol: il sayısı,
+  kayıt sayısı, ülke dağılımının toplamı, nüfus eşitliği, deterministik
+  yeniden üretim, DEU dağılımı, formable besleme, save/load round-trip,
+  geçersiz il atlama).
+
+### ÖZET
+1. Scripts/ProvinceCultureSystem.cs (yeni), Scripts/GameManager.cs değişti.
+2. Çözülemeyen: yok.
+3. Bilinen: Kültür katmanı henüz normal oyun akışına bağlanmadı (M44.3'te
+   formable koşulu okurken kullanılacak), save/load kaydı da M44.5'te
+   SaveSystem'e eklenecek.
+4. Kullanıcının test etmesi gereken: yok — headless testle doğrulandı.

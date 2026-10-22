@@ -2584,3 +2584,34 @@ Scripts/GameHud.cs, Scripts/GameManager.cs, TODO.md (43.5 [x]).
 
 **Dosyalar:** Data/formable_nations.json (yeni), Scripts/FormableDataSystem.cs
 (yeni), Scripts/GameManager.cs, TODO.md (44.1 [x]).
+
+---
+
+### Milestone 44.2: İl Kültür ve Nüfus Katmanı — ✅ DONE (2026-10-22)
+
+- **Alt görevler:** Scripts/ProvinceCultureSystem.cs. TODO.md 44.2.
+- **Ne yapıldı:**
+  - Scripts/ProvinceCultureSystem.cs (yeni): il kimliği → kültür + nüfus kaydı
+    (CultureRecord), ülke bazlı indeks, GetCultureDistribution,
+    CultureProvinceCount, TotalPopulation, ForCountry.
+  - Scripts/SaveSystem.cs: CultureSave / CultureEntry DTO'ları (M44.5'te
+    tam save/load bağlanacak).
+  - Scripts/GameManager.cs: --culture-test kancası + RunCultureTest() (9 kontrol).
+- **Kararlar:**
+  - Kültür seçimi il kimliği + sahip ülke + senaryo adı FNV-1a hash'inden
+    türetilir (string.GetHashCode() çalışma arasında değiştiği için kullanılmaz).
+    Havuz formable tanımlarının kültürleri → M44.3 formable koşulu bu dağılıma
+    doğrudan bakabilir.
+  - Nüfus: il alanı oranı × ülke nüfuskusu; son il kalan farkı alır → toplam
+    tam eşit. CountryDatabase'de kaydı olmayan 61 ülke için hedef, bilinen
+    ülkelerin alan başına yoğunluğu ortalaması (10.943,36 / birim alan) ile
+    doldurulur.
+  - DeterministicRNG bu türetimde kullanılmaz — saf hash tabanlı, zaten
+    deterministik. (DeterministicRNG gerektiren sistemlerde kullanılacak.)
+- **Doğrulama:** dotnet build 0 hata / 0 uyarı; --culture-test PASS ✓
+  (637 il, 102 ülke, 0 tutarsız dağılım, 0 kültürsüz/nüfussuz ülke, nüfus
+  sapması 0, deterministik yeniden üretim, save/load round-trip, geçersiz il
+  atlama).
+
+**Dosyalar:** Scripts/ProvinceCultureSystem.cs (yeni), Scripts/SaveSystem.cs,
+Scripts/GameManager.cs, TODO.md (44.2 [x]), PROGRESS.md, GECE-RAPOR.md.

@@ -2488,3 +2488,64 @@ stabilite baskısı ölçüldü, budanma, save/load round-trip);
 4. Kullanıcının test etmesi gerekenler: oyunda bir ülkeyi ilhak edip birkaç gün
    ilerletmek — ilhak edilen ülkenin kaynak çıkarımının düşmesi ve stabilite
    baskısının loglarda ("[M45.2] … stabilitesi düştü") görünmesi.
+---
+
+## M45.3 — İl Bazlı Direniş (ResistanceSystem)
+
+**Ne yapıldı:** `Data/resistance.json` (yeni, 11 ayar) + `Scripts/ResistanceSystem.cs`
+(yeni, ~290 satır). M45.2 direnişin yavaş yolunu (özerklik talebi) modelliyordu;
+bu adım aynı baskının şiddetli yolunu modeller: partizan eylemi.
+
+**Uyumsuzluk puanı (0-1):** Bağımlının kayıtlı illerinin ne kadarı overlord'un
+baskın kültüründen farklı — lineer puana çevrilir. Pay 0.2'nin altındaysa 0
+(asimile olmuş halk), 0.8'in üzerindeyse 1 (tam uyumsuz).
+
+**Baskı hızı:** `taban 0.02 + puan×0.35 − (özerklik/100)×0.3`, 0.5/güne kırpılmış,
+`MaxAccumulated=10`. Yani oyuncu ya özerklik vererek baskıyı azaltır ya da
+eylemleri sineye.
+
+**Partizan eylemi:** Birikim eşiği (10×0.75 = 7.5) aşılınca patlar. Hedef il
+`DeterministicRNG.NextInt(0, n)` ile seçilir (GlobalRandom yasak) ve RNG durumu
+kayda girdiği için save/load sonrası aynı eylem aynı ilde patlar. Etkiler:
+sivil fabrika yoksa askeri/tersane 1 hasar, overlord stabilitesi −0.25, overlord'un
+TÜM halk gruplarının memnuniyeti −2.0. Eylem sonrası birikim sıfırlanır.
+
+**Baglantı noktaları — ölü kod değil:** GameManager.DailyTick içinde M45.2'nin
+hemi ardından ResistanceSystem.DailyTick(TotalDays) çağrılıyor. Fabrika hasarı
+gerçekten CountryData'dan düşülüyor, stabilite ve memnuniyet de öyle — testte
+ölçülüp doğrulandı (civ 43→42, stabilite 100→99.8).
+
+**Save/Load:** `SaveSystem.ResistanceSave`/`ResistanceEntry` DTO'ları,
+`GetSaveData`/`LoadSaveData`, `ResetForNewGame` 8 noktaya bağlandı,
+`SaveLoadTest.BuildSummaryCore`'a "Direniş: kayıt=…, hash=…" satırı eklendi.
+
+**Kararlar (varsayım):**
+- ÖLÇEK: MaxAccumulated ilk olarak 100 yazıldı. Testte 40 günde hiç eylem
+  patlamadı çünkü hız ~0.29/gün → eşik için ~257 gün gerekiyordu. Oyun temposuna
+  uyması için 10'a çekildi; böylece ~26 günde bir eylem patlıyor. (Test
+  beklentisini de 60 güne çıkardım — emniyet payı.)
+- Eşik aşıldığı an eylem patlıyor, gün sonunda değil: bir günde bir eylem.
+  Baskı her eylemden sonra boşaldığı için zincirleme eylem oluşmuyor.
+- Memnuniyet kaybı gruba göre ayrışmıyor (tüm gruplar eşit). Bu bilinçli bir
+  basitleştirme: hangı grubun işgale daha çok kızdığını modellemek ayrı bir
+  tasarım kararı ve şimdilik kapsamda değil.
+
+**Doğrulama:** dotnet build 0/0; `--resistance-test` PASS ✓ (uyumsuzluk puanı
+0.778 ve yabancı payla arttı, baskı hızı formüle birebir uydu, özerklik %10 hızı
+0.2922→0.2622 düşürdü, gün 26'da eylem COL-02 ilinde patladı, civ hasarı 43→42,
+stabilite 100→99.8, hedef il bağımlının illerinden biri olarak doğrulandı,
+save/load round-trip eylem sayısını korudu);
+`--save-load-test` A==B PASS (historical_1936 + modern_world);
+`--autonomy-test` ve `--releasable-test` regresyon PASS ✓.
+
+### ÖZET
+1. Değişen: Scripts/ResistanceSystem.cs (yeni), Data/resistance.json (yeni),
+   Scripts/GameManager.cs, Scripts/SaveSystem.cs, Scripts/SaveLoadTest.cs,
+   TODO.md (45.3 [x]), PROGRESS.md.
+2. Çözülemeyen: yok.
+3. Bilinen: Memnuniyet kaybı tüm halk gruplarına eşit uygulanıyor (grupa göre
+   ayrıştırılmadı). Save-load senaryoları ilhak üretmediği için "Direniş" ve
+   "Özerklik" satırları hâlâ kayıt=0 — M45.4'te kapatılacak.
+4. Kullanıcının test etmesi gerekenler: oyunda ilhak edilen bir ülkenin ilkelerinde
+   yabancı kültür varsa ~1 ay sonra "[Resistance] … PARTİZAN EYLEMİ" logu ve
+   fabrika/stabilite düşüşü görülmeli; özerklik verilince bu düşüş yavaşlamalı.

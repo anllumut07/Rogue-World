@@ -189,6 +189,7 @@ public partial class GameManager : Node
         bool formablePanelTest = false;      // M44.5: kurgu ülke paneli testi (--formable-panel-test)
         bool releasablePanelTest = false;    // M45.1: bağımsız çıkarma paneli testi (--releasable-panel-test)
         bool autonomyTest = false;           // M45.2: özerklik sistemi testi (--autonomy-test)
+        bool resistanceTest = false;         // M45.3: direniş sistemi testi (--resistance-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -353,6 +354,8 @@ public partial class GameManager : Node
                     releasablePanelTest = true;
                 else if (arg == "--autonomy-test")
                     autonomyTest = true;
+                else if (arg == "--resistance-test")
+                    resistanceTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -785,6 +788,10 @@ public partial class GameManager : Node
         if (autonomyTest)
             RunAutonomyTest();
 
+        // M45.3: Direniş sistemi testi — kültür uyumsuzluğu, eylem, etkiler.
+        if (resistanceTest)
+            RunResistanceTest();
+
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
             RunTooltipTest();
@@ -1052,6 +1059,10 @@ public partial class GameManager : Node
         // özerk bağımlıların overlord stabilitesine günlük baskısı.
         AutonomySystem.DailyTick(TotalDays);
         ApplyAutonomyStabilityPressure();
+
+        // M45.3: İl bazlı direniş — kültür uyumsuzluğu ve düşük özerklik biriken
+        // baskıyı büyütür; eşik aşılınca deterministik partizan eylemi patlar.
+        ResistanceSystem.DailyTick(TotalDays);
 
         // M12: Ocak 1'de otomatik kayıt (yeni yılın ilk günü)
         if (CurrentDate.Month == 1 && CurrentDate.Day == 1)
@@ -8793,6 +8804,7 @@ private void RunBalanceTest()
         ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
         ReleasableSystem.ResetForNewGame();
         AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
         GD.Print($"[ReleasableTest] 1) İl: {provinces.Count}, kültür kaydı: {ProvinceCultureSystem.RecordCount}");
 
         // 2) Değiş tokuş: büyük ülke (overlord) küçük ülkeyi ilhak eder.
@@ -8950,6 +8962,7 @@ private void RunBalanceTest()
         // 11) Kukla kaydı: fabrika payı alınmaz, iller kurbanın kalır
         ReleasableSystem.ResetForNewGame();
         AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
         var puppetTaker = CountryDatabase.All()
             .FirstOrDefault(c => c != null && !c.IsAnnexed && ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count > 0);
         var puppetSub = CountryDatabase.All()
@@ -8968,6 +8981,7 @@ private void RunBalanceTest()
         var save = ReleasableSystem.GetSaveData();
         ReleasableSystem.ResetForNewGame();
         AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
         ReleasableSystem.LoadSaveData(save);
         var loaded = ReleasableSystem.Get(subject.Id);
         if (loaded == null || loaded.ProvinceIds.Length != subjectProvinces.Count ||
@@ -9410,6 +9424,7 @@ private void RunBalanceTest()
         ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
         ReleasableSystem.ResetForNewGame();
         AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
         GD.Print($"[ReleasablePanelTest] İl: {provinces.Count}, kültür kaydı: {ProvinceCultureSystem.RecordCount}");
 
         if (!HasPlayer) SetPlayerCountry("DEU");
@@ -9706,6 +9721,7 @@ private void RunBalanceTest()
                         }
                         ReleasableSystem.ResetForNewGame();
                         AutonomySystem.ResetForNewGame();
+                        ResistanceSystem.ResetForNewGame();
                         if (ReleasableSystem.RecordCount != 0)
                         {
                             GD.PrintErr("[ReleasablePanelTest] HATA: sıfırlama kayıtları temizlemeli");
@@ -9772,6 +9788,7 @@ private void RunBalanceTest()
             ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
             ReleasableSystem.ResetForNewGame();
             AutonomySystem.ResetForNewGame();
+            ResistanceSystem.ResetForNewGame();
             GD.Print("[ReleasablePanelTest] Dünya verisi geri yüklendi");
         }
 
@@ -9823,6 +9840,7 @@ private void RunBalanceTest()
         ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
         ReleasableSystem.ResetForNewGame();
         AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
 
         // Overlord: en çok ili olan ülke. Bağımlı: kültürü farklı, 3+ ili olan en küçük ülke.
         var overlord = CountryDatabase.All()
@@ -10122,6 +10140,7 @@ private void RunBalanceTest()
         ReleasableSystem.Release(mirror.Id, overlord.Id);
         ReleasableSystem.ResetForNewGame();
         AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
         overlord.StabilityPercent = stabilityBefore;
         subject.IsAnnexed = false;
         puppet.IsAnnexed = false;
@@ -10132,6 +10151,213 @@ private void RunBalanceTest()
         ProvinceCultureSystem.ResetForNewGame();
         ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
         GD.Print("[AutonomyTest] Dünya verisi geri yüklendi");
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M45.3 direniş sistemi testi (--resistance-test).
+    ///
+    /// Doğrulananlar:
+    ///   1) Uyumsuzluk puanı: yabancı kültür payı arttıkça artar (asimile → 0,
+    ///      tam uyumsuz → 1).
+    ///   2) Baskı hızı: uyumsuzlukla artar, özerklikle azalır (ölçülüyor).
+    ///   3) Partizan eylemi: birikim eşiği aşılınca patlar; hedef il deterministik,
+    ///      fabrika hasarı ve overlord zararları uygulanır, birikim boşalır.
+    ///   4) Özerklik etkisi: tam özerk bağımlıda eylem hiç patlamaz.
+    ///   5) Save/load round-trip: durum birebir korunur.
+    /// </summary>
+    private void RunResistanceTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M45.3: DİRENİŞ SİSTEMİ TESTİ");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ReleasableSystem.ResetForNewGame();
+        AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
+
+        // Overlord: en çok ili olan ülke. Bağımlı: kültürü farklı, 3+ ili olan en küçük.
+        var overlord = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed && ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count > 0)
+            .OrderByDescending(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .First();
+
+        string overlordCulture = TopCulture(overlord.Id);
+        var subject = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, overlord.Id, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 3 &&
+                !string.Equals(TopCulture(c.Id), overlordCulture, StringComparison.Ordinal))
+            .OrderBy(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .FirstOrDefault();
+        if (subject == null)
+        {
+            GD.PrintErr("[ResistanceTest] HATA: kültürü farklı deneme bağımlısı bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var subjectProvinces = ProvinceOwnershipSystem.GetProvincesByOwner(subject.Id)
+            .OrderBy(id => id, StringComparer.Ordinal).ToList();
+        int civBefore = subject.CivFactories;
+        int milBefore = subject.MilFactories;
+        int dockBefore = subject.Dockyards;
+
+        GD.Print($"[ResistanceTest] 1) Overlord={overlord.Id} (kültür={overlordCulture}), " +
+                 $"bağımlı={subject.Id} (il={subjectProvinces.Count})");
+
+        ReleasableSystem.RecordSubject(subject.Id, overlord.Id, false, civBefore, milBefore, dockBefore);
+        subject.IsAnnexed = true;
+        subject.OwnerId = overlord.Id;
+        overlord.CivFactories += civBefore;
+        overlord.MilFactories += milBefore;
+        overlord.Dockyards += dockBefore;
+        subject.CivFactories = subject.MilFactories = subject.Dockyards = 0;
+        foreach (var p in subjectProvinces)
+            ProvinceOwnershipSystem.SetProvinceOwner(p, overlord.Id);
+        ProvinceCultureSystem.ReassignCountry(subjectProvinces, overlord.Id);
+
+        // 2) Uyumsuzluk puanı 0-1 aralığında ve kültür payıyla artmalı
+        double mismatch = ResistanceSystem.CultureMismatchScore(subject.Id);
+        double foreignShare = AutonomySystem.ForeignCultureShare(subject.Id);
+        GD.Print($"[ResistanceTest] 2) Uyumsuzluk: yabancı_kültür={foreignShare:P0} → puan={mismatch:F3}");
+        if (mismatch < 0.0 || mismatch > 1.0)
+        {
+            GD.PrintErr($"[ResistanceTest] HATA: uyumsuzluk puanı {mismatch} 0-1 arasında değil");
+            ok = false;
+        }
+        if (foreignShare > 0.0 && mismatch <= 0.0)
+        {
+            GD.PrintErr($"[ResistanceTest] HATA: yabancı kültür var ({foreignShare:P0}) ama puan 0");
+            ok = false;
+        }
+
+        // 3) Baskı hızı: uyumsuzluk var, özerklik 0 → taban + puan×0.35
+        overlord.StabilityPercent = 100.0;   // özerklik kaymasını baskısız tut
+        double expectedRate = 0.02 + mismatch * 0.35;
+        ResistanceSystem.DailyTick(1);
+        double actualRate = ResistanceSystem.Get(subject.Id).LastDailyRate;
+        if (Math.Abs(actualRate - expectedRate) > 1e-4)
+        {
+            GD.PrintErr($"[ResistanceTest] HATA: baskı hızı {actualRate} != beklenen {expectedRate}");
+            ok = false;
+        }
+        else GD.Print($"[ResistanceTest] 3) Baskı hızı doğru: {actualRate:F4}/gün");
+
+        // 4) Özerklik baskıyı azaltmalı
+        overlord.StabilityPercent = 100.0;
+        AutonomySystem.GrantAutonomy(subject.Id, overlord.Id, 1, out _);
+        double lvl1 = AutonomySystem.Level(subject.Id);
+        double rateBefore = ResistanceSystem.Get(subject.Id).LastDailyRate;
+        // Tek gün ilerlet: özerklik artışı hızı düşürmeli
+        ResistanceSystem.ResetForNewGame();
+        ResistanceSystem.DailyTick(2);
+        double rateAfter = ResistanceSystem.Get(subject.Id).LastDailyRate;
+        double expectedAfter = 0.02 + mismatch * 0.35 - (lvl1 / 100.0) * 0.3;
+        if (Math.Abs(rateAfter - expectedAfter) > 1e-4 || rateAfter >= rateBefore)
+        {
+            GD.PrintErr($"[ResistanceTest] HATA: özerklik hızı düşürmedi — {rateAfter} != {expectedAfter}");
+            ok = false;
+        }
+        else GD.Print($"[ResistanceTest] 4) Özerklik hızı düşürdü: {rateBefore:F4} → {rateAfter:F4} " +
+                      $"(özerklik %{lvl1:N1})");
+
+        // 5) Partizan eylemi: özerkliği kaldırıp birikimi eşiğe taşı
+        AutonomySystem.RevokeAutonomy(subject.Id, overlord.Id, 9, out _);
+        ResistanceSystem.ResetForNewGame();
+
+        int overlordCivBefore = overlord.CivFactories;
+        int overlordStabilityBefore = (int)overlord.StabilityPercent;
+        int strikes = 0;
+        long strikeDay = -1;
+        for (long day = 1; day <= 60; day++)
+        {
+            ResistanceSystem.DailyTick(day);
+            var st = ResistanceSystem.Get(subject.Id);
+            if (st != null && st.StrikeCount > strikes)
+            {
+                strikes = st.StrikeCount;
+                strikeDay = day;
+                GD.Print($"[ResistanceTest]    Gün {day}: eylem patladı (hedef il={st.LastStrikeProvinceId})");
+            }
+        }
+        if (strikes <= 0)
+        {
+            GD.PrintErr("[ResistanceTest] HATA: 40 günde hiç partizan eylemi patlamadı");
+            ok = false;
+        }
+        else
+        {
+            GD.Print($"[ResistanceTest] 5) {strikes} eylem patladı (ilk eylem: gün {strikeDay})");
+
+            // Eylem uygulanmış olmalı: fabrika hasarı ve stabilite kaybı
+            int civAfter = overlord.CivFactories;
+            if (civAfter >= overlordCivBefore)
+            {
+                GD.PrintErr($"[ResistanceTest] HATA: fabrika hasarı uygulanmadı " +
+                            $"(civ={civAfter}, önceki={overlordCivBefore})");
+                ok = false;
+            }
+            else GD.Print($"[ResistanceTest]    Fabrika hasarı: civ {overlordCivBefore} → {civAfter}");
+
+            // Hedef il, bağımlının içinden ve overlord'a ait olmalı
+            var st = ResistanceSystem.Get(subject.Id);
+            if (string.IsNullOrEmpty(st.LastStrikeProvinceId) ||
+                !subjectProvinces.Contains(st.LastStrikeProvinceId))
+            {
+                GD.PrintErr($"[ResistanceTest] HATA: hedef il '{st.LastStrikeProvinceId}' " +
+                            "bağımlının illerinden değil");
+                ok = false;
+            }
+            else GD.Print($"[ResistanceTest]    Hedef il doğrulandı: {st.LastStrikeProvinceId}");
+
+            if (overlord.StabilityPercent >= overlordStabilityBefore)
+            {
+                GD.PrintErr($"[ResistanceTest] HATA: overlord stabilitesi düşmedi " +
+                            $"({overlord.StabilityPercent} >= {overlordStabilityBefore})");
+                ok = false;
+            }
+            else GD.Print($"[ResistanceTest]    Overlord stabilitesi: {overlordStabilityBefore} → " +
+                          $"{overlord.StabilityPercent:N1}");
+        }
+
+        // 6) Save/load round-trip
+        var saveBefore = ResistanceSystem.GetSaveData();
+        var stateBefore = ResistanceSystem.Get(subject.Id);
+        int strikesBefore = stateBefore?.StrikeCount ?? 0;
+        ResistanceSystem.ResetForNewGame();
+        ResistanceSystem.LoadSaveData(saveBefore);
+        if (ResistanceSystem.Get(subject.Id)?.StrikeCount != strikesBefore)
+        {
+            GD.PrintErr("[ResistanceTest] HATA: save/load sonrası eylem sayısı korunmadı");
+            ok = false;
+        }
+        else GD.Print($"[ResistanceTest] 6) Save/load round-trip tamam " +
+                      $"(eylem sayısı {strikesBefore} korundu)");
+
+        // Temizlik
+        overlord.CivFactories = overlordCivBefore;
+        ReleasableSystem.ResetForNewGame();
+        AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
+        subject.IsAnnexed = false;
+        subject.OwnerId = "";
+        subject.CivFactories = civBefore;
+        subject.MilFactories = milBefore;
+        subject.Dockyards = dockBefore;
+        ProvinceCultureSystem.ResetForNewGame();
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        GD.Print("[ResistanceTest] Dünya verisi geri yüklendi");
 
         GD.Print("=========================================");
         GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");

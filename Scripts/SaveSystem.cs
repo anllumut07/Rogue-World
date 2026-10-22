@@ -69,6 +69,7 @@ public static class SaveSystem
         public FormableSave Formable { get; set; } // M44.3: sürmekte olan kurgu ülke kurulumları
         public ReleasableSave Releasable { get; set; } // M44.4: ilhak/kukla kayıtları
         public AutonomySave Autonomy { get; set; } // M45.2: bağımlı özerklik seviyeleri
+        public ResistanceSave Resistance { get; set; } // M45.3: il bazlı direniş durumu
         public VictorySystem.VictorySave Victory { get; set; } // M41.2: zafer koşulu durumu
         public DiplomacySave Diplomacy { get; set; }
         public CasusBelliSave CasusBelli { get; set; } // M17A: gerekçe/ateşkes/meşruiyet
@@ -317,6 +318,21 @@ public static class SaveSystem
         public int GrantCount { get; set; }
         public int RevokeCount { get; set; }
         public double LastDailyDrift { get; set; }
+    }
+
+    // ===== Direniş DTOs (M45.3) =====
+    public class ResistanceSave
+    {
+        public ResistanceEntry[] Entries { get; set; }
+    }
+    public class ResistanceEntry
+    {
+        public string CountryId { get; set; }
+        public string OverlordId { get; set; }
+        public double Accumulated { get; set; }
+        public double LastDailyRate { get; set; }
+        public int StrikeCount { get; set; }
+        public string LastStrikeProvinceId { get; set; }
     }
 
 
@@ -596,6 +612,7 @@ public static class SaveSystem
             Formable = FormableSystem.GetSaveData(), // M44.3: sürmekte olan kurgu ülke kurulumları
             Releasable = ReleasableSystem.GetSaveData(), // M44.4: ilhak/kukla kayıtları
             Autonomy = AutonomySystem.GetSaveData(), // M45.2: özerklik seviyeleri
+            Resistance = ResistanceSystem.GetSaveData(), // M45.3: direniş durumu
             Victory = VictorySystem.GetSaveData(), // M41.2: zafer koşulu durumu
             Diplomacy = DiplomacySystem.GetSaveData(),
             CasusBelli = CasusBelliSystem.GetSaveData(),
@@ -754,6 +771,7 @@ public static class SaveSystem
             if (save.Releasable != null)
                 ReleasableSystem.LoadSaveData(save.Releasable); // M44.4: ilhak/kukla kayıtları
                 AutonomySystem.LoadSaveData(save.Autonomy); // M45.2: özerklik seviyeleri
+                ResistanceSystem.LoadSaveData(save.Resistance); // M45.3: direniş durumu
             VictorySystem.ApplySave(save.Victory); // M41.2: zafer koşulu durumu
             DiplomacySystem.LoadSaveData(save.Diplomacy);
             CasusBelliSystem.LoadSaveData(save.CasusBelli);

@@ -1,0 +1,17 @@
+{
+  "Version": 1,
+  "Settings": {
+    "BasePerDay": 0.02,
+    "CultureWeight": 0.35,
+    "AutonomyReliefWeight": 0.3,
+    "MaxPerDay": 0.5,
+    "MaxAccumulated": 10.0,
+    "StrikeChanceThreshold": 0.75,
+    "CultureScoreLow": 0.2,
+    "CultureScoreHigh": 0.8,
+    "CultureScoreStep": 0.08,
+    "FactoryDamagePerStrike": 1,
+    "OverlordStabilityLoss": 0.25,
+    "OverlordSatisfactionLoss": 2.0
+  }
+}

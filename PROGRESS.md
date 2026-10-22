@@ -2748,3 +2748,36 @@ doğru değeri görür.
 farklı ülkenin farklı seviyede olması beklene davranıştır: girdileri (kültür dağılımı)
 farklıdır. İlk denemede "iki kukla aynı seviyede olmalı" varsayımı yanlıştı ve test
 buna göre düzeltildi.
+
+---
+
+## M45.3 — İl Bazlı Direniş (ResistanceSystem) ✅ DONE (2026-10-22)
+
+**Ne yapıldı:** `Data/resistance.json` (yeni, 11 ayar) +
+`Scripts/ResistanceSystem.cs` (yeni, ~290 satır). M45.2 direnişin yavaş yolunu
+(özerklik talebi) modelliyordu; bu adım aynı baskının şiddetli yolunu:
+partizan eylemi.
+
+**Uyumsuzluk puanı:** Bağımlının kayıtlı illerinin ne kadarı overlord'un baskın
+kültüründen farklı, 0-1 lineer puana çevrilir — pay ≤0.2 ise 0 (asimile olmuş),
+≥0.8 ise 1 (tam uyumsuz).
+
+**Baskı hızı:** `taban 0.02 + puan×0.35 − (özerklik/100)×0.3`, 0.5/güne kırpılmış,
+`MaxAccumulated=10`. Birikim eşiği (7.5) aşılınca eylem patlar.
+
+**Partizan eylemi (deterministik):** Hedef il `DeterministicRNG.NextInt(0,n)` ile
+seçilir (GlobalRandom yasak). Etkiler: sivil fabrika yoksa askeri/tersane 1 hasar,
+overlord stabilitesi −0.25, tüm halk gruplarının memnuniyeti −2.0. Eylem sonrası
+baskı boşalır → oyuncu ya özerklik vererek baskıyı azaltır ya da eylemleri sineye.
+
+**Save/Load:** `SaveSystem.ResistanceSave`/`ResistanceEntry` DTO'ları,
+`GetSaveData`/`LoadSaveData`, `ResetForNewGame` 8 noktaya bağlandı,
+`SaveLoadTest.BuildSummaryCore`'a "Direniş" satırı eklendi.
+
+**Ölçek kararı:** `MaxAccumulated` ilk olarak 100 yazıldı; testte 40 günde hiç
+eylem patlamadı (hız ~0.29/gün → eşik için ~257 gün). Oyun temposuna uyması için
+10'a çekildi → testte 26. günde eylem patladı.
+
+**Testler:** dotnet build 0/0; `--resistance-test` PASS ✓; `--save-load-test` A==B
+PASS (historical_1936 + modern_world); `--autonomy-test` ve `--releasable-test`
+regresyon PASS ✓.

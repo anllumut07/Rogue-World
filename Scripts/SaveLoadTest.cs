@@ -427,6 +427,20 @@ public static class SaveLoadTest
                      "|" + a.LastDailyDrift.ToString("R")).GetHashCode();
         }
         sb.AppendLine($"Özerklik: kayıt={autonomyCount}, hash={autonomyHash}");
+
+        // M45.3: İl bazlı direniş özeti (save/load A==B karşılaştırmasına girer)
+        var resistanceSave = ResistanceSystem.GetSaveData();
+        int resistanceCount = resistanceSave?.Entries?.Length ?? 0;
+        int resistanceHash = 0;
+        if (resistanceSave?.Entries != null)
+        {
+            foreach (var r in resistanceSave.Entries)
+                resistanceHash = resistanceHash * 31 +
+                    (r.CountryId + "|" + r.OverlordId + "|" + r.Accumulated.ToString("R") +
+                     "|" + r.LastDailyRate.ToString("R") + "|" + r.StrikeCount +
+                     "|" + r.LastStrikeProvinceId).GetHashCode();
+        }
+        sb.AppendLine($"Direniş: kayıt={resistanceCount}, hash={resistanceHash}");
         if (leaderCount > 0)
         {
             foreach (var kv in LeaderSystem.All.OrderBy(k => k.Key))

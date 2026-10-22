@@ -2535,3 +2535,52 @@ uyguluyor, savaş bitiyor, kaybeden ilhak ediliyor, iller devrediliyor).
 
 **Dosyalar:** `Scripts/ConvoyRaidSystem.cs`, `Scripts/SaveSystem.cs`,
 `Scripts/GameManager.cs`, `TODO.md` (43.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+---
+
+### Milestone 43.5: Deniz Bölgesi Paneli — ✅ DONE (2026-10-22)
+
+- **Alt görevler:** Save/Load + Scripts/SeaZonePanel.cs UI (bölge listesi,
+  hakimiyet barları, baskın/koruma butonları). TODO.md 43.5.
+- **Ne yapıldı:**
+  - Scripts/SeaZonePanel.cs (yeni, 940x560): 12 bölge için hakimiyet barı ve
+    günlük konvoy kayıp riski yüzdesi; müttefik koruyucu seçici + ASSIGN/REVOKE
+    ESCORT; geri bildirim satırı; ESC kapatma; ProcessMode = Always ve backdrop
+    ile açıkken harita girdisi engelleniyor.
+  - ConvoyRaidSystem.ZoneRiskPercent(zone, countryId) eklendi;
+    TotalRiskPercent ona devrediyor.
+  - GameHud'a SEA ZONES bölüm butonu eklendi.
+  - --sea-zone-panel-test kancası + RunSeaZonePanelTest() (6 adım).
+- **Doğrulama:**
+  - --sea-zone-panel-test PASS ✓ (12 bölge satırı, tüm değerler [0,100], baltic
+    hakimiyet 28.6 → 71.4 ve risk %21.4 → %5.0, save/load koruyucuyu korudu,
+    geri alma sonrası risk tabana döndü, ESC kapattı).
+  - --save-load-test A==B PASS ✓ (historical_1936 19.35s + modern_world 20.19s).
+  - dotnet build 0 hata / 0 uyarı.
+
+**Dosyalar:** Scripts/SeaZonePanel.cs (yeni), Scripts/ConvoyRaidSystem.cs,
+Scripts/GameHud.cs, Scripts/GameManager.cs, TODO.md (43.5 [x]).
+
+---
+
+### Milestone 44.1: Kurgu Ülke Verisi — ✅ DONE (2026-10-22)
+
+- **Alt görevler:** Data/formable_nations.json + veri yükleyici. TODO.md 44.1.
+- **Ne yapıldı:**
+  - Data/formable_nations.json: 15 kurgu kurulabilir ülke (ENG, SCO, BAV, PRS,
+    SIC, SAR, PAP, CST, ARA, NAV, NOV, SIB, GEO, HAN, BRG), her biri farklı
+    kültür; BOM'suz UTF-8.
+  - Scripts/FormableDataSystem.cs (yeni): FormableDefinition + yükleyici
+    (FormableCount, All, Get, ForParent), IncludeFields=true.
+  - --formable-data-test kancası + RunFormableDataTest() (10 kontrol).
+- **Kararlar:**
+  - UKR ve VEN çıkarıldı (modern_world'de zaten varoluyor), yerine HAN ve BRG
+    eklendi — 15 kimliğin hiçbiri senaryo ülkesiyle çakışmıyor.
+  - Kültür alanı serbest metin; M44.2 ProvinceCultureSystem ile karşılaştırma
+    ölçütü olarak kullanılacak.
+- **Doğrulama:** --formable-data-test PASS ✓ (15 kayıt, 0 eksik alan, 0 tekrar,
+  0 aralık ihlali, 0 çözümsüz ebe kaynağı, 0 kimlik çakışması, DEU→3 / RUS→3,
+  var olmayan kimlik null). dotnet build 0 hata / 0 uyarı.
+
+**Dosyalar:** Data/formable_nations.json (yeni), Scripts/FormableDataSystem.cs
+(yeni), Scripts/GameManager.cs, TODO.md (44.1 [x]).

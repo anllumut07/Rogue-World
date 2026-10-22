@@ -2106,3 +2106,71 @@ gerektiren işler yapılmayacak.
 2. Sıradaki alt görev M43.5 (Save/Load + `Scripts/SeaZonePanel.cs` UI).
 3. Bilinen: AI ticaret anlaşmalarına konvoy kaybı uygulanmıyor (M43.2'den kalan sınır); SeaZonePanel henüz yazılmadı (M43.5).
 4. Kullanıcının test etmesi gereken: yok — bu alt görev tamamen headless testlerle doğrulandı.
+
+---
+
+## 2026-10-22 — M43.5 (Save/Load + SeaZonePanel UI)
+
+- **Alt görev:** Scripts/SeaZonePanel.cs — deniz hakimiyeti, konvoy kaybı riski ve
+  müttefik koruma ataması için panel. TODO.md satır 43.5.
+- **Ne yapıldı:**
+  - Scripts/SeaZonePanel.cs (yeni, 940x560): bölge listesi, hakimiyet barı ve
+    günlük kayıp riski yüzdesi, müttefik koruyucu seçici + ASSIGN/REVOKE ESCORT,
+    geri bildirim satırı, ESC ile kapatma. Bölgeye komşu olmayan satırlar loş
+    gösterilir ve risk "no route" yazar (gerçek dışı risk göstergesi olmaması için).
+  - Scripts/ConvoyRaidSystem.cs: ZoneRiskPercent(zone, countryId) eklendi;
+    TotalRiskPercent artık ona devrediyor (formül iki yerde kopyalanmadı).
+  - Scripts/GameHud.cs: üst bara SEA ZONES bölüm butonu eklendi.
+  - Scripts/GameManager.cs: --sea-zone-panel-test kancası +
+    RunSeaZonePanelTest() (6 adım: müttefiklik kurulumu, panel açılışı, koruma
+    atama, save/load, geri alma, ESC).
+- **Karar (varsayım):** Panel saf görünüm katmanı — tek yazma yolu mevcut
+  AssignEscort/RevokeEscort API'leri; böylece yeni save alanı doğmadı.
+- **Doğrulama:** dotnet build 0 hata / 0 uyarı; --sea-zone-panel-test PASS
+  (12 bölge satırı, tüm değerler [0,100], atama sonrası baltic hakimiyet 28.6 →
+  71.4 ve risk %21.4 → %5.0, save/load sonrası koruyucu korundu, geri alma sonrası
+  risk tabana döndü, ESC kapattı); --save-load-test --scenario=historical_1936
+  A==B PASS (19.35 sn); --save-load-test --scenario=modern_world A==B PASS (20.19 sn).
+
+### ÖZET
+1. Scripts/SeaZonePanel.cs (yeni), Scripts/ConvoyRaidSystem.cs, Scripts/GameHud.cs,
+   Scripts/GameManager.cs, TODO.md (43.5 [x]) değişti.
+2. Çözülemeyen: yok.
+3. Bilinen: AI ticaret anlaşmalarına konvoy kaybı uygulanmıyor (M43.2'den kalan sınır);
+   bölge satırlarındaki ilerleme çubuklarında yüzde metni kapalı (Godot 4.7 API belirsizliği).
+4. Kullanıcının test etmesi gereken: yok — tamamen headless testlerle doğrulandı.
+
+---
+
+## 2026-10-22 — M44.1 (Formable veri katmanı)
+
+- **Alt görev:** Data/formable_nations.json + Scripts/FormableDataSystem.cs.
+  TODO.md satır 44.1.
+- **Ne yapıldı:**
+  - Data/formable_nations.json: 15 kurgu kurulabilir ülke (ENG, SCO, BAV, PRS,
+    SIC, SAR, PAP, CST, ARA, NAV, NOV, SIB, GEO, HAN, BRG), alanlar: kimlik, ad,
+    kültür, renk, gerekli il sayısı, minimum kontrol yüzdesi, PP maliyeti, gerekli
+    gün, ebe kaynak ülkeler, açıklama. BOM'suz UTF-8.
+  - Scripts/FormableDataSystem.cs (yeni): FormableDefinition + yükleyici
+    (FormableCount, All, Get, ForParent). JsonSerializerOptions içinde
+    IncludeFields=true (alan doldurma için zorunlu).
+  - Scripts/GameManager.cs: --formable-data-test kancası +
+    RunFormableDataTest() (10 kontrol).
+- **Karar (varsayım):** Kimlik çakışması olmaması için UKR ve VEN başlangıçta
+  planlanmıştı ancak modern_world senaryosunda bu iki kimlik zaten mevcut
+  ülkelerdi; yerine HAN ve BRG seçildi. Böylece 15 kimliğin hiçbiri senaryo
+  ülkesiyle çakışmıyor.
+- **Karar (varsayım):** Kültür alanı M44.2 ProvinceCultureSystem ile
+  karşılaştırma ölçütü olacağı için serbest metin tutuldu ve her kayıtta farklı
+  bir kültür kullanıldı (15 farklı kültür).
+- **Doğrulama:** dotnet build 0 hata / 0 uyarı; --formable-data-test PASS
+  (15 kayıt, 0 eksik alan, 0 tekrar, 0 aralık ihlali, 0 çözümsüz ebe kaynağı,
+  0 kimlik çakışması, DEU→3 / RUS→3, var olmayan kimlik null döndü).
+
+### ÖZET
+1. Data/formable_nations.json (yeni), Scripts/FormableDataSystem.cs (yeni),
+   Scripts/GameManager.cs, TODO.md (44.1 [x]) değişti.
+2. Çözülemeyen: yok.
+3. Bilinen: Kurgu ülke kimlikleri harita render hattında otomatik renk/bayrak
+   alamıyor — bu M44.3 güncellemesinde ele alınacak.
+4. Kullanıcının test etmesi gereken: yok — veri katmanı headless testle doğrulandı.

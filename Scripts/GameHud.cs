@@ -239,6 +239,14 @@ public partial class GameHud : CanvasLayer
                 StatisticsPanel.OpenUnder(this);
             });
 
+        // SEA ZONES (M43.5): deniz hakimiyeti, konvoy riski ve müttefik koruması
+        AddSection("SEA ZONES", "Sea zones — supremacy, convoy raid risk and allied escort assignment",
+            () =>
+            {
+                GD.Print("[GameHud] SEA ZONES butonu basıldı — SeaZonePanel.OpenUnder çağrılıyor");
+                SeaZonePanel.OpenUnder(this);
+            });
+
         // CABINET (M21.1): bakanlık atamaları ve bakanlık listesi
         AddSection("CABINET", "Cabinet — ministries and minister assignments",
             () =>

@@ -181,6 +181,8 @@ public partial class GameManager : Node
         bool convoyRaidTest = false;         // M43.2: denizaltı baskını / konvoy kaybı testi (--convoy-raid-test)
         bool navalCombatTest = false;        // M43.3: deniz çatışması testi (--naval-combat-test)
         bool lendLeaseTest = false;          // M43.4: müttefik konvoy koruması testi (--lend-lease-test)
+        bool seaZonePanelTest = false;       // M43.5: deniz bölgesi paneli testi (--sea-zone-panel-test)
+        bool formableDataTest = false;       // M44.1: kurgu ülke verisi testi (--formable-data-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -329,6 +331,10 @@ public partial class GameManager : Node
                 navalCombatTest = true;
             else if (arg == "--lend-lease-test")
                 lendLeaseTest = true;
+            else if (arg == "--sea-zone-panel-test")
+                seaZonePanelTest = true;
+            else if (arg == "--formable-data-test")
+                formableDataTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -729,6 +735,14 @@ public partial class GameManager : Node
         // M43.4: Müttefik konvoy koruması testi — eskort kaybı azaltır, save/load.
         if (lendLeaseTest)
             RunLendLeaseTest();
+
+        // M43.5: Deniz bölgesi paneli testi — ölçü, satırlar, koruma atama/geri alma, ESC kapatma.
+        if (seaZonePanelTest)
+            RunSeaZonePanelTest();
+
+        // M44.1: Kurgu ülke verisi testi — JSON yüklenir, kayıt sayısı/örs tekilliği/ebe kaynakları.
+        if (formableDataTest)
+            RunFormableDataTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -7852,6 +7866,534 @@ private void RunBalanceTest()
 
         GD.Print("=========================================");
         GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>Test yardımcısı: ağaçtaki SeaZonePanel örneğini bulur (ModalHost katmanının içinde).</summary>
+    private SeaZonePanel FindSeaZonePanel()
+    {
+        foreach (var n in FindChildrenIn(this))
+        {
+            if (n is SeaZonePanel p) return p;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// M43.5: Deniz bölgesi paneli testi (--sea-zone-panel-test).
+    /// Panelin açılışı, bölge satır verisi, müttefik korumasının panel üzerinden
+    /// atanması/geri alınması ve ESC ile kapanması doğrulanır.
+    /// Normal oyunda ASLA çalışmaz; dünya verisi test sonunda geri yüklenir.
+    /// </summary>
+    private async void RunSeaZonePanelTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M43.5: DENİZ BÖLGESİ PANELİ TESTİ (--sea-zone-panel-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        SeaZoneSystem.LoadData();
+        NavalCombatSystem.ResetForNewGame();
+        ConvoyRaidSystem.ResetForNewGame();
+
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        string playerId = PlayerCountryId;
+        string allyId = "POL";  // koruma verecek müttefik
+        string enemyId = "SOV"; // bölgeyi paylaşan rakip
+
+        var player = CountryDatabase.Get(playerId);
+        var ally = CountryDatabase.Get(allyId);
+        var enemy = CountryDatabase.Get(enemyId);
+        if (player == null || ally == null || enemy == null)
+        {
+            GD.PrintErr("[SeaZonePanelTest] HATA: DEU/POL/SOV ülkeleri bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+        if (string.Equals(playerId, allyId, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(playerId, enemyId, StringComparison.OrdinalIgnoreCase))
+        {
+            GD.PrintErr($"[SeaZonePanelTest] HATA: oyuncu test ülkelerinden biri olamaz ({playerId})");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // ---- 1) Dünya verisini yedekle ----
+        int playerDockBefore = player.Dockyards;
+        double playerPpBefore = player.PoliticalPower;
+        int allyDockBefore = ally.Dockyards;
+        double allyPpBefore = ally.PoliticalPower;
+        int enemyDockBefore = enemy.Dockyards;
+        int relBefore = DiplomacySystem.GetRelation(playerId, allyId);
+        int opBefore = DiplomacySystem.GetOpinion(playerId, allyId);
+
+        var zoneSnapshot = new Dictionary<string, List<string>>();
+        foreach (var z in SeaZoneSystem.All)
+            zoneSnapshot[z.Id] = new List<string>(z.AdjacentCountryIds);
+        var factionSnapshot = new Dictionary<string, List<string>>();
+        foreach (var f in DiplomacySystem.Factions.Values)
+            factionSnapshot[f.Id] = new List<string>(f.MemberIds);
+
+        // Panel bölgeleri isme göre sıralar — baltic satır indeksi aynı sıradan türetilir.
+        var orderedZones = SeaZoneSystem.All
+            .OrderBy(z => z.Name, StringComparer.Ordinal)
+            .ToList();
+        int balticIndex = orderedZones.FindIndex(z =>
+            string.Equals(z.Id, "baltic", StringComparison.OrdinalIgnoreCase));
+        if (balticIndex < 0)
+        {
+            GD.PrintErr("[SeaZonePanelTest] HATA: baltic bölgesi bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Panel gerçek bir Control ağacında açılsın (viewport ölçüsü anlamlı olsun).
+        var host = new Control { Name = "SeaZonePanelTestHost" };
+        host.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(host);
+
+        try
+        {
+            // ---- 2) Müttefiklik: fraksiyon kurmadan garanti (hiçbir şey sızmayı) ----
+            GD.Print("[SeaZonePanelTest] 1) Müttefiklik kurulumu (garanti)");
+            ally.PoliticalPower = 1000;   // müttefik tarafı için yeterli PP
+            player.PoliticalPower = 1000; // garanti maliyeti oyuncudan düşer
+            if (!DiplomacySystem.AddGuarantee(playerId, allyId))
+            {
+                GD.PrintErr($"[SeaZonePanelTest] HATA: {playerId} → {allyId} garantisi kurulamadı");
+                ok = false;
+            }
+            if (!ConvoyRaidSystem.IsAllied(allyId, playerId))
+            {
+                GD.PrintErr("[SeaZonePanelTest] HATA: garanti iki ülkeyi müttefik yapmadı");
+                ok = false;
+            }
+            else
+            {
+                GD.Print($"[SeaZonePanelTest] {playerId} ↔ {allyId} müttefik (garanti) ✓");
+            }
+
+            // ---- 3) Bölgeleri üç ülkeye indir: baltic = POL / DEU / SOV ----
+            foreach (var z in SeaZoneSystem.All)
+                z.AdjacentCountryIds.Clear();
+            var baltic = SeaZoneSystem.All.FirstOrDefault(z =>
+                string.Equals(z.Id, "baltic", StringComparison.OrdinalIgnoreCase));
+            if (baltic == null)
+            {
+                GD.PrintErr("[SeaZonePanelTest] HATA: baltic bölgesi bulunamadı");
+                ok = false;
+            }
+            else
+            {
+                baltic.AdjacentCountryIds = new List<string> { allyId, playerId, enemyId };
+            }
+
+            player.Dockyards = 200; // oyuncu filosu
+            ally.Dockyards = 300;   // koruyucu filo (daha ağır basar)
+            enemy.Dockyards = 200;  // rakip filo
+
+            // ---- 4) Paneli aç ----
+            GD.Print("[SeaZonePanelTest] 2) Panel açılışı");
+            SeaZonePanel.OpenUnder(host);
+            await ToSignal(GetTree(), "process_frame");
+
+            if (!SeaZonePanel.IsOpen)
+            {
+                GD.PrintErr("[SeaZonePanelTest] HATA: panel açılmadı");
+                ok = false;
+            }
+
+            var panel = FindSeaZonePanel();
+            if (panel == null)
+            {
+                GD.PrintErr("[SeaZonePanelTest] HATA: panel düğümü bulunamadı");
+                ok = false;
+            }
+            else
+            {
+                // ---- 5) Ölçü sınırı: 1152x648'e sığmalı ----
+                Vector2 designed = panel.DesignedSize;
+                GD.Print($"[SeaZonePanelTest] Panel tasarım boyutu: {designed.X}x{designed.Y}");
+                if (designed.X <= 0f || designed.Y <= 0f)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: panel boyutu okunamadı");
+                    ok = false;
+                }
+                if (designed.X > 1152 || designed.Y > 648)
+                {
+                    GD.PrintErr($"[SeaZonePanelTest] HATA: panel 1152x648'e sığmıyor ({designed.X}x{designed.Y})");
+                    ok = false;
+                }
+
+                if (panel.PlayerId != playerId)
+                {
+                    GD.PrintErr($"[SeaZonePanelTest] HATA: panel oyuncusu yanlış ({panel.PlayerId} != {playerId})");
+                    ok = false;
+                }
+
+                // ---- 6) Bölge satırları ----
+                int rows = panel.ZoneRowCount;
+                GD.Print($"[SeaZonePanelTest] Bölge satırı sayısı: {rows} (sistem: {SeaZoneSystem.ZoneCount})");
+                if (rows != SeaZoneSystem.ZoneCount)
+                {
+                    GD.PrintErr($"[SeaZonePanelTest] HATA: satır sayısı bölge sayısına eşit olmalı ({rows} != {SeaZoneSystem.ZoneCount})");
+                    ok = false;
+                }
+
+                bool rowsValid = rows > balticIndex &&
+                                 panel.RowSupremacy.Count >= rows &&
+                                 panel.RowRisk.Count >= rows;
+                if (!rowsValid)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: satır verisi eksik/baltic satırı yok");
+                    ok = false;
+                }
+                else
+                {
+                    bool rangeOk = true;
+                    for (int i = 0; i < rows; i++)
+                    {
+                        if (panel.RowSupremacy[i] < 0f || panel.RowSupremacy[i] > 100f ||
+                            panel.RowRisk[i] < 0f || panel.RowRisk[i] > 100f)
+                        {
+                            GD.PrintErr($"[SeaZonePanelTest] HATA: satır {i} değerleri [0,100] aralığında değil " +
+                                        $"(hakimiyet={panel.RowSupremacy[i]:F1}, risk={panel.RowRisk[i]:F1})");
+                            rangeOk = false;
+                        }
+                    }
+                    if (!rangeOk)
+                    {
+                        ok = false;
+                    }
+                    else
+                    {
+                        GD.Print($"[SeaZonePanelTest] Tüm satır değerleri [0,100] aralığında ✓ " +
+                                 $"(baltic satırı={balticIndex}, hakimiyet={panel.RowSupremacy[balticIndex]:F1}, " +
+                                 $"risk=%{panel.RowRisk[balticIndex]:F1})");
+                    }
+                }
+
+                // ---- 7) Koruma yokken geri alma kapalı olmalı ----
+                if (!panel.RevokeDisabled)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: koruma yokken REVOKE ESCORT kapalı olmalı");
+                    ok = false;
+                }
+                if (ConvoyRaidSystem.EscortOf(playerId) != null)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: başlangıçta koruma tahsisi olmamalı");
+                    ok = false;
+                }
+
+                float riskBefore = rowsValid ? panel.RowRisk[balticIndex] : 0f;
+                float ownSupBefore = rowsValid ? panel.RowSupremacy[balticIndex] : 0f;
+
+                // ---- 8) Koruyucu seçip ASSIGN ESCORT ----
+                GD.Print("[SeaZonePanelTest] 3) Koruma atama");
+                GD.Print($"[SeaZonePanelTest] Koruyucu aday sayısı: {panel.ProtectorOptionCount}");
+                if (panel.ProtectorOptionCount < 1)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: müttefik koruyucu adayı listelenmeli");
+                    ok = false;
+                }
+
+                var selector = FindChildrenIn(panel)
+                    .FirstOrDefault(n => n is OptionButton) as OptionButton;
+                if (selector == null)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: koruyucu seçici (OptionButton) bulunamadı");
+                    ok = false;
+                }
+                else
+                {
+                    int allyItem = -1;
+                    for (int i = 0; i < selector.ItemCount; i++)
+                    {
+                        if (selector.GetItemText(i).Contains(allyId))
+                        {
+                            allyItem = i;
+                            break;
+                        }
+                    }
+                    if (allyItem < 0)
+                    {
+                        GD.PrintErr($"[SeaZonePanelTest] HATA: {allyId} koruyucu listede yok");
+                        ok = false;
+                    }
+                    else
+                    {
+                        selector.Select(allyItem);
+                        GD.Print($"[SeaZonePanelTest] Koruyucu seçildi: {selector.GetItemText(allyItem)}");
+                    }
+                }
+
+                var assignBtn = FindButton(panel, "ASSIGN ESCORT");
+                if (assignBtn == null)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: ASSIGN ESCORT butonu bulunamadı");
+                    ok = false;
+                }
+                else if (assignBtn.Disabled)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: ASSIGN ESCORT butonu kapalı");
+                    ok = false;
+                }
+                else
+                {
+                    assignBtn.EmitSignal(BaseButton.SignalName.Pressed);
+
+                    if (ConvoyRaidSystem.EscortOf(playerId) != allyId)
+                    {
+                        GD.PrintErr($"[SeaZonePanelTest] HATA: koruyucu {allyId} olmalı " +
+                                    $"(bulundu: {ConvoyRaidSystem.EscortOf(playerId) ?? "-"})");
+                        ok = false;
+                    }
+                    if (panel.RevokeDisabled)
+                    {
+                        GD.PrintErr("[SeaZonePanelTest] HATA: atama sonrası REVOKE ESCORT açık olmalı");
+                        ok = false;
+                    }
+                    if (rowsValid)
+                    {
+                        if (panel.RowRisk[balticIndex] >= riskBefore)
+                        {
+                            GD.PrintErr($"[SeaZonePanelTest] HATA: koruma baltic riskini düşürmeli " +
+                                        $"(%{riskBefore:F1} → %{panel.RowRisk[balticIndex]:F1})");
+                            ok = false;
+                        }
+                        if (panel.RowSupremacy[balticIndex] <= ownSupBefore)
+                        {
+                            GD.PrintErr($"[SeaZonePanelTest] HATA: koruma baltic hakimiyetini yükseltmeli " +
+                                        $"({ownSupBefore:F1} → {panel.RowSupremacy[balticIndex]:F1})");
+                            ok = false;
+                        }
+                    }
+                    GD.Print($"[SeaZonePanelTest] atama sonrası baltic → hakimiyet={panel.RowSupremacy[balticIndex]:F1} " +
+                             $"(öncesi {ownSupBefore:F1}), risk=%{panel.RowRisk[balticIndex]:F1} " +
+                             $"(öncesi %{riskBefore:F1}), mesaj=\"{panel.FeedbackText}\"");
+                }
+
+                // ---- 9) Save/Load: tahsis kaydedilir ve geri yüklenir ----
+                GD.Print("[SeaZonePanelTest] 4) Save/Load");
+                var saveData = ConvoyRaidSystem.GetSaveData();
+                if (saveData.Escorts == null || saveData.Escorts.Length != 1 ||
+                    saveData.Escorts[0].ProtectorId != allyId ||
+                    saveData.Escorts[0].ProtectedId != playerId)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: save verisi tek tahsis içermeli " +
+                                $"({saveData.Escorts?.Length ?? 0} kayıt)");
+                    ok = false;
+                }
+
+                ConvoyRaidSystem.ResetForNewGame();
+                if (ConvoyRaidSystem.EscortOf(playerId) != null)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: sıfırlama tahsisi temizlemeli");
+                    ok = false;
+                }
+
+                ConvoyRaidSystem.LoadSaveData(saveData);
+                if (ConvoyRaidSystem.EscortOf(playerId) != allyId)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: yükleme sonrası koruyucu geri gelmeli");
+                    ok = false;
+                }
+                else
+                {
+                    GD.Print($"[SeaZonePanelTest] save/load → koruyucu={ConvoyRaidSystem.EscortOf(playerId)} ✓");
+                }
+
+                // ---- 10) REVOKE ESCORT panel üzerinden ----
+                GD.Print("[SeaZonePanelTest] 5) Koruma geri alma");
+                var revokeBtn = FindButton(panel, "REVOKE ESCORT");
+                if (revokeBtn == null)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: REVOKE ESCORT butonu bulunamadı");
+                    ok = false;
+                }
+                else if (revokeBtn.Disabled)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: REVOKE ESCORT butonu kapalı");
+                    ok = false;
+                }
+                else
+                {
+                    revokeBtn.EmitSignal(BaseButton.SignalName.Pressed);
+
+                    if (ConvoyRaidSystem.EscortOf(playerId) != null)
+                    {
+                        GD.PrintErr("[SeaZonePanelTest] HATA: geri alma sonrası koruma kalmamalı");
+                        ok = false;
+                    }
+                    if (!panel.RevokeDisabled)
+                    {
+                        GD.PrintErr("[SeaZonePanelTest] HATA: geri alma sonrası REVOKE ESCORT kapanmalı");
+                        ok = false;
+                    }
+                    if (rowsValid && Mathf.Abs(panel.RowRisk[balticIndex] - riskBefore) > 0.01f)
+                    {
+                        GD.PrintErr($"[SeaZonePanelTest] HATA: geri alma riski taban çizgisine döndürmeli " +
+                                    $"(%{panel.RowRisk[balticIndex]:F1} != %{riskBefore:F1})");
+                        ok = false;
+                    }
+                    GD.Print($"[SeaZonePanelTest] geri alma sonrası baltic riski=%{panel.RowRisk[balticIndex]:F1} " +
+                             $"(taban %{riskBefore:F1}), mesaj=\"{panel.FeedbackText}\"");
+                }
+
+                // ---- 11) ESC ile kapatma ----
+                GD.Print("[SeaZonePanelTest] 6) ESC ile kapatma");
+                panel._UnhandledInput(new InputEventKey { Keycode = Key.Escape, Pressed = true });
+                if (!panel.CloseRequested)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: ESC kapatma isteği üretmedi");
+                    ok = false;
+                }
+
+                await ToSignal(GetTree(), "process_frame");
+                await ToSignal(GetTree(), "process_frame");
+                await ToSignal(GetTree(), "process_frame");
+
+                if (SeaZonePanel.IsOpen)
+                {
+                    GD.PrintErr("[SeaZonePanelTest] HATA: ESC paneli kapatmadı");
+                    ok = false;
+                }
+                else
+                {
+                    GD.Print("[SeaZonePanelTest] ESC paneli kapattı ✓");
+                }
+            }
+        }
+        finally
+        {
+            // ---- 12) Dünya verisini geri yükle ----
+            DiplomacySystem.RevokeGuarantee(allyId);
+
+            int relNow = DiplomacySystem.GetRelation(playerId, allyId);
+            if (relNow != relBefore)
+                DiplomacySystem.ModifyRelation(playerId, allyId, relBefore - relNow);
+            int opNow = DiplomacySystem.GetOpinion(playerId, allyId);
+            if (opNow != opBefore)
+                DiplomacySystem.ModifyRelation(playerId, allyId, opBefore - opNow);
+
+            player.Dockyards = playerDockBefore;
+            ally.Dockyards = allyDockBefore;
+            enemy.Dockyards = enemyDockBefore;
+            player.PoliticalPower = playerPpBefore;
+            ally.PoliticalPower = allyPpBefore;
+
+            ConvoyRaidSystem.ResetForNewGame();
+
+            foreach (var z in SeaZoneSystem.All)
+            {
+                if (zoneSnapshot.TryGetValue(z.Id, out var saved))
+                    z.AdjacentCountryIds = saved;
+            }
+            foreach (var f in DiplomacySystem.Factions.Values)
+            {
+                if (factionSnapshot.TryGetValue(f.Id, out var members))
+                    f.MemberIds = members;
+            }
+            GD.Print("[SeaZonePanelTest] Dünya verisi geri yüklendi");
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M44.1: Kurgu ülke verisi headless testi (--formable-data-test).
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunFormableDataTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M44.1: KURGU ÜLKE VERİSİ TESTİ");
+        GD.Print("=========================================");
+
+        FormableDataSystem.LoadData();
+        int count = FormableDataSystem.FormableCount;
+        GD.Print($"[FormableDataTest] Yüklenen kayıt: {count}");
+        bool ok = count >= 15;
+
+        // 1) Zorunlu alanlar dolu ve kimlik/renk biçimi doğru
+        int missingFields = 0;
+        int badColor = 0;
+        foreach (var f in FormableDataSystem.All)
+        {
+            if (string.IsNullOrEmpty(f.Id) || string.IsNullOrEmpty(f.Name) ||
+                string.IsNullOrEmpty(f.Culture) || string.IsNullOrEmpty(f.Description))
+                missingFields++;
+            if (string.IsNullOrEmpty(f.Color) || !f.Color.StartsWith("#") || f.Color.Length != 7)
+                badColor++;
+        }
+        GD.Print($"[FormableDataTest] Eksik alan: {missingFields}, bozuk renk: {badColor}");
+        if (missingFields > 0 || badColor > 0) ok = false;
+
+        // 2) Kimlikler tek(unique) olmalı — sözlük zaten tekilleştirir, liste üzerinden doğrula
+        var seen = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int duplicates = 0;
+        foreach (var f in FormableDataSystem.All)
+            if (!seen.Add(f.Id)) duplicates++;
+        GD.Print($"[FormableDataTest] Tekrar eden kimlik: {duplicates}");
+        if (duplicates > 0) ok = false;
+
+        // 3) Sayısal alanlar makul aralıkta
+        int badNumbers = 0;
+        foreach (var f in FormableDataSystem.All)
+        {
+            if (f.RequiredProvinces < 1 || f.MinimumControlPercent < 0f || f.MinimumControlPercent > 100f ||
+                f.PoliticalPowerCost < 0f || f.DaysRequired < 1f)
+                badNumbers++;
+        }
+        GD.Print($"[FormableDataTest] Makul olmayan sayısal değer: {badNumbers}");
+        if (badNumbers > 0) ok = false;
+
+        // 4) Ebe kaynakları (parent) var ve mevcut senaryo ülkelerine çözülüyor
+        int noParents = 0;
+        int unresolvedParents = 0;
+        var scenarioIds = CountryDatabase.All().Select(c => c.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var f in FormableDataSystem.All)
+        {
+            if (f.ParentCountryIds == null || f.ParentCountryIds.Count == 0)
+            {
+                noParents++;
+                continue;
+            }
+            foreach (var pid in f.ParentCountryIds)
+                if (!scenarioIds.Contains(pid)) unresolvedParents++;
+        }
+        GD.Print($"[FormableDataTest] Ebe kaynağı olmayan: {noParents}, senaryoda bulunamayan ebe kaynağı: {unresolvedParents}");
+        if (noParents > 0 || unresolvedParents > 0) ok = false;
+
+        // 5) Kimlik çakışması: kurgu kimliği senaryo ülkesiyle aynı olmamalı
+        int idCollisions = 0;
+        foreach (var f in FormableDataSystem.All)
+            if (scenarioIds.Contains(f.Id)) idCollisions++;
+        GD.Print($"[FormableDataTest] Senaryo ülkesiyle kimlik çakışması: {idCollisions}");
+        if (idCollisions > 0) ok = false;
+
+        // 6) Arama API'leri: Get + ForParent
+        var germany = FormableDataSystem.ForParent("DEU");
+        GD.Print($"[FormableDataTest] DEU topraklarından kurulabilecek: {germany.Count} kayıt");
+        if (germany.Count < 1) ok = false;
+
+        var russia = FormableDataSystem.ForParent("RUS");
+        GD.Print($"[FormableDataTest] RUS topraklarından kurulabilecek: {russia.Count} kayıt");
+        if (russia.Count < 2) ok = false;
+
+        var missing = FormableDataSystem.Get("XXX_BU_YOK");
+        GD.Print($"[FormableDataTest] Var olmayan kimlik sorgusu null döndü: {missing == null}");
+        if (missing != null) ok = false;
+
+        GD.Print($"[FormableDataTest] Kültür çeşitliliği: {FormableDataSystem.All.Select(f => f.Culture).Distinct().Count()} farklı kültür");
+
+        GD.Print(ok ? "[FormableDataTest] SONUÇ: PASS ✓" : "[FormableDataTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

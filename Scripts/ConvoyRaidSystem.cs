@@ -473,6 +473,25 @@ public static class ConvoyRaidSystem
     }
 
     /// <summary>
+    /// Belirli bir bölgedeki günlük konvoy kaybı riski [0,100] — M43.5 panelinde
+    /// bölge satırlarının "risk" göstergesi olarak kullanılır.
+    ///
+    /// Etkin hakimiyet (müttefik koruması dahil) üzerinden hesaplanır; böylece
+    /// panel, günlük uygulanan kayıpla aynı sayıyı gösterir.
+    /// </summary>
+    public static float ZoneRiskPercent(SeaZoneSystem.ZoneDefinition zone, string countryId)
+    {
+        if (zone == null || string.IsNullOrEmpty(countryId)) return 0f;
+
+        float mySup = SeaZoneSystem.Supremacy(zone, countryId);
+        float effSup = EffectiveSupremacy(zone, countryId);
+        float enemyDominance = Mathf.Clamp(100f - effSup, 0f, 100f);
+        float loss = LossFraction(enemyDominance);
+        loss *= 1f - MaxEscortEffect * LossReduction(mySup, effSup);
+        return Mathf.Clamp(loss, 0f, MaxDailyLossFraction) * 100f;
+    }
+
+    /// <summary>
     /// Bir ülkenin tüm aktif konvoy güzergâhlarındaki toplam günlük risk yüzdesi.
     /// UI'da "konvoy riski" göstergesi için kullanılır.
     /// </summary>
@@ -483,15 +502,7 @@ public static class ConvoyRaidSystem
         var zone = FindRaidedZone(countryId);
         if (zone == null) return 0f;
 
-        // M43.4: etkin hakimiyet (müttefik koruması dahil) riski düşürür.
-        float effSup = EffectiveSupremacy(zone, countryId);
-        float enemyDominance = Mathf.Clamp(100f - effSup, 0f, 100f);
-        float loss = LossFraction(enemyDominance);
-
-        float mySup = SeaZoneSystem.Supremacy(zone, countryId);
-        loss *= 1f - MaxEscortEffect * LossReduction(mySup, effSup);
-        loss = Mathf.Clamp(loss, 0f, MaxDailyLossFraction);
-        return loss * 100f;
+        return ZoneRiskPercent(zone, countryId);
     }
 
     // ===== Save/Load + yeni oyun (M43.4) =====

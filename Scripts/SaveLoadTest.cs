@@ -413,6 +413,20 @@ public static class SaveLoadTest
                      "|" + (s.ProvinceIds?.Length ?? 0)).GetHashCode();
         }
         sb.AppendLine($"İlakKayıtları: kayıt={subjects}, hash={releasableHash}");
+
+        // M45.2: Bağımlı özerklik seviyeleri özeti (save/load A==B karşılaştırmasına girer)
+        var autonomySave = AutonomySystem.GetSaveData();
+        int autonomyCount = autonomySave?.Subjects?.Length ?? 0;
+        int autonomyHash = 0;
+        if (autonomySave?.Subjects != null)
+        {
+            foreach (var a in autonomySave.Subjects)
+                autonomyHash = autonomyHash * 31 +
+                    (a.CountryId + "|" + a.OverlordId + "|" + a.Level.ToString("R") +
+                     "|" + a.LastChangeDay + "|" + a.GrantCount + "|" + a.RevokeCount +
+                     "|" + a.LastDailyDrift.ToString("R")).GetHashCode();
+        }
+        sb.AppendLine($"Özerklik: kayıt={autonomyCount}, hash={autonomyHash}");
         if (leaderCount > 0)
         {
             foreach (var kv in LeaderSystem.All.OrderBy(k => k.Key))

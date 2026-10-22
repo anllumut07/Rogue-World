@@ -2429,3 +2429,62 @@ boşluğa karşılık geliyor (hipotez değil, kodda görüldü):
 4. Kullanıcının test etmesi gerekenler: oyunda SUBJECTS butonunun paneli
     açması, ilhak edilen ülkenin RELEASE NATION ile bağımsız olması ve
     haritanın yeniden boyanması.
+---
+
+## M45.2 — Özerklik Sistemi (AutonomySystem)
+
+**Ne yapıldı:** `Data/autonomy.json` (yeni, 11 ayar) + `Scripts/AutonomySystem.cs`
+(yeni, ~420 satır). Bağımlı ülke artı pasif ganimet değil: 0-100 özerklik seviyesi,
+günlük kayma formülü, overlord kontrolu (ver/geri al), ve iki gercek tuketici.
+
+**Kayma formulu (deterministik, RNG yok):**
+``taban 0.05 + yabancı_kültür_payı x 0.25 + overlord_zayıflık x 0.2`` → 0.6/gün kırpma.
+Overlord zayıflık = (100 - StabilityPercent)/100. Yabancı kültür payı, ReleasableSystem
+kaydındaki illerinnekadarı overlord'un baskın kültüründen farklı (ProvinceCultureSystem).
+
+**Baglantı noktaları — olü kod degil:**
+- `Scripts/EconomySystem.cs` `ProduceResources()`: resMult artik
+  `AutonomySystem.ResourceExtractionFactor(d.Id)` ile çarpılıyor. Il ağırlıklı ortalama
+  özerklik ne kadar yüksekse çıkarılan kaynak o kadar az (maks %50 kayıp).
+- `Scripts/GameManager.cs` `DailyTick()` + yeni `ApplyAutonomyStabilityPressure()`:
+  özerk bağımlısı olan HER overlord'un (AI dahil) stabilitesi her gün düşer
+  (maks 0.15/gün). Sadece oyuncu değil.
+
+**Yetki kuralları:** GrantAutonomy/RevokeAutonomy ±10 birim; yalnızca ilhak eden
+ülke; iki karar arasında 7 gün bekleme; bağımsız olmuş ülkenin durumu bir sonraki
+tick'te budanır.
+
+**Save/Load:** `SaveSystem.AutonomySave`/`AutonomySubjectEntry` DTO'ları,
+`GetSaveData`/`LoadSaveData`, `ResetForNewGame` 6 noktaya bağlandı,
+`SaveLoadTest.BuildSummaryCore`'a "Özerklik: kayıt=…, hash=…" satırı eklendi.
+
+**Kararlar (varsayim):**
+- `AutonomySystem.Get()` hâlâ bağımlı olan ülkenin durumunu ANINDA ilklendirir
+  (başlangıç: ilhak 0, kukla 30). Aksi hâlde tüketiciler ilk gün "kayıt yok" görüp
+  çıkarım katsayısını 1.0 döndürüyordu — bu sistem anlamsızlaşıyordu.
+- Determinizm testi "aynı koşullar → aynı seviye" olarak yazıldı. ILK DENEMEDE
+  "iki farklı kukla aynı seviyede olmalı" varsayımı YANLIPTI: girdileri (kültür
+  dağılımı, il sayısı) farklı olduğu için farklı sonuç beklene davranış. Test buna
+  göre düzeltildi; bozulan bir determinizm değil, hatalı test beklentisiydi.
+- Stabilite baskısı overlay-da tutuluyor, PoliticalUnrestSystem'dan ayrı: biri ülke
+  içi halk baskısı, diğeri işgal edilen halkın baskısı.
+
+**Doğrulama:** dotnet build 0/0; `--autonomy-test` PASS ✓ (ilhak başlangıç 0,
+kukla başlangıç 30, kayma formülü birebir doğrulandı, 10 gün sonraki seviye,
+yetkisiz aktör reddi, bekleme süresi reddi, ±adım doğrulandı, çıkarım katsayısı ve
+stabilite baskısı ölçüldü, budanma, save/load round-trip);
+`--save-load-test` A==B PASS (historical_1936 + modern_world);
+`--releasable-test` regresyon PASS ✓.
+
+### ÖZET
+1. Değişen: Scripts/AutonomySystem.cs (yeni), Data/autonomy.json (yeni),
+   Scripts/EconomySystem.cs, Scripts/GameManager.cs, Scripts/SaveSystem.cs,
+   Scripts/SaveLoadTest.cs, TODO.md (45.2 [x]), PROGRESS.md.
+2. Çözülemeyen: yok.
+3. Bilinen: Save-load senaryoları ilhak üretmediği için "İlakKayıtları" ve
+   "Özerklik" satırları kayıt=0/hash=0 — A==B karşılaştırması bu iki satır için
+   hâlâ boş (M45.4'te test dünyasına bağımlı kaydı eklenerek kapatılacak).
+   ReleasableSystem.AdvanceDay hâlâ boş (otomatik talep M48.2).
+4. Kullanıcının test etmesi gerekenler: oyunda bir ülkeyi ilhak edip birkaç gün
+   ilerletmek — ilhak edilen ülkenin kaynak çıkarımının düşmesi ve stabilite
+   baskısının loglarda ("[M45.2] … stabilitesi düştü") görünmesi.

@@ -188,6 +188,7 @@ public partial class GameManager : Node
         bool releasableTest = false;         // M44.4: ilhak/kukla ülkeyi bağımsız çıkarma testi
         bool formablePanelTest = false;      // M44.5: kurgu ülke paneli testi (--formable-panel-test)
         bool releasablePanelTest = false;    // M45.1: bağımsız çıkarma paneli testi (--releasable-panel-test)
+        bool autonomyTest = false;           // M45.2: özerklik sistemi testi (--autonomy-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -350,6 +351,8 @@ public partial class GameManager : Node
                 formablePanelTest = true;
                 else if (arg == "--releasable-panel-test")
                     releasablePanelTest = true;
+                else if (arg == "--autonomy-test")
+                    autonomyTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -778,6 +781,10 @@ public partial class GameManager : Node
         if (releasablePanelTest)
             RunReleasablePanelTest();
 
+        // M45.2: Özerklik sistemi testi — kayma, ver/geri al, çıkarım ve stabilite etkisi.
+        if (autonomyTest)
+            RunAutonomyTest();
+
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
             RunTooltipTest();
@@ -1041,6 +1048,11 @@ public partial class GameManager : Node
         // M23.4: Halk refahı — protesto, grev, güven oylaması, erken seçim, darbe girişimi (oyuncu ülkesinde).
         if (HasPlayer) PoliticalUnrestSystem.DailyTick(PlayerCountryId, TotalDays);
 
+        // M45.2: Bağımlı ülkelerde özerklik kayması (deterministik, RNG yok) ve
+        // özerk bağımlıların overlord stabilitesine günlük baskısı.
+        AutonomySystem.DailyTick(TotalDays);
+        ApplyAutonomyStabilityPressure();
+
         // M12: Ocak 1'de otomatik kayıt (yeni yılın ilk günü)
         if (CurrentDate.Month == 1 && CurrentDate.Day == 1)
         {
@@ -1054,6 +1066,32 @@ public partial class GameManager : Node
         }
 
         EmitSignal(SignalName.PlayerCountryDataChanged);
+    }
+
+    // M45.2: Özerk bağımlıları olan her overlord'un stabilitesini her gün bir miktar
+    // aşağı çeker. Tüm overlord'lar için çalışır (AI dahil) ve RNG kullanmaz.
+    private void ApplyAutonomyStabilityPressure()
+    {
+        var pressured = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var record in ReleasableSystem.Releasable())
+        {
+            if (pressured.Contains(record.OverlordId)) continue;
+            pressured.Add(record.OverlordId);
+
+            double pressure = AutonomySystem.StabilityPressure(record.OverlordId);
+            if (pressure <= 0.0) continue;
+
+            var overlord = CountryDatabase.Get(record.OverlordId);
+            if (overlord == null) continue;
+
+            double before = overlord.StabilityPercent;
+            overlord.StabilityPercent = Math.Clamp(before - pressure, 0, 100);
+            if (Math.Abs(before - overlord.StabilityPercent) < 1e-6) continue;
+
+            GD.Print($"[M45.2] {record.OverlordId} stabilitesi düştü: {before:N1} → " +
+                     $"{overlord.StabilityPercent:N1} (özerk bağımlılar)");
+        }
     }
 
     // M24.2: Oyuncu karakterinin 7 niteliği ilgili istatistik göstergelerini düşük,
@@ -8754,6 +8792,7 @@ private void RunBalanceTest()
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
         ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
         ReleasableSystem.ResetForNewGame();
+        AutonomySystem.ResetForNewGame();
         GD.Print($"[ReleasableTest] 1) İl: {provinces.Count}, kültür kaydı: {ProvinceCultureSystem.RecordCount}");
 
         // 2) Değiş tokuş: büyük ülke (overlord) küçük ülkeyi ilhak eder.
@@ -8910,6 +8949,7 @@ private void RunBalanceTest()
 
         // 11) Kukla kaydı: fabrika payı alınmaz, iller kurbanın kalır
         ReleasableSystem.ResetForNewGame();
+        AutonomySystem.ResetForNewGame();
         var puppetTaker = CountryDatabase.All()
             .FirstOrDefault(c => c != null && !c.IsAnnexed && ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count > 0);
         var puppetSub = CountryDatabase.All()
@@ -8927,6 +8967,7 @@ private void RunBalanceTest()
         ReleasableSystem.RecordSubject(subject.Id, overlord.Id, false, civBefore, milBefore, dockBefore);
         var save = ReleasableSystem.GetSaveData();
         ReleasableSystem.ResetForNewGame();
+        AutonomySystem.ResetForNewGame();
         ReleasableSystem.LoadSaveData(save);
         var loaded = ReleasableSystem.Get(subject.Id);
         if (loaded == null || loaded.ProvinceIds.Length != subjectProvinces.Count ||
@@ -9368,6 +9409,7 @@ private void RunBalanceTest()
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
         ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
         ReleasableSystem.ResetForNewGame();
+        AutonomySystem.ResetForNewGame();
         GD.Print($"[ReleasablePanelTest] İl: {provinces.Count}, kültür kaydı: {ProvinceCultureSystem.RecordCount}");
 
         if (!HasPlayer) SetPlayerCountry("DEU");
@@ -9663,6 +9705,7 @@ private void RunBalanceTest()
                             ok = false;
                         }
                         ReleasableSystem.ResetForNewGame();
+                        AutonomySystem.ResetForNewGame();
                         if (ReleasableSystem.RecordCount != 0)
                         {
                             GD.PrintErr("[ReleasablePanelTest] HATA: sıfırlama kayıtları temizlemeli");
@@ -9728,6 +9771,7 @@ private void RunBalanceTest()
             ProvinceCultureSystem.ResetForNewGame();
             ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
             ReleasableSystem.ResetForNewGame();
+            AutonomySystem.ResetForNewGame();
             GD.Print("[ReleasablePanelTest] Dünya verisi geri yüklendi");
         }
 
@@ -9751,6 +9795,357 @@ private void RunBalanceTest()
         foreach (var n in FindChildrenIn(root))
             if (n is ItemList il) return il;
         return null;
+    }
+
+    /// <summary>
+    /// M45.2 özerklik sistemi testi (--autonomy-test).
+    ///
+    /// Doğrulananlar:
+    ///   1) İlk seviyeler: ilhak 0, kukla 30 (Data/autonomy.json).
+    ///   2) Günlük kayma formülü: taban + yabancı_kültür*ağırlık + zayıflık*ağırlık.
+    ///   3) Kayma determinizmi: aynı dünya, iki ayrı koşu → aynı seviye.
+    ///   4) Özerklik ver / geri al: adım, bekleme süresi, yetkisiz aktör reddi.
+    ///   5) Çıkarım katsayısı ve stabilite baskısı (gerçek tüketiciler).
+    ///   6) Save/load round-trip: seviyeler birebir korunur.
+    /// </summary>
+    private void RunAutonomyTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M45.2: ÖZERKLİK SİSTEMİ TESTİ");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        // 1) Dünya: il + kültür + sahiplik
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ReleasableSystem.ResetForNewGame();
+        AutonomySystem.ResetForNewGame();
+
+        // Overlord: en çok ili olan ülke. Bağımlı: kültürü farklı, 3+ ili olan en küçük ülke.
+        var overlord = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed && ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count > 0)
+            .OrderByDescending(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .First();
+
+        string overlordCulture = TopCulture(overlord.Id);
+        var subject = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, overlord.Id, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 3 &&
+                !string.Equals(TopCulture(c.Id), overlordCulture, StringComparison.Ordinal))
+            .OrderBy(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .FirstOrDefault();
+        if (subject == null)
+        {
+            GD.PrintErr("[AutonomyTest] HATA: kültürü farklı deneme bağımlısı bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var subjectProvinces = ProvinceOwnershipSystem.GetProvincesByOwner(subject.Id)
+            .OrderBy(id => id, StringComparer.Ordinal).ToList();
+        int civBefore = subject.CivFactories;
+        int milBefore = subject.MilFactories;
+        int dockBefore = subject.Dockyards;
+
+        GD.Print($"[AutonomyTest] 1) Overlord={overlord.Id} (kültür={overlordCulture}), " +
+                 $"bağımlı={subject.Id} (il={subjectProvinces.Count}, " +
+                 $"fabrika c{civBefore}/m{milBefore}/t{dockBefore})");
+
+        // İlhak uygula (kayıt iller devredilmeden ÖNCE düşer)
+        ReleasableSystem.RecordSubject(subject.Id, overlord.Id, false, civBefore, milBefore, dockBefore);
+        subject.IsAnnexed = true;
+        subject.OwnerId = overlord.Id;
+        overlord.CivFactories += civBefore;
+        overlord.MilFactories += milBefore;
+        overlord.Dockyards += dockBefore;
+        subject.CivFactories = subject.MilFactories = subject.Dockyards = 0;
+        foreach (var p in subjectProvinces)
+            ProvinceOwnershipSystem.SetProvinceOwner(p, overlord.Id);
+        // Kültür SAHİBİ overlord'a geçer ama kültürün KENDİSİ değişmez (M45.3 direnişin temeli).
+        ProvinceCultureSystem.ReassignCountry(subjectProvinces, overlord.Id);
+
+        // 2) Başlangıç seviyesi: ilhak edilen 0 olmalı
+        double start = AutonomySystem.Level(subject.Id);
+        if (Math.Abs(start) > 1e-6)
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: ilhak başlangıç seviyesi {start} != 0");
+            ok = false;
+        }
+        else GD.Print($"[AutonomyTest] 2) İlhak başlangıç seviyesi: {start:N1}");
+
+        // 3) Kukla başlangıç seviyesi 30 olmalı
+        var puppet = CountryDatabase.All()
+            .First(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, overlord.Id, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, subject.Id, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 1);
+        var puppetProvinces = ProvinceOwnershipSystem.GetProvincesByOwner(puppet.Id)
+            .OrderBy(id => id, StringComparer.Ordinal).ToList();
+        ReleasableSystem.RecordSubject(puppet.Id, overlord.Id, true, 0, 0, 0);
+        puppet.IsAnnexed = true;
+        puppet.OwnerId = overlord.Id;
+        foreach (var p in puppetProvinces)
+            ProvinceOwnershipSystem.SetProvinceOwner(p, overlord.Id);
+        ProvinceCultureSystem.ReassignCountry(puppetProvinces, overlord.Id);
+
+        double puppetStart = AutonomySystem.Level(puppet.Id);
+        if (Math.Abs(puppetStart - 30.0) > 1e-6)
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: kukla başlangıç seviyesi {puppetStart} != 30");
+            ok = false;
+        }
+        else GD.Print($"[AutonomyTest] 3) Kukla başlangıç seviyesi: {puppetStart:N1}");
+
+        // 3b) Ayna kukla: bağımlı olarak aynı anda kaydedilir, determinizm karşılaştırması için.
+        var mirror = CountryDatabase.All()
+            .First(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, overlord.Id, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, subject.Id, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, puppet.Id, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 1);
+        var mirrorProvinces = ProvinceOwnershipSystem.GetProvincesByOwner(mirror.Id)
+            .OrderBy(id => id, StringComparer.Ordinal).ToList();
+        ReleasableSystem.RecordSubject(mirror.Id, overlord.Id, true, 0, 0, 0);
+        mirror.IsAnnexed = true;
+        mirror.OwnerId = overlord.Id;
+        foreach (var p in mirrorProvinces)
+            ProvinceOwnershipSystem.SetProvinceOwner(p, overlord.Id);
+        ProvinceCultureSystem.ReassignCountry(mirrorProvinces, overlord.Id);
+
+        // 4) Kayma formülü: overlord stabilitesini bilinen bir değere sabitle
+        double stabilityBefore = overlord.StabilityPercent;
+        overlord.StabilityPercent = 50.0;   // zayıflık = (100-50)/100 = 0.5
+        double foreignShare = AutonomySystem.ForeignCultureShare(subject.Id);
+        double weakness = 0.5;
+        double expectedDrift = 0.05 + foreignShare * 0.25 + weakness * 0.2;
+
+        AutonomySystem.DailyTick(1);
+        double level1 = AutonomySystem.Level(subject.Id);
+        double actualDrift = AutonomySystem.Get(subject.Id).LastDailyDrift;
+
+        GD.Print($"[AutonomyTest] 4) Kayma: yabancı_kültür={foreignShare:P0}, " +
+                 $"beklenen={expectedDrift:F4}, gerçekleşen={actualDrift:F4} → seviye={level1:N2}");
+
+        if (foreignShare <= 0.0)
+        {
+            GD.PrintErr("[AutonomyTest] HATA: yabancı kültür payı 0 — kültür baskısı test edilemedi");
+            ok = false;
+        }
+        if (Math.Abs(actualDrift - expectedDrift) > 1e-4)
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: kayma {actualDrift} != beklenen {expectedDrift}");
+            ok = false;
+        }
+        if (Math.Abs(level1 - expectedDrift) > 1e-4)
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: 1 gün sonraki seviye {level1} != {expectedDrift}");
+            ok = false;
+        }
+
+        // 10 gün daha: seviye 10 * kayma olmalı (0-100 arası)
+        for (long day = 2; day <= 10; day++) AutonomySystem.DailyTick(day);
+        double level10 = AutonomySystem.Level(subject.Id);
+        double expected10 = Math.Min(10.0 * expectedDrift, 100.0);
+        double puppetLevel10 = AutonomySystem.Level(puppet.Id);
+        if (Math.Abs(level10 - expected10) > 1e-3)
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: 10 gün sonraki seviye {level10} != {expected10}");
+            ok = false;
+        }
+        else GD.Print($"[AutonomyTest]    10 gün sonraki seviye: {level10:N2} (beklenen {expected10:N2})");
+
+        // 5) Determinizm: her iki kukla için seviye, KENDİ girdileriyle hesaplanan
+        // formüle (başlangıç + gün × kayma) birebir uymalı. Kaymada RNG yok;
+        // girdiler (kültür dağılımı, overlord stabilitesi) sabitse çıktı sabittir.
+        // Not: iki farklı ülke farklı sonuç verir — çünkü kültür dağılımları farklıdır.
+        double mirrorDrift = AutonomySystem.Get(mirror.Id).LastDailyDrift;
+        double mirrorExpected = 30.0 + 10.0 * mirrorDrift;
+        double mirrorLevel10 = AutonomySystem.Level(mirror.Id);
+        if (Math.Abs(mirrorLevel10 - mirrorExpected) > 1e-3)
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: ayna seviyesi {mirrorLevel10} != formül {mirrorExpected}");
+            ok = false;
+        }
+        else GD.Print($"[AutonomyTest] 5) Ayna kukla formüle uyuyor: {mirrorLevel10:N4} " +
+                      $"(beklenen {mirrorExpected:N4})");
+
+        double puppetDrift = AutonomySystem.Get(puppet.Id).LastDailyDrift;
+        double puppetExpected = 30.0 + 10.0 * puppetDrift;
+        if (Math.Abs(puppetLevel10 - puppetExpected) > 1e-3)
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: kukla seviyesi {puppetLevel10} != formül {puppetExpected}");
+            ok = false;
+        }
+        else GD.Print($"[AutonomyTest]    Kukla da formüle uyuyor: {puppetLevel10:N4} " +
+                      $"(beklenen {puppetExpected:N4})");
+
+        // 6) Özerklik ver / geri al + bekleme süresi + yetki
+        double before4 = AutonomySystem.Level(subject.Id);
+        var stranger = CountryDatabase.All()
+            .First(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, overlord.Id, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, subject.Id, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, puppet.Id, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, mirror.Id, StringComparison.OrdinalIgnoreCase));
+
+        string authReason = "";
+        if (stranger != null && AutonomySystem.GrantAutonomy(subject.Id, stranger.Id, 5, out authReason))
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: yetkisiz aktör {stranger.Id} özerklik verebildi");
+            ok = false;
+        }
+        else GD.Print($"[AutonomyTest] 6) Yetkisiz aktör reddedildi ({authReason})");
+
+        // Son değişiklik günü = -999 (henüz ver/geri al yok), cooldown'a takılmamalı
+        if (!AutonomySystem.GrantAutonomy(subject.Id, overlord.Id, 5, out var grantReason))
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: özerklik verilemedi — {grantReason}");
+            ok = false;
+        }
+        else
+        {
+            double after = AutonomySystem.Level(subject.Id);
+            GD.Print($"[AutonomyTest]    Özerklik verildi: {before4:N1} → {after:N1}");
+            if (Math.Abs(after - (before4 + 10.0)) > 1e-6)
+            {
+                GD.PrintErr($"[AutonomyTest] HATA: özerklik adımı {after} != {before4 + 10.0}");
+                ok = false;
+            }
+        }
+
+        // Bekleme süresi (7 gün) içinde ikinci karar reddedilmeli
+        if (AutonomySystem.RevokeAutonomy(subject.Id, overlord.Id, 11, out var cdReason))
+        {
+            GD.PrintErr("[AutonomyTest] HATA: bekleme süresi dolmadan geri alındı");
+            ok = false;
+        }
+        else GD.Print($"[AutonomyTest]    Bekleme süresi reddetti ({cdReason})");
+
+        // 5 + 7 = 12. günde izin verir
+        double beforeR = AutonomySystem.Level(subject.Id);
+        if (!AutonomySystem.RevokeAutonomy(subject.Id, overlord.Id, 12, out var revokeReason))
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: geri alma başarısız — {revokeReason}");
+            ok = false;
+        }
+        else
+        {
+            double afterR = AutonomySystem.Level(subject.Id);
+            GD.Print($"[AutonomyTest]    Özerklik geri alındı: {beforeR:N1} → {afterR:N1}");
+            if (Math.Abs(afterR - (beforeR - 10.0)) > 1e-6)
+            {
+                GD.PrintErr($"[AutonomyTest] HATA: geri alma adımı {afterR} != {beforeR - 10.0}");
+                ok = false;
+            }
+        }
+
+        // 7) Etkiler — çıkarım katsayısı (il ağırlıklı) ve stabilite baskısı (düz ortalama)
+        double subjectLevel = AutonomySystem.Level(subject.Id);
+        double puppetLevel = AutonomySystem.Level(puppet.Id);
+        double mirrorLevel = AutonomySystem.Level(mirror.Id);
+        int subjectProv = subjectProvinces.Count;
+        int puppetProv = puppetProvinces.Count;
+        int mirrorProv = mirrorProvinces.Count;
+        long totalProv = subjectProv + puppetProv + mirrorProv;
+        double expectedAvg = (subjectLevel * subjectProv + puppetLevel * puppetProv +
+                              mirrorLevel * mirrorProv) / (double)totalProv;
+        double expectedFactor = 1.0 - (expectedAvg / 100.0) * 0.5;
+        double actualFactor = AutonomySystem.ResourceExtractionFactor(overlord.Id);
+        if (Math.Abs(actualFactor - expectedFactor) > 1e-6)
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: çıkarım katsayısı {actualFactor} != {expectedFactor}");
+            ok = false;
+        }
+        else GD.Print($"[AutonomyTest] 7) Çıkarım katsayısı: {actualFactor:F4} " +
+                      $"(ağırlıklı ortalama %{expectedAvg:N1})");
+
+        double expectedPressure = ((subjectLevel + puppetLevel + mirrorLevel) / 3.0 / 100.0) * 0.15;
+        double actualPressure = AutonomySystem.StabilityPressure(overlord.Id);
+        if (Math.Abs(actualPressure - expectedPressure) > 1e-6)
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: stabilite baskısı {actualPressure} != {expectedPressure}");
+            ok = false;
+        }
+        else GD.Print($"[AutonomyTest]    Stabilite baskısı: {actualPressure:F4}/gün");
+
+        overlord.StabilityPercent = 50.0;
+        ApplyAutonomyStabilityPressure();
+        double stabilityAfter = overlord.StabilityPercent;
+        if (Math.Abs(stabilityAfter - (50.0 - expectedPressure)) > 1e-6)
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: stabilite {stabilityAfter} != {50.0 - expectedPressure}");
+            ok = false;
+        }
+        else GD.Print($"[AutonomyTest]    Overlord stabilitesi 50 → {stabilityAfter:N3}");
+
+        // 8) Serbest bırakma kaydını silince özerklik durumu da budanmalı
+        var rel = ReleasableSystem.Release(subject.Id, overlord.Id);
+        if (!rel.Ok)
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: serbest bırakma başarısız — {rel.Reason}");
+            ok = false;
+        }
+        AutonomySystem.DailyTick(13);
+        if (AutonomySystem.Get(subject.Id) != null)
+        {
+            GD.PrintErr("[AutonomyTest] HATA: bağımsız olan ülkenin özerklik kaydı kaldı");
+            ok = false;
+        }
+        else GD.Print("[AutonomyTest] 8) Bağımsız olan ülkenin özerklik kaydı budandı");
+
+        // 9) Save/Load round-trip
+        var saveBefore = AutonomySystem.GetSaveData();
+        double savedPuppetLevel = AutonomySystem.Level(puppet.Id);
+        ReleasableSystem.ResetForNewGame();
+        AutonomySystem.LoadSaveData(saveBefore);
+        if (Math.Abs(AutonomySystem.Level(puppet.Id) - savedPuppetLevel) > 1e-9)
+        {
+            GD.PrintErr($"[AutonomyTest] HATA: yükleme sonrası kukla seviyesi " +
+                        $"{AutonomySystem.Level(puppet.Id)} != {savedPuppetLevel}");
+            ok = false;
+        }
+        else GD.Print($"[AutonomyTest] 9) Save/load round-trip tamam " +
+                      $"(kukla seviyesi {savedPuppetLevel:N2} korundu)");
+
+        // Kukla hâlâ bağımlı olduğu için budanma dışı kalmalı
+        if (AutonomySystem.Get(puppet.Id) == null)
+        {
+            GD.PrintErr("[AutonomyTest] HATA: hâlâ bağımlı olan kuklanın kaydı budandı");
+            ok = false;
+        }
+
+        ReleasableSystem.Release(puppet.Id, overlord.Id);
+        ReleasableSystem.Release(mirror.Id, overlord.Id);
+        ReleasableSystem.ResetForNewGame();
+        AutonomySystem.ResetForNewGame();
+        overlord.StabilityPercent = stabilityBefore;
+        subject.IsAnnexed = false;
+        puppet.IsAnnexed = false;
+        mirror.IsAnnexed = false;
+        subject.OwnerId = "";
+        puppet.OwnerId = "";
+        mirror.OwnerId = "";
+        ProvinceCultureSystem.ResetForNewGame();
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        GD.Print("[AutonomyTest] Dünya verisi geri yüklendi");
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>Bir ülkenin en çok ili olan kültürünü verir (test yardımcısı).</summary>
+    private static string TopCulture(string countryId)
+    {
+        var dist = ProvinceCultureSystem.GetCultureDistribution(countryId);
+        if (dist.Count == 0) return "";
+        return dist.OrderByDescending(kv => kv.Value)
+            .ThenBy(kv => kv.Key, StringComparer.Ordinal).First().Key;
     }
 
     /// <summary>İl listesinde kimliği eşleşen ilin indeksini verir (test yardımcısı).</summary>

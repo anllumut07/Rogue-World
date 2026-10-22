@@ -1,0 +1,15 @@
+{
+  "Version": 1,
+  "Settings": {
+    "AutonomyStep": 10.0,
+    "ChangeCooldownDays": 7,
+    "AnnexStartLevel": 0.0,
+    "PuppetStartLevel": 30.0,
+    "DriftBasePerDay": 0.05,
+    "CultureDriftWeight": 0.25,
+    "WeaknessDriftWeight": 0.2,
+    "MaxDailyDrift": 0.6,
+    "MaxExtractionLoss": 0.5,
+    "MaxStabilityPressurePerDay": 0.15
+  }
+}

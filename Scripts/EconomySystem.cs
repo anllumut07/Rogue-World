@@ -187,6 +187,9 @@ public static class EconomySystem
         var d = Player;
         float resMult = 1f + TechnologySystem.GetModifier("resource_gain");
 
+        // M45.2: özerk bağımlılardan gelen kaynak azalır (kesinti katsayısı)
+        resMult *= (float)AutonomySystem.ResourceExtractionFactor(d.Id);
+
         AddToStock("Oil", (int)(d.Oil * resMult));
         AddToStock("Rubber", (int)(d.Rubber * resMult));
         AddToStock("Steel", (int)(d.Steel * resMult));

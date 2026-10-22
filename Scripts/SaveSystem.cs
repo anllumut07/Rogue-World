@@ -68,6 +68,7 @@ public static class SaveSystem
         public CultureSave Culture { get; set; } // M44.2: il kültür/nüfus katmanı
         public FormableSave Formable { get; set; } // M44.3: sürmekte olan kurgu ülke kurulumları
         public ReleasableSave Releasable { get; set; } // M44.4: ilhak/kukla kayıtları
+        public AutonomySave Autonomy { get; set; } // M45.2: bağımlı özerklik seviyeleri
         public VictorySystem.VictorySave Victory { get; set; } // M41.2: zafer koşulu durumu
         public DiplomacySave Diplomacy { get; set; }
         public CasusBelliSave CasusBelli { get; set; } // M17A: gerekçe/ateşkes/meşruiyet
@@ -300,6 +301,22 @@ public static class SaveSystem
         public int CivTaken { get; set; }
         public int MilTaken { get; set; }
         public int DockTaken { get; set; }
+    }
+
+    // ===== Özerklik DTOs (M45.2) =====
+    public class AutonomySave
+    {
+        public AutonomySubjectEntry[] Subjects { get; set; }
+    }
+    public class AutonomySubjectEntry
+    {
+        public string CountryId { get; set; }
+        public string OverlordId { get; set; }
+        public double Level { get; set; }
+        public long LastChangeDay { get; set; }
+        public int GrantCount { get; set; }
+        public int RevokeCount { get; set; }
+        public double LastDailyDrift { get; set; }
     }
 
 
@@ -578,6 +595,7 @@ public static class SaveSystem
             Culture = ProvinceCultureSystem.GetSaveData(), // M44.2: il kültür/nüfus katmanı
             Formable = FormableSystem.GetSaveData(), // M44.3: sürmekte olan kurgu ülke kurulumları
             Releasable = ReleasableSystem.GetSaveData(), // M44.4: ilhak/kukla kayıtları
+            Autonomy = AutonomySystem.GetSaveData(), // M45.2: özerklik seviyeleri
             Victory = VictorySystem.GetSaveData(), // M41.2: zafer koşulu durumu
             Diplomacy = DiplomacySystem.GetSaveData(),
             CasusBelli = CasusBelliSystem.GetSaveData(),
@@ -735,6 +753,7 @@ public static class SaveSystem
                 FormableSystem.LoadSaveData(save.Formable); // M44.3: sürmekte olan kurgu ülke kurulumları
             if (save.Releasable != null)
                 ReleasableSystem.LoadSaveData(save.Releasable); // M44.4: ilhak/kukla kayıtları
+                AutonomySystem.LoadSaveData(save.Autonomy); // M45.2: özerklik seviyeleri
             VictorySystem.ApplySave(save.Victory); // M41.2: zafer koşulu durumu
             DiplomacySystem.LoadSaveData(save.Diplomacy);
             CasusBelliSystem.LoadSaveData(save.CasusBelli);

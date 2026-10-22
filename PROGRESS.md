@@ -2716,3 +2716,35 @@ bedelini (kayıtlı illerin kültür haritası) gösterir.
 
 **Bilinen sorun:** Save-load özetindeki "İlakKayıtları" satırı bu senaryolarda
 kayıt=0 çünkü test ilhak üretmiyor → M45.4'te kapatılacak.
+
+---
+
+## M45.2 — Özerklik Sistemi (AutonomySystem) ✅ DONE (2026-10-22)
+
+**Ne yapıldı:** Bağımlı ülkeler artık pasif ganimet değil. `Data/autonomy.json`
+(11 ayar) + `Scripts/AutonomySystem.cs`: her bağımlı için 0-100 özerklik seviyesi,
+günlük kayma formülü (taban 0.05 + yabancı kültür payı×0.25 + overlord zayıflığı×0.2,
+0.6/güne kırpılmış) ve overlord eylemleri (±10, 7 gün bekleme, yalnızca ilhak eden).
+
+**Bağlantı noktaları (ölü kod değil):**
+- `EconomySystem.ProduceResources()` → `AutonomySystem.ResourceExtractionFactor()`:
+  il ağırlıklı ortalama özerklik arttıkça çıkarılan kaynak azalır (maks %50 kayıp).
+- `GameManager.DailyTick()` → `ApplyAutonomyStabilityPressure()`: özerk bağımlısı olan
+  her overlord'un stabilitesi her gün düşer (maks 0.15/gün).
+
+**Save/Load:** `SaveSystem.AutonomySave` / `AutonomySubjectEntry` DTO'ları,
+`GetSaveData`/`LoadSaveData`, `ResetForNewGame` 6 noktaya bağlandı,
+`SaveLoadTest.BuildSummaryCore`'a "Özerklik: kayıt=…, hash=…" satırı eklendi.
+Kayma RNG kullanmaz → save/load sonrası birebir aynı seviye.
+
+**Tasarım kararı:** `AutonomySystem.Get()` hâlâ bağımlı olan ülkenin durumunu anında
+ilklendirir (başlangıç seviyesi: ilhak 0, kukla 30). Tüketiciler bir tick beklemeden
+doğru değeri görür.
+
+**Testler:** dotnet build 0/0; `--autonomy-test` PASS ✓; `--save-load-test` A==B PASS
+(historical_1936 + modern_world); `--releasable-test` regresyon PASS ✓.
+
+**Not:** Determinizm doğrulaması "aynı koşullar → aynı seviye" biçiminde yazıldı. İki
+farklı ülkenin farklı seviyede olması beklene davranıştır: girdileri (kültür dağılımı)
+farklıdır. İlk denemede "iki kukla aynı seviyede olmalı" varsayımı yanlıştı ve test
+buna göre düzeltildi.

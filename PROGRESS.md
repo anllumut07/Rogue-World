@@ -2417,3 +2417,38 @@ uyguluyor, savaş bitiyor, kaybeden ilhak ediliyor, iller devrediliyor).
 **Dosyalar:** `Scripts/PeaceConferencePanel.cs` (yeni),
 `Scenes/peace_conference_panel.tscn` (yeni), `Scripts/DiplomacyPanel.cs`,
 `Scripts/GameManager.cs`, `TODO.md` (42.5 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+---
+
+## M43.1 — Deniz Bölgeleri ve Hakimiyet — ✅ DONE (2026-10-22)
+
+- **Amaç:** Grand strateji için deniz savaşı zemini — dünya 12 deniz bölgesine
+  ayrılır, her bölgede hangi ülkenin hakimiyette olduğu ülke filo ağırlığından
+  hesaplanır.
+- **Eklenenler:** `Data/sea_zones.json` (12 bölge), `Scripts/SeaZoneSystem.cs`,
+  `Scripts/GameManager.cs` içinde `--sea-zone-test` kancası.
+- **Hakimiyet modeli:**
+  - Ölçek [0,100], her zaman bir ülkenin perspektifinden okunur ({SeaZoneSystem}):
+    50 = çekişmeli / kontrolsüz, 100 = tam kontrol, 0 = rakibin kontrolü.
+  - Bölgedeki rakip ağırlıkları **toplamı** alınır. Küçük filolardan oluşan bir
+    koalisyonun, tek büyük filo kadar ağırlık taşıması gerektiği için.
+  - Filo ağırlığı (`FleetWeight`) = `CountryData.Dockyards` + (yalnızca oyuncu için)
+    donanma ekipman stoğunun savaş değeri. `EquipmentSystem` stogu oyuncuya özel
+    olduğu için AI için tersane sayısı tek sinyal.
+  - Rakip ağırlığını görmek isteyen taraf: 50 + 50·(ben − rakipler)/(ben + rakipler).
+- **Yardımcı API (M43.2-M43.4 bunları tüketir):** `ZoneDefinition`,
+  `ZoneWeight`, `DominantCountry`, `Supremacy`, `AverageSupremacy`,
+  `ControlledZones`, `ControlledRouteValue`, `ZoneCount`, `All`.
+- **Kök neden (iki FAIL):**
+  1. İlk sürüm rakip ağırlığı olarak yalnızca "en güçlü tek rakibi" alıyordu; çok
+     komşulu bölgede (Baltık: SWE+FIN+POL+SOV) toplam rakip gücü göz ardı ediliyordu.
+     Hakimiyet perspektifte lehe değil çıkıyor, iki perspektif toplamı 100'e
+     tamamlanmıyordu. → Rakip toplamı alındı.
+  2. Test gerçek dünya verisine (komşuluk, tersane sayısı) bağlıydı — kırılgan.
+     → Test sentetik iki ülkeli bölge kurar, dünya verisini yedekleyip geri yükler.
+- **Save/Load:** Sistem saf hesaptır (DeterministicRNG yok, birikimli state yok) →
+  ayrı bir DTO gerekmez; `--save-load-test` A==B PASS (iki senaryo) etkilenmez.
+- **Test sonuçları:** `--sea-zone-test` PASS ✓. `dotnet build` 0 hata / 0 uyarı.
+
+**Dosyalar:** `Data/sea_zones.json` (yeni), `Scripts/SeaZoneSystem.cs` (yeni),
+`Scripts/GameManager.cs`, `TODO.md` (43.1 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.

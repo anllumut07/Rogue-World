@@ -177,6 +177,7 @@ public partial class GameManager : Node
         bool peaceTest = false;             // M42.3: barış anlaşması uygulama testi (--peace-test)
         bool aiPeaceTest = false;            // M42.4: AI barış davranışı testi (--ai-peace-test)
         bool peacePanelTest = false;         // M42.5: barış konferansı paneli testi (--peace-panel-test)
+        bool seaZoneTest = false;            // M43.1: deniz bölgesi / hakimiyet testi (--sea-zone-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -317,6 +318,8 @@ public partial class GameManager : Node
                 aiPeaceTest = true;
             else if (arg == "--peace-panel-test")
                 peacePanelTest = true;
+            else if (arg == "--sea-zone-test")
+                seaZoneTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -701,6 +704,10 @@ public partial class GameManager : Node
         // M42.5: Barış konferansı paneli testi — ölçü, liste, talep onayı, ESC kapatma.
         if (peacePanelTest)
             RunPeacePanelTest();
+
+        // M43.1: Deniz bölgesi / hakimiyet testi — bölge yükleme, [0,100] ölçek.
+        if (seaZoneTest)
+            RunSeaZoneTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -6686,5 +6693,250 @@ private void RunBalanceTest()
             foreach (var grand in FindChildrenIn(child))
                 yield return grand;
         }
+    }
+
+    /// <summary>
+    /// M43.1: Deniz bölgesi / hakimiyet testi (--sea-zone-test).
+    /// Bölge sayısının doğru yüklendiği, hakimiyetin [0,100] aralığında üretildiği,
+    /// filo ağırlığının tersane sayısıyla arttığı ve hakimiyetin deterministik
+    /// (aynı girdi → aynı çıktı) olduğu doğrulanır.
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunSeaZoneTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M43.1: DENİZ BÖLGESİ / HAKİMİYET TESTİ (--sea-zone-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        // ---- 1) 12 bölge yüklenmeli ve loglanmalı ----
+        SeaZoneSystem.LoadData();
+        int zoneCount = SeaZoneSystem.ZoneCount;
+        GD.Print($"[SeaZoneTest] Yüklenen bölge sayısı: {zoneCount}");
+        if (zoneCount != 12)
+        {
+            GD.PrintErr($"[SeaZoneTest] HATA: bölge sayısı 12 olmalı (bulundu: {zoneCount})");
+            ok = false;
+        }
+
+        // ---- 2) Her bölgenin tanımı tutarlı olmalı ----
+        foreach (var zone in SeaZoneSystem.All)
+        {
+            if (string.IsNullOrEmpty(zone.Id))
+            {
+                GD.PrintErr("[SeaZoneTest] HATA: bölgesi boş");
+                ok = false;
+            }
+            if (zone.AdjacentCountryIds.Count == 0)
+            {
+                GD.PrintErr($"[SeaZoneTest] HATA: {zone.Id} bölgesinin komşu ülkesi yok");
+                ok = false;
+            }
+            if (zone.FleetWeightFactor <= 0)
+            {
+                GD.PrintErr($"[SeaZoneTest] HATA: {zone.Id} filo çarpanı pozitif değil");
+                ok = false;
+            }
+            if (zone.ConvoyRouteValue < 0)
+            {
+                GD.PrintErr($"[SeaZoneTest] HATA: {zone.Id} konvoy değeri negatif");
+                ok = false;
+            }
+        }
+        GD.Print($"[SeaZoneTest] Tüm bölge tanımları tutarlı ({zoneCount} bölge)");
+
+        // ---- 3) Kurulum: oyuncu + rakip (dünya verisini bozmadan) ----
+        // SeaZoneSystem saf hesaptır; hakimiyet doğrudan ZoneDefinition üzerinden
+        // okunabildiği için sentetik bir bölge kurmak deterministik ve güvenlidir.
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        string playerId = PlayerCountryId;
+
+        // Gerçek bölgede oyuncunun komşusu olan bir rakip seç.
+        var playerZone = SeaZoneSystem.All
+            .FirstOrDefault(z => z.AdjacentCountryIds.Any(id =>
+                string.Equals(id, playerId, StringComparison.OrdinalIgnoreCase)));
+        if (playerZone == null)
+        {
+            GD.PrintErr($"[SeaZoneTest] HATA: {playerId} komşusu olduğu deniz bölgesi yok");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Sentetik test bölgesi: iki taraf + bir dışarıdaki ülke (komşu değil).
+        var outsider = CountryDatabase.All()
+            .FirstOrDefault(c => c != null && !c.IsAnnexed && c.Id != playerId &&
+                !playerZone.AdjacentCountryIds.Any(id =>
+                    string.Equals(id, c.Id, StringComparison.OrdinalIgnoreCase)));
+        if (outsider == null)
+        {
+            GD.PrintErr("[SeaZoneTest] HATA: komşu olmayan örnek ülke bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var testZone = new SeaZoneSystem.ZoneDefinition
+        {
+            Id = "test_sea",
+            Name = "Test Sea",
+            FleetWeightFactor = 1.0,
+            ConvoyRouteValue = 1.0,
+            AdjacentCountryIds = new List<string> { playerId, outsider.Id }
+        };
+        GD.Print($"[SeaZoneTest] Sentetik bölge: {testZone.Name} — komşular " +
+                 $"{playerId}, {outsider.Id}");
+
+        var playerData = CountryDatabase.Get(playerId);
+        var rivalData = CountryDatabase.Get(outsider.Id);
+        if (playerData == null || rivalData == null)
+        {
+            GD.PrintErr("[SeaZoneTest] HATA: ülke verisi okunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Başlangıç filolarını kaydet (test sonunda geri yüklenir).
+        int playerDockBefore = playerData.Dockyards;
+        int rivalDockBefore = rivalData.Dockyards;
+
+        // Oyuncu rakibin iki katı filo → perspektifte lehine olmalı.
+        rivalData.Dockyards = 4;
+        playerData.Dockyards = rivalData.Dockyards * 2;
+
+        GD.Print($"[SeaZoneTest] {playerId}: {playerData.Dockyards} tersane, " +
+                 $"{EquipmentSystem.GetStock("battleship")} zırveh, " +
+                 $"{EquipmentSystem.GetStock("submarine")} denizaltı");
+        GD.Print($"[SeaZoneTest] {outsider.Id}: {rivalData.Dockyards} tersane");
+
+        // ---- 4) Hakimiyet [0,100] ve iki perspektif toplamı 100 ----
+        float sup = SeaZoneSystem.Supremacy(testZone, playerId);
+        float rivalSup = SeaZoneSystem.Supremacy(testZone, outsider.Id);
+        GD.Print($"[SeaZoneTest] {playerId} hakimiyeti: {sup:F1}, {outsider.Id}: {rivalSup:F1}");
+
+        if (sup < 0f || sup > 100f || rivalSup < 0f || rivalSup > 100f)
+        {
+            GD.PrintErr($"[SeaZoneTest] HATA: hakimiyet [0,100] dışında " +
+                        $"({sup:F1} / {rivalSup:F1})");
+            ok = false;
+        }
+        if (Mathf.Abs(sup + rivalSup - 100f) > 0.01f)
+        {
+            GD.PrintErr($"[SeaZoneTest] HATA: iki perspektif toplamı 100 değil " +
+                        $"({sup + rivalSup:F2})");
+            ok = false;
+        }
+        if (sup <= 50f)
+        {
+            GD.PrintErr($"[SeaZoneTest] HATA: oyuncu daha ağır ama hakimiyet {sup:F1} ≤ 50");
+            ok = false;
+        }
+
+        // ---- 5) Komşu olmayan ülke nötr (50) dönmeli ----
+        var nonAdjacent = CountryDatabase.All()
+            .FirstOrDefault(c => c != null && !c.IsAnnexed && c.Id != playerId &&
+                c.Id != outsider.Id);
+        if (nonAdjacent != null)
+        {
+            float neutral = SeaZoneSystem.Supremacy(testZone, nonAdjacent.Id);
+            GD.Print($"[SeaZoneTest] Komşu olmayan {nonAdjacent.Id}: {neutral:F1}");
+            if (Mathf.Abs(neutral - 50f) > 0.01f)
+            {
+                GD.PrintErr($"[SeaZoneTest] HATA: komşu olmayan ülke nötr değil ({neutral:F1})");
+                ok = false;
+            }
+        }
+
+        // ---- 6) Tersane azaldıkça hakimiyet düşmeli ----
+        float before = SeaZoneSystem.Supremacy(testZone, playerId);
+        playerData.Dockyards = 1; // rakibin (4) altına düşür
+        float lowered = SeaZoneSystem.Supremacy(testZone, playerId);
+        GD.Print($"[SeaZoneTest] Filo azaltıldı: {before:F1} → {lowered:F1}");
+        if (lowered >= before)
+        {
+            GD.PrintErr($"[SeaZoneTest] HATA: filo azalması hakimiyeti düşürmedi " +
+                        $"({before:F1} → {lowered:F1})");
+            ok = false;
+        }
+        if (lowered < 0f)
+        {
+            GD.PrintErr($"[SeaZoneTest] HATA: hakimiyet [0,100] altına indi ({lowered:F1})");
+            ok = false;
+        }
+
+        // ---- 7) Denge (eşit filo) tam 50 olmalı ----
+        playerData.Dockyards = rivalData.Dockyards;
+        float balanced = SeaZoneSystem.Supremacy(testZone, playerId);
+        GD.Print($"[SeaZoneTest] Eşit filo hakimiyeti: {balanced:F1}");
+        if (Mathf.Abs(balanced - 50f) > 0.01f)
+        {
+            GD.PrintErr($"[SeaZoneTest] HATA: eşit filoda hakimiyet 50 değil ({balanced:F1})");
+            ok = false;
+        }
+
+        // ---- 8) Deterministlik: aynı girdi aynı çıktı ----
+        float d1 = SeaZoneSystem.Supremacy(testZone, playerId);
+        float d2 = SeaZoneSystem.Supremacy(testZone, playerId);
+        if (Mathf.Abs(d1 - d2) > 0.0001f)
+        {
+            GD.PrintErr($"[SeaZoneTest] HATA: deterministik değil ({d1} ≠ {d2})");
+            ok = false;
+        }
+        else
+        {
+            GD.Print("[SeaZoneTest] Deterministik tekrar: aynı değer ✓");
+        }
+
+        // ---- 9) Dünya verisini geri yükle ----
+        playerData.Dockyards = playerDockBefore;
+        rivalData.Dockyards = rivalDockBefore;
+
+        // ---- 10) Gerçek bölge üzerinde özet doğrulamaları ----
+        float avg = SeaZoneSystem.AverageSupremacy(playerId);
+        GD.Print($"[SeaZoneTest] {playerId} ortalama hakimiyet (gerçek bölgeler): {avg:F1}");
+        if (avg < 0f || avg > 100f)
+        {
+            GD.PrintErr($"[SeaZoneTest] HATA: ortalama hakimiyet [0,100] dışında ({avg:F1})");
+            ok = false;
+        }
+
+        var controlled = SeaZoneSystem.ControlledZones(playerId);
+        GD.Print($"[SeaZoneTest] {playerId} kontrol ettiği bölge sayısı: {controlled.Count}");
+        foreach (var z in controlled)
+            GD.Print($"[SeaZoneTest]   • {z.Name} ({z.Id}) — " +
+                     $"{SeaZoneSystem.Supremacy(z, playerId):F1}");
+
+        double routeValue = SeaZoneSystem.ControlledRouteValue(playerId);
+        GD.Print($"[SeaZoneTest] Kontrol edilen konvoy güzergâhı değeri: {routeValue:F2}");
+        if (routeValue < 0)
+        {
+            GD.PrintErr("[SeaZoneTest] HATA: konvoy güzergâhı değeri negatif");
+            ok = false;
+        }
+
+        // ---- 11) İlhak edilmiş ülkenin filo ağırlığı sayılmamalı ----
+        var victim = CountryDatabase.All()
+            .FirstOrDefault(c => c != null && !c.IsAnnexed && c.Id != playerId &&
+                playerZone.AdjacentCountryIds.Any(id =>
+                    string.Equals(id, c.Id, StringComparison.OrdinalIgnoreCase)));
+        if (victim != null)
+        {
+            float weightBefore = SeaZoneSystem.ZoneWeight(playerZone, victim.Id);
+            victim.IsAnnexed = true;
+            float weightAfter = SeaZoneSystem.ZoneWeight(playerZone, victim.Id);
+            victim.IsAnnexed = false; // geri al (diğer testleri etkilemesin)
+            GD.Print($"[SeaZoneTest] İlhak sonrası {victim.Id} ağırlığı: " +
+                     $"{weightBefore} → {weightAfter}");
+            if (weightAfter != 0f)
+            {
+                GD.PrintErr($"[SeaZoneTest] HATA: ilhak edilmiş ülke hâlâ " +
+                            $"{weightAfter} ağırlık taşıyor");
+                ok = false;
+            }
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
     }
 }

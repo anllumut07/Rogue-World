@@ -1,0 +1,113 @@
+{
+  "Version": 1,
+  "Zones": [
+    {
+      "Id": "baltic",
+      "Name": "Baltic Sea",
+      "Lon": 20.0,
+      "Lat": 58.0,
+      "AdjacentCountryIds": ["SWE", "FIN", "POL", "DEU", "DNK", "SOV"],
+      "FleetWeightFactor": 0.8,
+      "ConvoyRouteValue": 0.6
+    },
+    {
+      "Id": "north_sea",
+      "Name": "North Sea",
+      "Lon": 3.0,
+      "Lat": 56.0,
+      "AdjacentCountryIds": ["GBR", "DEU", "NLD", "BEL", "DNK", "NOR", "FRA"],
+      "FleetWeightFactor": 1.0,
+      "ConvoyRouteValue": 1.0
+    },
+    {
+      "Id": "english_channel",
+      "Name": "English Channel",
+      "Lon": -1.0,
+      "Lat": 50.0,
+      "AdjacentCountryIds": ["GBR", "FRA", "BEL", "NLD"],
+      "FleetWeightFactor": 0.9,
+      "ConvoyRouteValue": 0.9
+    },
+    {
+      "Id": "bay_of_biscay",
+      "Name": "Bay of Biscay",
+      "Lon": -5.0,
+      "Lat": 45.0,
+      "AdjacentCountryIds": ["FRA", "ESP"],
+      "FleetWeightFactor": 0.8,
+      "ConvoyRouteValue": 0.5
+    },
+    {
+      "Id": "western_mediterranean",
+      "Name": "Western Mediterranean",
+      "Lon": 5.0,
+      "Lat": 37.0,
+      "AdjacentCountryIds": ["ESP", "FRA", "ITA"],
+      "FleetWeightFactor": 0.9,
+      "ConvoyRouteValue": 0.7
+    },
+    {
+      "Id": "eastern_mediterranean",
+      "Name": "Eastern Mediterranean",
+      "Lon": 22.0,
+      "Lat": 34.0,
+      "AdjacentCountryIds": ["ITA", "GRC", "TUR", "YUG"],
+      "FleetWeightFactor": 1.0,
+      "ConvoyRouteValue": 0.8
+    },
+    {
+      "Id": "black_sea",
+      "Name": "Black Sea",
+      "Lon": 34.0,
+      "Lat": 43.0,
+      "AdjacentCountryIds": ["TUR", "BGR", "RUM", "SOV"],
+      "FleetWeightFactor": 0.7,
+      "ConvoyRouteValue": 0.4
+    },
+    {
+      "Id": "red_sea",
+      "Name": "Red Sea",
+      "Lon": 37.0,
+      "Lat": 20.0,
+      "AdjacentCountryIds": ["EGY", "SAU", "YEM", "ETH"],
+      "FleetWeightFactor": 0.6,
+      "ConvoyRouteValue": 0.4
+    },
+    {
+      "Id": "persian_gulf",
+      "Name": "Persian Gulf",
+      "Lon": 51.0,
+      "Lat": 27.0,
+      "AdjacentCountryIds": ["IRN", "IRQ", "SAU", "KWT"],
+      "FleetWeightFactor": 0.8,
+      "ConvoyRouteValue": 0.7
+    },
+    {
+      "Id": "indian_ocean",
+      "Name": "Indian Ocean",
+      "Lon": 75.0,
+      "Lat": -20.0,
+      "AdjacentCountryIds": ["IND", "PAK", "IRN", "SAU", "ETH", "SOM", "ZAF"],
+      "FleetWeightFactor": 1.0,
+      "ConvoyRouteValue": 1.0
+    },
+    {
+      "Id": "south_china_sea",
+      "Name": "South China Sea",
+      "Lon": 113.0,
+      "Lat": 14.0,
+      "AdjacentCountryIds": ["CHN", "VIE", "PHL", "MYS", "IDN", "THA"],
+      "FleetWeightFactor": 0.9,
+      "ConvoyRouteValue": 0.9
+    },
+    {
+      "Id": "north_pacific",
+      "Name": "North Pacific",
+      "Lon": -160.0,
+      "Lat": 35.0,
+      "AdjacentCountryIds": ["USA", "JPN", "CAN", "MEX"],
+      "FleetWeightFactor": 1.1,
+      "ConvoyRouteValue": 1.0
+    }
+  ]
+}

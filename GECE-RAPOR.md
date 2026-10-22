@@ -1970,3 +1970,34 @@ gerektiren işler yapılmayacak.
 2. M43 (deniz üstünlüğü / konvoy baskını) sıradaki alt görev.
 3. Bilinen sorun: log dosyalarındaki Türkçe mojibake (konsol kodlaması) — kozmetik, test mantığını etkilemiyor.
 4. Kullanıcının test etmesi gereken: yok — bu alt görev tamamen headless testlerle doğrulandı.
+
+---
+
+## M43.1 — Deniz bölgeleri ve hakimiyet (2026-10-22) — ✅ DONE
+
+- **Yapılanlar:** `Data/sea_zones.json` (12 deniz bölgesi: komşu ülke listesi, filo
+  ağırlık çarpanı, konvoy güzergâhı değeri), `Scripts/SeaZoneSystem.cs`,
+  `Scripts/GameManager.cs` içine `--sea-zone-test` kancası.
+- **Tasarım:** Hakimiyet [0,100] ve her zaman bir ülkenin PERSPEKTİFİNDEN okunur:
+  50 = çekişmeli, 100 = tam kontrol, 0 = rakibin kontrolü. Bölgedeki rakip ağırlıklar
+  TOPLAMI alınır (koalisyon mantığı: küçük filolar birleşince tek büyük filo kadar
+  ağırlık taşısın). Filo ağırlığı = tersane sayısı + oyuncu için donanma ekipman
+  stoğunun savaş değeri (EquipmentSystem stoku yalnızca oyuncuya aittir).
+- **Kök neden (test iki kez FAIL oldu):** İlk sürümde rakip ağırlığı "en güçlü tek
+  rakip" olarak alınıyordu → çok komşulu bölgede (örn. Baltık: SWE+FIN+POL+SOV) toplam
+  rakip gücü göz ardı ediliyordu; hakimiyet perspektifte lehe değil çıkıyor ve iki
+  perspektif toplamı 100'e tamamlanmıyordu. Ayrıca test gerçek dünya verisine
+  (hangi ülke komşu, kaç tersanesi var) bağlıydı → kırılgan. Çözüm: rakip ağırlığı
+  toplamı alındı, test sentetik iki ülkeli bölge kurup dünya verisini geri yükleyecek
+  şekilde yeniden yazıldı.
+- **Test sonuçları:** `--sea-zone-test` PASS ✓ (12 bölge yüklenir ve loglanır, tüm
+  tanımlar tutarlı, hakimiyet [0,100] içinde, iki perspektif toplamı tam 100, komşu
+  olmayan ülke nötr 50, filo azalınca hakimiyet düşer, eşit filo tam 50, deterministik
+  tekrar aynı değer, ilhak edilmiş ülkenin ağırlığı 0). `--save-load-test` A==B PASS ✓
+  (historical_1936 + modern_world). `dotnet build` 0 hata / 0 uyarı.
+
+### ÖZET
+1. `Data/sea_zones.json` (yeni), `Scripts/SeaZoneSystem.cs` (yeni), `Scripts/GameManager.cs` (`--sea-zone-test` + 43.1 dispatch), `TODO.md` (43.1 [x]), `PROGRESS.md`, `GECE-RAPOR.md` değişti.
+2. M43.2 (denizaltı baskını → ithalat kesilmesi) sıradaki alt görev.
+3. Bilinen sorun: log dosyalarındaki Türkçe mojibake (konsol kodlaması) — kozmetik.
+4. Kullanıcının test etmesi gereken: yok — bu alt görev tamamen headless testlerle doğrulandı.

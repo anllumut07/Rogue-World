@@ -1907,3 +1907,37 @@ gerektiren işler yapılmayacak.
 2. AI barış davranışı (M42.4) henüz başlanmadı; UI paneli (M42.5) bekliyor.
 3. Prosedürel üretimin 50 ülke kodunden fazla sahip üretmesi test hedef seçimini kısıtlıyor — CountryDatabase filtresiyle geçiş yapıldı.
 4. Kullanıcı UI'dan barış konferansını henüz test edemez (panel M42.5'te); şimdilik sadece konsol testi geçerli.
+
+
+## M42.4 — AI barış davranışı (2026-10-23) — ✅ DONE
+- `CountryAI.EvaluatePeace(countryId)`: aktif savaştaki rakibe karşı deterministik karar
+  (RNG yok) — `none` / `white:{enemy}` / `demand:{enemy}:{n}` / `puppet:{enemy}` /
+  `annex:{enemy}`. Savaş puanı `WarScoreSystem` üzerinden okunur; eşikler sabit.
+- `CountryAI.ApplyPeaceDecision(countryId, decision)`: kararı uygular. **Oyuncu hedefinde
+  hiçbir karar uygulanmaz**; AI rakibi için `ApplyDeal` veya `WhitePeaceDeal` çağrılır.
+  20 günluk bekleme (`LastPeaceDay`, Save/Load'a yazılır) ve bozuk/geçersiz kararların
+  güvenli yok sayılması dahil.
+- `PeaceConferenceSystem.WhitePeaceDeal(war)`: kapitülasyon bayrağı koymadan savaşı bitirir,
+  90 gün ateşkes başlatır, ilişkiyi +15 yumuşatır, sinyalleri yayar.
+- **Kök neden 1 (sessiz başarısızlık):** `CountryDatabase` tüm ülkelerde `PoliticalPower=30`
+  veriyor; `WarSystem.DeclareWar` → `CheckWarPreconditions` "Political Power ≥ 50" maddesinde
+  sessizce `false` dönüyordu. Testte AI saldıranın PP'si yeterli kuruldu ve `DeclareWar`
+  başarısız olursa başarısız kontrol maddeleri artık tek tek loglanıyor.
+- **Kök neden 2 (ateşkes çakışması):** Senaryo 1'in beyaz barışı ilk çift arasında 90 gün
+  ateşkes başlatıyordu; senaryo 2 aynı çiftte savaş açamıyordu. Senaryo 2 artık ayrı bir
+  AI çifti kullanıyor (M42.3 `--peace-test` deseniyle aynı yaklaşım).
+- **Ek — test koşucusu düzeltmeleri (`tools/run-test.ps1`):** (a) `$Args` PowerShell'in
+  otomatik `$args` dizisini eziyordu (isimler büyük/küçük harf duyarsız) → argüman listesi
+  bozuluyordu; `$GodotArgs` olarak yeniden adlandırıldı. (b) Log'daki `SONUÇ:` satırı
+  `-First 1` ile alındığı için ara çıktılar yanlış verdict üretiyordu; `-Last 1` yapıldı.
+- **Test sonuçları:** `--ai-peace-test` PASS ✓ (senaryo 1: ezilen AI beyaz barış istiyor,
+  oyuncu hedefinde anlaşma uygulanmıyor, bozuk kararlar yok sayılıyor, beyaz barış
+  kapitülasyon kaydı oluşturmuyor; senaryo 2: kazanan AI `annex:SAU` karar verip uyguluyor,
+  savaş bitiyor, kaybeden ilhak ediliyor, 7 il devrediliyor). `--save-load-test` A==B PASS ✓
+  (historical_1936 + modern_world). `--soak-test` PASS ✓. `dotnet build` 0 hata / 0 uyarı.
+
+### ÖZET
+1. `Scripts/CountryAI.cs` (EvaluatePeace/ApplyPeaceDecision + Save/Load), `Scripts/GameManager.cs` (`--ai-peace-test` + koşucuya argüman geçişi), `Scripts/PeaceConferenceSystem.cs` (WhitePeaceDeal), `Scripts/SaveSystem.cs` (LastPeaceDay), `tools/run-test.ps1` ($Args çakışması + verdict satırı), `TODO.md` (42.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md` değişti.
+2. M42.5 (PeaceConferencePanel UI) henüz yapılmadı — sıradaki alt görev.
+3. Log dosyalarındaki Türkçe karakter mojibake'i (PowerShell/Godot konsol kodlaması) gözlemlendi; test mantığını etkilemiyor, bilinen bir kozmetik sorun olarak kaydedildi.
+4. Kullanıcının test etmesi gereken: yok — bu alt görev tamamen headless testlerle doğrulandı (UI değişikliği içermiyor).

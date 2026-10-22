@@ -50,6 +50,7 @@ public static class CountryAI
 
         // M19.8: Askeri hareket cooldown'u (her X günde bir harekete geçsin)
         public int LastMoveDay = -1000;
+        public int LastPeaceDay = -1000;   // M42.4: barış değerlendirme cooldown'u
     }
 
     // ===== Yapı tipleri — EconomySystem.BuildType ile aynı sıra/ Günler =====
@@ -69,6 +70,26 @@ public static class CountryAI
     private const double ResearchTarget = 140.0;    // "teknoloji" başına puan (≈175 gün @3 slot)
     private const int TrainingDaysPerDivision = 40; // Basit: 30 + 3×tabur ≈ 40
     private const int DivisionManpowerCost = 5000;
+
+    // ===== M42.4: AI barış eşikleri =====
+    // Puanı bu düzeyde AI "savaşı kazandım" deyip ilhak/kukla ister
+    private const float WinOnScore = 75f;
+    // Puanı bu düzeyde AI ilhak çok ağır bulur, kukla tercih eder
+    private const int PuppetInsteadFactories = 40;
+    // Puanı bu düzeyde AI toprak talebi + askersizleştirme ister
+    private const float PushOnScore = 45f;
+    // Rakipte bu puan varsa ve kendi puanı düşükse AI beyaz barış ister
+    private const float FearOnScore = 60f;
+    // Beyaz barış için kendi puanı bu sınırın altında olmalı
+    private const float WhitePeaceMaxScore = 25f;
+    // Savunan tarafta bu puan farkı varsa beyaz barış ister
+    private const float WhitePeaceGap = 30f;
+    // Tükendi sayma sınırları: fabrika / tümen / tümen kaybı oranı
+    private const int ExhaustedFactories = 3;
+    private const int ExhaustedDivisions = 3;
+    private const float ExhaustedDivLoss = 0.6f;
+    // AI'nin bir savaşta en fazla isteyebileceği il sayısı
+    private const int MaxAiProvinceDemand = 6;
 
     // ===== Durum =====
     private static bool _initialized;
@@ -228,6 +249,10 @@ public static class CountryAI
 
         // 4) Diplomasi: M11.3'te (faksiyon/garanti/savaş) — iskelet
         MaybeDiplomacy(st, data);
+
+        // 4b) Barış davranışı (M42.4): ezilen/rakip tarafta savaşı bitirme arzusu.
+        // Hergün değil — cooldown'lu çalışır ki savaş ilanı ile çelişmesin.
+        MaybePeace(st, data);
 
         // 5) Askeri hareket: AI ordularını düşman illere hareket ettir (M19.8)
         MaybeMoveArmies(st, data);
@@ -579,6 +604,229 @@ public static class CountryAI
         }
     }
 
+    // ===== M42.4: AI barış davranışı =====
+
+    /// <summary>
+    /// Savaştaki AI'nin barış isteğini değerlendirir ve (rakip AI ise) uygular.
+    /// Cooldown: aynı ülke en erken 20 günde bir barış düşünür; bir savaş her halde
+    /// değerlendirilir ama savaş ilanı günü yapılmaz (aynı gün hem savaş hem barış
+    /// çelişmesini önlemek için savaş ilan edilmişse turu atlar).
+    /// </summary>
+    private static void MaybePeace(AIState st, CountryData data)
+    {
+        if (GM.TotalDays - st.LastPeaceDay < 20) return;
+
+        // Savaşta değilse barış değerlendirmesi yok
+        bool atWar = WarSystem.Wars.Any(w => w != null && !w.IsEnded &&
+            (string.Equals(w.AttackerId, data.Id, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(w.DefenderId, data.Id, StringComparison.OrdinalIgnoreCase)));
+        if (!atWar) return;
+
+        // Bu turda savaş ilan ettiyse barış düşünmesin (aynı gün ters istikamet olmaz)
+        // — MaybeDiplomacy aynı RunDecisions turunda koştuğu için elde PP değişti,
+        // savaş ilanı FF tabanında cooldown gerektirir. Kısa koruma: savaş sayısı
+        // son 3 günde arttıysa bu turu atla.
+        // WarSystem.Wars tamamı gezildi; yeni ilan edilmiş savaşları tespit etmek için
+        // yol: başlangıç günü bugüne çok yakın olan savaşları düşünümsüz say.
+        bool freshWar = WarSystem.Wars.Any(w => w != null && !w.IsEnded &&
+            GM.TotalDays - w.StartDay <= 2 &&
+            (string.Equals(w.AttackerId, data.Id, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(w.DefenderId, data.Id, StringComparison.OrdinalIgnoreCase)));
+        if (freshWar) return;
+
+        st.LastPeaceDay = GM.TotalDays;
+
+        string decision = EvaluatePeace(data.Id);
+        if (decision == "none") return;
+
+        // Rakip oyuncuysa anlaşma YAPILMAZ (panel karar verir) — yalnız log + sinyal
+        if (decision.Split(':') is { Length: >= 2 } p && p[1] == GM.PlayerCountryId)
+        {
+            GD.Print($"[AIPeace] {data.Id} oyuncuya barış İSTEMİK (kabul edilmedi, panel bekliyor): {decision}");
+            return;
+        }
+
+        ApplyPeaceDecision(data.Id, decision);
+    }
+
+    /// <summary>
+    /// Savaştaki AI ülkesinin barış isteğini değerlendirir. Deterministik:
+    /// eşikler puan/fabrika/askeri güce bakar, RNG yalnızca "bu gün değerlendir"
+    /// anında kullanılır ve sonuç puan gibi kalıcı duruma yazılmaz.
+    ///
+    /// Kurallar (SADECE kendi lehine olan taraf teklif eder):
+    /// - Kendi puanı >= WinOnScore      → ilhak/kukla talebi (ApplyDeal)
+    /// - Kendi puanı >= PushOnScore     → il talebi + askersizleştirme
+    /// - Karşı taraf puanı >= FearOnScore ve kendi gücü düşüyor → beyaz barış
+    ///   (rakip daha da puan toplamadan savaştan çıkma arzusu)
+    /// - Kendi fabrikası tükendiyse / tümeni çok düştüyse ve puanı negative → beyaz barış
+    ///
+    /// Oyuncuya karşı ASLA otonom anlaşma YAPILMAZ (sadece log + sinyal);
+    /// oyuncu M42.5 panelinden karar verir. AI–AI arasında anlaşma doğrudan uygulanır.
+    /// </summary>
+    public static string EvaluatePeace(string countryId)
+    {
+        var data = CountryDatabase.Get(countryId);
+        if (data == null) return "none";
+
+        // Savaşları taraflarına göre ayr (aynı savaş iki kez değerlendirilmez)
+        foreach (var w in WarSystem.Wars)
+        {
+            if (w == null || w.IsEnded) continue;
+            bool isAttacker = string.Equals(w.AttackerId, countryId, StringComparison.OrdinalIgnoreCase);
+            bool isDefender = string.Equals(w.DefenderId, countryId, StringComparison.OrdinalIgnoreCase);
+            if (!isAttacker && !isDefender) continue;
+
+            string enemyId = isAttacker ? w.DefenderId : w.AttackerId;
+            if (string.IsNullOrEmpty(enemyId)) continue;
+            var enemy = CountryDatabase.Get(enemyId);
+            if (enemy == null) continue;
+
+            float myScore = WarScoreSystem.ScoreForSide(w, countryId);
+            float enemyScore = WarScoreSystem.ScoreForSide(w, enemyId);
+            string myKind = isAttacker ? "saldıran" : "savunan";
+
+            var st = _states.GetValueOrDefault(countryId);
+            int myDivs = st?.Divisions ?? data.StartingDivisions;
+
+            // Rakipten sonra kendi durumu ne kadar kötü? (tümen kaybı oranı)
+            float divLoss = data.StartingDivisions > 0
+                ? 1f - (float)myDivs / data.StartingDivisions
+                : 1f;
+
+            // ---- 1) Ezici uzunluk: kendi puanı yüksek → ilhak ----
+            if (myScore >= WinOnScore && !enemy.IsAnnexed)
+            {
+                // Büyük ülkeyi ilhak etmek pahalı: fabrikası çoksa kukla daha makul
+                if (enemy.TotalFactories >= PuppetInsteadFactories)
+                    return $"puppet:{enemyId}";
+                return $"annex:{enemyId}";
+            }
+
+            // ---- 2) Üstünlük: il talebi + askersizleştirme ----
+            if (myScore >= PushOnScore)
+            {
+                int demand = ProvinceDemandCount(enemyId);
+                if (demand > 0) return $"demand:{enemyId}:{demand}";
+            }
+
+            // ---- 3) Racı kötüleşiyor ve rakip puan topluyorsa → beyaz barış ----
+            //    (dayanıksız taraf savaştan çıkmak ister; kendi puanı düşük)
+            if (enemyScore >= FearOnScore && myScore <= WhitePeaceMaxScore)
+            {
+                return $"white:{enemyId}";
+            }
+
+            // ---- 4) Bütünüyle tükendiyse ve savaştan bir kazanç yoksa → beyaz barış ----
+            bool exhausted = myDivs <= ExhaustedDivisions || data.TotalFactories <= ExhaustedFactories;
+            if (exhausted && divLoss >= ExhaustedDivLoss && myScore < PushOnScore)
+            {
+                return $"white:{enemyId}";
+            }
+
+            // ---- 5) Savunan, uzun süredir ilerleme yoksa ve askeri üstünlük rakipte → beyaz barış ----
+            if (isDefender && enemyScore - myScore >= WhitePeaceGap)
+            {
+                return $"white:{enemyId}";
+            }
+
+            GD.Print($"[AIPeace] {countryId} ({myKind}) barış düşünülmedi: puanım={myScore:F1}, " +
+                     $"rakip={enemyScore:F1}, tümen kaybı=%{divLoss * 100f:N0}, fabrika={data.TotalFactories}");
+        }
+
+        return "none";
+    }
+
+    /// <summary>Barış eylemini uygular (EvaluatePeace sonucu). OOn-plLayer hedefinde çalışmaz.</summary>
+    public static void ApplyPeaceDecision(string countryId, string decision)
+    {
+        if (string.IsNullOrEmpty(decision) || decision == "none") return;
+
+        string[] parts = decision.Split(':');
+        string action = parts[0];
+        if (parts.Length < 2) return;
+        string enemyId = parts[1];
+
+        // Oyuncuya karşı otonom anlaşma yapılmaz — panel (M42.5) karar verir
+        if (enemyId == GM.PlayerCountryId) return;
+        if (enemyId == countryId) return;
+
+        var enemy = CountryDatabase.Get(enemyId);
+        if (enemy == null) return;
+
+        // Savaşı bul (hâlâ aktif mi?)
+        var war = WarSystem.Wars.FirstOrDefault(w => !w.IsEnded &&
+            ((string.Equals(w.AttackerId, countryId, StringComparison.OrdinalIgnoreCase) &&
+              string.Equals(w.DefenderId, enemyId, StringComparison.OrdinalIgnoreCase)) ||
+             (string.Equals(w.DefenderId, countryId, StringComparison.OrdinalIgnoreCase) &&
+              string.Equals(w.AttackerId, enemyId, StringComparison.OrdinalIgnoreCase))));
+        if (war == null) return;
+
+        var me = CountryDatabase.Get(countryId);
+        if (me == null) return;
+
+        float myScore = WarScoreSystem.ScoreForSide(war, countryId);
+
+        switch (action)
+        {
+            case "annex":
+            {
+                // Puan tükendiyse kapılmış olabilir: yeniden doğrula
+                var demands = new List<PeaceConferenceSystem.Demand>
+                {
+                    new PeaceConferenceSystem.Demand("annex_country", 1)
+                };
+                PeaceConferenceSystem.ApplyDeal(war, demands, countryId, enemyId);
+                GD.Print($"[AIPeace] {countryId} İLHAK teklif etti → {enemyId} (puan={myScore:F1})");
+                break;
+            }
+
+            case "puppet":
+            {
+                var demands = new List<PeaceConferenceSystem.Demand>
+                {
+                    new PeaceConferenceSystem.Demand("puppet_state", 1)
+                };
+                PeaceConferenceSystem.ApplyDeal(war, demands, countryId, enemyId);
+                GD.Print($"[AIPeace] {countryId} KUKLA teklif etti → {enemyId} (puan={myScore:F1})");
+                break;
+            }
+
+            case "demand":
+            {
+                int n = parts.Length >= 3 ? int.Parse(parts[2]) : 0;
+                if (n <= 0) break;
+                var demands = new List<PeaceConferenceSystem.Demand>
+                {
+                    new PeaceConferenceSystem.Demand("province_demand", n),
+                    new PeaceConferenceSystem.Demand("demilitarize", 1)
+                };
+                var res = PeaceConferenceSystem.ApplyDeal(war, demands, countryId, enemyId);
+                GD.Print($"[AIPeace] {countryId} TALEP etti → {enemyId}: {n} il + askersizleştirme " +
+                         $"(puan={myScore:F1}, red={res.Rejected.Count})");
+                break;
+            }
+
+            case "white":
+            {
+                // Beyaz barış: statüko — kapitülasyon bayrağı konmaz (WhitePeaceDeal)
+                PeaceConferenceSystem.WhitePeaceDeal(war);
+                GD.Print($"[AIPeace] {countryId} BEYAZ BARIŞ istedi → {enemyId} (puanım={myScore:F1})");
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
+
+    /// <summary>Rakibin ili sayısından talep boyutu (en fazla MaxAiProvinceDemand).</summary>
+    private static int ProvinceDemandCount(string enemyId)
+    {
+        int count = ProvinceOwnershipSystem.ProvinceCountFor(enemyId);
+        return Math.Clamp(count / 4, 1, MaxAiProvinceDemand);
+    }
+
     // ===== M19.8: AI askeri hareket =====
 
     /// <summary>
@@ -670,6 +918,7 @@ public static class CountryAI
                 FactionId = st.FactionId,
                 LastDecisionDay = st.LastDecisionDay,
                 LastMoveDay = st.LastMoveDay,
+                LastPeaceDay = st.LastPeaceDay,
                 AiExhausted = st.AiExhausted
             }).ToArray(),
             AiCountryIds = _aiCountryIds.ToArray(),
@@ -710,6 +959,7 @@ public static class CountryAI
                     FactionId = s.FactionId ?? "",
                     LastDecisionDay = s.LastDecisionDay,
                     LastMoveDay = s.LastMoveDay,
+                    LastPeaceDay = s.LastPeaceDay,
                     AiExhausted = s.AiExhausted
                 };
             }

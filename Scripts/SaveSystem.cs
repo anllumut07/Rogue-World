@@ -368,6 +368,7 @@ public static class SaveSystem
         public string FactionId { get; set; }
         public int LastDecisionDay { get; set; }
         public int LastMoveDay { get; set; } // M19.8: AI ordusu hareket cooldown'u
+        public int LastPeaceDay { get; set; } // M42.4: AI barış değerlendirme cooldown'u
         public bool AiExhausted { get; set; }
     }
 

@@ -173,8 +173,9 @@ public partial class GameManager : Node
         bool scoreTest = false;             // M41.3: ulusal skor + sıralama testi (--score-test)
         bool gameOverTest = false;          // M41.4: oyun sonu paneli testi (--gameover-test)
         bool warScoreTest = false;          // M42.1: savaş puanı testi (--war-score-test)
-        bool peaceTermsTest = false;
-        bool peaceTest = false;             // M42.3: barış anlaşması uygulama testi (--peace-test)        // M42.2: barış talebi maliyeti testi (--peace-terms-test)
+        bool peaceTermsTest = false;        // M42.2: barış talebi maliyeti testi (--peace-terms-test)
+        bool peaceTest = false;             // M42.3: barış anlaşması uygulama testi (--peace-test)
+        bool aiPeaceTest = false;            // M42.4: AI barış davranışı testi (--ai-peace-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -311,6 +312,8 @@ public partial class GameManager : Node
                 peaceTermsTest = true;
             else if (arg == "--peace-test")
                 peaceTest = true;
+            else if (arg == "--ai-peace-test")
+                aiPeaceTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -687,6 +690,10 @@ public partial class GameManager : Node
         // M42.3: Barış anlaşması uygulama testi — il devri + tazminat + savaş sonu.
         if (peaceTest)
             RunPeaceTest();
+
+        // M42.4: AI barış davranışı testi — eşikler, güvenli red, savaş sonu.
+        if (aiPeaceTest)
+            RunAiPeaceTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -6075,6 +6082,264 @@ private void RunBalanceTest()
         {
             GD.PrintErr("[PeaceTest] HATA: boş anlaşma da savaşı bitirmeli");
             ok = false;
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+    /// <summary>
+    /// M42.4: AI barış davranışı testi (--ai-peace-test).
+    /// Eşikler deterministik doğrulanır; rakip oyuncuysa anlaşma UYGULANMAZ
+    /// (yalnız istek loglanır) — AI–AI arasında anlaşma dünya durumuna yazılır.
+    /// RNG yok: her senaryo puansal durumu elle kurulur.
+    /// </summary>
+    private void RunAiPeaceTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M42.4: AI BARIŞ DAVRANIŞI TESTİ (--ai-peace-test)");
+        GD.Print("=========================================");
+
+        DeterministicRNG.InitializeForNewGame(0x20261023D2C7UL);
+        bool ok = true;
+
+        PeaceConferenceSystem.LoadData();
+
+        if (ProvinceOwnershipSystem.TotalProvinceCount == 0)
+        {
+            var provinceSource = new ProceduralProvinceSource();
+            var provs = provinceSource.LoadProvinces();
+            ProvinceOwnershipSystem.InitializeFromProvinces(provs);
+            GD.Print($"[AiPeaceTest] İller yüklendi: {provs.Count} il");
+        }
+
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        string playerId = PlayerCountryId;
+
+        // AI–AI savaşı için dört AI ülkesi seç (oyuncu dışında, en küçük fabrika):
+        // ilk çift senaryo 1 (beyaz barış), ikinci çift senaryo 2 (ilhak/kukla).
+        // İki çift kullanılmasının nedeni: senaryo 1'in beyaz barışı ilk çift arasında
+        // 90 günlük ateşkes başlatır; aynı çift senaryo 2'de savaşı açamaz.
+        var aiCountries = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed && c.Id != playerId)
+            .OrderBy(c => c.TotalFactories)
+            .Take(4)
+            .ToList();
+
+        if (aiCountries.Count < 4)
+        {
+            GD.PrintErr("[AiPeaceTest] HATA: dört AI ülkesi bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        string aiAtt = aiCountries[0].Id;
+        string aiDef = aiCountries[1].Id;
+        GD.Print($"[AiPeaceTest] AI ülkeleri: saldıran={aiAtt}, savunan={aiDef}");
+        ok = true;
+
+        // ---- Senaryo 1: rakip ezici üstünlük → savunan beyaz barış ister ----
+        var attacker1 = CountryDatabase.Get(aiAtt);
+        var defender1 = CountryDatabase.Get(aiDef);
+        if (attacker1 != null && defender1 != null)
+        {
+            // Senaryo kurulumu: gerekçe + savaş desteği + savaş ilanı maliyetini karşılayacak PP.
+            attacker1.WarSupportPercent = 50;
+            attacker1.PoliticalPower = 200;
+            CasusBelliSystem.GrantImmediateJustification(aiAtt, aiDef, "historical_event");
+
+            if (!WarSystem.DeclareWar(aiAtt, aiDef))
+            {
+                // Kök neden görünsün: başarısız kontrol maddelerini tek tek yaz.
+                var failed = CasusBelliSystem.CheckWarPreconditions(aiAtt, aiDef);
+                foreach (var item in failed.Items.Where(i => !i.Met))
+                    GD.PrintErr($"[AiPeaceTest]   ✗ {item.Label} — {item.Detail}");
+                GD.PrintErr("[AiPeaceTest] HATA: AI savaşı başlatılamadı");
+                GetTree().Quit(1);
+                return;
+            }
+
+            var war = WarSystem.Wars.FirstOrDefault(w => !w.IsEnded &&
+                ((w.AttackerId == aiAtt && w.DefenderId == aiDef) ||
+                 (w.AttackerId == aiDef && w.DefenderId == aiAtt)));
+            if (war == null)
+            {
+                GD.PrintErr("[AiPeaceTest] HATA: aktif AI savaşı bulunamadı");
+                GetTree().Quit(1);
+                return;
+            }
+
+            // Saldıranı ezici üstünlüğe kur: çok fazla çatışma kazanmış + düşmanı tükenmiş.
+            // Fabrika payı WarScoreSystem tarafında StartEnemyFactories ve mevcut fabrika
+            // farkından hesaplanır; testte rakip fabrikalarını sıfırlayarak hasar modelliyoruz.
+            war.StartEnemyDivisions = Math.Max(1, defender1.StartingDivisions);
+            war.AttackerBattlesWon = 40;
+            war.DefenderBattlesWon = 0;
+            war.EnemyDivisions = Math.Max(0, war.StartEnemyDivisions - 40);
+            war.StartEnemyFactories = Math.Max(1, defender1.TotalFactories);
+            defender1.CivFactories = 0;
+            defender1.MilFactories = 0;
+            defender1.Dockyards = 0;
+            war.WarProgress = 100f;
+
+            float attScore = WarScoreSystem.AttackerScore(war);
+            float defScore = WarScoreSystem.DefenderScore(war);
+            GD.Print($"[AiPeaceTest] Senaryo 1: saldıran puan={attScore:F1}, savunan puan={defScore:F1}");
+
+            string decDef = CountryAI.EvaluatePeace(aiDef);
+            string decAtt = CountryAI.EvaluatePeace(aiAtt);
+            GD.Print($"[AiPeaceTest] Senaryo 1 kararlar: savunan=\"{decDef}\", saldıran=\"{decAtt}\"");
+
+            // Savunan eziliyor: white/demand/puppet/annex olmalı (hiç olmazsa 'none' kabul edilmez)
+            bool defWantsOut = decDef.StartsWith("white") || decDef.StartsWith("annex")
+                             || decDef.StartsWith("puppet") || decDef.StartsWith("demand");
+            if (!defWantsOut)
+            {
+                GD.PrintErr($"[AiPeaceTest] HATA: ezilen AI barış istemeli, karar=\"{decDef}\"");
+                ok = false;
+            }
+            else if (!decDef.StartsWith("white"))
+            {
+                GD.PrintErr($"[AiPeaceTest] HATA: savunan puanı düşükken toprak/ilhak istememeli (\"{decDef}\")");
+                ok = false;
+            }
+
+            // ---- 1b) oyuncu hedefinde ANLAŞMA uygulanmamalı ----
+            // Savunmayı oyuncuya çevir: beyaz barış ister ama savaşı KENDİSİ bitirmemeli
+            // (ApplyPeaceDecision oyuncu hedefinde işlemi reddeder).
+            string playerDecision = $"white:{playerId}";
+            int warsBefore = WarSystem.ActiveWars.Count;
+            CountryAI.ApplyPeaceDecision(aiDef, playerDecision);
+            if (WarSystem.ActiveWars.Count != warsBefore)
+            {
+                GD.PrintErr("[AiPeaceTest] HATA: oyuncu hedefinde savaş kapatılmış görünüyor");
+                ok = false;
+            }
+            GD.Print($"[AiPeaceTest] Oyuncu hedefi: anlaşma uygulanmadı (aktif savaş sayısı {warsBefore})");
+
+            // ---- 1c) geçersiz format / boş karar güvenli yok sayılır ----
+            CountryAI.ApplyPeaceDecision(aiDef, "");
+            CountryAI.ApplyPeaceDecision(aiDef, "none");
+            CountryAI.ApplyPeaceDecision(aiDef, "white");
+            if (WarSystem.ActiveWars.Count != warsBefore)
+            {
+                GD.PrintErr("[AiPeaceTest] HATA: bozuk karar bir savaşı etkiledi");
+                ok = false;
+            }
+
+            // ---- 1d) beyaz barış uygula: kapitülasyon olmadan savaş biter ----
+            bool white = PeaceConferenceSystem.WhitePeaceDeal(war);
+            if (!white)
+            {
+                GD.PrintErr("[AiPeaceTest] HATA: beyaz barış uygulanamadı");
+                ok = false;
+            }
+            if (!war.IsEnded)
+            {
+                GD.PrintErr("[AiPeaceTest] HATA: beyaz barış savaşı bitirmedi");
+                ok = false;
+            }
+            if (war.AttackerCapitulated || war.DefenderCapitulated)
+            {
+                GD.PrintErr("[AiPeaceTest] HATA: beyaz barış kapitülasyon kaydı oluşturdu");
+                ok = false;
+            }
+            GD.Print($"[AiPeaceTest] Senaryo 1 sonuç: war.IsEnded={war.IsEnded}, EndReason=\"{war.EndReason}\", " +
+                     $"kapitülasyon=(A:{war.AttackerCapitulated},D:{war.DefenderCapitulated})");
+        }
+        else
+        {
+            GD.PrintErr("[AiPeaceTest] HATA: AI ülke verisi okunamadı");
+            ok = false;
+        }
+
+        // ---- Senaryo 2: kazanan AI ilhak/pukla ister ve uygular ----
+        // SENARYO 1'in beyaz barışı ilk çift arasında ateşkes başlattığı için
+        // burada İKİNCİ bir AI çifti kullanılır (hiçbir ateşkes/kayıt yok).
+        string att2 = aiCountries[2].Id;
+        string def2 = aiCountries[3].Id;
+        GD.Print($"[AiPeaceTest] Senaryo 2 çifti: kazanan={att2}, kaybeden={def2}");
+        {
+            string winner = att2;
+            string loser = def2;
+            var winData = CountryDatabase.Get(winner);
+            var loseData = CountryDatabase.Get(loser);
+            if (winData != null && loseData != null)
+            {
+                int loseProvincesBefore = ProvinceOwnershipSystem.ProvinceCountFor(loser);
+
+                winData.WarSupportPercent = 50;
+                winData.PoliticalPower = 200;
+                CasusBelliSystem.GrantImmediateJustification(winner, loser, "historical_event");
+                bool declared = WarSystem.DeclareWar(winner, loser);
+
+                if (!declared)
+                {
+                    var failed2 = CasusBelliSystem.CheckWarPreconditions(winner, loser);
+                    foreach (var item in failed2.Items.Where(i => !i.Met))
+                        GD.PrintErr($"[AiPeaceTest]   ✗ {item.Label} — {item.Detail}");
+                    GD.PrintErr("[AiPeaceTest] HATA: senaryo 2 için savaş ilan edilemedi");
+                    ok = false;
+                }
+                else
+                {
+                    var war2 = WarSystem.Wars.FirstOrDefault(w => !w.IsEnded &&
+                        ((w.AttackerId == winner && w.DefenderId == loser) ||
+                         (w.AttackerId == loser && w.DefenderId == winner)));
+                    if (war2 == null)
+                    {
+                        GD.PrintErr("[AiPeaceTest] HATA: senaryo 2 aktif savaşı bulunamadı");
+                        ok = false;
+                    }
+                    else
+                    {
+                        // Kazananı ezici puanla kur
+                        war2.StartEnemyDivisions = Math.Max(1, loseData.StartingDivisions);
+                        war2.AttackerBattlesWon = 60;
+                        war2.DefenderBattlesWon = 0;
+                        war2.EnemyDivisions = 0;
+                        war2.StartEnemyFactories = Math.Max(1, loseData.TotalFactories);
+                        loseData.CivFactories = 0;
+                        loseData.MilFactories = 0;
+                        loseData.Dockyards = 0;
+                        war2.WarProgress = 100f;
+
+                        string decWin = CountryAI.EvaluatePeace(winner);
+                        GD.Print($"[AiPeaceTest] Senaryo 2: kazanan kararı=\"{decWin}\" " +
+                                 $"(puan={WarScoreSystem.AttackerScore(war2):F1})");
+
+                        bool wantsWin = decWin.StartsWith("annex") || decWin.StartsWith("puppet");
+                        if (!wantsWin)
+                        {
+                            GD.PrintErr($"[AiPeaceTest] HATA: ezici puanla AI ilhak/kukla istemeli (karar=\"{decWin}\")");
+                            ok = false;
+                        }
+
+                        // Uygula — rakip AI olduğundan dünya durumu değişmeli
+                        CountryAI.ApplyPeaceDecision(winner, decWin);
+                        if (!war2.IsEnded)
+                        {
+                            GD.PrintErr("[AiPeaceTest] HATA: AI anlaşması savaşı bitirmedi");
+                            ok = false;
+                        }
+                        if (!loseData.IsAnnexed)
+                        {
+                            GD.PrintErr("[AiPeaceTest] HATA: ilhak/kukla uygulanmadı");
+                            ok = false;
+                        }
+                        if (decWin.StartsWith("annex") &&
+                            ProvinceOwnershipSystem.ProvinceCountFor(winner) <= loseProvincesBefore)
+                        {
+                            GD.PrintErr("[AiPeaceTest] HATA: ilhak tüm illeri devretmedi");
+                            ok = false;
+                        }
+                        GD.Print($"[AiPeaceTest] Senaryo 2 sonuç: isEnded={war2.IsEnded}, " +
+                                 $"kaybeden ilhak mı={loseData.IsAnnexed}, " +
+                                 $"kazanan il={ProvinceOwnershipSystem.ProvinceCountFor(winner)}");
+                    }
+                }
+            }
         }
 
         GD.Print("=========================================");

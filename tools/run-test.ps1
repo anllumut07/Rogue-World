@@ -35,35 +35,37 @@ $ErrPath  = Join-Path $LogDir "$SafeFlag.err"
 # Screenshot testi (--screenshot-test) pencere modunda çalışır: kalıcı kapalı sayılamaz.
 $IsScreenshotShot = $TestFlag -like "--screenshot-test*"
 $NeedWindow = $Windowed -or $IsScreenshotShot
+# NOT: $Args adı kullanılmaz — PowerShell'de değişken adları büyük/küçük harfe
+# duyarsızdır, $Args otomatik $args dizisini ezer ve argümanlar bozulur.
 if ($NeedWindow) {
-    $Args = @("--path", ".")
+    $GodotArgs = @("--path", ".")
     if (-not $PSBoundParameters.ContainsKey("Scene")) {
         # Pencere modunda ekran görüntüsü için varsayılan sahne: oyun sahnesi
-        $Args += "res://Scenes/game.tscn"
+        $GodotArgs += "res://Scenes/game.tscn"
     }
 } else {
-    $Args = @("--headless", "--path", ".")
+    $GodotArgs = @("--headless", "--path", ".")
 }
-if ($PSBoundParameters.ContainsKey("Scene")) { $Args += $Scene }
-$Args += "--"
-$Args += $TestFlag
+if ($PSBoundParameters.ContainsKey("Scene")) { $GodotArgs += $Scene }
+$GodotArgs += "--"
+$GodotArgs += $TestFlag
 # Tüm kalan argümanları da GameManager'a ilet (ör. --scenario=modern_world
 # PowerShell tarafından isimli parametreye bağlanamazsa buradan geçer).
 for ($i = 1; $i -lt $args.Count; $i++) {
-    $Args += $args[$i]
+    $GodotArgs += $args[$i]
 }
-if ($PSBoundParameters.ContainsKey("Scenario")) { $Args += "--scenario=$Scenario" }
-if ($PSBoundParameters.ContainsKey("Country"))   { $Args += "--country=$Country" }
-if ($PSBoundParameters.ContainsKey("Speed"))     { $Args += "--speed=$Speed" }
+if ($PSBoundParameters.ContainsKey("Scenario")) { $GodotArgs += "--scenario=$Scenario" }
+if ($PSBoundParameters.ContainsKey("Country"))   { $GodotArgs += "--country=$Country" }
+if ($PSBoundParameters.ContainsKey("Speed"))     { $GodotArgs += "--speed=$Speed" }
 
 Write-Host "=== TEST BASLATILIYOR: $TestFlag ==="
 Write-Host "Godot   : $GodotExe"
-Write-Host "Args    : $Args"
+Write-Host "Args    : $($GodotArgs -join ' ')"
 Write-Host "Log     : $LogPath"
 Write-Host "Error   : $ErrPath"
 
 $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-$Process = Start-Process -FilePath $GodotExe -ArgumentList $Args -WorkingDirectory $RepoRoot `
+$Process = Start-Process -FilePath $GodotExe -ArgumentList $GodotArgs -WorkingDirectory $RepoRoot `
     -RedirectStandardOutput $LogPath -RedirectStandardError $ErrPath -PassThru
 
 $Waited = $Process.WaitForExit(120000) # 120 sn
@@ -87,7 +89,9 @@ Write-Host "Cikis kodu: $ExitCode"
 
 # Log'daki SONUÇ satirini ekrana yaz
 if (Test-Path $LogPath) {
-    $ResultLine = Select-String -Path $LogPath -Pattern "SONUÇ:" -Encoding utf8 | Select-Object -First 1
+    # SONUÇ: birden fazla kez basılan ara çıktılar olabilir (örn. "[...] Senaryo 1 sonuç:").
+    # Verdict her zaman en sondaki satırdır → Last kullan.
+    $ResultLine = Select-String -Path $LogPath -Pattern "SONUÇ:" -Encoding utf8 | Select-Object -Last 1
     if ($ResultLine) { Write-Host "Sonuc   : $($ResultLine.Line)" }
     else { Write-Host "Sonuc   : (LOGDA SONUÇ satiri bulunamadi, log dosyasina bakin: $LogPath)" }
 } else {

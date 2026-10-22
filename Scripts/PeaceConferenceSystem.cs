@@ -459,6 +459,37 @@ public static class PeaceConferenceSystem
             DiplomacySystem.IncreaseTension((float)def.TensionCost);
     }
 
+    /// <summary>
+    /// Statüko barışı: hiç talep uygulanmadan savaşı bitirir. Kapitülasyon bayrağı
+    /// KONMAZ (kimse teslim olmadı) — yalnızca ateşkes ve ilişki yumuşaması olur.
+    /// Oyuncu–AI ve AI–AI arasında kullanılabilir (AI beyaz barış isteği buradan geçer).
+    /// </summary>
+    public static bool WhitePeaceDeal(WarSystem.War war)
+    {
+        if (war == null || war.IsEnded) return false;
+
+        var attacker = CountryDatabase.Get(war.AttackerId);
+        var defender = CountryDatabase.Get(war.DefenderId);
+        if (attacker == null || defender == null) return false;
+
+        war.IsEnded = true;
+        war.EndReason = "Peace conference (white peace)";
+
+        // Statüko: kapitülasyon yok, yalnızca ateşkes + ilişki toparlanması
+        CasusBelliSystem.NotifyWarEnded(war.AttackerId, war.DefenderId);
+        DiplomacySystem.ModifyRelation(war.AttackerId, war.DefenderId, +15);
+
+        GD.Print($"[PeaceTerms] BEYAZ BARIŞ: {war.AttackerId} ↔ {war.DefenderId} — statüko, " +
+                 $"kapitülasyon yok, ateşkes başladı");
+
+        if (GameManager.IsAvailable)
+        {
+            GameManager.Instance.EmitSignal(GameManager.SignalName.CountryOwnershipChanged);
+            GameManager.Instance.EmitSignal(GameManager.SignalName.PlayerCountryDataChanged);
+        }
+        return true;
+    }
+
     /// <summary>Savaşı barışla bitirir: kapitülasyon bayrakları + ateşkes + ilişki yumuşaması.</summary>
     private static void FinishWar(WarSystem.War war, CountryData winner, CountryData loser, DealResult res)
     {

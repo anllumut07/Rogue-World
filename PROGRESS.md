@@ -2334,4 +2334,50 @@ değişmedi). `--save-load-test` A==B PASS ✓. `dotnet build` 0 hata / 0 uyarı
 **Dosyalar:** `Scripts/PeaceConferenceSystem.cs`, `Scripts/GameManager.cs`,
 `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
 
+---
+
+## M42.4 — AI barış davranışı — ✅ DONE (2026-10-23)
+
+- `CountryAI.EvaluatePeace` — aktif savaştaki rakibe karşı AI'ın barış kararını
+  **deterministik** üretir (RNG yok): `none` / `white:{enemy}` / `demand:{enemy}:{n}` /
+  `puppet:{enemy}` / `annex:{enemy}`. Savaş puanı `WarScoreSystem` üzerinden okunur;
+  eşikler sabit (`WinOnScore=75`, `PushOnScore=45`, `FearOnScore=60`,
+  `PuppetInsteadFactories=40`, `WhitePeaceMaxScore=25`, `WhitePeaceGap=30`).
+  Yorgunluk faktörü: fabrikası/​tümeni/​kaybı belirli oranın altına düşen AI çıkmak ister.
+- `CountryAI.ApplyPeaceDecision` — kararı dünya durumuna uygular. **Oyuncu hedefinde
+  hiçbir karar uygulanmaz** (M42.5 paneli karara bağlar); rakibi AI ise `ApplyDeal`
+  (ilhak/kukla/talep) ya da `WhitePeaceDeal` ile sonuçlanır.
+- `PeaceConferenceSystem.WhitePeaceDeal(war)` — kapitülasyon bayrağı koymadan savaşı
+  bitirir: `IsEnded=true`, `EndReason="Peace conference (white peace)"`,
+  `CasusBelliSystem.NotifyWarEnded` (90 gün ateşkes), ilişki +15, sinyaller yayılır.
+- Save/Load: `AiStateSave.LastPeaceDay` (20 günlük bekleme süresi) eklendi.
+
+**Kök neden (test neden başarısızdı):** `CountryDatabase` tüm ülkelerde başlangıç
+`PoliticalPower = 30` veriyor; `WarSystem.DeclareWar` `CheckWarPreconditions` içindeki
+"Political Power ≥ 50" maddesinde sessizce `false` dönüyordu. Düzeltme: testte AI
+saldıranın PP'si yeterli kuruluyor ve `DeclareWar` başarısız olursa başarısız kontrol
+maddeleri artık tek tek loglanıyor.
+
+**İkinci kök neden:** Senaryo 1'in beyaz barışı ilk AI çifti arasında 90 gün ateşkes
+başlattığı için senaryo 2 aynı çiftte savaş açamıyordu. Düzeltme: senaryo 2 ayrı bir
+AI çifti kullanıyor (M42.3'teki `--peace-test` deseniyle aynı yaklaşım).
+
+**Ek düzeltme — test koşucusu (`tools/run-test.ps1`):**
+1. `$Args` değişkeni PowerShell'in otomatik `$args` dizisini eziyordu (değişken adları
+   büyük/küçük harf duyarsız) → argüman listesi bozuluyordu. `$GodotArgs` olarak
+   yeniden adlandırıldı; koşucu artık düzgün çalışıyor.
+2. Log'daki `SONUÇ:` satırı `-First 1` ile alınıyordu; testler ara satırlarda da
+   "sonuç" yazdığı için yanlış verdict üretiliyordu. `-Last 1` ile düzeltildi.
+
+**Testler:** `--ai-peace-test` PASS ✓ (senaryo 1: ezilen savunan beyaz barış istiyor,
+oyuncu hedefinde anlaşma uygulanmıyor, bozuk kararlar güvenle yok sayılıyor, beyaz
+barış kapitülasyon kaydı oluşturmuyor; senaryo 2: kazanan AI `annex` karar verip
+uyguluyor, savaş bitiyor, kaybeden ilhak ediliyor, iller devrediliyor).
+`--save-load-test` A==B PASS ✓ (historical_1936 + modern_world). `--soak-test` PASS ✓.
+`dotnet build` 0 hata / 0 uyarı.
+
+**Dosyalar:** `Scripts/CountryAI.cs`, `Scripts/GameManager.cs`,
+`Scripts/PeaceConferenceSystem.cs`, `Scripts/SaveSystem.cs`, `tools/run-test.ps1`,
+`TODO.md` (42.4 [x]), `PROGRESS.md`, `GECE-RAPOR.md`.
+
 

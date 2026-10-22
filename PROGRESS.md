@@ -2467,3 +2467,39 @@ uyguluyor, savaş bitiyor, kaybeden ilhak ediliyor, iller devrediliyor).
 - Test: `--convoy-raid-test` PASS ✓; `--save-load-test` A==B PASS ✓ (2 senaryo).
 - Gecikme: ilk sürümdeki `DeterministicRNG.NextBool(lossFraction)` kapısı
   rastgeleliği çift sayıp monotonluğu bozdu — kaldırıldı, saf beklenen değer.
+
+---
+
+## M43.3 — Deniz çatışması (filo hasarı ve hakimiyet) (2026-10-22) — ✅ DONE
+
+- **Amaç:** Bir deniz bölgesinde iki ülkenin filosu çarpışır; kaybedenin filo
+  gücü düşer, bu da bölge hakimiyetini değiştirir (M43.1 hakimiyet modeli bozulmaz).
+- **Mimari karar — hasar "çarpı" olarak okunur:** Hakimiyet zaten filo ağırlığının
+  oranıdır. Çatışma sonucu doğrudan hakimiyete yazılmak yerine filo hasarı olarak
+  tutulur (`NavalCombatSystem`), `SeaZoneSystem.FleetWeight` içinde
+  `StrengthMultiplier` çarpı olarak okunur. Böylece tek doğruluk kaynağı filo
+  ağırlığıdır — "hakimiyet elle güncellenir" çift kaynağı hatası oluşmaz.
+- **Model:** `DeterministicRNG` ile ±%10 vurgu zarları → kazanan/kaybeden; ezme
+  oranı hasarı belirler (hasar = MinDamage 0.10 + (MaxDamage 0.85 − MinDamage) ×
+  ezme, kaybeda kazanan yıpranması = 0.10 × (1 − ezme)). Beraberlikte iki taraf da
+  0.10 hasar alır → hakimiyet değişmez. Hasar kümülatif, üst sınır 0.85.
+- **Onarım:** `DailyTick` günde %15 göreli onarım (0.85 → 0.72 → ...); deniz
+  savaşı kalıcı bir yıkım değil, zamanla geri dönen yıpranma.
+- **Oto-çatışma:** `DailyTick` yalnızca savaştaki (`WarSystem.IsAtWarWith`),
+  aynı bölgeye komşu (`SeaZoneSystem.ZoneDefinition.AdjacentCountryIds`) ve
+  ikisinin de filosu olan ülke çiftlerinde çatışma çözümler. Barıştaki filolar
+  aynı denizde yanyana geçer. Ekonomi tick'inden ÖNCE çalışır → M43.2 konvoy
+  baskını o günkü çatışma SONRASI hakimiyeti görür.
+- **Save/Load:** `SaveSystem.NavalCombatSave` DTO (CountryId + Damage dizisi),
+  `WriteSave`/`LoadGameInternal` bağlandı.
+- **Test:** `--naval-combat-test` PASS ✓ (10 kontrol: hasarsız çarpan=1, eşit filo
+  iki taraflı hasar, 400v10'da hakimiyet artışı, deterministik tekrar, hasar üst
+  sınırı/kümülatiflik, onarım oranı, save/load round-trip + filo ağırlığı korunması,
+  hasar↑→hakimiyet↓ monotonluğu, barışta oto-çatışma yok, hasar→konvoy riski
+  bağlantısı 15%→24%).
+- `--save-load-test` A==B PASS ✓ (historical_1936 + modern_world).
+  `dotnet build` 0 hata / 0 uyarı.
+
+**Dosyalar:** `Scripts/NavalCombatSystem.cs` (yeni), `Scripts/SeaZoneSystem.cs`,
+`Scripts/SaveSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (43.3 [x]),
+`PROGRESS.md`, `GECE-RAPOR.md`.

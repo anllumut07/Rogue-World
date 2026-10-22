@@ -179,6 +179,7 @@ public partial class GameManager : Node
         bool peacePanelTest = false;         // M42.5: barış konferansı paneli testi (--peace-panel-test)
         bool seaZoneTest = false;            // M43.1: deniz bölgesi / hakimiyet testi (--sea-zone-test)
         bool convoyRaidTest = false;         // M43.2: denizaltı baskını / konvoy kaybı testi (--convoy-raid-test)
+        bool navalCombatTest = false;        // M43.3: deniz çatışması testi (--naval-combat-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -323,6 +324,8 @@ public partial class GameManager : Node
                 seaZoneTest = true;
             else if (arg == "--convoy-raid-test")
                 convoyRaidTest = true;
+            else if (arg == "--naval-combat-test")
+                navalCombatTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -716,6 +719,10 @@ public partial class GameManager : Node
         if (convoyRaidTest)
             RunConvoyRaidTest();
 
+        // M43.3: Deniz çatışması testi — filo hasarı, hakimiyet değişimi, determinizm.
+        if (navalCombatTest)
+            RunNavalCombatTest();
+
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
             RunTooltipTest();
@@ -863,6 +870,11 @@ public partial class GameManager : Node
 
         data.PoliticalPower += BasePPDailyGain;
         data.ManpowerPool += data.ManpowerPerDay;
+
+        // M43.3: Deniz çatışması — savaştaki filolar bölgelerde çarpışır ve
+        // yıpranır. Ekonomi tick'inden ÖNCE çalışır: o günkü konvoy baskını
+        // (M43.2) çatışma SONRASI hakimiyeti görür.
+        NavalCombatSystem.DailyTick();
 
         // M4: Ekonomi günlük tick'i (inşaat, kaynaklar, ticaret)
         EconomySystem.DailyTick();
@@ -1102,6 +1114,7 @@ public partial class GameManager : Node
         MoraleSystem.Initialize(data);
         // Hava üstünlüğü sistemini başlat (M39.4)
         AirSuperioritySystem.Initialize(data);
+        NavalCombatSystem.Initialize(data); // M43.3: deniz çatışması filo hasarı
         // Diplomasi sistemini başlat (M8)
         DiplomacySystem.Initialize(data);
         // M17A: Casus belli sistemini başlat — gerekçe/iddia/ateşkes/meşruiyet
@@ -1234,6 +1247,7 @@ public partial class GameManager : Node
         MoraleSystem.ResetForNewGame();
         // M39.4: Hava üstünlüğü sistemini yeni oyun için sıfırla.
         AirSuperioritySystem.ResetForNewGame();
+        NavalCombatSystem.ResetForNewGame(); // M43.3: deniz çatışması filo hasarı
 
         // M29.5: Casus kiralama havuzunu yeni oyun için başlat.
         EspionageSystem.InitializeRentalPool(TotalDays);
@@ -7201,6 +7215,299 @@ private void RunBalanceTest()
                 z.AdjacentCountryIds = saved;
         }
         GD.Print("[ConvoyRaidTest] Dünya verisi geri yüklendi");
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M43.3: Deniz çatışması testi (--naval-combat-test).
+    /// İki filo bölgede çarpışır; kaybeden hasar alır, hakimiyet değişir,
+    /// sonuç deterministiktir ve save/load'a yazılır.
+    /// </summary>
+    private void RunNavalCombatTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M43.3: DENİZ ÇATIŞMASI TESTİ (--naval-combat-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        SeaZoneSystem.LoadData();
+        NavalCombatSystem.ResetForNewGame();
+
+        string attackerId = "DEU";
+        string defenderId = "POL";
+        var atk = CountryDatabase.Get(attackerId);
+        var def = CountryDatabase.Get(defenderId);
+        if (atk == null || def == null)
+        {
+            GD.PrintErr("[NavalCombatTest] HATA: DEU/POL ülkeleri bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Baltic Sea bölgesi DEU ve POL'nin ortak komşusu.
+        var zone = SeaZoneSystem.All.FirstOrDefault(z => z.Id == "baltic");
+        if (zone == null)
+        {
+            GD.PrintErr("[NavalCombatTest] HATA: baltic bölgesi bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // ---- 1) Dünya verisi yedekle ----
+        int atkDockBefore = atk.Dockyards;
+        int defDockBefore = def.Dockyards;
+        var zoneSnapshot = new Dictionary<string, List<string>>();
+        foreach (var z in SeaZoneSystem.All)
+            zoneSnapshot[z.Id] = new List<string>(z.AdjacentCountryIds);
+
+        // Bölgeyi iki ülkeye indir: diğer komşuların ağırlığı sonucu kirletmesin.
+        zone.AdjacentCountryIds = new List<string> { attackerId, defenderId };
+
+        try
+        {
+            // ---- 2) Yapısal kontroller ----
+            GD.Print("[NavalCombatTest] 1) Yapısal kontroller");
+            if (atkDockBefore < 0 || defDockBefore < 0)
+            {
+                GD.PrintErr("[NavalCombatTest] HATA: tersane sayısı negatif");
+                ok = false;
+            }
+
+            atk.Dockyards = 0;
+            def.Dockyards = 0;
+            // İlk durumda hiç hasar yok → çarpan 1.
+            if (Mathf.Abs(NavalCombatSystem.StrengthMultiplier(attackerId) - 1f) > 0.001f)
+            {
+                GD.PrintErr("[NavalCombatTest] HATA: hasarsız filo çarpanı 1 olmalı");
+                ok = false;
+            }
+
+            // ---- 3) Eşit filo: her iki taraf da hasar alır, kazanan olmayabilir ----
+            GD.Print("[NavalCombatTest] 2) Eşit filolar + DeterministicRNG ile çözüm");
+            atk.Dockyards = 100;
+            def.Dockyards = 100;
+
+            float supBefore = SeaZoneSystem.Supremacy(zone, attackerId);
+            var result = NavalCombatSystem.ResolveBattle(zone, attackerId, defenderId);
+            float supAfter = SeaZoneSystem.Supremacy(zone, attackerId);
+
+            if (!result.WasFought)
+            {
+                GD.PrintErr("[NavalCombatTest] HATA: iki filo varken çatışma çözümlenmeli");
+                ok = false;
+            }
+            if (result.DamageToAttacker <= 0f || result.DamageToDefender <= 0f)
+            {
+                GD.PrintErr("[NavalCombatTest] HATA: eşit filolarda her iki taraf da hasar almalı");
+                ok = false;
+            }
+            if (result.DamageToAttacker > NavalCombatSystem.MaxDamage ||
+                result.DamageToDefender > NavalCombatSystem.MaxDamage)
+            {
+                GD.PrintErr($"[NavalCombatTest] HATA: hasar üst sınırı aşıldı ({result.DamageToAttacker}, {result.DamageToDefender})");
+                ok = false;
+            }
+            GD.Print($"[NavalCombatTest] eşit filo → hasar %{result.DamageToAttacker * 100f:F0} / %{result.DamageToDefender * 100f:F0}, " +
+                     $"hakimiyet {supBefore:F1} → {supAfter:F1}");
+
+            // ---- 4) Güçlü saldıran: rakibi ezerse hakimiyet YÜKSELİR ----
+            GD.Print("[NavalCombatTest] 3) Güçlü filo → hakimiyet artar");
+            NavalCombatSystem.ResetForNewGame();
+            atk.Dockyards = 400;
+            def.Dockyards = 10;
+
+            float supBeforeBig = SeaZoneSystem.Supremacy(zone, attackerId);
+            var big = NavalCombatSystem.ResolveBattle(zone, attackerId, defenderId);
+
+            // Ezici üstünlükte kazananın hasarı küçük, kaybedeninki büyük olmalı.
+            if (big.HasWinner)
+            {
+                float winnerDmg = big.WinnerId == attackerId ? big.DamageToAttacker : big.DamageToDefender;
+                float loserDmg = big.WinnerId == attackerId ? big.DamageToDefender : big.DamageToAttacker;
+                if (loserDmg <= winnerDmg)
+                {
+                    GD.PrintErr($"[NavalCombatTest] HATA: kaybeden hasarı kazananı geçmeli ({loserDmg} vs {winnerDmg})");
+                    ok = false;
+                }
+            }
+            // Hakimiyet, kaybeden filoyu zayıflattığı için artmış olmalı.
+            float supAfterBig = SeaZoneSystem.Supremacy(zone, attackerId);
+            if (supAfterBig <= supBeforeBig)
+            {
+                GD.PrintErr($"[NavalCombatTest] HATA: saldıran kazanınca hakimiyet artmalı ({supBeforeBig:F1} → {supAfterBig:F1})");
+                ok = false;
+            }
+            GD.Print($"[NavalCombatTest] 400 vs 10 → hakimiyet {supBeforeBig:F1} → {supAfterBig:F1}, kazanan={big.WinnerId ?? "beraberlik"} ✓");
+
+            // ---- 5) Determinizm: aynı state → aynı sonuç ----
+            GD.Print("[NavalCombatTest] 4) Deterministik tekrar");
+            NavalCombatSystem.ResetForNewGame();
+            atk.Dockyards = 100;
+            def.Dockyards = 100;
+
+            ulong rngBefore = DeterministicRNG.GetState();
+            var run1 = NavalCombatSystem.ResolveBattle(zone, attackerId, defenderId);
+            ulong rngMid = DeterministicRNG.GetState();
+            float sup1 = SeaZoneSystem.Supremacy(zone, attackerId);
+
+            // Aynı koşulları kur ve aynı RNG konumundan tekrar et.
+            NavalCombatSystem.ResetForNewGame();
+            atk.Dockyards = 100;
+            def.Dockyards = 100;
+            DeterministicRNG.LoadState(rngBefore);
+            var run2 = NavalCombatSystem.ResolveBattle(zone, attackerId, defenderId);
+            float sup2 = SeaZoneSystem.Supremacy(zone, attackerId);
+
+            if (run1.WinnerId != run2.WinnerId ||
+                Mathf.Abs(run1.DamageToAttacker - run2.DamageToAttacker) > 0.001f ||
+                Mathf.Abs(sup1 - sup2) > 0.001f ||
+                rngMid != DeterministicRNG.GetState())
+            {
+                GD.PrintErr("[NavalCombatTest] HATA: çatışma deterministik değil");
+                ok = false;
+            }
+            else
+            {
+                GD.Print($"[NavalCombatTest] aynı girdi → aynı çıktı ✓ (kazanan={run1.WinnerId ?? "beraberlik"})");
+            }
+
+            // ---- 6) Hasar üst sınırı ve kümülatif yıpranma ----
+            GD.Print("[NavalCombatTest] 5) Hasar sınırı ve kümülatiflik");
+            NavalCombatSystem.ResetForNewGame();
+            for (int i = 0; i < 20; i++)
+                NavalCombatSystem.ApplyDamage(attackerId, 0.5f);
+            float stacked = NavalCombatSystem.DamageFor(attackerId);
+            if (stacked > NavalCombatSystem.MaxDamage + 0.001f)
+            {
+                GD.PrintErr($"[NavalCombatTest] HATA: hasar {NavalCombatSystem.MaxDamage} ile sınırlı olmalı, bulundu {stacked}");
+                ok = false;
+            }
+            if (stacked <= 0f)
+            {
+                GD.PrintErr("[NavalCombatTest] HATA: hasar kümülatif olmalı");
+                ok = false;
+            }
+            GD.Print($"[NavalCombatTest] 20×0.5 hasar → {stacked:F2} (sınır {NavalCombatSystem.MaxDamage}) ✓");
+
+            // ---- 7) Onarım: günde DailyRepair kadar düşer ----
+            GD.Print("[NavalCombatTest] 6) Onarım");
+            NavalCombatSystem.ApplyDamage(defenderId, 0.5f);
+            float damagedBefore = NavalCombatSystem.DamageFor(defenderId);
+            NavalCombatSystem.DailyTick();
+            float damagedAfter = NavalCombatSystem.DamageFor(defenderId);
+            if (damagedAfter >= damagedBefore)
+            {
+                GD.PrintErr($"[NavalCombatTest] HATA: günlük tick hasarı azaltmalı ({damagedBefore} → {damagedAfter})");
+                ok = false;
+            }
+            if (Mathf.Abs(damagedAfter - damagedBefore * (1f - NavalCombatSystem.DailyRepair)) > 0.01f && damagedAfter > 0f)
+            {
+                GD.PrintErr($"[NavalCombatTest] HATA: onarım oranı beklenenle uyuşmuyor ({damagedBefore} → {damagedAfter})");
+                ok = false;
+            }
+            GD.Print($"[NavalCombatTest] onarım {damagedBefore:F2} → {damagedAfter:F2} ✓");
+
+            // ---- 8) Save/Load round-trip ----
+            GD.Print("[NavalCombatTest] 7) Save/Load round-trip");
+            NavalCombatSystem.ResetForNewGame();
+            NavalCombatSystem.ApplyDamage("DEU", 0.42f);
+            NavalCombatSystem.ApplyDamage("ITA", 0.11f);
+            var save = NavalCombatSystem.GetSaveData();
+            float weightBeforeSave = SeaZoneSystem.FleetWeight(attackerId);
+
+            NavalCombatSystem.ResetForNewGame();
+            if (NavalCombatSystem.DamageFor(attackerId) != 0f)
+            {
+                GD.PrintErr("[NavalCombatTest] HATA: ResetForNewGame hasarı temizlemeli");
+                ok = false;
+            }
+            NavalCombatSystem.LoadSaveData(save);
+            if (Mathf.Abs(NavalCombatSystem.DamageFor(attackerId) - 0.42f) > 0.001f)
+            {
+                GD.PrintErr($"[NavalCombatTest] HATA: hasar yüklenemedi ({NavalCombatSystem.DamageFor(attackerId)})");
+                ok = false;
+            }
+            if (Mathf.Abs(NavalCombatSystem.DamageFor("ITA") - 0.11f) > 0.001f)
+            {
+                GD.PrintErr($"[NavalCombatTest] HATA: İTALYA hasarı yüklenemedi ({NavalCombatSystem.DamageFor("ITA")})");
+                ok = false;
+            }
+            float weightAfterLoad = SeaZoneSystem.FleetWeight(attackerId);
+            if (Mathf.Abs(weightBeforeSave - weightAfterLoad) > 0.001f)
+            {
+                GD.PrintErr($"[NavalCombatTest] HATA: filo ağırlığı round-trip sonrası değişti ({weightBeforeSave} → {weightAfterLoad})");
+                ok = false;
+            }
+            GD.Print($"[NavalCombatTest] DEU hasar=0.42, ITA hasar=0.11, filo ağırlığı {weightBeforeSave:F1} → {weightAfterLoad:F1} ✓");
+
+            // ---- 9) Hasar hakimiyetle ters orantılı ----
+            GD.Print("[NavalCombatTest] 8) Hasar arttıkça hakimiyet düşer");
+            atk.Dockyards = 100;
+            def.Dockyards = 100;
+            NavalCombatSystem.ResetForNewGame();
+
+            float supClean = SeaZoneSystem.Supremacy(zone, attackerId);
+            NavalCombatSystem.ApplyDamage(attackerId, 0.5f);
+            float supHalf = SeaZoneSystem.Supremacy(zone, attackerId);
+            NavalCombatSystem.ApplyDamage(attackerId, 0.4f);
+            float supMore = SeaZoneSystem.Supremacy(zone, attackerId);
+
+            if (supHalf >= supClean || supMore >= supHalf)
+            {
+                GD.PrintErr($"[NavalCombatTest] HATA: hasar arttıkça hakimiyet düşmeli ({supClean} → {supHalf} → {supMore})");
+                ok = false;
+            }
+            GD.Print($"[NavalCombatTest] hakimiyet {supClean:F1} → {supHalf:F1} → {supMore:F1} ✓");
+
+            // ---- 10) Savaş yoksa günlük tick çatışma başlatmaz ----
+            GD.Print("[NavalCombatTest] 9) Barışta oto-çatışma yok");
+            NavalCombatSystem.ResetForNewGame();
+            atk.Dockyards = 100;
+            def.Dockyards = 100;
+            bool atWarBefore = WarSystem.IsAtWarWith(attackerId, defenderId);
+            NavalCombatSystem.DailyTick();
+            if (!atWarBefore && NavalCombatSystem.DamageFor(attackerId) > 0f)
+            {
+                GD.PrintErr("[NavalCombatTest] HATA: savaş yokken günlük tick çatışma üretmemeli");
+                ok = false;
+            }
+            GD.Print($"[NavalCombatTest] savaş durumu={atWarBefore} → hasar değişmedi ✓");
+
+            // ---- 11) Hasar konvoy riskini artırır (M43.2 bağlantısı) ----
+            GD.Print("[NavalCombatTest] 10) Hasar konvoy riskini artırır");
+            NavalCombatSystem.ResetForNewGame();
+            atk.Dockyards = 100;
+            def.Dockyards = 100;
+            ConvoyRaidSystem.ApplyDailyRaids(attackerId);
+
+            float riskClean = ConvoyRaidSystem.TotalRiskPercent(attackerId);
+            NavalCombatSystem.ApplyDamage(attackerId, 0.75f);
+            float riskHurt = ConvoyRaidSystem.TotalRiskPercent(attackerId);
+            if (riskHurt <= riskClean)
+            {
+                GD.PrintErr($"[NavalCombatTest] HATA: filo hasarı konvoy riskini artırmalı ({riskClean} → {riskHurt})");
+                ok = false;
+            }
+            GD.Print($"[NavalCombatTest] konvoy riski {riskClean:F1}% → {riskHurt:F1}% ✓");
+        }
+        finally
+        {
+            // ---- 12) Dünya verisini geri yükle ----
+            atk.Dockyards = atkDockBefore;
+            def.Dockyards = defDockBefore;
+            NavalCombatSystem.ResetForNewGame();
+            foreach (var z in SeaZoneSystem.All)
+            {
+                if (zoneSnapshot.TryGetValue(z.Id, out var saved))
+                    z.AdjacentCountryIds = saved;
+            }
+            GD.Print("[NavalCombatTest] Dünya verisi geri yüklendi");
+        }
 
         GD.Print("=========================================");
         GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");

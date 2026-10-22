@@ -670,7 +670,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 |-----------|----------|--------------|-------|
 | 43.1 | `Data/sea_zones.json` + `Scripts/SeaZoneSystem.cs`: 12 deniz bölgesi, bölge başına deniz hakimiyeti (0-100), ülke filo ağırlığından hesaplanır | Bölge sayısı doğru yüklenir ve loglanır, hakimiyet [0,100], `--sea-zone-test` PASS | [x] |
 | 43.2 | Denizaltı baskını: düşman hakimiyetindeki bölgede konvoy kaybı → kaynak ithalatı kesilir (oyuncu + AI ticaret anlaşmaları etkilenir) | İthalat kaybı hakimiyetle ters orantılı, loglanır, stoklar düşer | [x] |
-| 43.3 | Deniz çatışması: bir bölgede iki ülkenin filosu çarpışır, hakimiyet güncellenir, kayıplar DTO'ya yazılır | Çatışma sonrası hakimiyet değişir, deterministik, `--naval-combat-test` PASS | [ ] |
+| 43.3 | Deniz çatışması: bir bölgede iki ülkenin filosu çarpışır, hakimiyet güncellenir, kayıplar DTO'ya yazılır | Çatışma sonrası hakimiyet değişir, deterministik, `--naval-combat-test` PASS | ✅ Bitti — `Scripts/NavalCombatSystem.cs` (yeni): `SeaZoneSystem.FleetWeight` içinde hasar çarpanı olarak okunur (hakimiyet saf hesap olarak kalır), `DeterministicRNG` ile ±%10 vurgu zarları, kümülatif hasar [0,0.85] + %15/gün onarım, savaştaki komşu ülkeler `DailyTick`'te bölgelerde çarpışır, `NavalCombatSave` DTO; `--naval-combat-test` PASS (10 kontrol), save-load A==B PASS (2 senaryo), dotnet build 0/0  [x] Bitti |
 | 43.4 | Lend-Lease / konvoy koruma: müttefik konvoylarına koruma tahsisi, kayıp oranını düşürür | Koruma atanınca kayıp oranı azalır, `--lend-lease-test` PASS | [ ] |
 | 43.5 | Save/Load + `Scripts/SeaZonePanel.cs` UI (bölge listesi, hakimiyet barları, baskın/koruma butonları) | A==B PASS (2 senaryo), panel 1152x648'e sığar | [ ] |
 

@@ -143,6 +143,10 @@ public static class SeaZoneSystem
     /// Bir ülkenin filo ağırlığı. Tersane sayısı (her ülke için mevcut) taban
     /// sinyaldir; oyuncu için üstüne donanma ekipman stoğu eklenir, çünkü
     /// EquipmentSystem stoku yalnızca oyuncu ülkesine aittir.
+    ///
+    /// M43.3: Deniz çatışmasında alınan hasar burada çarpı olarak okunur —
+    /// hasarlı filo daha az ağırlık, dolayısıyla daha düşük hakimiyet demektir.
+    /// Hakimiyetin kendisi yazılmaz; tek kaynak filo ağırlığıdır.
     /// </summary>
     public static float FleetWeight(string countryId)
     {
@@ -160,7 +164,8 @@ public static class SeaZoneSystem
             weight += NavalEquipmentWeight();
         }
 
-        return weight;
+        // M43.3: Çatışma hasarı filoyu zayıflatır (onarılmamış hasar = eksik gemi).
+        return weight * NavalCombatSystem.StrengthMultiplier(countryId);
     }
 
     /// <summary>Oyuncunun donanma ekipman stoğunun savaş değeri toplamı.</summary>

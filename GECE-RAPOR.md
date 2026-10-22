@@ -2035,3 +2035,37 @@ gerektiren işler yapılmayacak.
 2. M43.3 (deniz çatışması: iki filo çarpışır, hakimiyet güncellenir, kayıplar DTO) sıradaki alt görev.
 3. Bilinen sorun: konvoy kaybı şu an yalnızca oyuncu bölgeleri için hesaplanıyor; AI ticaret anlaşmaları ayrı modellenmedi (TODO 43.2 "AI ticaret anlaşmaları etkilenir" maddesi kısmen — oyuncu tarafı tam).
 4. Kullanıcının test etmesi gereken: yok — headless testlerle doğrulandı.
+
+---
+
+## M43.3 — Deniz çatışması (2026-10-22) — ✅ DONE
+
+- **Yapılanlar:** `Scripts/NavalCombatSystem.cs` (yeni), `Scripts/SeaZoneSystem.cs`
+  (FleetWeight hasar çarpanını okur), `Scripts/SaveSystem.cs`
+  (`NavalCombatSave` DTO + yazma/yükleme), `Scripts/GameManager.cs`
+  (`--naval-combat-test` kancası + DailyTick/Initialize/ResetForNewGame).
+- **Mimari karar:** Çatışma SONUCU doğrudan hakimiyete yazılmaz — M43.1'in
+  "hakimiyet = filo ağırlığı oranı" modeli bozulur. Bunun yerine ülke başına
+  kümülatif filo hasarı tutulur; `SeaZoneSystem.FleetWeight` bunu çarpı olarak
+  okur. Tek doğruluk kaynağı filo ağırlığıdır.
+- **Model:** DeterministicRNG ile ±%10 vurgu zarları → kazanan/kaybeden;
+  ezme oranı hasarı belirler (kaybeden: 0.10 + 0.75×ezme, üst sınır 0.85;
+  kazanan: 0.10×(1−ezme) yıpranma). Beraberlikte iki taraf 0.10 → hakimiyet
+  değişmez. Hasar kümülatif; günde %15 göreli onarım.
+- **Oto-çatışma:** `DailyTick` yalnızca savaştaki + aynı bölgeye komşu + iki
+  tarafın da filosu olan çiftlerde çözümlenir; ekonomiden ÖNCE çalışır.
+- **Test sonuçları:** `--naval-combat-test` PASS ✓ (10 kontrol: yapısal, eşit
+  filo iki taraflı hasar, 400v10'da hakimiyet artışı, RNG deterministik tekrar,
+  hasar sınırı/kümülatiflik, onarım 0.50→0.43, save/load round-trip + filo
+  ağırlığı korunması, hasar↑→hakimiyet↓ (50→33→13), barışta oto-çatışma yok,
+  hasar→konvoy riski 15%→24%). `--save-load-test` A==B PASS ✓ (historical_1936
+  + modern_world). `dotnet build` 0 hata / 0 uyarı.
+- **Not:** İlk üç test koşusu bash backslash yemesinden yüzünden hiç
+  başlamamış (log dosyaları eski oturumdan kalma — aldatıcıydı); PowerShell
+  aracıyla senkron tekrar koşuldu ve gerçekten doğrulandı.
+
+### ÖZET
+1. `Scripts/NavalCombatSystem.cs` (yeni), `Scripts/SeaZoneSystem.cs`, `Scripts/SaveSystem.cs`, `Scripts/GameManager.cs`, `TODO.md` (43.3 [x]), `PROGRESS.md`, `GECE-RAPOR.md` değişti.
+2. M43.4 (Lend-Lease / konvoy koruma) sıradaki alt görev.
+3. Bilinen: AI ticaret anlaşmalarına konvoy kaybı uygulanmıyor (M43.2'den kalan sınır; oyuncu tarafı tam).
+4. Kullanıcının test etmesi gereken: yok — bu alt görev tamamen headless testlerle doğrulandı.

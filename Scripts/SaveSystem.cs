@@ -63,6 +63,7 @@ public static class SaveSystem
         public NavalInvasionSave NavalInvasion { get; set; } // M39.2: deniz invazyonu durumu
         public MoraleSave Morale { get; set; } // M39.3: ordu morali durumu
         public AirSuperioritySave AirSuperiority { get; set; } // M39.4: hava üstünlüğü durumu
+        public NavalCombatSave NavalCombat { get; set; } // M43.3: deniz çatışması filo hasarı
         public VictorySystem.VictorySave Victory { get; set; } // M41.2: zafer koşulu durumu
         public DiplomacySave Diplomacy { get; set; }
         public CasusBelliSave CasusBelli { get; set; } // M17A: gerekçe/ateşkes/meşruiyet
@@ -230,6 +231,17 @@ public static class SaveSystem
     {
         public string ArmyId { get; set; }
         public int AirSuperiority { get; set; }
+    }
+
+    // ===== Deniz çatışması DTOs (M43.3) =====
+    public class NavalCombatSave
+    {
+        public NavalCombatEntry[] Damage { get; set; }
+    }
+    public class NavalCombatEntry
+    {
+        public string CountryId { get; set; }
+        public float Damage { get; set; }
     }
 
 
@@ -503,6 +515,7 @@ public static class SaveSystem
             NavalInvasion = NavalInvasionSystem.GetSaveData(), // M39.2: deniz invazyonu durumu
             Morale = MoraleSystem.GetSaveData(), // M39.3: ordu morali durumu
             AirSuperiority = AirSuperioritySystem.GetSaveData(), // M39.4: hava üstünlüğü durumu
+            NavalCombat = NavalCombatSystem.GetSaveData(), // M43.3: deniz çatışması filo hasarı
             Victory = VictorySystem.GetSaveData(), // M41.2: zafer koşulu durumu
             Diplomacy = DiplomacySystem.GetSaveData(),
             CasusBelli = CasusBelliSystem.GetSaveData(),
@@ -651,7 +664,8 @@ public static class SaveSystem
             SupplySystem.LoadSaveData(save.Supply); // M39.1: ikmal durumu
             NavalInvasionSystem.LoadSaveData(save.NavalInvasion); // M39.2: deniz invazyonu durumu
             MoraleSystem.LoadSaveData(save.Morale); // M39.3: ordu morali durumu
-            AirSuperioritySystem.LoadSaveData(save.AirSuperiority); // M39.4: hava üstünlüğü durumu
+            AirSuperioritySystem.LoadSaveData(save.AirSuperiority);
+            NavalCombatSystem.LoadSaveData(save.NavalCombat); // M43.3: deniz çatışması filo hasarı // M39.4: hava üstünlüğü durumu
             VictorySystem.ApplySave(save.Victory); // M41.2: zafer koşulu durumu
             DiplomacySystem.LoadSaveData(save.Diplomacy);
             CasusBelliSystem.LoadSaveData(save.CasusBelli);

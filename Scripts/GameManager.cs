@@ -184,6 +184,7 @@ public partial class GameManager : Node
         bool seaZonePanelTest = false;       // M43.5: deniz bölgesi paneli testi (--sea-zone-panel-test)
         bool formableDataTest = false;       // M44.1: kurgu ülke verisi testi (--formable-data-test)
         bool cultureTest = false;            // M44.2: il kültür katmanı testi (--culture-test)
+        bool formableTest = false;           // M44.3: kurgu ülke kurma testi (--formable-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -338,6 +339,8 @@ public partial class GameManager : Node
                 formableDataTest = true;
             else if (arg == "--culture-test")
                 cultureTest = true;
+            else if (arg == "--formable-test")
+                formableTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -750,6 +753,10 @@ public partial class GameManager : Node
         // M44.2: İl kültür katmanı testi — dağılım tutarlı, nüfus eşit, deterministik, save/load.
         if (cultureTest)
             RunCultureTest();
+
+        // M44.3: Kurgu ülke kurma testi — koşul sağlanmazsa reddedilir, sağlanınca ülke oluşur.
+        if (formableTest)
+            RunFormableTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -8512,5 +8519,196 @@ private void RunBalanceTest()
         GD.Print(ok ? "[CultureTest] SONUÇ: PASS ✓" : "[CultureTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M44.3: Kurgu ülke kurma headless testi (--formable-test).
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunFormableTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M44.3: KURGU ÜLKE KURMA TESTİ");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        // 1) Dünyayı hazırla (il + kültür + sahiplik)
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        FormableSystem.ResetForNewGame();
+        GD.Print($"[FormableTest] 1) İl: {provinces.Count}, kültür kaydı: {ProvinceCultureSystem.RecordCount}");
+
+        // === VALIABLE ŞABLON: koşul sağlanmayan durum testi için DEU kullanılır.
+        // Bavarya (BAV) DEU topraklarından kurulur; DEU'de yeterli bavarian il
+        // olmadğı için başlangıçta reddedilmelidir.
+        var def = FormableDataSystem.Get("BAV");
+        if (def == null)
+        {
+            GD.Print("[FormableTest] HATA: BAV tanımı yok");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // 2) DEU'ye yeterli il transfer et ve kültürünü bavarian yap.
+        // Prosedürel dünyada DEU'nün doğal ili yeterli olmayabilir; o yüzden
+        // en çok ili olan başka bir ülkeden il "fethediyoruz" — oyuncunun
+        // oyun içinde yapacağı işlemin aynısı.
+        int needed = def.RequiredProvinces;
+
+        var donor = provinces
+            .Where(p => !string.Equals(p.CountryId, "DEU", StringComparison.OrdinalIgnoreCase))
+            .GroupBy(p => p.CountryId, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.Count())
+            .Select(g => new { Id = g.Key, Provs = g.ToList() })
+            .FirstOrDefault();
+        if (donor == null || donor.Provs.Count < needed)
+        {
+            GD.PrintErr($"[FormableTest] HATA: {needed} ilinden fazlasına sahip bağışçı ülke yok");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var movedIds = donor.Provs.Select(p => p.Id).Take(needed).ToList();
+        foreach (var pid in movedIds)
+            ProvinceOwnershipSystem.SetProvinceOwner(pid, "DEU");
+        ProvinceCultureSystem.ReassignCountry(movedIds, "DEU");
+        foreach (var pid in movedIds)
+            ProvinceCultureSystem.SetCulture(pid, def.Culture);
+
+        int bavAfterPromote = ProvinceCultureSystem.CultureProvinceCount("DEU", def.Culture);
+        GD.Print($"[FormableTest] 2) {donor.Id} → DEU: {movedIds.Count} il devredildi, " +
+                  $"{bavAfterPromote} bavarian il (gereken: {needed})");
+        if (bavAfterPromote < needed) ok = false;
+
+        // PP, koşul değerlendirmesinden ÖNCE verilir (koşul PP'yi de denetler).
+        var deu = CountryDatabase.Get("DEU") ?? CountryDatabase.GetOrCreate("DEU", "Germany");
+        deu.PoliticalPower = 500;
+        float ppBefore = (float)deu.PoliticalPower;
+
+        // 3) Koşullar değerlendirilir — hepsi sağlanmalı (DEU DEU = ebe kaynak)
+        var conditions = FormableSystem.EvaluateConditions("DEU", "BAV");
+        foreach (var c in conditions)
+            GD.Print($"    - {c.Label}: {c.Met} ({c.Detail})");
+        bool canForm = FormableSystem.CanForm("DEU", "BAV");
+        GD.Print($"[FormableTest] 3) Kurulabilir: {canForm}");
+        if (!canForm) ok = false;
+
+        // 4) Ebe kaynak dışı ülke reddedilir
+        bool wrongParent = FormableSystem.CanForm("FRA", "BAV");
+        GD.Print($"[FormableTest] 4) Ebe kaynak olmayan ülke (FRA → BAV) reddedildi: {!wrongParent}");
+        if (wrongParent) ok = false;
+
+        // 5) Kurma başlatılır, gün sayacı ilerler
+        int provBefore = ProvinceCultureSystem.ForCountry("DEU").Count;
+        int deuCivBefore = deu.CivFactories;
+        long deuPopBefore = deu.Population;
+
+        string startReason;
+        bool started = FormableSystem.TryStart("DEU", "BAV", out startReason);
+        GD.Print($"[FormableTest] 5) Kurma başlatıldı: {started} (gerekçe: '{startReason}')");
+        if (!started) ok = false;
+
+        bool pending = FormableSystem.IsPending("DEU");
+        int totalDays = (int)Math.Ceiling(def.DaysRequired);
+        for (int d = 0; d < totalDays; d++)
+            FormableSystem.AdvanceDay("DEU");
+
+        // 6) Tamamlandıktan sonra ülke var ve illeri devredilmiş olmalı
+        var bav = CountryDatabase.Get("BAV");
+        bool formed = bav != null && !FormableSystem.IsPending("DEU");
+        GD.Print($"[FormableTest] 6) Ülke oluştu: {formed} ({bav?.Name ?? "yok"})");
+        if (!formed) ok = false;
+
+        int bavProvinces = ProvinceCultureSystem.ForCountry("BAV").Count;
+        int deuAfter = ProvinceCultureSystem.ForCountry("DEU").Count;
+        GD.Print($"[FormableTest]    BAV il: {bavProvinces}, DEU il: {deuAfter} (önce: {provBefore})");
+        if (bavProvinces < def.RequiredProvinces) ok = false;
+        if (deuAfter != provBefore - bavProvinces) ok = false;
+
+        // 7) PP harcanmış, fabrika ve nüfus bölünmüş
+        float ppAfter = (float)deu.PoliticalPower;
+        bool ppSpent = ppAfter <= ppBefore;
+        bool factoriesMoved = deu.CivFactories <= deuCivBefore;
+        bool populationMoved = bav.Population > 0 && deu.Population <= deuPopBefore;
+        GD.Print($"[FormableTest] 7) PP: {ppBefore:N0} → {ppAfter:N0}, " +
+                  $"fabrika DEU {deuCivBefore} → {deu.CivFactories}, " +
+                  $"nüfus DEU {deuPopBefore} → {deu.Population}");
+        if (!ppSpent || !factoriesMoved || !populationMoved) ok = false;
+
+        // 8) Sahiplik doğru taşınmış (ProvinceOwnershipSystem)
+        int ownerMismatch = ProvinceCultureSystem.ForCountry("BAV")
+            .Count(r => ProvinceOwnershipSystem.GetProvinceOwner(r.ProvinceId) != "BAV");
+        GD.Print($"[FormableTest] 8) Sahiplik uyumsuzluğu: {ownerMismatch}");
+        if (ownerMismatch > 0) ok = false;
+
+        // 9) Save/Load round-trip — FRA'yı da hazırlayıp bir süreç başlatıyoruz
+        //    ve birkaç gün ilerlettikten sonra kaydedip yüklüyoruz; ilerleme
+        //    düşmemeli (koşullar durmuşsa süreç de bozulmamalı).
+        PrepareFormableCountry(provinces, "FRA", "burgundian", 9);
+        FormableSystem.TryStart("FRA", "BRG", out _);
+        for (int d = 0; d < 5; d++) FormableSystem.AdvanceDay("FRA");
+        float progressBefore = FormableSystem.Progress("FRA");
+        int pendingBeforeSave = FormableSystem.PendingCount;
+
+        var save = FormableSystem.GetSaveData();
+        FormableSystem.ResetForNewGame();
+        FormableSystem.LoadSaveData(save);
+        float progressAfter = FormableSystem.Progress("FRA");
+        bool roundTrip = FormableSystem.PendingCount == pendingBeforeSave &&
+                         Mathf.Abs(progressBefore - progressAfter) < 0.001f &&
+                         progressBefore > 0f;
+        GD.Print($"[FormableTest] 9) Save/Load: bekleyen {pendingBeforeSave} → {FormableSystem.PendingCount}, " +
+                  $"ilerleme {progressBefore:P1} → {progressAfter:P1}");
+        if (!roundTrip) ok = false;
+
+        // 10) İptal
+        bool cancelled = FormableSystem.Cancel("FRA");
+        bool afterCancel = FormableSystem.IsPending("FRA");
+        GD.Print($"[FormableTest] 10) İptal: {cancelled}, sonra beklemede: {afterCancel}");
+        if (!cancelled || afterCancel) ok = false;
+
+        // 11) Aynı ülke iki kez başlatamaz. BAV kurulduktan sonra DEU'nün ili
+        //     azaldığı için FRA kullanılıyor (10. adımda iptal edilen süreçten
+        //     sonra illeri hâlâ burgundy, PP hâlâ yeterli).
+        FormableSystem.ResetForNewGame();
+        bool firstStarted = FormableSystem.TryStart("FRA", "BRG", out _);
+        bool secondBlocked = !FormableSystem.TryStart("FRA", "CST", out _);
+        GD.Print($"[FormableTest] 11) İlk kurma: {firstStarted}, ikinci kurma engellendi: {secondBlocked}");
+        if (!firstStarted || !secondBlocked) ok = false;
+
+        GD.Print(ok ? "[FormableTest] SONUÇ: PASS ✓" : "[FormableTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M44.3 testi yardımcısı: bir ülkeye <paramref name="provinceCount"/> il
+    /// transfer edip hepsinin kültürünü <paramref name="culture"/> yapar ve
+    /// PP'yi koşulu geçecek kadar bırakır. Bağışçı, hedef dışında en çok ili
+    /// olan ülkedir (prosedürel dünyada sabit bir ülke seçilemez).
+    /// </summary>
+    private void PrepareFormableCountry(List<ProvinceData> provinces, string countryId,
+                                        string culture, int provinceCount)
+    {
+        var data = CountryDatabase.Get(countryId) ?? CountryDatabase.GetOrCreate(countryId, countryId);
+        data.PoliticalPower = 500;
+
+        var donor = provinces
+            .Where(p => !string.Equals(p.CountryId, countryId, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(p => p.CountryId, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.Count())
+            .Select(g => new { Id = g.Key, Provs = g.ToList() })
+            .FirstOrDefault();
+        if (donor == null || donor.Provs.Count < provinceCount) return;
+
+        var ids = donor.Provs.Select(p => p.Id).Take(provinceCount).ToList();
+        foreach (var pid in ids)
+            ProvinceOwnershipSystem.SetProvinceOwner(pid, countryId);
+        ProvinceCultureSystem.ReassignCountry(ids, countryId);
+        foreach (var pid in ids)
+            ProvinceCultureSystem.SetCulture(pid, culture);
     }
 }

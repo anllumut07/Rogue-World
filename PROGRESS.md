@@ -2615,3 +2615,28 @@ Scripts/GameHud.cs, Scripts/GameManager.cs, TODO.md (43.5 [x]).
 
 **Dosyalar:** Scripts/ProvinceCultureSystem.cs (yeni), Scripts/SaveSystem.cs,
 Scripts/GameManager.cs, TODO.md (44.2 [x]), PROGRESS.md, GECE-RAPOR.md.
+
+---
+
+## M44.3 — Kurgu ülke kurma mantığı
+
+`Scripts/FormableSystem.cs`: ülke, kendi topraklarında yeterli kültür iline
+sahipse PP ve gün harcayarak yeni bir ülke kurabilir.
+
+- **Koşullar** (5 ayrı madde, `EvaluateConditions`): ebe kaynak ülke olma,
+  gereken kültür il sayısı, bu illerin ülke toplamı içindeki payı (minimum
+  kontrol oranı), ilhak edilmemiş olma, yeterli PP.
+- **Süreç**: `TryStart` → gün sayacı (`AdvanceDay`) → `Complete`.
+  PP kurulum TAMAMLANINca harcanır, başlangıçta değil.
+- **Sonuç**: yeni ülke `CountryDatabase`'ye girer; kültür illeri
+  `ProvinceOwnershipSystem` + `ProvinceCultureSystem.ReassignCountry` ile
+  devredilir; nüfus/fabrika/kaynak il oranına göre bölünür; `CountryAI.Reset()`
+  ile yeni ülke AI devralır (harita rengi `WorldMap.ColorForId` hash'inden
+  otomatik gelir).
+- **Doğrulama**: build 0/0; `--formable-test` PASS ✓ (11 kontrol); save/load
+  round-trip ilerleme durumunu korudu; `--save-load-test` A==B PASS
+  (historical_1936 + modern_world).
+
+**Dosyalar:** Scripts/FormableSystem.cs (yeni), Scripts/ProvinceCultureSystem.cs,
+Scripts/SaveSystem.cs, Scripts/GameManager.cs, TODO.md (44.3 [x]), PROGRESS.md,
+GECE-RAPOR.md.

@@ -2213,3 +2213,47 @@ gerektiren işler yapılmayacak.
    formable koşulu okurken kullanılacak), save/load kaydı da M44.5'te
    SaveSystem'e eklenecek.
 4. Kullanıcının test etmesi gereken: yok — headless testle doğrulandı.
+
+---
+
+## 2026-10-22 — M44.3 (Kurgu ülke kurma mantığı)
+
+- **Alt görev:** Scripts/FormableSystem.cs — kurma kararı, gün sayacı, yeni ülke
+  oluşumu. TODO.md satır 44.3.
+- **Ne yapıldı:**
+  - Scripts/FormableSystem.cs (yeni): EvaluateConditions (ebe kaynak + gerekli
+    il sayısı + minimum kontrol oranı + ilhak durumu + PP), CanForm,
+    AvailableFor, TryStart/AdvanceDay/Cancel/Progress/State.
+  - Complete: yeni ülke CountryDatabase.GetOrCreate ile oluşur; kültür
+    illeri ProvinceOwnershipSystem + ProvinceCultureSystem.ReassignCountry
+    ile devredilir; PP harcanır; fabrika/kaynak/nüfus il oranına göre bölünür;
+    CountryAI.Reset() ile yeni ülke AI devralır.
+  - Scripts/SaveSystem.cs: FormableSave / FormablePendingEntry DTO'ları.
+  - Scripts/ProvinceCultureSystem.cs: SetCulture (kültür değiştirme) ve
+    ReassignCountry (il devrinde sahip güncelleme) eklendi.
+  - Scripts/GameManager.cs: --formable-test kancası + RunFormableTest()
+    (11 kontrol) ve PrepareFormableCountry yardımcısı.
+- **Karar (varsayım):** "Minimum kontrol oranı", ülkenin toplam ili içinde
+  kültür illerinin payı olarak yorumlandı (BAV: %55). Böylece iki alan da
+  anlamlı: biri ham il sayısı, diğeri demografik ağırlık.
+- **Karar (varsayım):** PP kurulum TAMAMLANINca harcanır (başlangıçta değil) —
+  gün sayacı ilerlerken PP bitse bile süreç yarıda ölmesin.
+- **Karar (varsayım):** Harita rengi için ek kod yazılmadı: WorldMap.ColorForId
+  rengi kimlik hash'inden türettiği için yeni ülke otomatik renk alıyor.
+  AI devralma için CountryAI.Reset() çağrıldı — Initialize() kendi listesini
+  CountryDatabase.All() üzerinden kurduğu için yeni ülke listede görünür.
+- **Doğrulama:** dotnet build 0 hata / 0 uyarı; --formable-test PASS ✓
+  (11 kontrol: dünya kurulumu, il transferi + kültür, koşullar, ebe kaynak
+  dışı red, kurma başlatma, ülke oluşumu + il sayısı korunumu, PP/fabrika/nüfus
+  bölünmesi, sahiplik uyumu, save/load ilerleme korunumu, iptal, çift kurma
+  engelleme); --save-load-test A==B PASS (historical_1936).
+
+### ÖZET
+1. Scripts/FormableSystem.cs (yeni), Scripts/ProvinceCultureSystem.cs,
+   Scripts/SaveSystem.cs, Scripts/GameManager.cs, TODO.md (44.3 [x]) değişti.
+2. Çözülemeyen: yok.
+3. Bilinen: FormableSystem henüz GameHud'dan tetiklenmiyor (M44.5 paneli);
+   devredilen illerin ticaret/lojistik bağları (M43.2 konvoy) yeniden
+   hesaplanmıyor — konvoy sistemi ülke kimliğine bakıyor, iller değişince
+   kendiliğinden oturuyor.
+4. Kullanıcının test etmesi gereken: yok — headless testlerle doğrulandı.

@@ -332,6 +332,51 @@ public static class ProvinceCultureSystem
         GD.Print($"[Culture] Kültür kayıtları yüklendi: {_records.Count}");
     }
 
+    /// <summary>
+    /// Bir ilin kültürünü değiştirir (test ve olay etkileri için).
+    /// Kültür katmanı zaten üretilmiş olmalı — kayıt yoksa false döner.
+    /// </summary>
+    public static bool SetCulture(string provinceId, string culture)
+    {
+        if (string.IsNullOrEmpty(provinceId)) return false;
+        if (!_records.TryGetValue(provinceId, out var rec)) return false;
+        rec.Culture = culture ?? "";
+        return true;
+    }
+
+    /// <summary>
+    /// Kültür kayıtlarının sahip ülkesini günceller (M44.3 il devri).
+    /// Sahiplik zincirine dokunmaz — yalnızca kültür indeksini taşır.
+    /// </summary>
+    public static void ReassignCountry(List<string> provinceIds, string newCountryId)
+    {
+        if (provinceIds == null || string.IsNullOrEmpty(newCountryId)) return;
+
+        int moved = 0;
+        foreach (var id in provinceIds)
+        {
+            if (!_records.TryGetValue(id, out var rec)) continue;
+
+            // Eski ülke indeksinden çıkar
+            if (_byCountry.TryGetValue(rec.CountryId, out var oldList))
+                oldList.Remove(id);
+
+            rec.CountryId = newCountryId;
+            moved++;
+
+            if (!_byCountry.TryGetValue(newCountryId, out var newList))
+            {
+                newList = new List<string>();
+                _byCountry[newCountryId] = newList;
+            }
+            if (!newList.Contains(id)) newList.Add(id);
+        }
+
+        // Boşalmış eski ülke anahtarlarını temizle
+        var empty = _byCountry.Where(kv => kv.Value.Count == 0).Select(kv => kv.Key).ToList();
+        foreach (var key in empty) _byCountry.Remove(key);
+    }
+
     /// <summary>Yeni oyunda sıfırlar.</summary>
     public static void ResetForNewGame()
     {

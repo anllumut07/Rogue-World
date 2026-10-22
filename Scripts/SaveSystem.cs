@@ -269,6 +269,19 @@ public static class SaveSystem
         public long Population { get; set; }
     }
 
+    // ===== Kurgu ülke kurma DTOs (M44.3) =====
+    public class FormableSave
+    {
+        public FormablePendingEntry[] Pending { get; set; }
+    }
+    public class FormablePendingEntry
+    {
+        public string CountryId { get; set; }
+        public string FormableId { get; set; }
+        public float DaysElapsed { get; set; }
+        public float DaysRequired { get; set; }
+    }
+
 
     // ===== Deniz invazyonu DTOs (M39.2) =====
     public class NavalInvasionSave

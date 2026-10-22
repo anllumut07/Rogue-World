@@ -483,6 +483,9 @@ public static class EventSystem
             var player = CountryDatabase.Get(GM.PlayerCountryId);
             if (target != null && player != null)
             {
+                // M44.4: kayıt düş — iller devredilmeden önce (bağımsız çıkarılabilir)
+                ReleasableSystem.RecordSubject(target.Id, player.Id, false,
+                    target.CivFactories, target.MilFactories, target.Dockyards);
                 target.IsAnnexed = true;
                 target.OwnerId = player.Id;
                 player.CivFactories += target.CivFactories;

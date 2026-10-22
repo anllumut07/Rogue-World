@@ -2640,3 +2640,29 @@ sahipse PP ve gün harcayarak yeni bir ülke kurabilir.
 **Dosyalar:** Scripts/FormableSystem.cs (yeni), Scripts/ProvinceCultureSystem.cs,
 Scripts/SaveSystem.cs, Scripts/GameManager.cs, TODO.md (44.3 [x]), PROGRESS.md,
 GECE-RAPOR.md.
+
+---
+
+## M44.4 — İlhak/kukla ülkeyi bağımsız çıkarma
+
+`Scripts/ReleasableSystem.cs`: her ilhak kayıt düşer, ilhak edilen ülke
+sonradan bağımsız çıkarılabilir.
+
+- **Kayıt** (`RecordSubject`): iller devredilmeden ÖNCE snapshot alınır
+  (kimlikler + ilhak edene geçen fabrika sayısı + kukla mu). Kancalar:
+  WarSystem (AI kapitülasyon, EnemyCapitulates, PlayerCapitulates),
+  PeaceConferenceSystem (Annex + Puppet), DiplomacySystem (Annex + Puppet),
+  EventSystem.
+- **Serbest bırakma** (`Release`): kayıtlı illerden yalnızca hâlâ ilhak edende
+  olanlar geri verilir (kayıp iller hata vermez, deterministik kalır); fabrika
+  payı sahibinde ne kadarsa o kadar geri döner; kültür kaydı `ReassignCountry`
+  ile taşınır; `IsAnnexed`/`OwnerId` kalkar; `CountryAI.Reset()` ile yeni ülke
+  AI devralır.
+- **Yetki**: ilhak eden ya da ülke kendisi.
+- **Doğrulama**: build 0/0; `--releasable-test` PASS ✓ (14 kontrol);
+  `--save-load-test` A==B PASS (historical_1936 + modern_world).
+
+**Dosyalar:** Scripts/ReleasableSystem.cs (yeni), Scripts/SaveSystem.cs,
+Scripts/WarSystem.cs, Scripts/PeaceConferenceSystem.cs,
+Scripts/DiplomacySystem.cs, Scripts/EventSystem.cs, Scripts/GameManager.cs,
+TODO.md (44.4 [x]), PROGRESS.md, GECE-RAPOR.md.

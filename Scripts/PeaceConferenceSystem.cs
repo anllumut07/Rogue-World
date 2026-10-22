@@ -370,6 +370,8 @@ public static class PeaceConferenceSystem
             case TermKind.Annex:
             {
                 int civ = loser.CivFactories, mil = loser.MilFactories, dock = loser.Dockyards;
+                // M44.4: iller devredilmeden önce kayıt düş (sonra serbest bırakılabilir)
+                ReleasableSystem.RecordSubject(loser.Id, winner.Id, false, civ, mil, dock);
                 loser.IsAnnexed = true;
                 loser.OwnerId = winner.Id;
                 winner.CivFactories += civ;
@@ -401,6 +403,8 @@ public static class PeaceConferenceSystem
             case TermKind.Puppet:
             {
                 // Kukla: fabrikalar kaybedenin kalır, kontrol kazananda.
+                // M44.4: kayıt düş — iller zaten kaybedende kalır, fabrika payı alınmaz.
+                ReleasableSystem.RecordSubject(loser.Id, winner.Id, true, 0, 0, 0);
                 loser.IsAnnexed = true;
                 loser.OwnerId = winner.Id;
                 res.Puppeted = true;

@@ -2257,3 +2257,52 @@ gerektiren işler yapılmayacak.
    hesaplanmıyor — konvoy sistemi ülke kimliğine bakıyor, iller değişince
    kendiliğinden oturuyor.
 4. Kullanıcının test etmesi gereken: yok — headless testlerle doğrulandı.
+
+---
+
+## 2026-10-22 — M44.4 (İlhak/kukla ülkeyi bağımsız çıkarma)
+
+- **Alt görev:** Scripts/ReleasableSystem.cs — ilhak edilmiş veya kukla
+  ülkeyi sonradan bağımsız çıkarma. TODO.md satır 44.4.
+- **Ne yapıldı:**
+  - Scripts/ReleasableSystem.cs (yeni): her ilhak, iller devredilmeden ÖNCE
+    kayıt düşer (RecordSubject → SubjectRecord). Release o kaydı ters
+    yönde uygular: illeri + kültür kaydını geri verir, fabrika payını döndürür,
+    IsAnnexed/OwnerId kaldırır, CountryAI.Reset() ile yeni ülkeyi AI
+    devralır.
+  - Kayıt kancaları: Scripts/WarSystem.cs (AI kapitülasyon, EnemyCapitulates,
+    PlayerCapitulates), Scripts/PeaceConferenceSystem.cs (Annex + Puppet),
+    Scripts/DiplomacySystem.cs (Annex + Puppet), Scripts/EventSystem.cs.
+  - Scripts/SaveSystem.cs: ReleasableSave / ReleasableSubjectEntry DTO'ları.
+  - Scripts/GameManager.cs: --releasable-test kancası + RunReleasableTest()
+    (14 kontrol).
+- **Karar (varsayım):** Kayıt "nokta anında" düşülüyor çünkü bağımsız çıkarma
+  ilhak edilenin *o anki* il listesine ihtiyaç duyar; iller sonradan savaşla
+  el değiştirmiş olabilir. Release yalnızca hâlâ ilhak edende olan illeri
+  geri verir — kayıp iller için hata vermez, deterministik kalır.
+- **Karar (varsayım):** Kukla kaydında fabrika payı alınmaz; iller de zaten
+  kurbanda kaldığı için devir no-op olur. Kayıt yine de düşer ki "kuklaydı"
+  bilgisi save/load'da hayatta kalsın.
+- **Karar (varsayım):** Fabrika geri verimi sahibinde ne kadarsa o kadardır
+  (negatife düşmez). Kayıtlardan az çıktıysa fark ters yönde doldurulur
+  (civ→mil→dock sırası), ki toplam pay korunsun.
+- **Karar (varsayım):** Yetki: yalnızca ilhak eden ülke ya da ülke kendisi
+  serbest bırakabilir (kendi halkı bağımsızlık istiyor senaryosu için).
+- **Doğrulama:** dotnet build 0 hata / 0 uyarı; --releasable-test PASS ✓
+  (14 kontrol — il devri ve kültür kaydı devri gerçekten ölçüldü: ilhak kaydı,
+  3 il geri dönüşü, kültür kaydı geri dönüşü, fabrika payı c3/m1/t0 doğru
+  bölünmesi, ilhak edenin toplam fabrikası, bağımsızlık bayrakları, kayıt
+  temizliği, yetkisiz aktör reddi, çift serbest bırakma reddi, kayıtsız ülke
+  reddi, save/load round-trip, aynı il kimliklerinin dönmesi, nüfus korunumu);
+  --save-load-test A==B PASS (historical_1936 + modern_world).
+
+### ÖZET
+1. Scripts/ReleasableSystem.cs (yeni), Scripts/SaveSystem.cs,
+   Scripts/WarSystem.cs, Scripts/PeaceConferenceSystem.cs,
+   Scripts/DiplomacySystem.cs, Scripts/EventSystem.cs,
+   Scripts/GameManager.cs, TODO.md (44.4 [x]) değişti.
+2. Çözülemeyen: yok.
+3. Bilinen: ReleasableSystem save/load'u GameManager'dan henüz bağlı değil
+   (M44.5); otomatik serbest bırakma/AI talebi yok, AdvanceDay boş; ilhak
+   edilenin halkının memnuniyeti/ayaklanma etkisi yok.
+4. Kullanıcının test etmesi gerekenler: yok — headless testlerle doğrulandı.

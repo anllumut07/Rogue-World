@@ -282,6 +282,23 @@ public static class SaveSystem
         public float DaysRequired { get; set; }
     }
 
+    // ===== Bağımsız çıkarma kayıtları DTOs (M44.4) =====
+    public class ReleasableSave
+    {
+        public ReleasableSubjectEntry[] Subjects { get; set; }
+    }
+    public class ReleasableSubjectEntry
+    {
+        public string CountryId { get; set; }
+        public string OverlordId { get; set; }
+        public bool IsPuppet { get; set; }
+        public string[] ProvinceIds { get; set; }
+        public int FactoriesTaken { get; set; }
+        public int CivTaken { get; set; }
+        public int MilTaken { get; set; }
+        public int DockTaken { get; set; }
+    }
+
 
     // ===== Deniz invazyonu DTOs (M39.2) =====
     public class NavalInvasionSave

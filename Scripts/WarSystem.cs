@@ -342,6 +342,9 @@ public static class WarSystem
         loser.IsAnnexed = true;
         loser.OwnerId = winnerId;
 
+        // M44.4: ilhak kaydı (fabrika payı burada %50 devredilir)
+        ReleasableSystem.RecordSubject(loserId, winnerId, false, civGain, milGain, dockGain);
+
         war.IsEnded = true;
         war.WarProgress = winnerId == war.AttackerId ? 100 : 0;
 
@@ -539,6 +542,10 @@ public static class WarSystem
             loser.IsAnnexed = true;
             loser.OwnerId = winner.Id;
 
+            // M44.4: ilhak kaydı — iller devredilmeden önce fabrika sayılarıyla
+            ReleasableSystem.RecordSubject(loser.Id, winner.Id, false,
+                loser.CivFactories, loser.MilFactories, loser.Dockyards);
+
             // M41.2: major güç eşiği için fabrika sayısı sıfırlanmadan ÖNCE alınır
             int loserTotalFactories = loser.TotalFactories;
 
@@ -580,6 +587,10 @@ public static class WarSystem
         {
             Player.IsAnnexed = true;
             Player.OwnerId = war.DefenderId;
+
+            // M44.4: oyuncunun ilhak kaydı (yeniden bağımsız olunabilir)
+            ReleasableSystem.RecordSubject(Player.Id, war.DefenderId, false,
+                Player.CivFactories, Player.MilFactories, Player.Dockyards);
         }
 
         GD.Print($"[War] *** OYUNCU KAPİTÜLE OLDU: {Player?.Name} teslim oldu ({reason}) — " +

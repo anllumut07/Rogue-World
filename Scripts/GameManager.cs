@@ -185,6 +185,7 @@ public partial class GameManager : Node
         bool formableDataTest = false;       // M44.1: kurgu ülke verisi testi (--formable-data-test)
         bool cultureTest = false;            // M44.2: il kültür katmanı testi (--culture-test)
         bool formableTest = false;           // M44.3: kurgu ülke kurma testi (--formable-test)
+        bool releasableTest = false;         // M44.4: ilhak/kukla ülkeyi bağımsız çıkarma testi
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -341,6 +342,8 @@ public partial class GameManager : Node
                 cultureTest = true;
             else if (arg == "--formable-test")
                 formableTest = true;
+            else if (arg == "--releasable-test")
+                releasableTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -757,6 +760,10 @@ public partial class GameManager : Node
         // M44.3: Kurgu ülke kurma testi — koşul sağlanmazsa reddedilir, sağlanınca ülke oluşur.
         if (formableTest)
             RunFormableTest();
+
+        // M44.4: Bağımsız çıkarma testi — ilhak kaydı düşer, iller/fabrika payı geri döner.
+        if (releasableTest)
+            RunReleasableTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -8710,5 +8717,239 @@ private void RunBalanceTest()
         ProvinceCultureSystem.ReassignCountry(ids, countryId);
         foreach (var pid in ids)
             ProvinceCultureSystem.SetCulture(pid, culture);
+    }
+
+    /// <summary>
+    /// M44.4: Bağımsız çıkarma headless testi (--releasable-test).
+    /// Normal oyunda ASLA çalışmaz.
+    ///
+    /// Senaryo: ilhak eden büyük bir ülke, ardından onun ilhak ettiği küçük
+    /// bir ülkeyi serbest bırakma. İller, fabrika payı ve bağımsızlık
+    /// bayraklarının doğru döndüğü, AI'nin devraldığı doğrulanır.
+    /// </summary>
+    private void RunReleasableTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M44.4: BAĞIMSIZ ÇIKARMA TESTİ");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        // 1) Dünyayı hazırla (il + kültür + sahiplik)
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ReleasableSystem.ResetForNewGame();
+        GD.Print($"[ReleasableTest] 1) İl: {provinces.Count}, kültür kaydı: {ProvinceCultureSystem.RecordCount}");
+
+        // 2) Değiş tokuş: büyük ülke (overlord) küçük ülkeyi ilhak eder.
+        // İl devri gerçekten test edilsin diye kurbanın en az 1 ili olmalı;
+        // prosedürel dünyada bazı ülkelerin hiç ili yok.
+        var overlord = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed && ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count > 0)
+            .OrderByDescending(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .FirstOrDefault();
+        var subject = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, overlord?.Id, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 3)
+            .OrderBy(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .FirstOrDefault();
+        if (overlord == null || subject == null)
+        {
+            GD.PrintErr("[ReleasableTest] HATA: deneme ülkeleri bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        int civBefore = subject.CivFactories;
+        int milBefore = subject.MilFactories;
+        int dockBefore = subject.Dockyards;
+        var subjectProvinces = ProvinceOwnershipSystem.GetProvincesByOwner(subject.Id)
+            .OrderBy(id => id, StringComparer.Ordinal).ToList();
+        int popBefore = (int)subject.Population;
+        overlord.PoliticalPower = 500;
+
+        GD.Print($"[ReleasableTest] 2) İlhak: {subject.Id} → {overlord.Id} " +
+                 $"(il={subjectProvinces.Count}, fabrika c{civBefore}/m{milBefore}/t{dockBefore})");
+
+        // Kayıt, iller devredilmeden ÖNCE düşmeli
+        ReleasableSystem.RecordSubject(subject.Id, overlord.Id, false, civBefore, milBefore, dockBefore);
+        if (ReleasableSystem.RecordCount != 1)
+        {
+            GD.PrintErr($"[ReleasableTest] HATA: kayıt sayısı {ReleasableSystem.RecordCount} != 1");
+            ok = false;
+        }
+
+        // İlhak uygula: bayraklar + fabrika transferi + tüm illerin devri
+        subject.IsAnnexed = true;
+        subject.OwnerId = overlord.Id;
+        overlord.CivFactories += civBefore;
+        overlord.MilFactories += milBefore;
+        overlord.Dockyards += dockBefore;
+        subject.CivFactories = subject.MilFactories = subject.Dockyards = 0;
+        foreach (var p in subjectProvinces)
+            ProvinceOwnershipSystem.SetProvinceOwner(p, overlord.Id);
+        ProvinceCultureSystem.ReassignCountry(subjectProvinces, overlord.Id);
+
+        int overlordCiv = overlord.CivFactories;
+        int overlordMil = overlord.MilFactories;
+        int overlordDock = overlord.Dockyards;
+        int overlordProvCount = ProvinceOwnershipSystem.GetProvincesByOwner(overlord.Id).Count;
+        GD.Print($"[ReleasableTest]    ilhak sonrası {overlord.Id}: il={overlordProvCount}, " +
+                 $"fabrika c{overlordCiv}/m{overlordMil}/t{overlordDock}");
+        if (ProvinceOwnershipSystem.GetProvincesByOwner(subject.Id).Count != 0)
+        {
+            GD.PrintErr("[ReleasableTest] HATA: ilhak sonrası kurbanın ili kalmış");
+            ok = false;
+        }
+
+        // 3) Serbest bırakılabilir listesi
+        var releasable = ReleasableSystem.Releasable();
+        if (releasable.Count != 1 || releasable[0].CountryId != subject.Id)
+        {
+            GD.PrintErr($"[ReleasableTest] HATA: serbest bırakılabilir sayısı {releasable.Count}");
+            ok = false;
+        }
+        else GD.Print($"[ReleasableTest] 3) Serbest bırakılabilir: {releasable.Count} ({subject.Id})");
+
+        // 4) Yetkisiz aktör reddedilmeli (üçüncü bir ülke)
+        var stranger = CountryDatabase.All()
+            .FirstOrDefault(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, overlord.Id, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, subject.Id, StringComparison.OrdinalIgnoreCase));
+        if (stranger != null && ReleasableSystem.CanRelease(subject.Id, stranger.Id))
+        {
+            GD.PrintErr($"[ReleasableTest] HATA: {stranger.Id} {subject.Id}'yi serbest bırakabildi");
+            ok = false;
+        }
+        else GD.Print("[ReleasableTest] 4) Yetkisiz aktör reddedildi");
+
+        // 5) Serbest bırakma uygula
+        var rel = ReleasableSystem.Release(subject.Id, overlord.Id);
+        GD.Print($"[ReleasableTest] 5) BAĞIMSIZ: {subject.Id} " +
+                 $"(il={rel.ProvincesReturned}, fabrika c{rel.CivReturned}/m{rel.MilReturned}/t{rel.DockReturned})");
+        if (!rel.Ok)
+        {
+            GD.PrintErr($"[ReleasableTest] HATA: serbest bırakma başarısız — {rel.Reason}");
+            ok = false;
+        }
+
+        // 6) İller geri dönmüş olmalı
+        int backProvinces = ProvinceOwnershipSystem.GetProvincesByOwner(subject.Id).Count;
+        if (backProvinces != subjectProvinces.Count)
+        {
+            GD.PrintErr($"[ReleasableTest] HATA: il devri {backProvinces} != {subjectProvinces.Count}");
+            ok = false;
+        }
+        else GD.Print($"[ReleasableTest] 6) İller geri döndü: {backProvinces}");
+
+        // 7) Kültür kaydı da sahibine dönmeli
+        int cultureOwned = ProvinceCultureSystem.ForCountry(subject.Id).Count;
+        if (cultureOwned != subjectProvinces.Count)
+        {
+            GD.PrintErr($"[ReleasableTest] HATA: kültür kaydı {cultureOwned} != {subjectProvinces.Count}");
+            ok = false;
+        }
+        else GD.Print($"[ReleasableTest] 7) Kültür kaydı geri döndü: {cultureOwned}");
+
+        // 8) Fabrika payı geri verilmiş, negatife düşmemiş olmalı
+        if (subject.CivFactories != civBefore ||
+            subject.MilFactories != milBefore ||
+            subject.Dockyards != dockBefore)
+        {
+            GD.PrintErr($"[ReleasableTest] HATA: fabrika c{subject.CivFactories}/m{subject.MilFactories}/t{subject.Dockyards} " +
+                        $"!= c{civBefore}/m{milBefore}/t{dockBefore}");
+            ok = false;
+        }
+        int overlordTotal = overlord.CivFactories + overlord.MilFactories + overlord.Dockyards;
+        int expectedTotal = overlordCiv + overlordMil + overlordDock - (civBefore + milBefore + dockBefore);
+        if (overlordTotal != expectedTotal)
+        {
+            GD.PrintErr($"[ReleasableTest] HATA: ilhak edenin fabrikası {overlordTotal} != {expectedTotal}");
+            ok = false;
+        }
+        else GD.Print($"[ReleasableTest] 8) Fabrika payı doğru: kurban c{subject.CivFactories}/m{subject.MilFactories}/t{subject.Dockyards}, " +
+                      $"ilhak eden toplam {overlordTotal}");
+
+        // 9) Bağımsızlık bayrakları
+        if (subject.IsAnnexed || !string.IsNullOrEmpty(subject.OwnerId) || !string.IsNullOrEmpty(subject.OwnerId))
+        {
+            GD.PrintErr("[ReleasableTest] HATA: ilhak bayrakları hâlâ ayakta");
+            ok = false;
+        }
+        if (ReleasableSystem.RecordCount != 0)
+        {
+            GD.PrintErr($"[ReleasableTest] HATA: kayıt temizlenmedi ({ReleasableSystem.RecordCount})");
+            ok = false;
+        }
+        GD.Print("[ReleasableTest] 9) Bağımsızlık bayrakları kalktı, kayıt temizlendi");
+
+        // 10) Çift serbest bırakma reddedilmeli
+        var second = ReleasableSystem.Release(subject.Id, overlord.Id);
+        if (second.Ok)
+        {
+            GD.PrintErr("[ReleasableTest] HATA: ikinci serbest bırakma kabul edildi");
+            ok = false;
+        }
+        else GD.Print($"[ReleasableTest] 10) Çift serbest bırakma reddedildi ({second.Reason})");
+
+        // 11) Kukla kaydı: fabrika payı alınmaz, iller kurbanın kalır
+        ReleasableSystem.ResetForNewGame();
+        var puppetTaker = CountryDatabase.All()
+            .FirstOrDefault(c => c != null && !c.IsAnnexed && ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count > 0);
+        var puppetSub = CountryDatabase.All()
+            .FirstOrDefault(c => c != null && !c.IsAnnexed &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count > 0 &&
+                !string.Equals(c.Id, puppetTaker?.Id, StringComparison.OrdinalIgnoreCase));
+        if (puppetTaker != null && puppetSub != null && ReleasableSystem.CanRelease(puppetSub.Id))
+        {
+            GD.PrintErr("[ReleasableTest] HATA: kaydı olmayan ülke serbest bırakılabilir göründü");
+            ok = false;
+        }
+        else GD.Print("[ReleasableTest] 11) Kayıtsız ülke serbest bırakılamaz");
+
+        // 12) Save/Load round-trip: kayıt ve ilerleme korunur
+        ReleasableSystem.RecordSubject(subject.Id, overlord.Id, false, civBefore, milBefore, dockBefore);
+        var save = ReleasableSystem.GetSaveData();
+        ReleasableSystem.ResetForNewGame();
+        ReleasableSystem.LoadSaveData(save);
+        var loaded = ReleasableSystem.Get(subject.Id);
+        if (loaded == null || loaded.ProvinceIds.Length != subjectProvinces.Count ||
+            loaded.FactoriesTaken != civBefore + milBefore + dockBefore)
+        {
+            GD.PrintErr("[ReleasableTest] HATA: save/load kaydı bozuldu");
+            ok = false;
+        }
+        else GD.Print($"[ReleasableTest] 12) Save/load korundu: il={loaded.ProvinceIds.Length}, " +
+                      $"fabrika={loaded.FactoriesTaken}");
+
+        // 13) Belirli il doğrulaması: aynı illerin kimlikleri geri dönmüş olmalı
+        var returnedIds = ProvinceOwnershipSystem.GetProvincesByOwner(subject.Id)
+            .OrderBy(id => id, StringComparer.Ordinal).ToList();
+        var expectedIds = subjectProvinces.OrderBy(id => id, StringComparer.Ordinal).ToList();
+        var sameSet = returnedIds.Count == expectedIds.Count;
+        if (sameSet)
+            for (int i = 0; i < expectedIds.Count; i++)
+                if (!string.Equals(returnedIds[i], expectedIds[i], StringComparison.Ordinal)) { sameSet = false; break; }
+        if (!sameSet)
+        {
+            GD.PrintErr($"[ReleasableTest] HATA: dönen il kimlikleri uyuşmuyor " +
+                        $"({returnedIds.Count} vs {expectedIds.Count})");
+            ok = false;
+        }
+        else GD.Print($"[ReleasableTest] 13) Aynı il kimlikleri döndü: {returnedIds.Count} il");
+
+        // 14) Nüfus değişmemeli (il devri nüfusu taşımıyor)
+        if ((int)subject.Population != popBefore)
+        {
+            GD.PrintErr($"[ReleasableTest] HATA: nüfus değişti {popBefore} → {(int)subject.Population}");
+            ok = false;
+        }
+        else GD.Print($"[ReleasableTest] 14) Nüfus korundu: {popBefore}");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
     }
 }

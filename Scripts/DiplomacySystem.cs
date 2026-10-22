@@ -735,6 +735,9 @@ public static class DiplomacySystem
             switch (term.Item1)
             {
                 case PeaceDeal.Term.Annex:
+                    // M44.4: iller devredilmeden önce kayıt düş (bağımsız çıkarılabilir)
+                    ReleasableSystem.RecordSubject(loser.Id, deal.WinnerId, false,
+                        loser.CivFactories, loser.MilFactories, loser.Dockyards);
                     loser.IsAnnexed = true;
                     loser.OwnerId = deal.WinnerId;
                     winner.CivFactories += loser.CivFactories;
@@ -745,6 +748,7 @@ public static class DiplomacySystem
                     GD.Print($"[Diplomacy] Barış: {deal.LoserId} ilhak edildi → {deal.WinnerId}");
                     break;
                 case PeaceDeal.Term.Puppet:
+                    ReleasableSystem.RecordSubject(loser.Id, deal.WinnerId, true, 0, 0, 0);
                     loser.IsAnnexed = true;
                     loser.OwnerId = deal.WinnerId;
                     // Puppet: fabrikalar kalır ama kontrol sahibinde

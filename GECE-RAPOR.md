@@ -2651,3 +2651,28 @@ save/load round-trip eylem sayısını korudu);
      oldu, yani artık çok dar pencerede 280'in altına inmiyor. Dar pencerede panel taşabilir —
      bilinen, kozmetik.
 4. Kullanıcının test etmesi gerekenler: yok — hepsi headless doğrulandı.
+
+---
+
+## 46.4 — gece oturumu kapanışı (10:30)
+
+1. Değiştirdiklerim:
+   - **M46.4** `Scripts/MapViewSystem.cs` (yeni, statik taşıyıcı), `Scripts/SaveSystem.cs`
+     (`MapViewSave { Mode, CultureHighlight }` DTO'su + yaz/yükle kancaları), `Scripts/WorldMap.cs`
+     (durumu `MapViewSystem`'e yayınlar, `ApplyMapViewState()` ile geri alır, `_Ready` sonunda
+     uygular), `Scripts/SaveLoadTest.cs` (A==B özetine `Harita görünümü:` satırı),
+     `Scripts/GameManager.cs` (`RunMapViewRoundTripCheck` → `--map-mode-test` içinde).
+   - `TODO.md` 46.4 → [x]; `PROGRESS.md` M46.4 bölümü.
+2. Çözemediğim: yok.
+3. Bilinen sorunlar:
+   - `SetCultureHighlight` gerçek bir hatayı açığa çıkardı: "mod culture değilse culture'ya çevir"
+     davranışı vurguyu KALDIRIRKEN de çalışıyordu, yani culture dışına çıkıldıktan sonra vurgu
+     temizleyen her çağrı haritayı culture moduna geri koparıyordu. Düzeltildi (yalnızca vurgu
+     EKLENİRKEN mod değişiyor). `--culture-legend-test` bu düzeltmeyle hâlâ PASS.
+   - Kültür efsanesini açan ve culture harita modunu seçiren UI butonları hâlâ yok; yalnızca
+     `OpenUnder` API'sı ve testler. Bir sonraki turda ele alınmalı.
+4. Kullanıcının test etmesi gerekenler: yok — hepsi headless doğrulandı.
+   `--map-mode-test` 2.92 sn, `--culture-legend-test` 1.41 sn, `--culture-info-test` 1.32 sn,
+   `--save-load-test` 25.00 sn, `--save-load-test --scenario=modern_world` 20.16 sn — hepsi PASS.
+
+**Milestone 46 (Kültür Haritası) 46.1-46.4 tamamlandı.** Sıradaki: M47 (İl Bazlı Ekonomi).

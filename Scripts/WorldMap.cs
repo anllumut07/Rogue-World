@@ -1951,7 +1951,49 @@ public partial class WorldMap : Node2D
         if (prov == null) return Colors.Transparent;
         // Kültür kaydı il kimliğiyle tutulur: sahiplik değişse de ilin kültürü korunur.
         string culture = ProvinceCultureSystem.CultureOf(prov.Id);
-        return ColorForCulture(culture);
+        var color = ColorForCulture(culture);
+
+        // M46.2: kültür efsanesi panelinden bir kültür vurgulandıysa, o kültüre
+        // ait olmayan iller kararır — vurgulu kültür haritada tek başına kalır.
+        if (_cultureHighlight.Length > 0 &&
+            !string.Equals(culture, _cultureHighlight, StringComparison.Ordinal))
+            return DimColor(color);
+
+        return color;
+    }
+
+    /// <summary>Rengi kömürleştirir (vurgulanmayan bölgeler için).</summary>
+    private static Color DimColor(Color c)
+    {
+        // Doymuş renkler harita zeminde tamamen kaybolmasın diye üste katman
+        // tamamen sıfırlanmaz, sabit bir oranda kısılır.
+        const float k = 0.2f;
+        return new Color(c.R * k, c.G * k, c.B * k, 1f);
+    }
+
+    /// <summary>
+    /// M46.2: Vurgulanan kültür (boş = vurgu yok). Kültür efsanesi panelinde
+    /// bir kültüre tıklandığında kurulur, harita culture moduna geçer.
+    /// </summary>
+    public string CultureHighlight => _cultureHighlight;
+
+    private string _cultureHighlight = "";
+
+    /// <summary>
+    /// M46.2: Bir kültürü haritada vurgular (diğerlerini karartır).
+    /// Boş metin vurguyu kaldırır; harita modu culture'a çevrilir.
+    /// </summary>
+    public void SetCultureHighlight(string culture)
+    {
+        string next = culture ?? "";
+        if (_cultureHighlight == next) return;
+        _cultureHighlight = next;
+
+        if (CurrentMapMode != MapMode.Culture) SetMapMode(MapMode.Culture);
+        else RefreshProvinceColors();
+
+        QueueRedraw();
+        GD.Print($"WorldMap: kültür vurgusu = {(next.Length > 0 ? next : "(yok)")}");
     }
 
     // M46.1: Kültür kimliğinden deterministik renk (FNV-1a hash → HSV).

@@ -2593,3 +2593,32 @@ save/load round-trip eylem sayısını korudu);
      A == B vermeli (doğrulandı: 21.6 sn ve 25.8 sn PASS — culture modu özeti etkilemiyor).
    - Oyunda `SetMapMode(MapMode.Culture)` çağrısı sonrası illerin ülke rengi yerine kültür
      rengini alması bekleniyor — UI butonu M46.2/M46.3 ile birlikte ele alınmalı.
+---
+
+## M46.2 — Kültür efsanesi paneli (2026-10-23)
+
+1. Değiştirdiklerim:
+   - `Scripts/CultureLegendPanel.cs` (yeni, 1080x600 — 1152x648 ekrana sığar). Sol sütunda her
+     ayrı kültür için renk örneği + il sayısı + nüfus payı + payına göre uzayan çubuk; sağ
+     sütunda seçili kültürün il/nüfus ayrıntısı ve o kültürden il bulunan ülkeler (il sayısına
+     göre azalan, kimlik ile eşitlik bozması). Satıra tıklamak kültürü haritada vurguluyor.
+   - `Scripts/WorldMap.cs`: `SetCultureHighlight(kültür)` + `CultureHighlight` durumu ve
+     `DimColor` — vurgulanmayan kültürleri sabit oranda karartıyor, haritayı culture moduna
+     çeviriyor. `ModeColorForProvinceCulture` vurguyu uyguluyor.
+   - `Scripts/GameManager.cs`: `--culture-legend-test` flag'i, `RunCultureLegendPanelTest`,
+     `FindCultureLegendPanel` / `FindCultureRowButtons` / `FindCulturePanelButton` yardımcıları.
+   - `TODO.md` 46.2 → [x]; `PROGRESS.md` M46.2 bölümü.
+2. Çözemediğim: yok — kapsam netti (kültür listesi + pay/çubuk + vurgu bağı + test).
+3. Bilinen sorunlar:
+   - Kültür efsanesi paneline açan UI butonu yok (mevcut durumda yalnızca `OpenUnder` API'sı ve
+     `--culture-legend-test`). Aynı durum M46.1'deki harita modu butonu için de geçerli; ikisi
+     birlikte M46.3'te bir arayüz girişiyle ele alınmalı.
+   - Çubuk en büyük kültüre göre ölçeklendiğinden mutlak pay çubuğun yarısına denk gelmez;
+     sayısal pay ayrıca yüzde olarak gösteriliyor.
+4. Kullanıcının test etmesi gerekenler:
+   - \-\-culture-legend-test\ PASS olmalı (doğrulandı: 1.84 sn PASS — 15 kültür × 637 il,
+     paylar toplamı 1.000000, georgian seçimi 22 ülkeyi doğru sıraladı, vurgu parlaklığı
+     2.020 → 0.396, ESC kapattı).
+   - \-\-save-load-test\ ve \-\-save-load-test\ \-\-scenario=modern_world\ ikisi de hâlâ
+     A == B vermeli (doğrulandı: 20.2 sn ve 16.4 sn PASS — panel kalıcı durum tutmuyor).
+   - \-\-map-mode-test\ hâlâ PASS (doğrulandı: 1.12 sn — `DimColor` mevcut modları etkilemiyor).

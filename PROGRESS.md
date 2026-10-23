@@ -2832,3 +2832,35 @@ Hue hesabında art arda gelen hash değerleri birbirine çok yakın hue üretebi
 Diğer 6 modun kod yolu değişmedi — `MapMode` yalnızca WorldMap ve GameManager'da tüketiliyor.
 
 **Test:** dotnet build 0/0; `--map-mode-test` PASS ✓ (3.97 sn).
+
+## Milestone 46.2: Kültür efsanesi paneli — ✅ DONE (2026-10-23)
+
+**Yapılan:** `Scripts/CultureLegendPanel.cs` (yeni, 1080x600 — 1152x648 ekrana sığar). M46.1 kültür
+harita modunu boyadı ama o modun okunması için bir anahtar yoktu: haritada 15 rengi gören oyuncu
+hangi rengin hangi kültür olduğunu çıkaramıyordu. Bu panel o boşluğu kapatıyor.
+
+- **Sol sütun:** her ayrı kültür için renk örneği, il sayısı, nüfus payı ve payına göre uzayan çubuk.
+  Çubuk en büyük kültüre göre ölçekleniyor (geniş olan en çok konuşulan kültür), böylece küçük
+  kültürler de görünür kalıyor.
+- **Sağ sütun:** seçili kültürün il/nüfus ayrıntısı ve o kültürden il bulunan ülkeler — il sayısına
+  göre azalan, eşitlikte kimlik (Ordinal). Sıralama deterministik.
+- **Tıklama → vurgu:** satıra tıklamak kültürü haritada vurguluyor. `WorldMap.SetCultureHighlight`
+  haritayı culture moduna çeviriyor ve vurgulanmayan kültürleri sabit oranda karartıyor
+  (`DimColor`). `CLEAR HIGHLIGHT` vurguyu kaldırıyor.
+
+Panel kalıcı durum tutmuyor: kültür verisi `ProvinceCultureSystem`'te ve Save/Load oradan bağlı
+(M44.5). Vurgulama yalnızca görsel durum — bu yüzden M46.2 kapsamında kayıt alanı eklenmedi
+(harita modu + vurgu durumunun korunması M46.4'ün işi).
+
+**Doğrulama:** `--culture-legend-test` eklendi (`RunCultureLegendPanelTest`). 637 il / 15 kültür
+dünyasında: 15 satır + 15 tıklanabilir buton, nüfus payları toplamı 1.000000, il sayıları toplamı
+637, çubuk ilk satırda 1.0 ve paya göre azalan; satır sıralaması pay → il → kimlik kuralına uyuyor.
+`georgian` seçildiğinde 22 ülke doğru sayılıp doğru sıralandı, harita modu Culture oldu,
+`WorldMap.CultureHighlight` = georgian yazıldı, vurgulu/diğer kültür parlaklığı 2.020'ye 0.396'ya
+düştü (kararma gerçekten çalışıyor), vurgu kaldırıldı ve ESC paneli kapattı.
+
+**Test:** dotnet build 0/0; `--culture-legend-test` PASS ✓ (1.84 sn), `--map-mode-test` PASS ✓
+(1.12 sn), `--save-load-test` iki senaryo (varsayılan + modern_world) A==B PASS ✓.
+
+
+**Test:** dotnet build 0/0; `--map-mode-test` PASS ✓ (3.97 sn).

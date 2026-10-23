@@ -190,6 +190,7 @@ public partial class GameManager : Node
         bool releasablePanelTest = false;    // M45.1: bağımsız çıkarma paneli testi (--releasable-panel-test)
         bool autonomyTest = false;           // M45.2: özerklik sistemi testi (--autonomy-test)
         bool resistanceTest = false;         // M45.3: direniş sistemi testi (--resistance-test)
+        bool cultureLegendTest = false;      // M46.2: kültür efsanesi paneli testi (--culture-legend-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -356,6 +357,8 @@ public partial class GameManager : Node
                     autonomyTest = true;
                 else if (arg == "--resistance-test")
                     resistanceTest = true;
+                else if (arg == "--culture-legend-test")
+                    cultureLegendTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -791,6 +794,10 @@ public partial class GameManager : Node
         // M45.3: Direniş sistemi testi — kültür uyumsuzluğu, eylem, etkiler.
         if (resistanceTest)
             RunResistanceTest();
+
+        // M46.2: Kültür efsanesi paneli testi — sıralama, çubuk, vurgu, harita bağı.
+        if (cultureLegendTest)
+            RunCultureLegendPanelTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -9903,6 +9910,417 @@ private void RunBalanceTest()
         GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M46.2: Kültür efsanesi paneli testi (--culture-legend-test).
+    ///
+    /// Doğrulananlar:
+    ///   1) Ölçü sınırı: panel 1152x648'e sığyor.
+    ///   2) Her kültür tam bir satırda, tekrarsız; il sayıları toplamı il
+    ///      kaydı sayısına, nüfus payları toplamı 1.0'e eşit.
+    ///   3) Sıralama: nüfus payı azalan (eşitlikte il sayısı, sonra kimlik).
+    ///   4) Çubuk: ilk satır 1.0, tümü 0..1, payı azalan sırada azalan.
+    ///   5) Satır seçimi: o kültürü gerçekten taşıyan ülkeler listelenir
+    ///      (kültür katmanından bağımsız olarak yeniden sayılır), tekrarsız,
+    ///      il sayısına göre azalan.
+    ///   6) Harita bağı: seçim WorldMap.CultureHighlight'a yazılır, harita
+    ///      culture moduna geçer, vurgulanmayan illerin rengi kararır.
+    ///   7) ESC kapatma isteği üretir.
+    /// </summary>
+    private async void RunCultureLegendPanelTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M46.2: KÜLTÜR EFSANESİ PANELİ TESTİ (--culture-legend-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ReleasableSystem.ResetForNewGame();
+        AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
+
+        int cultures = ProvinceCultureSystem.All()
+            .Where(r => r != null)
+            .Select(r => r.Culture ?? "")
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        int records = ProvinceCultureSystem.RecordCount;
+        GD.Print($"[CultureLegendTest] İl: {provinces.Count}, kültür kaydı: {records}, " +
+                 $"ayrı kültür: {cultures}");
+        if (records == 0 || cultures == 0)
+        {
+            GD.PrintErr("[CultureLegendTest] HATA: kültür katmanı üretilmedi");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Harita bağı için canlı bir WorldMap gerekir (menüde Instance boştur).
+        var existingMap = WorldMap.Instance;
+        if (existingMap == null)
+        {
+            try
+            {
+                var wm = new WorldMap();
+                AddChild(wm);
+            }
+            catch (Exception e)
+            {
+                GD.PrintErr($"[CultureLegendTest] WorldMap kurulamadı: {e.Message}");
+                ok = false;
+            }
+        }
+        bool mapReady = WorldMap.Instance != null;
+        GD.Print($"[CultureLegendTest] WorldMap hazır: {mapReady}");
+
+        var host = new Control { Name = "CultureLegendPanelTestHost" };
+        host.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(host);
+
+        try
+        {
+            // ---- 1) Paneli aç ----
+            GD.Print("[CultureLegendTest] 1) Panel açılışı");
+            CultureLegendPanel.OpenUnder(host);
+            await ToSignal(GetTree(), "process_frame");
+            await ToSignal(GetTree(), "process_frame");
+
+            var panel = FindCultureLegendPanel();
+            if (panel == null)
+            {
+                GD.PrintErr("[CultureLegendTest] HATA: panel düğümü bulunamadı");
+                GetTree().Quit(1);
+                return;
+            }
+            if (!CultureLegendPanel.IsOpen)
+            {
+                GD.PrintErr("[CultureLegendTest] HATA: panel açılmadı");
+                ok = false;
+            }
+
+            Vector2 designed = panel.DesignedSize;
+            GD.Print($"[CultureLegendTest] Panel tasarım boyutu: {designed.X}x{designed.Y}");
+            if (designed.X <= 0f || designed.Y <= 0f)
+            {
+                GD.PrintErr("[CultureLegendTest] HATA: panel boyutu okunamadı");
+                ok = false;
+            }
+            if (designed.X > 1152 || designed.Y > 648)
+            {
+                GD.PrintErr($"[CultureLegendTest] HATA: panel 1152x648'e sığmıyor " +
+                            $"({designed.X}x{designed.Y})");
+                ok = false;
+            }
+
+            // ---- 2) Satır sayısı ve tekillik ----
+            int rows = panel.CultureRowCount;
+            GD.Print($"[CultureLegendTest] Kültür satırı: {rows}");
+            if (rows != cultures)
+            {
+                GD.PrintErr($"[CultureLegendTest] HATA: her ayrı kültür bir satır olmalı " +
+                            $"({rows} != {cultures})");
+                ok = false;
+            }
+
+            var ids = panel.CultureIds;
+            if (ids.Count != new HashSet<string>(ids, StringComparer.Ordinal).Count)
+            {
+                GD.PrintErr("[CultureLegendTest] HATA: kültür satırlarında tekrar var");
+                ok = false;
+            }
+
+            var counts = panel.ProvinceCounts;
+            long sumProvinces = 0;
+            foreach (var c in counts) sumProvinces += c;
+            if (sumProvinces != records)
+            {
+                GD.PrintErr($"[CultureLegendTest] HATA: il sayıları toplamı kayıt sayısına eşit " +
+                            $"olmali ({sumProvinces} != {records})");
+                ok = false;
+            }
+
+            var shares = panel.PopulationShares;
+            double sumShare = 0d;
+            foreach (var s in shares) sumShare += s;
+            GD.Print($"[CultureLegendTest] Nüfus payı toplamı: {sumShare:F6}");
+            if (Math.Abs(sumShare - 1d) > 0.001d)
+            {
+                GD.PrintErr($"[CultureLegendTest] HATA: nüfus payları toplamı 1.0 olmalı ({sumShare:F6})");
+                ok = false;
+            }
+
+            // ---- 3) Sıralama: nüfus payı azalan, eşitlikte il sayısı, sonra kimlik ----
+            bool sorted = true;
+            for (int i = 1; i < rows; i++)
+            {
+                if (shares[i - 1] < shares[i] - 1e-12d) { sorted = false; break; }
+                if (Math.Abs(shares[i - 1] - shares[i]) <= 1e-12d)
+                {
+                    if (counts[i - 1] < counts[i]) { sorted = false; break; }
+                    if (counts[i - 1] == counts[i] &&
+                        string.CompareOrdinal(ids[i - 1], ids[i]) > 0) { sorted = false; break; }
+                }
+            }
+            if (!sorted)
+            {
+                GD.PrintErr("[CultureLegendTest] HATA: kültür satırları pay/il/kimliğe göre sıralı değil");
+                ok = false;
+            }
+
+            // ---- 4) Çubuk oranları ----
+            var bars = panel.BarFractions;
+            if (bars.Count != rows)
+            {
+                GD.PrintErr("[CultureLegendTest] HATA: çubuk sayısı satır sayısına eşit değil");
+                ok = false;
+            }
+            bool barsOk = true;
+            for (int i = 0; i < rows && i < bars.Count; i++)
+            {
+                if (bars[i] < -1e-9d || bars[i] > 1d + 1e-9d) { barsOk = false; break; }
+                if (i > 0 && bars[i - 1] < bars[i] - 1e-12d) { barsOk = false; break; }
+            }
+            if (rows > 0 && (bars.Count == 0 || Math.Abs(bars[0] - 1d) > 1e-9d))
+            {
+                GD.PrintErr($"[CultureLegendTest] HATA: en büyük kültürün çubuğu tam uzunluk olmalı " +
+                            $"({(bars.Count > 0 ? bars[0].ToString("F6") : "-")})");
+                barsOk = false;
+            }
+            if (!barsOk)
+            {
+                GD.PrintErr("[CultureLegendTest] HATA: çubuk oranları geçersiz");
+                ok = false;
+            }
+
+            // ---- 5) Satır seçimi → sahip ülkeler ----
+            int pick = -1;
+            for (int i = 0; i < rows; i++)
+                if (counts[i] >= 2 && (ids[i]?.Length ?? 0) > 0) { pick = i; break; }
+            if (pick < 0) pick = rows - 1;
+            if (pick < 0)
+            {
+                GD.PrintErr("[CultureLegendTest] HATA: seçilecek kültür satırı yok");
+                GetTree().Quit(1);
+                return;
+            }
+
+            string pickCulture = ids[pick];
+            GD.Print($"[CultureLegendTest] 2) Seçim: {pickCulture}");
+
+            // Beklenen sahip ülkeler kültür katmanından BAĞIMSIZ sayılır.
+            var expectedOwners = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var rec in ProvinceCultureSystem.All())
+            {
+                if (rec == null || !string.Equals(rec.Culture ?? "", pickCulture, StringComparison.Ordinal))
+                    continue;
+                string owner = rec.CountryId ?? "";
+                expectedOwners.TryGetValue(owner, out int n);
+                expectedOwners[owner] = n + 1;
+            }
+            var expectedOrdered = expectedOwners
+                .OrderByDescending(kv => kv.Value)
+                .ThenBy(kv => kv.Key, StringComparer.Ordinal)
+                .Select(kv => kv.Key)
+                .ToList();
+
+            var buttons = FindCultureRowButtons(panel);
+            GD.Print($"[CultureLegendTest] Kültür satır butonu: {buttons.Count}");
+            if (buttons.Count != rows)
+            {
+                GD.PrintErr($"[CultureLegendTest] HATA: tıklanabilir satır sayısı tutmuyor " +
+                            $"({buttons.Count} != {rows})");
+                ok = false;
+            }
+            else
+            {
+                buttons[pick].EmitSignal(BaseButton.SignalName.Pressed);
+                await ToSignal(GetTree(), "process_frame");
+
+                if (!string.Equals(panel.SelectedCultureId, pickCulture, StringComparison.Ordinal))
+                {
+                    GD.PrintErr($"[CultureLegendTest] HATA: seçim alınmadı " +
+                                $"({panel.SelectedCultureId} != {pickCulture})");
+                    ok = false;
+                }
+
+                var highlighted = panel.HighlightedCountryIds;
+                GD.Print($"[CultureLegendTest] Vurgulanan ülke: {highlighted.Count} " +
+                         $"[{string.Join(", ", highlighted)}]");
+                if (highlighted.Count != expectedOwners.Count)
+                {
+                    GD.PrintErr($"[CultureLegendTest] HATA: sahip ülke sayısı yanlış " +
+                                $"({highlighted.Count} != {expectedOwners.Count})");
+                    ok = false;
+                }
+                for (int i = 0; i < expectedOrdered.Count && i < highlighted.Count; i++)
+                {
+                    if (!string.Equals(expectedOrdered[i], highlighted[i], StringComparison.OrdinalIgnoreCase))
+                    {
+                        GD.PrintErr($"[CultureLegendTest] HATA: sahip ülkeler il sayısına göre değil " +
+                                    $"sıralı ({string.Join(", ", highlighted)})");
+                        ok = false;
+                    }
+                }
+                foreach (var owner in expectedOwners.Keys)
+                    if (!highlighted.Contains(owner, StringComparer.OrdinalIgnoreCase))
+                    {
+                        GD.PrintErr($"[CultureLegendTest] HATA: sahip ülke listede yok: {owner}");
+                        ok = false;
+                    }
+
+                // Detayda her sahip ülke adı geçmeli
+                var detail = string.Join(" | ", panel.DetailTexts);
+                foreach (var kv in expectedOwners)
+                {
+                    var country = CountryDatabase.Get(kv.Key);
+                    string name = country?.Name ?? kv.Key;
+                    if (!detail.Contains(name, StringComparison.Ordinal))
+                    {
+                        GD.PrintErr($"[CultureLegendTest] HATA: detayda sahip ülke adı yok: {name}");
+                        ok = false;
+                    }
+                }
+            }
+
+            // ---- 6) Harita bağı ----
+            GD.Print("[CultureLegendTest] 3) Harita vurgusu");
+            var wm = WorldMap.Instance;
+            if (!mapReady || wm == null)
+            {
+                GD.Print("[CultureLegendTest] Harita yok — vurgu yalnızca panelde doğrulandı");
+            }
+            else
+            {
+                if (!string.Equals(wm.CultureHighlight, pickCulture, StringComparison.Ordinal))
+                {
+                    GD.PrintErr($"[CultureLegendTest] HATA: harita vurgusu yazılmadı " +
+                                $"({wm.CultureHighlight} != {pickCulture})");
+                    ok = false;
+                }
+                if (wm.CurrentMapMode != WorldMap.MapMode.Culture)
+                {
+                    GD.PrintErr($"[CultureLegendTest] HATA: harita culture moduna geçmedi " +
+                                $"({wm.CurrentMapMode})");
+                    ok = false;
+                }
+                if (!panel.MapHighlightApplied)
+                {
+                    GD.PrintErr("[CultureLegendTest] HATA: panel harita vurgusunu onaylamadı");
+                    ok = false;
+                }
+
+                // Vurgulanmayan illerin rengi kararmış olmalı
+                string otherCulture = ProvinceCultureSystem.All()
+                    .Where(r => r != null && !string.Equals(r.Culture ?? "", pickCulture, StringComparison.Ordinal))
+                    .Select(r => r.Culture)
+                    .FirstOrDefault() ?? "";
+                if (otherCulture.Length == 0)
+                {
+                    GD.Print("[CultureLegendTest] Karşılaştırılacak ikinci kültür yok — kararma atlandı");
+                }
+                else
+                {
+                    var pickProv = ProvinceCultureSystem.All().First(r => r != null &&
+                        string.Equals(r.Culture, pickCulture, StringComparison.Ordinal));
+                    var otherProv = ProvinceCultureSystem.All().First(r => r != null &&
+                        string.Equals(r.Culture, otherCulture, StringComparison.Ordinal));
+                    var pickColor = wm.ProvinceFillColor(pickProv.ProvinceId);
+                    var otherColor = wm.ProvinceFillColor(otherProv.ProvinceId);
+                    float pickLum = pickColor.R + pickColor.G + pickColor.B;
+                    float otherLum = otherColor.R + otherColor.G + otherColor.B;
+                    GD.Print($"[CultureLegendTest] Parlaklık — vurgulu={pickLum:F3}, " +
+                             $"diğer={otherLum:F3} ({otherCulture})");
+                    if (otherLum >= pickLum - 0.001f)
+                    {
+                        GD.PrintErr("[CultureLegendTest] HATA: vurgulanmayan kültür kararmadı");
+                        ok = false;
+                    }
+                }
+
+                // Vurguyu kaldırma
+                var clearBtn = FindCulturePanelButton(panel, "CLEAR HIGHLIGHT");
+                if (clearBtn == null)
+                {
+                    GD.PrintErr("[CultureLegendTest] HATA: CLEAR HIGHLIGHT butonu bulunamadı");
+                    ok = false;
+                }
+                else
+                {
+                    clearBtn.EmitSignal(BaseButton.SignalName.Pressed);
+                    await ToSignal(GetTree(), "process_frame");
+                    if (wm.CultureHighlight.Length != 0)
+                    {
+                        GD.PrintErr("[CultureLegendTest] HATA: vurgu kaldırılmadı");
+                        ok = false;
+                    }
+                    else
+                    {
+                        GD.Print("[CultureLegendTest] Vurgu kaldırıldı ✓");
+                    }
+                }
+            }
+
+            // ---- 7) ESC ile kapatma ----
+            GD.Print("[CultureLegendTest] 4) ESC ile kapatma");
+            panel._UnhandledInput(new InputEventKey { Keycode = Key.Escape, Pressed = true });
+            if (!panel.CloseRequested)
+            {
+                GD.PrintErr("[CultureLegendTest] HATA: ESC kapatma isteği üretmedi");
+                ok = false;
+            }
+        }
+        finally
+        {
+            var found = FindCultureLegendPanel();
+            if (found != null) found.QueueFree();
+            var map = WorldMap.Instance;
+            if (map != null && existingMap == null) map.QueueFree();
+            ProvinceCultureSystem.ResetForNewGame();
+            ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+            ReleasableSystem.ResetForNewGame();
+            AutonomySystem.ResetForNewGame();
+            ResistanceSystem.ResetForNewGame();
+            GD.Print("[CultureLegendTest] Dünya verisi geri yüklendi");
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>CultureLegendPanel düğümünü bulur (test yardımcısı).</summary>
+    private CultureLegendPanel FindCultureLegendPanel()
+    {
+        foreach (var n in FindChildrenIn(this))
+            if (n is CultureLegendPanel clp) return clp;
+        return null;
+    }
+
+    /// <summary>Kültür satırı butonları (CLOSE ve eylem butonları hariç).</summary>
+    private List<Button> FindCultureRowButtons(CultureLegendPanel panel)
+    {
+        var result = new List<Button>();
+        foreach (var n in FindChildrenIn(panel))
+        {
+            if (n is not Button b) continue;
+            string text = b.Text ?? "";
+            if (text is "CLOSE" or "CLEAR HIGHLIGHT") continue;
+            result.Add(b);
+        }
+        return result;
+    }
+
+    /// <summary>Paneldeki metni verilen yazıya eşit olan butonu bulur.</summary>
+    private Button FindCulturePanelButton(CultureLegendPanel panel, string text)
+    {
+        foreach (var n in FindChildrenIn(panel))
+            if (n is Button b && (b.Text ?? "") == text) return b;
+        return null;
     }
 
     /// <summary>ReleasablePanel düğümünü bulur (test yardımcısı).</summary>

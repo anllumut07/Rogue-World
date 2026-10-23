@@ -4939,6 +4939,9 @@ public partial class GameManager : Node
         // M46.1: Kültür harita modu gerçek davranış doğrulaması
         ok &= RunCultureMapModeChecks(WorldMap.Instance);
 
+        // M46.4: Harita modu + kültür vurgusu Save/Load round-trip doğrulaması
+        ok &= RunMapViewRoundTripCheck(WorldMap.Instance);
+
         GD.Print(ok ? "[MapModeTest] SONUÇ: PASS ✓" : "[MapModeTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
@@ -5044,6 +5047,123 @@ public partial class GameManager : Node
         // Testin sonuna geri dönmek zorunda değil, ama diğer kontroller bu modda kalmasın
         wm.SetMapMode(WorldMap.MapMode.Political);
 
+        return ok;
+    }
+
+    /// <summary>
+    /// M46.4: Harita modu + kültür vurgusunun Save/Load round-trip'ini doğrular.
+    ///
+    /// Kontrol edilenler: (1) vurgulu mod kaydedilip yüklendiğinde geri gelir;
+    /// (2) büyük/küçük durumlar (mod + vurgu) ayrı ayrı round-trip eder;
+    /// (3) dışarıda bırakılan mod (Culture dışına geçiş) vurguyu düşürür.
+    ///
+    /// Normal oyunda ASLA çağrılmaz (yalnızca --map-mode-test).
+    /// </summary>
+    private bool RunMapViewRoundTripCheck(WorldMap wm)
+    {
+        GD.Print("[MapViewTest] === M46.4: harita görünümü Save/Load round-trip ===");
+        if (wm == null)
+        {
+            GD.PrintErr("[MapViewTest] WorldMap.Instance erişilemedi (oyun sahnesi yüklü değil).");
+            return false;
+        }
+
+        // Vurgulanacak kültürü dünyadaki gerçek kayıtlardan seç (kurgu veri yok)
+        string probeCulture = ProvinceCultureSystem.All().FirstOrDefault(r => r?.Culture?.Length > 0)?.Culture ?? "";
+        if (probeCulture.Length == 0)
+        {
+            GD.PrintErr("[MapViewTest] Kültür kaydı yok — dünya kurulmamış.");
+            return false;
+        }
+        GD.Print($"[MapViewTest] Deney kültürü: {probeCulture}");
+
+        bool ok = true;
+
+        // 1) Culture + vurgu round-trip
+        wm.SetMapMode(WorldMap.MapMode.Political);
+        wm.SetCultureHighlight(probeCulture);
+        if (MapViewSystem.Mode != WorldMap.MapMode.Culture ||
+            MapViewSystem.CultureHighlight != probeCulture)
+        {
+            GD.PrintErr($"[MapViewTest] HATA: durum MapViewSystem'e yazılmadı — " +
+                        $"mod={MapViewSystem.Mode}, vurgu={MapViewSystem.CultureHighlight}");
+            ok = false;
+        }
+
+        SaveSystem.SaveTestFile();
+        string summaryA = SaveLoadTest.GetSummaryCore();
+        if (!SaveSystem.LoadTestFile())
+        {
+            GD.PrintErr("[MapViewTest] HATA: kayıt yüklenemedi.");
+            return false;
+        }
+        string summaryB = SaveLoadTest.GetSummaryCore();
+        if (summaryA != summaryB)
+        {
+            GD.PrintErr("[MapViewTest] HATA: A==B bozuldu.");
+            SaveLoadTest.FindDiff(summaryA, summaryB);
+            ok = false;
+        }
+        else
+        {
+            GD.Print("[MapViewTest] save/load A==B ✓");
+        }
+
+        if (MapViewSystem.Mode != WorldMap.MapMode.Culture ||
+            MapViewSystem.CultureHighlight != probeCulture)
+        {
+            GD.PrintErr($"[MapViewTest] HATA: round-trip tutmadı — mod={MapViewSystem.Mode}, " +
+                        $"vurgu={MapViewSystem.CultureHighlight}");
+            ok = false;
+        }
+        else
+        {
+            GD.Print($"[MapViewTest] Round-trip tuttu: mod={MapViewSystem.Mode}, vurgu={MapViewSystem.CultureHighlight}");
+        }
+
+        // Harita düğümü yüklenen durumu uygulamış olmalı
+        if (wm.CurrentMapMode != WorldMap.MapMode.Culture)
+        {
+            GD.PrintErr($"[MapViewTest] HATA: harita modu culture olmadı ({wm.CurrentMapMode}).");
+            ok = false;
+        }
+        if (wm.CultureHighlight != probeCulture)
+        {
+            GD.PrintErr($"[MapViewTest] HATA: harita vurgusu geri yüklenmedi ({wm.CultureHighlight}).");
+            ok = false;
+        }
+
+        // 2) Moddan çıkınca vurgu düşer ve bu da round-trip eder
+        wm.SetMapMode(WorldMap.MapMode.Political);
+        wm.ApplyMapViewState();
+        if (MapViewSystem.Mode != WorldMap.MapMode.Political || MapViewSystem.CultureHighlight.Length != 0)
+        {
+            GD.PrintErr($"[MapViewTest] HATA: mod dışına çıkınca vurgu düşmedi — " +
+                        $"mod={MapViewSystem.Mode}, vurgu={MapViewSystem.CultureHighlight}");
+            ok = false;
+        }
+        else
+        {
+            GD.Print("[MapViewTest] Culture dışına çıkınca vurgu düştü ✓");
+        }
+
+        SaveSystem.SaveTestFile();
+        summaryA = SaveLoadTest.GetSummaryCore();
+        if (!SaveSystem.LoadTestFile()) ok = false;
+        summaryB = SaveLoadTest.GetSummaryCore();
+        if (summaryA != summaryB)
+        {
+            GD.PrintErr("[MapViewTest] HATA: 2. A==B bozuldu.");
+            SaveLoadTest.FindDiff(summaryA, summaryB);
+            ok = false;
+        }
+        else
+        {
+            GD.Print("[MapViewTest] 2. save/load A==B ✓");
+        }
+
+        SaveSystem.DeleteTestFile();
+        GD.Print(ok ? "[MapViewTest] SONUÇ: PASS ✓" : "[MapViewTest] SONUÇ: FAIL ✗");
         return ok;
     }
 

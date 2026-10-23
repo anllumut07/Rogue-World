@@ -205,6 +205,9 @@ public static class SaveLoadTest
         string playerId = gm.PlayerCountryId;
 
         sb.AppendLine($"Tarih: {gm.CurrentDate:d MMM yyyy} | Gün: {gm.TotalDays} | RNG: {DeterministicRNG.GetState():X} | Tension: {DiplomacySystem.WorldTension:F1} | Hız: {gm.Speed}");
+        // M46.4: harita görünümü (mod + kültür vurgusu) — sunum durumu A==B'ye girer
+        string highlight = MapViewSystem.CultureHighlight.Length > 0 ? MapViewSystem.CultureHighlight : "(yok)";
+        sb.AppendLine($"Harita görünümü: mod={MapViewSystem.Mode}, vurgu={highlight}");
 
         // --- Ülkeler ---
         sb.AppendLine("Ülkeler (id | civ mil dock | PP | Tümen):");

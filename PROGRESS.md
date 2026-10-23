@@ -2904,3 +2904,33 @@ kümeyle (472 = 472) birebir eşleşmesi, (3) `CountryInfoPanel` kültür satır
 **Test:** dotnet build 0/0; `--culture-info-test` PASS ✓, `--map-mode-test` PASS ✓ (1.12 sn),
 `--culture-legend-test` PASS ✓ (1.41 sn), `--save-load-test` A==B PASS ✓ (16.57 sn),
 `--disaster-test` PASS ✓ (50.00 sn).
+
+## Milestone 46.4: Harita görünümü Save/Load'da — ✅ DONE (2026-10-23)
+
+**Yapılan:** `Scripts/MapViewSystem.cs` (yeni), `Scripts/SaveSystem.cs`, `Scripts/WorldMap.cs`,
+`Scripts/SaveLoadTest.cs`, `Scripts/GameManager.cs`. M46.2/M46.3 haritanın nasıl göründüğünü
+değiştiren iki durum ekledi (mod + kültür vurgusu) ama bunlar yalnızca yaşıyordu: oyuncu culture
+modunda bir kültüğü vurgulayıp kayıt edip yüklediğinde görünüm political moda dönüyordu.
+
+- **`MapViewSystem`** (statik taşıyıcı): mod + vurgu durumunu tutar. Ayrı bir sistem olmasının
+  nedeni WorldMap düğümünün ömrü — ana menüde kayıt yüklenip oyun sahnesi kurulduğunda görünümün
+  doğru modda açılması gerekiyor; durum düğümden bağımsız yaşamalı.
+- **`WorldMap`** durumu sisteme yayınlar (`SetMapMode`/`SetCultureHighlight` içinde) ve
+  `ApplyMapViewState()` ile geri alır; `_Ready` sonunda çağrılır, böylece yeni oyunda başlangıç
+  değerlerinden bir şey değişmez ve yüklenen kayıtta görünüm hazır olur.
+- **`SaveSystem`**: `MapViewSave { Mode, CultureHighlight }` DTO'su eklendi (sürüm sabit — eski
+  kayıtlarda alan yok, `null` kontrolü bunu karşılar).
+- **`SaveLoadTest`**: A==B özetine `Harita görünümü:` satırı eklendi; böylece determinizm
+  karşılaştırması artık sunum durumunu da kapsıyor.
+
+Bu iş sırasında **gerçek bir hata** ortaya çıktı: `SetCultureHighlight` içindeki "mod culture
+değilse culture'ya çevir" davranışı, vurguyu **kaldırırken** de çalışıyordu. Yani oyuncu
+political moduna geçtikten sonra vurguyu temizleyen her çağrı haritayı culture moduna geri
+kopartıyordu. Artık yalnızca vurgu eklenirken mod değişiyor.
+
+**Doğrulama:** `--map-mode-test` içine `RunMapViewRoundTripCheck` eklendi: culture + vurgulu
+durum kaydedilip yükleniyor, geri geliyor (mod=Culture, vurgu=piedmontese) ve A==B tutuyor;
+ayrıca culture dışına çıkınca vurgunun düştüğü ve onun da round-trip ettiği doğrulanıyor.
+
+**Test:** dotnet build 0/0; `--map-mode-test` PASS ✓ (2.92 sn), `--culture-legend-test` PASS ✓
+(1.41 sn), `--culture-info-test` PASS ✓ (1.32 sn), `--save-load-test` A==B PASS ✓ (25.00 sn).

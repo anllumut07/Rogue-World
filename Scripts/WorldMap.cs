@@ -322,6 +322,10 @@ public partial class WorldMap : Node2D
 
         BuildCultureTip();
 
+        // M46.4: Kayıttan yüklenen harita görünümünü uygula (mod + kültür vurgusu).
+        // Yeni oyunda MapViewSystem başlangıç değerinde olduğundan bu bir no-op'tur.
+        ApplyMapViewState();
+
         GD.Print($"WorldMap: hazır — kamera zoom={_camera?.Zoom.X:0.00} pos={_camera?.Position}, viewport={GetViewportRect().Size}");
     }
 
@@ -892,6 +896,7 @@ public partial class WorldMap : Node2D
     {
         if (CurrentMapMode == mode) return;
         CurrentMapMode = mode;
+        MapViewSystem.SetMode(mode); // M46.4: mod Save/Load'da korunsun
         _factoriesComputed = false; // fabrika sayımı veriye bağlı → yeniden hesapla
         RefreshOwnershipColors();
         RefreshProvinceColors();
@@ -2024,12 +2029,38 @@ public partial class WorldMap : Node2D
         string next = culture ?? "";
         if (_cultureHighlight == next) return;
         _cultureHighlight = next;
+        MapViewSystem.SetCultureHighlight(next); // M46.4: vurgu Save/Load'da korunsun
 
-        if (CurrentMapMode != MapMode.Culture) SetMapMode(MapMode.Culture);
-        else RefreshProvinceColors();
+        // Vurgu yalnızca culture modunda görünür: vurgu EKLENİRKEN modu oraya
+        // çeken eski davranış, vurguyu KALDIRIRKEN de modu culture'ya çekiyordu
+        // ve kullanıcıyı political modundan kopartıyordu. Artık yalnızca eklemede.
+        if (CurrentMapMode != MapMode.Culture)
+        {
+            if (next.Length > 0) SetMapMode(MapMode.Culture);
+        }
+        else
+        {
+            RefreshProvinceColors();
+        }
 
         QueueRedraw();
         GD.Print($"WorldMap: kültür vurgusu = {(next.Length > 0 ? next : "(yok)")}");
+    }
+
+    /// <summary>
+    /// M46.4: Kayıttan gelen harita görünümünü uygular. Vurgu yalnızca culture
+    /// modunda anlamlı — başka modda kayıtlı kalmış bir vurgu haritayı yanlış
+    /// boyayacağından düşürülür.
+    /// </summary>
+    public void ApplyMapViewState()
+    {
+        var mode = MapViewSystem.Mode;
+        SetMapMode(mode);
+        string highlight = mode == MapMode.Culture ? MapViewSystem.CultureHighlight : "";
+        if (mode != MapMode.Culture) MapViewSystem.SetCultureHighlight("");
+        SetCultureHighlight(highlight);
+        GD.Print($"[MapView] Harita görünümü uygulandı: mod={mode}, " +
+                 $"vurgu={(highlight.Length > 0 ? highlight : "(yok)")}");
     }
 
     // M46.1: Kültür kimliğinden deterministik renk (FNV-1a hash → HSV).

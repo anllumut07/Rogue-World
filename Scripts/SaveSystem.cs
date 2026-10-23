@@ -66,6 +66,7 @@ public static class SaveSystem
         public NavalCombatSave NavalCombat { get; set; }
         public ConvoyRaidSave ConvoyRaid { get; set; } // M43.4: müttefik konvoy koruması // M43.3: deniz çatışması filo hasarı
         public CultureSave Culture { get; set; } // M44.2: il kültür/nüfus katmanı
+        public MapViewSave MapView { get; set; } // M46.4: harita modu + kültür vurgusu
         public FormableSave Formable { get; set; } // M44.3: sürmekte olan kurgu ülke kurulumları
         public ReleasableSave Releasable { get; set; } // M44.4: ilhak/kukla kayıtları
         public AutonomySave Autonomy { get; set; } // M45.2: bağımlı özerklik seviyeleri
@@ -272,6 +273,13 @@ public static class SaveSystem
         public string CountryId { get; set; }
         public string Culture { get; set; }
         public long Population { get; set; }
+    }
+
+    // M46.4: harita görünüm durumu — mod enum'u int, kültür vurgusu metin
+    public class MapViewSave
+    {
+        public int Mode { get; set; }
+        public string CultureHighlight { get; set; }
     }
 
     // ===== Kurgu ülke kurma DTOs (M44.3) =====
@@ -609,6 +617,7 @@ public static class SaveSystem
             NavalCombat = NavalCombatSystem.GetSaveData(),
             ConvoyRaid = ConvoyRaidSystem.GetSaveData(), // M43.4: müttefik konvoy koruması // M43.3: deniz çatışması filo hasarı
             Culture = ProvinceCultureSystem.GetSaveData(), // M44.2: il kültür/nüfus katmanı
+            MapView = MapViewSystem.GetSaveData(), // M46.4: harita modu + kültür vurgusu
             Formable = FormableSystem.GetSaveData(), // M44.3: sürmekte olan kurgu ülke kurulumları
             Releasable = ReleasableSystem.GetSaveData(), // M44.4: ilhak/kukla kayıtları
             Autonomy = AutonomySystem.GetSaveData(), // M45.2: özerklik seviyeleri
@@ -766,6 +775,13 @@ public static class SaveSystem
             ConvoyRaidSystem.LoadSaveData(save.ConvoyRaid); // M43.4: müttefik konvoy koruması // M43.3: deniz çatışması filo hasarı // M39.4: hava üstünlüğü durumu
             if (save.Culture != null)
                 ProvinceCultureSystem.LoadSaveData(save.Culture); // M44.2: il kültür/nüfus katmanı
+
+            // M46.4: harita görünümü — harita düğümü sahne kurulmadan önce yüklenirse
+            // durum MapViewSystem'te bekler, WorldMap._Ready onu alır. Harita zaten
+            // açıksa (headless test) anında uygulanır.
+            MapViewSystem.LoadSaveData(save.MapView);
+            if (WorldMap.Instance != null)
+                WorldMap.Instance.ApplyMapViewState();
             if (save.Formable != null)
                 FormableSystem.LoadSaveData(save.Formable); // M44.3: sürmekte olan kurgu ülke kurulumları
             if (save.Releasable != null)

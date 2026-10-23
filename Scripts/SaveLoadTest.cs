@@ -55,6 +55,14 @@ public static class SaveLoadTest
                      $"{ProvinceCultureSystem.RecordCount} kayıt");
         }
 
+        // M45.4: Save/load testine GERÇEK bir bağımlılık ekle.
+        // Bu olmadan "İlakKayıtları" / "Özerklik" / "Direniş" özet satırları
+        // kayıt=0/hash=0 kalır ve A==B karşılaştırması bu satırlar için boş olur.
+        // Overlord oyuncu DEĞİL bir ülke seçilir: kaynak çıkarım katsayısı yalnızca
+        // oyuncu ekonomisine uygulanır, böylece mevcut özet satırları gereksiz
+        // darbe almaz.
+        SetupSubjectWorldForTest();
+
         // 4) 100 gün ilerlet
         GD.Print($"[Test] Faz 1: {DaysPhase1} gün ilerletiliyor...");
         gm.AdvanceDaysForTest(DaysPhase1);
@@ -109,6 +117,85 @@ public static class SaveLoadTest
             // test_save.json'i bırak (inceleme için)
         }
         GameManager.Instance.GetTree().Quit(pass ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M45.4: Save/load test dünyasına gerçek bir ilhak kurar.
+    ///
+    /// Amaç: "İlakKayıtları" / "Özerklik" / "Direniş" özet satırlarını kayıt=0
+    /// boşluğundan çıkarmak. Yoksa A==B karşılaştırması bu satırlar için anlamsızdır.
+    /// 100 gün Faz 1 boyunca özerklik kayması ve direniş baskısı işler; eylem
+    /// patlarsa RNG ile hedef il seçilir — tam olarak save/load'un doğrulaması
+    /// gereken yer.
+    /// </summary>
+    private static void SetupSubjectWorldForTest()
+    {
+        var gm = GameManager.Instance;
+        if (gm == null) return;
+
+        string playerId = gm.PlayerCountryId;
+
+        // Overlord: en çok ili olan OYUNCU OLMAYAN ülke (kaynak çıkarımı oyuncuya
+        // uygulanmasın, mevcut özet satırları etkilenmesin).
+        var overlord = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, playerId, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count > 0)
+            .OrderByDescending(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .ThenBy(c => c.Id, StringComparer.Ordinal)
+            .FirstOrDefault();
+
+        // Bağımlı: kültürü overlord'dan farklı, 3+ ili olan en küçük ülke
+        // (kültür farkı olmadan direniş sisteminin zorlanması anlamsız).
+        string overlordCulture = "";
+        if (overlord != null)
+        {
+            var dist = ProvinceCultureSystem.GetCultureDistribution(overlord.Id);
+            overlordCulture = dist.Count > 0
+                ? dist.OrderByDescending(kv => kv.Value)
+                    .ThenBy(kv => kv.Key, StringComparer.Ordinal).First().Key
+                : "";
+        }
+
+        var subject = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, playerId, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, overlord?.Id, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 3)
+            .OrderBy(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .ThenBy(c => c.Id, StringComparer.Ordinal)
+            .FirstOrDefault();
+
+        if (overlord == null || subject == null)
+        {
+            GD.Print("[Test] M45.4: bağımlı kurulumu atlandı — uygun ülke bulunamadı");
+            return;
+        }
+
+        var subjectProvinces = ProvinceOwnershipSystem.GetProvincesByOwner(subject.Id)
+            .OrderBy(id => id, StringComparer.Ordinal).ToList();
+        int civTaken = subject.CivFactories;
+        int milTaken = subject.MilFactories;
+        int dockTaken = subject.Dockyards;
+
+        // Kayıt, iller devredilmeden ÖNCE düşmeli (ReleasableSystem snapshot alır)
+        ReleasableSystem.RecordSubject(subject.Id, overlord.Id, false,
+            civTaken, milTaken, dockTaken);
+
+        subject.IsAnnexed = true;
+        subject.OwnerId = overlord.Id;
+        overlord.CivFactories += civTaken;
+        overlord.MilFactories += milTaken;
+        overlord.Dockyards += dockTaken;
+        subject.CivFactories = subject.MilFactories = subject.Dockyards = 0;
+
+        foreach (var p in subjectProvinces)
+            ProvinceOwnershipSystem.SetProvinceOwner(p, overlord.Id);
+        ProvinceCultureSystem.ReassignCountry(subjectProvinces, overlord.Id);
+
+        GD.Print($"[Test] M45.4: bağımlı kuruldu — {subject.Id} ilhak edildi {overlord.Id} " +
+                 $"(il={subjectProvinces.Count}, fabrika c{civTaken}/m{milTaken}/t{dockTaken}, " +
+                 $"overlord kültürü={overlordCulture})");
     }
 
     private static string BuildSummaryCore()

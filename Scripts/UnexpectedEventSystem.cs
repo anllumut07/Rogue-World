@@ -83,6 +83,7 @@ public static class UnexpectedEventSystem
         public PendingChainSave[] PendingChains { get; set; } // planlanmış takip olayları
         public int EventsThisWeek { get; set; }
         public int WeekIndex { get; set; }
+        public int DaysSinceLastPlayerEvent { get; set; }
     }
     public class ActiveUnexpectedEventSave
     {
@@ -431,7 +432,8 @@ public static class UnexpectedEventSystem
                 Flag = c.Flag
             }).ToArray(),
             EventsThisWeek = _eventsThisWeek,
-            WeekIndex = _weekIndex
+            WeekIndex = _weekIndex,
+            DaysSinceLastPlayerEvent = _daysSinceLastPlayerEvent
         };
     }
 
@@ -482,6 +484,8 @@ public static class UnexpectedEventSystem
         }
         _eventsThisWeek = data.EventsThisWeek;
         _weekIndex = data.WeekIndex;
+        // Eski kayıtlarda alan yoktur; DTO varsayılanı 0 kabul edilir.
+        _daysSinceLastPlayerEvent = data.DaysSinceLastPlayerEvent;
         GD.Print($"[UnexpectedEventSystem] {_active.Count} aktif + {_history.Count} kayıtlı olay + {_flags.Count} bayrak + {_pendingChains.Count} bekleyen zincir yüklendi.");
     }
 

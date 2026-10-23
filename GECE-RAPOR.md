@@ -2549,3 +2549,24 @@ save/load round-trip eylem sayısını korudu);
 4. Kullanıcının test etmesi gerekenler: oyunda ilhak edilen bir ülkenin ilkelerinde
    yabancı kültür varsa ~1 ay sonra "[Resistance] … PARTİZAN EYLEMİ" logu ve
    fabrika/stabilite düşüşü görülmeli; özerklik verilince bu düşüş yavaşlamalı.
+
+## M45.4 — ✅ DONE (2026-10-23)
+1. Değiştirilen dosyalar:
+   - `Scripts/SaveLoadTest.cs`: `SetupSubjectWorldForTest()` (gerçek ilhak dünyası),
+     `BuildSummaryCore`'a İlakKayıtları / Özerklik / Direniş satırları. Tüm geçici teşhis
+     araçları (`RunPhaseWithTrace`, `PhaseDraws`, `PhaseDayCounts`, `DeepFingerprint`) kaldırıldı.
+   - `Scripts/UnexpectedEventSystem.cs`: **kök neden düzeltmesi** — `UnexpectedEventSave`
+     DTO'suna `DaysSinceLastPlayerEvent` eklendi; `GetSaveData` yazar, `LoadSaveData` geri yükler.
+   - `Scripts/DeterministicRNG.cs`: teşhis alanları çıkarıldı → orijinal haline döndü (diff boş).
+   - `TODO.md` 45.4 → [x]; `PROGRESS.md` M45.4 bölümü.
+2. Çözemediğim: modern_world A!=B'yi testin teşhis araçlarıyla değil, logdaki
+   gerçek davranış farkından (aktif olay 5 vs 6) çıkarak buldum; takılmadım ama yol uzundu.
+3. Bilinen sorunlar:
+   - Yeni kayıtlar `DaysSinceLastPlayerEvent` yazmaz (eski kayıtlarla uyumlu, varsayılan 0).
+   - `DecisionSystem._lastAvailableCount` static'i kaydedilmiyor → logda 1 satır kozmetik kayma.
+4. Kullanıcının test etmesi gerekenler:
+   - Yeni oyun başlat kaydet/yükle → save-load determinizmi bozulmamalı.
+   - \-\-save-load-test\ ve \-\-save-load-test\ \-\-scenario=modern_world\ ikisi de A == B vermeli
+     (doğrulandı: 26.2 sn PASS, 28.5 sn PASS).
+   - Oyunda beklenmedik olay yaşayan bir ülkeye kadar bekleyip kaydet/yükle → olay akışı
+     7 günlük "garanti" sayacı doğru devam etmeli.

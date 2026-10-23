@@ -2781,3 +2781,33 @@ eylem patlamadı (hız ~0.29/gün → eşik için ~257 gün). Oyun temposuna uym
 **Testler:** dotnet build 0/0; `--resistance-test` PASS ✓; `--save-load-test` A==B
 PASS (historical_1936 + modern_world); `--autonomy-test` ve `--releasable-test`
 regresyon PASS ✓.
+
+## Milestone 45.4: Üç sistemin Save/Load entegrasyonu — ✅ DONE (2026-10-23)
+
+**Yapılan:** `SaveLoadTest.SetupSubjectWorldForTest()` gerçek bir overlord/bağımlı dünyası kurar
+(overlord = oyuncu olmayan en çok illi ülke; bağımlı = 3+ illi en küçük ülke). Overlord'un oyuncu
+olmaması bilinçli: kaynak çıkarım katsayısı yalnızca oyuncu ekonomisine uygulanır, böylece mevcut
+özet satırları gereksiz darbe almaz. Kurulum sırası önemli: `ReleasableSystem.RecordSubject`
+iller devredilmeden ÖNCE çağrılır (aksi halde fabrika sayıları zaten sıfırlanmış olur), sonra
+`IsAnnexed`/`OwnerId`, fabrika transferi, `ProvinceOwnershipSystem.SetProvinceOwner` ve
+`ProvinceCultureSystem.ReassignCountry` uygulanır.
+
+`BuildSummaryCore`'a üç yeni satır eklendi: **İlakKayıtları**, **Özerklik**, **Direniş** — üçü de
+gerçek kayıt sayısı + hash üretiyor (kurulum olmadan kayıt=0/hash=0 kalıyordu, yani A==B
+karşılaştırması bu satırlar için boştu).
+
+**Kök neden düzeltmesi (modern_world A!=B):** `UnexpectedEventSystem._daysSinceLastPlayerEvent`
+kayıt DTO'sunda yoktu. Faz 2A'da 50 gün ilerleyen sayaç, `SaveSystem.LoadTestFile()` sonrası
+sıfırlanmadan Faz 2B'ye sızıyordu. Sonuç: "haftalık garanti" olayı (`_daysSinceLastPlayerEvent
+>= 7 && _eventsThisWeek == 0`) Faz 2B'de bir gün erken tetiklendi — Faz 2 gün 3'te RNG çizimi
+2144 (A) / 2145 (B), aktif olay 5 / 6, geçmiş kayıt 66 / 67. `UnexpectedEventSave` DTO'suna
+`DaysSinceLastPlayerEvent` alanı eklendi; `GetSaveData` yazar, `LoadSaveData` geri yükler.
+Düzmeden sonra iki senaryo da A==B.
+
+**Teşhis notu (tekrar yaşanmasın):** geçici teşhis araçları (`RunPhaseWithTrace`, `PhaseDraws`,
+`DeepFingerprint`, `DeterministicRNG.Recording/Record/DrawCount`) M45.4 bitince kaldırıldı;
+`DeterministicRNG.cs` orijinal haline döndü.
+
+**Testler:** dotnet build 0 hata / 0 uyarı; `--save-load-test` A==B PASS (historical_1936);
+`--save-load-test --scenario=modern_world` A==B PASS; `--autonomy-test` / `--releasable-test` /
+`--resistance-test` regresyonu M45.1–M45.3 commit'lerinde doğrulandı.

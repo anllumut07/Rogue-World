@@ -2864,3 +2864,43 @@ düştü (kararma gerçekten çalışıyor), vurgu kaldırıldı ve ESC paneli k
 
 
 **Test:** dotnet build 0/0; `--map-mode-test` PASS ✓ (3.97 sn).
+## Milestone 46.3: Kültür bilgisi tooltip + ülke paneli satırı — ✅ DONE (2026-10-23)
+
+**Yapılan:** `Scripts/WorldMap.cs`, `Scripts/CountryInfoPanel.cs`, `Scripts/GameManager.cs`.
+M46.2'nin efsanesi ve vurgusu haritayı okunur kıldı, ama kültür modunda imleç bir ilin üzerine
+gelince o ilin kültürü kimin kültürü olduğu görünmüyordu. Bu alt görev o boşluğu kapatıyor.
+
+- **İl ipucu (`WorldMap`):** culture modunda imlecin altındaki il için küçük bir PanelContainer
+  üretildi — hangi il, hangi ülkeye ait (isim + kimlik), kültürü ve nüfusu. Panelin
+  `MouseFilter` değeri `Ignore`: ipucu harita girdisini yutmasın diye. Böylece sağ tık sürükleme,
+  tekerlek zoom ve sol tık ülke seçimi aynen çalışıyor. İmleç değiştirmeyi bırakınca metin ve
+  görünürlük temizleniyor.
+- **Eşleşmeyen il konturu:** bir ülkede baskın olmayan kültürdeki illerin konturu turuncu/siyah
+  çift çizgiyle çiziliyor. Kural M46.2'deki efsaneyle aynı: il sayısına göre baskın kültür,
+  eşitlikte kimlik (Ordinal). Baskın kültürle aynı olan iller çizilmiyor, dolayısıyla çizgi
+  yalnızca "yabancı kültür" alanlarını işaretliyor. 637 illik dünyada 472 il eşleşmeyen.
+- **Kamera kontrolü:** kontur çizimi zoom 0.5 altına inince atlanıyor — çok uzakta çizgiler
+  haritayı okunamaz hale getiriyor.
+- **Ülke paneli (`CountryInfoPanel`):** `Culture: <baskın> (<n> total) — <k>/<m> provinces,
+  <f> foreign` satırı eklendi. Yabancı il sayısı baskını geçtiğinde satır turuncuya dönüyor
+  (ülke kendi kültüründe değil uyarısı). Kalabalık grid hücresine sığdırılamayacağından ayrı satır.
+
+Bu iş sırasında headless doğrulama iki engelle karşılaştı ve ikisi de gerçek hatayı açığa çıkardı:
+(1) `WorldMap._Input` fare konumunu olaydan değil viewport'tan okuyor; headless'te bu daima
+(0,0), ve `WarpMouse` headless'te işe yaramıyor. Testin imleç/tıklama yollarını doğrudan
+dünya koordinatıyla çağırabilmesi için `UpdateHover` ve `SelectAt` `internal` yapıldı (gerektiğinde
+yalnızca testten çağrılıyor, güvenlik sınırı değil). (2) `CountryInfoPanel.UpdateOverlayRect`
+`Mathf.Clamp(360f, 280f, winSize.X * 0.9f)` çağrısında 360 > max durumunda `ArgumentException`
+atıyordu; headless 64px viewport'ta her kare hata basıyordu. Argüman sırası düzeltildi
+(`Clamp(winSize.X * 0.9f, 280f, 360f)`), üst de `Mathf.Max(0f, ...)` koruması eklendi.
+
+**Doğrulama:** `--culture-info-test` eklendi (`RunCultureInfoTest`), 5 bölüm: (1) il ipucu
+metni ve görünürlüğü, (2) haritadaki eşleşmeyen il kümesinin testin bağımsız olarak hesapladığı
+kümeyle (472 = 472) birebir eşleşmesi, (3) `CountryInfoPanel` kültür satırı, (4) fare kontrolleri
+— ipucu süzgeci `Ignore`, sağ tık sürükleme kamera taşıdı, tekerlek zoom değiştirdi (0.028 →
+0.25), W tuşu kamera konumu/zoom'u değiştirmedi, sol tık ülke seçti, (5) culture modundan
+çıkınca ipucunun metin+görünürlük olarak temizlendiği.
+
+**Test:** dotnet build 0/0; `--culture-info-test` PASS ✓, `--map-mode-test` PASS ✓ (1.12 sn),
+`--culture-legend-test` PASS ✓ (1.41 sn), `--save-load-test` A==B PASS ✓ (16.57 sn),
+`--disaster-test` PASS ✓ (50.00 sn).

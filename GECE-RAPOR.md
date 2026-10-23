@@ -2622,3 +2622,32 @@ save/load round-trip eylem sayısını korudu);
    - \-\-save-load-test\ ve \-\-save-load-test\ \-\-scenario=modern_world\ ikisi de hâlâ
      A == B vermeli (doğrulandı: 20.2 sn ve 16.4 sn PASS — panel kalıcı durum tutmuyor).
    - \-\-map-mode-test\ hâlâ PASS (doğrulandı: 1.12 sn — `DimColor` mevcut modları etkilemiyor).
+
+---
+
+## 46.2 + 46.3 (gece 2026-10-23, 09:45 itibarıyla kapatıldı)
+
+1. Değiştirdiklerim:
+   - **M46.2** `Scripts/CultureLegendPanel.cs` (yeni, 1080x600): 15 kültür × 637 il efsanesi —
+     renk örneği, il sayısı, nüfus payı, paya göre uzayan çubuk; sağda seçili kültürün ayrıntısı
+     ve o kültürden il bulunan ülkeler. `Scripts/WorldMap.cs`: `SetCultureHighlight` +
+     `DimColor` (vurgulanmayan kültürler sabit oranda kararır). `Scripts/GameManager.cs`:
+     `--culture-legend-test`.
+   - **M46.3** `Scripts/WorldMap.cs`: culture modunda imlecin altındaki il için ipucu paneli
+     (il / ülke / kültür / nüfus) — `MouseFilter = Ignore`, harita girdisini yutmaz; eşleşmeyen
+     illerin turuncu+siyah kontur çift çizgisi (zoom < 0.5'te atlanır). `Scripts/CountryInfoPanel.cs`:
+     `Culture: <baskın> (<n> total) — <k>/<m> provinces, <f> foreign` satırı (foreign > baskın
+     ise turuncu). `Scripts/GameManager.cs`: `--culture-info-test` (5 bölümlü doğrulama).
+   - `TODO.md` 46.2, 46.3 → [x]; `PROGRESS.md` M46.2 ve M46.3 bölümleri.
+2. Çözemediğim: yok.
+3. Bilinen sorunlar:
+   - Kültür efsanesini açan UI butonu ve culture harita modunu seçiren buton hâlâ yok
+     (yalnızca `OpenUnder` API'sı ve testler). M46.4 kapsamında bir arayüz girişi değerlendirilecek.
+   - `WorldMap._Input` fare konumunu olaydan değil viewport'tan okuduğundan headless'te fare
+     imleci sentezlenemiyor; testler `UpdateHover`/`SelectAt`'ı `internal` yapıp doğrudan dünya
+     koordinatıyla çağırıyor. Gerçek oyunda bir sorun değil, yalnızca test kanalı.
+   - `CountryInfoPanel.UpdateOverlayRect`'in `Mathf.Clamp` argüman sırası düzeltildi (headless
+     64px viewport'ta her kare `ArgumentException` atıyordu); genişlik `Clamp(winSize.X*0.9f, 280, 360)`
+     oldu, yani artık çok dar pencerede 280'in altına inmiyor. Dar pencerede panel taşabilir —
+     bilinen, kozmetik.
+4. Kullanıcının test etmesi gerekenler: yok — hepsi headless doğrulandı.

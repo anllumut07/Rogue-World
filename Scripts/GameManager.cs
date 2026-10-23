@@ -191,6 +191,7 @@ public partial class GameManager : Node
         bool autonomyTest = false;           // M45.2: özerklik sistemi testi (--autonomy-test)
         bool resistanceTest = false;         // M45.3: direniş sistemi testi (--resistance-test)
         bool cultureLegendTest = false;      // M46.2: kültür efsanesi paneli testi (--culture-legend-test)
+        bool cultureInfoTest = false;        // M46.3: kültür bilgisi + eşleşmeyen il konturu testi (--culture-info-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -359,6 +360,8 @@ public partial class GameManager : Node
                     resistanceTest = true;
                 else if (arg == "--culture-legend-test")
                     cultureLegendTest = true;
+                else if (arg == "--culture-info-test")
+                    cultureInfoTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -798,6 +801,10 @@ public partial class GameManager : Node
         // M46.2: Kültür efsanesi paneli testi — sıralama, çubuk, vurgu, harita bağı.
         if (cultureLegendTest)
             RunCultureLegendPanelTest();
+
+        // M46.3: Kültür bilgisi (ipucu + ülke paneli) ve eşleşmeyen il konturu testi.
+        if (cultureInfoTest)
+            RunCultureInfoTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -10320,6 +10327,393 @@ private void RunBalanceTest()
     {
         foreach (var n in FindChildrenIn(panel))
             if (n is Button b && (b.Text ?? "") == text) return b;
+        return null;
+    }
+
+    /// <summary>
+    /// M46.3: Kültür bilgisi + eşleşmeyen il konturu testi (--culture-info-test).
+    ///
+    /// Doğrulananlar:
+    ///   1) Kültür modunda imleç altındaki il yakalanır ve ipucu kutusu ilin
+    ///      kültürünü, sahibini ve nüfusunu doğru yazar.
+    ///   2) Eşleşmeyen il kümesi, kültür katmanından bağımsız olarak yeniden
+    ///      sayıldığında birebir aynı çıkar (determinizm).
+    ///   3) CountryInfoPanel'in kültür satırı dağılımla tutarlı.
+    ///   4) Fare kontrolü bozulmaz: ipucu `Ignore` süzgecinde, RMB sürükleme
+    ///      kamerayı kaydırır, tekerlek zoom yapar, sol tık ülke seçer.
+    ///   5) Kültür modundan çıkınca ipucu kaybolur.
+    /// </summary>
+    private async void RunCultureInfoTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M46.3: KÜLTÜR BİLGİSİ + EŞLEŞMEYEN İL KONTURU TESTİ (--culture-info-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ReleasableSystem.ResetForNewGame();
+        AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
+
+        if (ProvinceCultureSystem.RecordCount == 0)
+        {
+            GD.PrintErr("[CultureInfoTest] HATA: kültür katmanı üretilmedi");
+            GetTree().Quit(1);
+            return;
+        }
+
+        if (WorldMap.Instance == null)
+        {
+            try
+            {
+                var wm = new WorldMap();
+                AddChild(wm);
+            }
+            catch (Exception e)
+            {
+                GD.PrintErr($"[CultureInfoTest] WorldMap kurulamadı: {e.Message}");
+                GetTree().Quit(1);
+                return;
+            }
+        }
+
+        var map = WorldMap.Instance;
+        await ToSignal(GetTree(), "process_frame");
+        await ToSignal(GetTree(), "process_frame");
+
+        map.SetMapMode(WorldMap.MapMode.Culture);
+        GD.Print($"[CultureInfoTest] Kültür modu: {map.CurrentMapMode}, il kaydı: " +
+                 $"{ProvinceCultureSystem.RecordCount}");
+
+        // ---- 1) İmleç altındaki il + ipucu metni ----
+        GD.Print("[CultureInfoTest] 1) İl ipucu");
+        var probe = provinces
+            .Where(p => p != null && !string.IsNullOrEmpty(p.Id) && ProvinceCultureSystem.Get(p.Id) != null)
+            .OrderBy(p => p.Id, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (probe == null)
+        {
+            GD.PrintErr("[CultureInfoTest] HATA: kültürü olan il bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        Vector2 screen = WorldToScreen(map, probe.Centroid);
+        // Headless'te viewport fare konumu sentezlenemez (WarpMouse etkisiz) ve
+        // WorldMap._Input olay konumu yerine viewport'in fare konumunu okur.
+        // Bu yüzden hover doğrudan sürülür — kültür ipucu mantığın kendisi çalışır.
+        map.UpdateHover(probe.Centroid);
+        await ToSignal(GetTree(), "process_frame");
+        await ToSignal(GetTree(), "process_frame");
+
+        GD.Print($"[CultureInfoTest] İmleç ili: {map.HoveredProvinceId} (aranan {probe.Id})");
+        if (!string.Equals(map.HoveredProvinceId, probe.Id, StringComparison.Ordinal))
+        {
+            GD.PrintErr($"[CultureInfoTest] HATA: kültür modunda imleç ili yakalanmadı " +
+                        $"({map.HoveredProvinceId} != {probe.Id})");
+            ok = false;
+        }
+
+        var rec = ProvinceCultureSystem.Get(probe.Id);
+        if (rec == null)
+        {
+            GD.PrintErr($"[CultureInfoTest] HATA: {probe.Id} için kültür kaydı yok");
+            ok = false;
+        }
+        else
+        {
+            string tip = map.CultureTipText;
+            GD.Print($"[CultureInfoTest] İpucu metni:\n{tip}");
+            bool mismatch = map.IsCultureMismatchProvince(probe.Id);
+            if (!map.CultureTipVisible)
+            {
+                GD.PrintErr("[CultureInfoTest] HATA: ipucu kutusu görünür olmalı");
+                ok = false;
+            }
+            if (!tip.Contains(probe.Id, StringComparison.Ordinal))
+            {
+                GD.PrintErr("[CultureInfoTest] HATA: ipucu il kimliğini içermiyor");
+                ok = false;
+            }
+            string cultureText = string.IsNullOrEmpty(rec.Culture) ? "(no culture)" : rec.Culture;
+            if (!tip.Contains(cultureText, StringComparison.Ordinal))
+            {
+                GD.PrintErr($"[CultureInfoTest] HATA: ipucu kültürü içermiyor ({cultureText})");
+                ok = false;
+            }
+            if (!tip.Contains(rec.Population.ToString("N0"), StringComparison.Ordinal))
+            {
+                GD.PrintErr($"[CultureInfoTest] HATA: ipucu nüfusu içermiyor ({rec.Population:N0})");
+                ok = false;
+            }
+            // Yabancı kültür varsa ipucu bunu söylemeli, yoksa baskın olduğunu.
+            if (mismatch && !tip.Contains("Foreign culture", StringComparison.Ordinal))
+            {
+                GD.PrintErr("[CultureInfoTest] HATA: yabancı kültür ilinde ipucu uyarısı yok");
+                ok = false;
+            }
+            if (!mismatch && !tip.Contains("Dominant culture", StringComparison.Ordinal))
+            {
+                GD.PrintErr("[CultureInfoTest] HATA: baskın kültür ilinde ipucu belirtmiyor");
+                ok = false;
+            }
+        }
+
+        // ---- 2) Eşleşmeyen il kümesi: bağımsız yeniden sayım ----
+        GD.Print("[CultureInfoTest] 2) Eşleşmeyen il kümesi");
+
+        var expectedMismatch = new SortedSet<string>(StringComparer.Ordinal);
+        var byCountry = new Dictionary<string, List<ProvinceCultureSystem.CultureRecord>>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var r in ProvinceCultureSystem.All())
+        {
+            if (r == null) continue;
+            string owner = r.CountryId ?? "";
+            if (!byCountry.TryGetValue(owner, out var list))
+            {
+                list = new List<ProvinceCultureSystem.CultureRecord>();
+                byCountry[owner] = list;
+            }
+            list.Add(r);
+        }
+        foreach (var kv in byCountry)
+        {
+            var dist = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var r in kv.Value)
+            {
+                string c = r.Culture ?? "";
+                dist.TryGetValue(c, out int n);
+                dist[c] = n + 1;
+            }
+            if (dist.Count <= 1) continue;
+            string dominant = dist.OrderByDescending(d => d.Value)
+                                  .ThenBy(d => d.Key, StringComparer.Ordinal).First().Key;
+            foreach (var r in kv.Value)
+                if (!string.Equals(r.Culture ?? "", dominant, StringComparison.Ordinal))
+                    expectedMismatch.Add(r.ProvinceId);
+        }
+
+        var actualMismatch = new SortedSet<string>(map.CultureMismatchProvinceIds, StringComparer.Ordinal);
+        GD.Print($"[CultureInfoTest] Eşleşmeyen il: harita={actualMismatch.Count}, " +
+                 $"beklenen={expectedMismatch.Count}");
+        if (actualMismatch.Count != expectedMismatch.Count)
+        {
+            GD.PrintErr($"[CultureInfoTest] HATA: eşleşmeyen il sayısı tutmuyor " +
+                        $"({actualMismatch.Count} != {expectedMismatch.Count})");
+            ok = false;
+        }
+        foreach (var id in expectedMismatch)
+            if (!map.IsCultureMismatchProvince(id))
+            {
+                GD.PrintErr($"[CultureInfoTest] HATA: eşleşmeyen il işaretlenmemiş: {id}");
+                ok = false;
+            }
+
+        // ---- 3) CountryInfoPanel kültür satırı ----
+        GD.Print("[CultureInfoTest] 3) Ülke paneli kültür satırı");
+        var infoPanel = FindCountryInfoPanel();
+        if (infoPanel == null)
+        {
+            // Oyun sahnesi yüklü değil (headless): kendi panelimizi kur.
+            try
+            {
+                infoPanel = new CountryInfoPanel { Name = "CultureInfoTestCountryInfo" };
+                AddChild(infoPanel);
+            }
+            catch (Exception e)
+            {
+                GD.PrintErr($"[CultureInfoTest] CountryInfoPanel kurulamadı: {e.Message}");
+            }
+        }
+        if (infoPanel == null)
+        {
+            GD.PrintErr("[CultureInfoTest] HATA: CountryInfoPanel bulunamadı");
+            ok = false;
+        }
+        else
+        {
+            var sampleCountry = CountryDatabase.All()
+                .Where(c => c != null && ProvinceCultureSystem.ForCountry(c.Id).Count > 0)
+                .OrderBy(c => c.Id, StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (sampleCountry == null)
+            {
+                GD.PrintErr("[CultureInfoTest] HATA: kültür kaydı olan ülke bulunamadı");
+                ok = false;
+            }
+            else
+            {
+                infoPanel.ShowCountry(sampleCountry, sampleCountry.Name);
+                string summary = infoPanel.CultureSummary;
+                GD.Print($"[CultureInfoTest] {sampleCountry.Id} → {summary}");
+
+                var dist = new Dictionary<string, int>(StringComparer.Ordinal);
+                foreach (var r in ProvinceCultureSystem.ForCountry(sampleCountry.Id))
+                {
+                    if (r == null) continue;
+                    string c = string.IsNullOrEmpty(r.Culture) ? "(none)" : r.Culture;
+                    dist.TryGetValue(c, out int n);
+                    dist[c] = n + 1;
+                }
+                var ranked = dist.OrderByDescending(kv => kv.Value)
+                                 .ThenBy(kv => kv.Key, StringComparer.Ordinal).ToList();
+                string expectDominant = ranked[0].Key;
+                int expectDominantCount = ranked[0].Value;
+                int expectForeign = ProvinceCultureSystem.ForCountry(sampleCountry.Id).Count -
+                                    expectDominantCount;
+
+                if (!summary.Contains(expectDominant, StringComparison.Ordinal))
+                {
+                    GD.PrintErr($"[CultureInfoTest] HATA: panel baskın kültürü göstermiyor " +
+                                $"({expectDominant})");
+                    ok = false;
+                }
+                if (!summary.Contains($"{expectDominantCount}/", StringComparison.Ordinal))
+                {
+                    GD.PrintErr($"[CultureInfoTest] HATA: panel baskın kültür il sayısını " +
+                                $"göstermiyor ({expectDominantCount})");
+                    ok = false;
+                }
+                if (!summary.Contains($"{expectForeign} foreign", StringComparison.Ordinal))
+                {
+                    GD.PrintErr($"[CultureInfoTest] HATA: panel yabancı il sayısını göstermiyor " +
+                                $"({expectForeign})");
+                    ok = false;
+                }
+            }
+        }
+
+        // ---- 4) Fare kontrolü ----
+        GD.Print("[CultureInfoTest] 4) Fare kontrolü bozulmamalı");
+
+        if (map.CultureTipMouseFilter != Control.MouseFilterEnum.Ignore)
+        {
+            GD.PrintErr($"[CultureInfoTest] HATA: ipucu kutusu harita girdisini blokluyor " +
+                        $"({map.CultureTipMouseFilter})");
+            ok = false;
+        }
+        else
+        {
+            GD.Print("[CultureInfoTest] İpucu süzgeci Ignore ✓");
+        }
+
+        // Teksel: kamera geçmişte kaydırma + zoom kontrolü (referans değerler)
+        Vector2 camBefore = map._camera.Position;
+        float zoomBefore = map._camera.Zoom.X;
+
+        // Sağ tık bas → sürükleme → bırak: kamera kaymalı
+        map._Input(new InputEventMouseButton
+        {
+            ButtonIndex = MouseButton.Right,
+            Pressed = true,
+            Position = screen
+        });
+        map._Input(new InputEventMouseMotion { Position = screen + new Vector2(40f, 25f) });
+        map._Input(new InputEventMouseButton
+        {
+            ButtonIndex = MouseButton.Right,
+            Pressed = false,
+            Position = screen + new Vector2(40f, 25f)
+        });
+        Vector2 camAfterDrag = map._camera.Position;
+        GD.Print($"[CultureInfoTest] RMB sürükleme kamera: {camBefore} → {camAfterDrag}");
+        if (camAfterDrag == camBefore)
+        {
+            GD.PrintErr("[CultureInfoTest] HATA: sağ tık sürükleme kamerayı kaydırmadı");
+            ok = false;
+        }
+
+        // Tekerlek: zoom değişmeli (ZoomAt hedefi kurar, AnimateZoom lerp ile uygular)
+        map._Input(new InputEventMouseButton
+        {
+            ButtonIndex = MouseButton.WheelUp,
+            Pressed = true,
+            Position = screen
+        });
+        for (int i = 0; i < 6; i++) await ToSignal(GetTree(), "process_frame");
+        float zoomAfter = map._camera.Zoom.X;
+        GD.Print($"[CultureInfoTest] Tekerlek zoom: {zoomBefore} → {zoomAfter}");
+        if (Mathf.IsEqualApprox(zoomAfter, zoomBefore))
+        {
+            GD.PrintErr("[CultureInfoTest] HATA: tekerlek zoom yapmadı");
+            ok = false;
+        }
+
+        // WASD tuşu _Input tarafından tüketilmemeli (pan _Process'te okunur).
+        // Not: IsInputHandled yapışkandır, önceki olayların izini taşır; bu yüzden
+        // tuş olayını ayrı bir viewport durumunda değerlendirmek yerine doğrudan
+        // haritanın klavye olayına tepki vermediğini (hiçbir durum değişmedi) ölçeriz.
+        Vector2 camBeforeKey = map._camera.Position;
+        float zoomBeforeKey = map._camera.Zoom.X;
+        map._Input(new InputEventKey { Keycode = Key.W, Pressed = true });
+        map._Input(new InputEventKey { Keycode = Key.W, Pressed = false });
+        if (map._camera.Position != camBeforeKey || !Mathf.IsEqualApprox(map._camera.Zoom.X, zoomBeforeKey))
+        {
+            GD.PrintErr("[CultureInfoTest] HATA: harita klavye olayını _Input'ta tüketip kamerayı değiştirdi");
+            ok = false;
+        }
+
+        // Sol tık yolu: ülke seçimi çalışmalı (kültür ipucu bunu engellememeli)
+        var countryBefore = FindSelectedCountryId(map);
+        map.SelectAt(probe.Centroid);
+        await ToSignal(GetTree(), "process_frame");
+        string countryAfter = FindSelectedCountryId(map);
+        GD.Print($"[CultureInfoTest] Sol tık ülke seçimi: {countryBefore} → {countryAfter}");
+        if (string.IsNullOrEmpty(countryAfter))
+        {
+            GD.PrintErr("[CultureInfoTest] HATA: sol tık ülke seçmedi");
+            ok = false;
+        }
+
+        // ---- 5) Moddan çıkınca ipucu kaybolur ----
+        GD.Print("[CultureInfoTest] 5) Moddan çıkınca ipucu kalkar");
+        map.SetMapMode(WorldMap.MapMode.Political);
+        map.UpdateHover(probe.Centroid);
+        await ToSignal(GetTree(), "process_frame");
+        await ToSignal(GetTree(), "process_frame");
+        if (map.CultureTipVisible)
+        {
+            GD.PrintErr("[CultureInfoTest] HATA: kültür modu dışında ipucu hâlâ görünür");
+            ok = false;
+        }
+        if (map.HoveredProvinceId.Length != 0)
+        {
+            GD.PrintErr("[CultureInfoTest] HATA: kültür modu dışında il kaydı kaldı");
+            ok = false;
+        }
+        if (map.CultureTipText.Length != 0)
+        {
+            GD.PrintErr("[CultureInfoTest] HATA: kültür modu dışında ipucu metni kaldı");
+            ok = false;
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>Dünya koordinatını ekran (viewport) koordinatına çevirir (test yardımcısı).</summary>
+    private static Vector2 WorldToScreen(WorldMap map, Vector2 world)
+    {
+        var cam = map._camera;
+        if (cam == null) return Vector2.Zero;
+        Vector2 viewport = map.GetViewportRect().Size;
+        return (world - cam.Position) * cam.Zoom.X + viewport / 2f;
+    }
+
+    /// <summary>Haritada seçili ülke kimliği (test yardımcısı).</summary>
+    private static string FindSelectedCountryId(WorldMap map) => map.SelectedCountryId;
+
+    /// <summary>CountryInfoPanel düğümünü bulur (test yardımcısı).</summary>
+    private CountryInfoPanel FindCountryInfoPanel()
+    {
+        foreach (var n in FindChildrenIn(this))
+            if (n is CountryInfoPanel cip) return cip;
         return null;
     }
 

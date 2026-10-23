@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 // Seçili ülkenin bilgi paneli (sol overlay): HUD altında, sabit genişlikte, ScrollContainer ile taşan içerik kaydırılır.
@@ -17,6 +18,7 @@ public partial class CountryInfoPanel : PanelContainer
     private Label _ppLabel;
     private Label _populationLabel;
     private Label _manpowerLabel;
+    private Label _cultureLabel;             // M46.3: kültür profili (baskın kültür + yabancı il)
     private Label _gdpLabel;
     private Label _factoriesLabel;
     private Label _resourcesLabel;
@@ -98,9 +100,10 @@ public partial class CountryInfoPanel : PanelContainer
         var winSize = GetViewportRect().Size;
         // HUD altında başla (Game.HudHeight), alt kenar boşluk 16px
         float top = Game.HudHeight;
-        float height = winSize.Y - top - 16;
-        // Sabit genişlik: 360px, ama ekran dar ise ekrana sığdır (min 280)
-        float width = Mathf.Clamp(360f, 280f, winSize.X * 0.9f);
+        float height = Mathf.Max(0f, winSize.Y - top - 16);
+        // Sabit genişlik: 360px, ama ekran dar ise ekrana sığdır (min 280).
+        // Clamp argüman sırası önemli: min>max olan çağrı ArgumentException atar.
+        float width = Mathf.Clamp(winSize.X * 0.9f, 280f, 360f);
 
         Position = new Vector2(16, top);
         Size = new Vector2(width, height);
@@ -227,6 +230,11 @@ public partial class CountryInfoPanel : PanelContainer
         vbox.AddChild(_populationLabel);
         _manpowerLabel = NewLabel("Manpower: —", 16);
         vbox.AddChild(_manpowerLabel);
+
+        // M46.3: Kültür profili — ayrı bir satır: eşleşmeyen il sayısı her
+        // ülkede anlamlı bir sayı olduğundan kalabalık grid hücresine sığmaz.
+        _cultureLabel = NewLabel("Culture: —", 16);
+        vbox.AddChild(_cultureLabel);
 
         vbox.AddChild(new HSeparator());
 
@@ -528,6 +536,9 @@ public partial class CountryInfoPanel : PanelContainer
         _populationLabel.Text = $"Population: {data.Population:N0}";
         _manpowerLabel.Text = $"Manpower Pool: {data.ManpowerPool:N0}";
 
+        // M46.3: Kültür profili — il kültür katmanından türetilir (M44.2).
+        RefreshCultureLabel(data.Id);
+
         _factoriesLabel.Text = $"Factories: {data.CivFactories} Civ / {data.MilFactories} Mil / {data.Dockyards} Dock";
 
         _resourcesLabel.Text = $"Resources: Oil {data.Oil} | Rubber {data.Rubber} | Steel {data.Steel} | Al {data.Aluminum} | W {data.Tungsten} | Cr {data.Chromium}";
@@ -548,6 +559,50 @@ public partial class CountryInfoPanel : PanelContainer
         _fadeTween?.Kill();
         _fadeTween = UITheme.FadeIn(this, 0.12f);
     }
+
+    /// <summary>
+    /// M46.3: Ülkenin kültür profilini il kültür katmanından kurar.
+    ///
+    /// Baskın kültür = il sayısına göre en çok tekrarlanan kültür (eşitlikte
+    /// kimlik — deterministik). Yabancı kültürlü il sayısı M45'nin uzlaşma ve
+    /// direniş mekaniğinin taşıyıcısı olduğundan panelde ayrı gösterilir.
+    /// </summary>
+    private void RefreshCultureLabel(string countryId)
+    {
+        var records = ProvinceCultureSystem.ForCountry(countryId);
+        if (records.Count == 0)
+        {
+            _cultureLabel.Text = "Culture: no province records";
+            _cultureLabel.AddThemeColorOverride("font_color", UITheme.TextDisabled);
+            return;
+        }
+
+        var dist = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var rec in records)
+        {
+            if (rec == null) continue;
+            string culture = string.IsNullOrEmpty(rec.Culture) ? "(none)" : rec.Culture;
+            dist.TryGetValue(culture, out int n);
+            dist[culture] = n + 1;
+        }
+
+        var ranked = dist.OrderByDescending(kv => kv.Value)
+                         .ThenBy(kv => kv.Key, StringComparer.Ordinal)
+                         .ToList();
+        string dominant = ranked[0].Key;
+        int dominantCount = ranked[0].Value;
+        int foreignCount = records.Count - dominantCount;
+
+        _cultureLabel.Text = $"Culture: {dominant} ({dist.Count} total) " +
+                            $"— {dominantCount}/{records.Count} provinces, " +
+                            $"{foreignCount} foreign";
+        // Yabancı kültür baskınsa panel okuyucuyu uyarmalı.
+        _cultureLabel.AddThemeColorOverride("font_color",
+            foreignCount > dominantCount ? new Color(0.95f, 0.55f, 0.3f) : UITheme.TextMain);
+    }
+
+    /// <summary>Kültür profil satırının metni (test/UI denetim).</summary>
+    public string CultureSummary => _cultureLabel?.Text ?? "";
 
     public void HidePanel()
     {

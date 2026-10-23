@@ -136,6 +136,21 @@ public partial class WorldMap : Node2D
     private Country _selected;
     private Country _hovered;
     internal Camera2D _camera;
+
+    // M46.3: Kültür modunda imleç altındaki il — kültür ipucu kutusu bu kayıtla beslenir.
+    private string _hoverProvinceId = "";
+
+    // M46.3: Kültür eşleşmeyen iller — sahibinin baskın kültüründen farklı kültür
+    // taşıyan iller. Kontur vurgusu bu kümeyle çizilir (M45 uzlaşma/direnniş
+    // mekaniğinin haritada gösterilen yüzü).
+    private readonly HashSet<string> _cultureMismatchProvinces = new(StringComparer.Ordinal);
+
+    // M46.3: İmleci takip eden kültür ipucu kutusu. Control olduğu için Godot'un
+    // kendi metin/çerçeve çizimini kullanır; MouseFilter Ignore olduğundan harita
+    // girdisini (sağ tık sürükleme, tekerlek, WASD, il seçimi) engellemez.
+    private PanelContainer _cultureTip;
+    private Label _cultureTipLabel;
+    private bool _cultureTipDirty = true;
     private CanvasLayer _nameLayer;
     private bool _dragging;
     private Vector2 _lastMousePos;
@@ -305,6 +320,8 @@ public partial class WorldMap : Node2D
         SetProvinces(provinceSource.LoadProvinces());
         ProvinceOwnershipSystem.OnOwnerChanged += OnProvinceOwnerChanged;
 
+        BuildCultureTip();
+
         GD.Print($"WorldMap: hazır — kamera zoom={_camera?.Zoom.X:0.00} pos={_camera?.Position}, viewport={GetViewportRect().Size}");
     }
 
@@ -355,6 +372,9 @@ public partial class WorldMap : Node2D
         EnsureFrontlines();
         DrawFrontlines();
         DrawPlan();
+
+        // M46.3: Kültür eşleşmeyen illerin kontur vurgusu (kültür modunda).
+        DrawCultureMismatchContours();
     }
 
     private void DrawArmies()
@@ -466,6 +486,10 @@ public partial class WorldMap : Node2D
         AnimateSelectedBorder(fDelta);
         UpdateBorderWidthsByZoom();
         AnimateZoom(fDelta);
+
+        // M46.3: Kültür ipucu kutusu — metin değiştiyse kur, konumu imlece tut.
+        if (_cultureTipDirty) RefreshCultureTipText();
+        PositionCultureTip();
 
         // M18.4 + Task 4: FPS ölçümü (her 120 karede bir).
         // İller açık/kapalı ve zoom seviyesiyle birlikte loglanır; böylece
@@ -1405,8 +1429,16 @@ public partial class WorldMap : Node2D
             Mathf.Clamp(pos.Y, -400f, MapSize.Y + 400f));
     }
 
-    private void UpdateHover(Vector2 worldPos)
+    /// <summary>
+    /// Fare dünya konumuna göre hover + kültür ipucu takibini günceller.
+    /// Internal: headless test, viewport fare konumunu sentezleyemediğinden
+    /// (WarpMouse headless'te etkisiz) `_Input` yerine doğrudan çağırır.
+    /// </summary>
+    internal void UpdateHover(Vector2 worldPos)
     {
+        // M46.3: Kültür modunda imleç altındaki il takibi — ipucu kutusu bu kayıtla beslenir.
+        UpdateProvinceHover(worldPos);
+
         Country hit = FindCountryAt(worldPos);
         if (hit == _hovered) return;
         var old = _hovered; _hovered = hit;
@@ -1432,7 +1464,11 @@ public partial class WorldMap : Node2D
         return best;
     }
 
-    private void SelectAt(Vector2 worldPos) => SetSelected(FindCountryAt(worldPos));
+    /// <summary>
+    /// Dünya konumundaki ülkeyi seçer (sol tık yolu). Internal: headless test
+    /// viewport fare konumunu sentezleyemediğinden `_Input` yerine doğrudan çağırır.
+    /// </summary>
+    internal void SelectAt(Vector2 worldPos) => SetSelected(FindCountryAt(worldPos));
 
     private void SetSelected(Country c)
     {
@@ -2045,6 +2081,10 @@ public partial class WorldMap : Node2D
     // İl sahipliği değişince tüm illerin rengini günceller (ilhak sonrası harita yeniden boyanır).
     public void RefreshProvinceColors()
     {
+        // M46.3: Eşleşmeyen il kümesi boyamadan ÖNCE hesaplanır — kontur vurgusu
+        // il dolgusundan bağımsız olarak aynı kaynaktan beslenir.
+        ComputeCultureMismatches();
+
         foreach (var kvp in _provinceNodes)
         {
             // M46.1: culture modunda il kendi kültürüne boyanır, sahibine değil.
@@ -2054,6 +2094,235 @@ public partial class WorldMap : Node2D
             foreach (var node in kvp.Value)
                 if (GodotObject.IsInstanceValid(node)) node.Color = c;
         }
+    }
+
+    // ===== M46.3: Kültür ipucu + eşleşmeyen il konturu =====
+
+    /// <summary>Kültür modunda imleç altındaki il (yoksa boş).</summary>
+    public string HoveredProvinceId => _hoverProvinceId;
+
+    /// <summary>Seçili ülke kimliği (yoksa boş) — test/UI denetim.</summary>
+    public string SelectedCountryId => _selected?.Id ?? "";
+
+    /// <summary>Kültür modunda sahibinin baskın kültüründenden farklı kültürü olan il sayısı.</summary>
+    public int CultureMismatchProvinceCount => _cultureMismatchProvinces.Count;
+
+    /// <summary>Bir il sahibinin baskın kültüründenden farklı kültür mü taşıyor?</summary>
+    public bool IsCultureMismatchProvince(string provinceId)
+    {
+        return !string.IsNullOrEmpty(provinceId) && _cultureMismatchProvinces.Contains(provinceId);
+    }
+
+    /// <summary>Eşleşmeyen il kimlikleri (iletilen sıra — test/UI denetim).</summary>
+    public IReadOnlyList<string> CultureMismatchProvinceIds
+    {
+        get
+        {
+            var list = new List<string>(_cultureMismatchProvinces);
+            list.Sort(StringComparer.Ordinal);
+            return list;
+        }
+    }
+
+    /// <summary>İpucu kutusunun o anki metni (test/UI denetim).</summary>
+    public string CultureTipText => _cultureTipLabel?.Text ?? "";
+
+    /// <summary>İpucu kutusu görünür mü?</summary>
+    public bool CultureTipVisible => _cultureTip?.Visible ?? false;
+
+    /// <summary>
+    /// İpucu kutusunun fare süzgeci. `Ignore` olmalı: kültür ipucu hiçbir
+    /// koşulda harita girdisini (sağ tık sürükleme, tekerlek, WASD, il seçimi)
+    /// bloklamaz (test/UI denetim).
+    /// </summary>
+    public Control.MouseFilterEnum CultureTipMouseFilter =>
+        _cultureTip?.MouseFilter ?? Control.MouseFilterEnum.Stop;
+
+    /// <summary>
+    /// Sahibinin baskın kültüründen farklı kültür taşıyan illeri işaretler.
+    ///
+    /// Baskın kültür, ülkenin il sayısına göre en çok tekrarlanan kültürdür
+    /// (eşitlikte kimlik — deterministik). Böylece "bu topraklar kimin" sorusu
+    /// haritada tek renkle değil, içindeki yabancı kültürlerle birlikte okunur.
+    /// </summary>
+    private void ComputeCultureMismatches()
+    {
+        _cultureMismatchProvinces.Clear();
+        if (_provinceNodes.Count == 0) return;
+
+        // Ülke → kültür dağılımı (il sayısı) bir kez toplanır.
+        var byCountry = new Dictionary<string, List<ProvinceCultureSystem.CultureRecord>>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var rec in ProvinceCultureSystem.All())
+        {
+            if (rec == null) continue;
+            string owner = rec.CountryId ?? "";
+            if (!byCountry.TryGetValue(owner, out var list))
+            {
+                list = new List<ProvinceCultureSystem.CultureRecord>();
+                byCountry[owner] = list;
+            }
+            list.Add(rec);
+        }
+
+        foreach (var kv in byCountry)
+        {
+            var dist = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var rec in kv.Value)
+            {
+                string culture = rec.Culture ?? "";
+                dist.TryGetValue(culture, out int n);
+                dist[culture] = n + 1;
+            }
+            if (dist.Count <= 1) continue; // tek kültürlü ülkede eşleşmeyen il olmaz
+
+            string dominant = dist
+                .OrderByDescending(d => d.Value)
+                .ThenBy(d => d.Key, StringComparer.Ordinal)
+                .First().Key;
+
+            foreach (var rec in kv.Value)
+                if (!string.Equals(rec.Culture ?? "", dominant, StringComparison.Ordinal))
+                    _cultureMismatchProvinces.Add(rec.ProvinceId);
+        }
+    }
+
+    /// <summary>
+    /// Kültür eşleşmeyen illerin etrafına kontur çizer (kültür modunda).
+    /// Uzak zoom'da atlanır — il sınırlarıyla aynı LOD kuralı.
+    /// </summary>
+    private void DrawCultureMismatchContours()
+    {
+        if (CurrentMapMode != MapMode.Culture) return;
+        if (_cultureMismatchProvinces.Count == 0) return;
+        if (_camera != null && _camera.Zoom.X < 0.5f) return;
+
+        foreach (var pid in _cultureMismatchProvinces)
+        {
+            if (!_provinceNodes.TryGetValue(pid, out var nodes)) continue;
+            foreach (var node in nodes)
+            {
+                if (!GodotObject.IsInstanceValid(node)) continue;
+                var polygon = node.Polygon;
+                if (polygon.Length < 2) continue;
+                // Koyu çerçeve + üzerine ince sıcak kontur: karartılmış bölgelerde
+                // de okunur kalsın (vurgu seçili kültürle çakışmasın diye kırmızı değil).
+                for (int i = 0; i < polygon.Length; i++)
+                {
+                    var p1 = polygon[i];
+                    var p2 = polygon[(i + 1) % polygon.Length];
+                    DrawLine(p1, p2, new Color(0f, 0f, 0f, 0.55f), 3f);
+                    DrawLine(p1, p2, new Color(1f, 0.45f, 0.12f, 0.95f), 1.25f);
+                }
+            }
+        }
+    }
+
+    /// <summary>Kültür ipucu kutusunu bir kez kurar (imleci takip eden Control).</summary>
+    private void BuildCultureTip()
+    {
+        _cultureTipLabel = new Label
+        {
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+        _cultureTipLabel.AddThemeFontSizeOverride("font_size", 14);
+        _cultureTipLabel.AddThemeColorOverride("font_color", UITheme.TextMain);
+
+        _cultureTip = new PanelContainer
+        {
+            MouseFilter = Control.MouseFilterEnum.Ignore, // harita girdisini asla bloklama
+            Visible = false
+        };
+        _cultureTip.AddThemeConstantOverride("margin_left", 8);
+        _cultureTip.AddThemeConstantOverride("margin_right", 8);
+        _cultureTip.AddThemeConstantOverride("margin_top", 6);
+        _cultureTip.AddThemeConstantOverride("margin_bottom", 6);
+        _cultureTip.AddChild(_cultureTipLabel);
+        AddChild(_cultureTip);
+    }
+
+    /// <summary>İmleç altındaki ili günceller ve ipucu metnini kurar (kültür modunda).</summary>
+    private void UpdateProvinceHover(Vector2 worldPos)
+    {
+        if (CurrentMapMode != MapMode.Culture)
+        {
+            // Moddan çıkınca ipucu kalkar; il kaydı ve metin de temizlenir ki
+            // tekrar culture moduna geçildiğinde eski metin bir an görünmesin.
+            if (_hoverProvinceId.Length > 0 || _cultureTip.Visible)
+            {
+                _hoverProvinceId = "";
+                _cultureTipLabel.Text = "";
+                _cultureTip.Visible = false;
+                _cultureTipDirty = false;
+            }
+            return;
+        }
+
+        var prov = FindProvinceAt(worldPos);
+        string next = prov?.Id ?? "";
+        if (next == _hoverProvinceId) return;
+
+        _hoverProvinceId = next;
+        _cultureTipDirty = true;
+        QueueRedraw();
+    }
+
+    /// <summary>İpucu metnini illerin kültür verisinden kurar.</summary>
+    private void RefreshCultureTipText()
+    {
+        var rec = ProvinceCultureSystem.Get(_hoverProvinceId);
+        if (rec == null)
+        {
+            _cultureTipLabel.Text = "";
+            _cultureTip.Visible = false;
+            _cultureTipDirty = false;
+            return;
+        }
+
+        string culture = string.IsNullOrEmpty(rec.Culture) ? "(no culture)" : rec.Culture;
+        string owner = rec.CountryId ?? "";
+        string ownerName = CountryDatabase.Get(owner)?.Name ?? owner;
+        bool mismatch = _cultureMismatchProvinces.Contains(rec.ProvinceId);
+        string dominant = "";
+        if (mismatch)
+        {
+            var dist = ProvinceCultureSystem.GetCultureDistribution(owner);
+            dominant = dist.Count > 0
+                ? dist.OrderByDescending(kv => kv.Value)
+                      .ThenBy(kv => kv.Key, StringComparer.Ordinal).First().Key
+                : "";
+        }
+
+        _cultureTipLabel.Text =
+            $"{rec.ProvinceId} — {ownerName} ({owner})\n" +
+            $"Culture: {culture}   ({rec.Population:N0})\n" +
+            (mismatch
+                ? $"Foreign culture in {owner} (dominant: {dominant})"
+                : $"Dominant culture of {owner}");
+
+        _cultureTip.Visible = true;
+        _cultureTipDirty = false;
+    }
+
+    /// <summary>İpucu kutusunu imlecin yanına taşır (viewport sınırını aşmaz).</summary>
+    private void PositionCultureTip()
+    {
+        if (_cultureTip == null || !_cultureTip.Visible) return;
+
+        var viewport = GetViewportRect().Size;
+        Vector2 mouse = GetViewport().GetMousePosition();
+        Vector2 size = _cultureTip.Size;
+        if (size == Vector2.Zero) size = _cultureTip.GetCombinedMinimumSize();
+
+        const float offset = 16f;
+        Vector2 pos = mouse + new Vector2(offset, offset);
+        if (pos.X + size.X > viewport.X) pos.X = mouse.X - size.X - offset;
+        if (pos.Y + size.Y > viewport.Y) pos.Y = mouse.Y - size.Y - offset;
+        pos.X = Mathf.Clamp(pos.X, 4f, Mathf.Max(4f, viewport.X - size.X));
+        pos.Y = Mathf.Clamp(pos.Y, 4f, Mathf.Max(4f, viewport.Y - size.Y));
+
+        _cultureTip.Position = pos;
     }
 
     private void OnProvinceOwnerChanged(string provinceId, string oldCountryId, string newCountryId)

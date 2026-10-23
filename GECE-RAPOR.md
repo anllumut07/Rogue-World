@@ -2570,3 +2570,26 @@ save/load round-trip eylem sayısını korudu);
      (doğrulandı: 26.2 sn PASS, 28.5 sn PASS).
    - Oyunda beklenmedik olay yaşayan bir ülkeye kadar bekleyip kaydet/yükle → olay akışı
      7 günlük "garanti" sayacı doğru devam etmeli.
+
+## M46.1 — ✅ DONE (2026-10-23)
+1. Değiştirilen dosyalar:
+   - `Scripts/WorldMap.cs`: `MapMode.Culture` eklendi; `ColorForCulture` (FNV-1a → HSV, önbellekli),
+     `ModeColorForProvinceCulture`, `ProvinceFillColor` erişimcileri; `RefreshProvinceColors` ve
+     `ModeColor` culture moduna uyarlandı.
+   - `Scripts/ProvinceCultureSystem.cs`: `All()` (sıralı, deterministik tüm kayıt listesi).
+   - `Scripts/GameManager.cs`: `--map-mode-test` culture modunu da dolaşıyor; yeni
+     `RunCultureMapModeChecks` gerçek davranışı doğruluyor.
+   - `TODO.md` 46.1 → [x]; `PROGRESS.md` M46.1 bölümü.
+2. Çözemediğim: yok — M46.1'in kapsamı netti (renk üretimi + mod bağlama + test).
+3. Bilinen sorunlar:
+   - Harita modunu geçiren UI butonu YOK (mevcut durumda yalnızca `SetMapMode` API'sı ve
+     `--map-mode-test`). Kullanıcı oyun içinde culture modunu göremiyor.
+   - Renk yalnızca kültür adından türetilir; 15 kültür × koyu zemin iyi okunuyor ama çok
+     kültürlü bölgelerde komşu renkler benzer çıkabilir.
+4. Kullanıcının test etmesi gerekenler:
+   - \-\-map-mode-test\ PASS olmalı (doğrulandı: 3.65 sn PASS, 637/637 il doğru kültür
+     rengini aldı, 15 kültür arasında renk çakışması yok).
+   - \-\-save-load-test\ ve \-\-save-load-test\ \-\-scenario=modern_world\ ikisi de hâlâ
+     A == B vermeli (doğrulandı: 21.6 sn ve 25.8 sn PASS — culture modu özeti etkilemiyor).
+   - Oyunda `SetMapMode(MapMode.Culture)` çağrısı sonrası illerin ülke rengi yerine kültür
+     rengini alması bekleniyor — UI butonu M46.2/M46.3 ile birlikte ele alınmalı.

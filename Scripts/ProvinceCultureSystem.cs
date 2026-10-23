@@ -78,6 +78,18 @@ public static class ProvinceCultureSystem
     }
 
     /// <summary>
+    /// Tüm kültür kayıtları (il kimliğine göre sıralı — deterministik).
+    /// M46.1 kültür harita modu ve legend paneli bu listeyle çalışır.
+    /// </summary>
+    public static List<CultureRecord> All()
+    {
+        var result = new List<CultureRecord>(_records.Count);
+        foreach (var key in _records.Keys.OrderBy(k => k, StringComparer.Ordinal))
+            result.Add(_records[key]);
+        return result;
+    }
+
+    /// <summary>
     /// Bir ülkenin kültür dağılımı: kültür → il sayısı.
     /// Toplamı, o ülkenin kültür kaydı olan il sayısına eşittir.
     /// </summary>

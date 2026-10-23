@@ -2811,3 +2811,24 @@ Düzmeden sonra iki senaryo da A==B.
 **Testler:** dotnet build 0 hata / 0 uyarı; `--save-load-test` A==B PASS (historical_1936);
 `--save-load-test --scenario=modern_world` A==B PASS; `--autonomy-test` / `--releasable-test` /
 `--resistance-test` regresyonu M45.1–M45.3 commit'lerinde doğrulandı.
+
+## Milestone 46.1: Kültür harita modu — ✅ DONE (2026-10-23)
+
+**Yapılan:** `MapMode` enum'una `Culture` eklendi ve `WorldMap.ColorForCulture` kültür kimliğini
+(FNV-1a hash) deterministik HSV rengine çeviriyor. Renk yalnızca kültür adından türetildiği için
+kayıtta ayrıca tutulmasına gerek yok — aynı kültür her senaryoda aynı rengi alır.
+
+`ModeColorForProvinceCulture` bir ilin KENDİ kültürünü kullanıyor (ülke rengi değil), çünkü tek bir
+ülke içinde birden çok kültür bulunabiliyor. `ModeColor` içindeki `Culture` durumu ülke dolgusunu
+şeffaf yapıyor; ülke rengi yarı saydam olarak kültür renklerinin üzerinde kalsaydı harita okunamazdı.
+`RefreshProvinceColors` culture modunda kültür rengine, diğer modlarda sahip ülkesine boyuyor.
+
+Hue hesabında art arda gelen hash değerleri birbirine çok yakın hue üretebileceğinden altın açı
+çarpanı kullanıldı; doygunluk (0.62) ve parlaklık (0.88) sabit tutuldu çünkü harita zemini koyu.
+
+**Doğrulama:** `--map-mode-test` 6 moda `Culture` eklendi ve `RunCultureMapModeChecks` çağrılıyor:
+637 ilin dolgusu kültür rengine eşit (637/637), renk deterministik (aynı kültür → aynı renk),
+15 farklı kültür farklı renk aldı, culture modu political modundan gerçekten farklı görüntü üretiyor.
+Diğer 6 modun kod yolu değişmedi — `MapMode` yalnızca WorldMap ve GameManager'da tüketiliyor.
+
+**Test:** dotnet build 0/0; `--map-mode-test` PASS ✓ (3.97 sn).

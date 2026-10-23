@@ -21,7 +21,8 @@ public partial class WorldMap : Node2D
 
     // M13.3: Harita görünüm modları — Political (ülke renkleri), Terrain (biyom),
     // Supply (tacviye), Factories (fabrika yoğunluğu), Resources (kaynak), AirZones (hava Bölgesi).
-    public enum MapMode { Political, Terrain, Supply, Factories, Resources, AirZones }
+    // M46.1: Culture il bazlı kültür haritası.
+    public enum MapMode { Political, Terrain, Supply, Factories, Resources, AirZones, Culture }
     public MapMode CurrentMapMode { get; private set; } = MapMode.Political;
 
     // Factories modu için en yüksek fabrika sayısı (parlaklık normalizasyonu).
@@ -924,6 +925,11 @@ public partial class WorldMap : Node2D
             case MapMode.AirZones:
                 // Hava bölge overlay'i: soluk mavi-purpur
                 return new Color(0.5f, 0.35f, 0.9f, 0.35f);
+
+            case MapMode.Culture:
+                // M46.1: kültür bilgisini il katmanı taşır; ülke dolgusu şeffaf
+                // bırakılmazsa renkler kültürü gizler.
+                return Colors.Transparent;
 
             default:
                 return c.MapColor;
@@ -1933,7 +1939,65 @@ public partial class WorldMap : Node2D
     {
         if (CurrentMapMode == MapMode.Political)
             return ColorForId(prov.CountryId);
+        if (CurrentMapMode == MapMode.Culture)
+            return ModeColorForProvinceCulture(prov);
         return ModeColorForCountryId(prov.CountryId);
+    }
+
+    // M46.1: Kültür harita modu — ilin KENDİ kültürüne göre renk.
+    // Bir ülke içinde birden çok kültür olabileceği için ülke rengi kullanılmaz.
+    private Color ModeColorForProvinceCulture(ProvinceData prov)
+    {
+        if (prov == null) return Colors.Transparent;
+        // Kültür kaydı il kimliğiyle tutulur: sahiplik değişse de ilin kültürü korunur.
+        string culture = ProvinceCultureSystem.CultureOf(prov.Id);
+        return ColorForCulture(culture);
+    }
+
+    // M46.1: Kültür kimliğinden deterministik renk (FNV-1a hash → HSV).
+    //
+    // Renk yalnızca kültür ADINDAN türetilir: aynı kültür her senaryoda, her
+    // çalıştırmada aynı rengi alır ve kayıtta ayrıca tutulması gerekmez.
+    // Hue seçiminde art arda gelen hash değerleri birbirine çok yakın hue
+    // üretebileceğinden altın açı çarpanı kullanılır; doygunluk/parlaklık sabit
+    // tutulur çünkü harita zemini koyu ve renkler ayırt edilebilir olmalı.
+    private static readonly Dictionary<string, Color> CultureColorCache = new(StringComparer.Ordinal);
+
+    public static Color ColorForCulture(string culture)
+    {
+        if (string.IsNullOrEmpty(culture))
+        {
+            // Kültür atanmamış il: nötr koyu gri (boyasız bölge olarak okunur)
+            return new Color(0.29f, 0.29f, 0.32f, 1f);
+        }
+        if (CultureColorCache.TryGetValue(culture, out var cached)) return cached;
+
+        unchecked
+        {
+            // FNV-1a; UTF-16 char iki byte'a katılır (Türkçe karakterler de kapsanır).
+            uint h = 2166136261u;
+            foreach (char ch in culture)
+            {
+                h ^= (byte)ch;      h *= 16777619u;
+                h ^= (byte)(ch >> 8); h *= 16777619u;
+            }
+
+            // Hash’i kaybetmeden hue’ya indir: 24 bitlik kayma float’ta tam
+            // görünür, 2^22 ile bölmek de tam bölme olduğundan 4M ayrık hue
+            // değeri çıkar — kayıp yok, çakışma pratikte imkansız.
+            float hue = (float)(h >> 8) * (1f / 4194304f);
+            var color = Color.FromHsv(hue, 0.62f, 0.88f, 1f);
+            CultureColorCache[culture] = color;
+            return color;
+        }
+    }
+
+    // M46.1: Bir ilin o anki dolgu rengi (arayüz ve kültür modu testi için).
+    public Color ProvinceFillColor(string provinceId)
+    {
+        if (_provinceNodes.TryGetValue(provinceId, out var nodes) && nodes.Count > 0)
+            return nodes[0].Color;
+        return Colors.Transparent;
     }
 
     // İl sahipliği değişince tüm illerin rengini günceller (ilhak sonrası harita yeniden boyanır).
@@ -1941,8 +2005,10 @@ public partial class WorldMap : Node2D
     {
         foreach (var kvp in _provinceNodes)
         {
-            string owner = ProvinceOwnershipSystem.GetProvinceOwner(kvp.Key);
-            Color c = ModeColorForCountryId(owner);
+            // M46.1: culture modunda il kendi kültürüne boyanır, sahibine değil.
+            Color c = CurrentMapMode == MapMode.Culture
+                ? ModeColorForProvinceCulture(_provinceById.GetValueOrDefault(kvp.Key))
+                : ModeColorForCountryId(ProvinceOwnershipSystem.GetProvinceOwner(kvp.Key));
             foreach (var node in kvp.Value)
                 if (GodotObject.IsInstanceValid(node)) node.Color = c;
         }

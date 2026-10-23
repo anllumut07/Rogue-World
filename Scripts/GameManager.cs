@@ -4892,7 +4892,8 @@ public partial class GameManager : Node
             WorldMap.MapMode[] modes =
             {
                 WorldMap.MapMode.Political, WorldMap.MapMode.Terrain, WorldMap.MapMode.Supply,
-                WorldMap.MapMode.Factories, WorldMap.MapMode.Resources, WorldMap.MapMode.AirZones
+                WorldMap.MapMode.Factories, WorldMap.MapMode.Resources, WorldMap.MapMode.AirZones,
+                WorldMap.MapMode.Culture
             };
 
             foreach (var m in modes)
@@ -4921,9 +4922,115 @@ public partial class GameManager : Node
             GD.PrintErr("[MapModeTest] WorldMap.Instance erişilemedi (oyun sahnesi yüklü değil).");
         }
 
+        // M46.1: Kültür harita modu gerçek davranış doğrulaması
+        ok &= RunCultureMapModeChecks(WorldMap.Instance);
+
         GD.Print(ok ? "[MapModeTest] SONUÇ: PASS ✓" : "[MapModeTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M46.1: Kültür harita modunun gerçek davranışını doğrular.
+    ///
+    /// Kontrol edilenler: (1) culture modunda il dolgusu, o ilin kültürünün
+    /// rengine eşit; (2) renk kültür adından türetildiği için aynı kültür her
+    /// çağrıda aynı rengi verir (deterministik); (3) farklı kültürler farklı
+    /// renk alır (harita okunabilir); (4) culture modu, political modundan
+    /// gerçekten farklı bir görüntü üretir (mod gerçekten bağlanmış).
+    ///
+    /// Normal oyunda ASLA çağrılmaz (yalnızca --map-mode-test).
+    /// </summary>
+    private bool RunCultureMapModeChecks(WorldMap wm)
+    {
+        bool ok = true;
+
+        if (wm == null)
+        {
+            GD.PrintErr("[CultureModeTest] WorldMap.Instance erişilemedi (oyun sahnesi yüklü değil).");
+            return false;
+        }
+
+        // Kültür kaydı olan illerden örnekleme al
+        var withCulture = ProvinceCultureSystem.All()
+            .Where(r => r != null && !string.IsNullOrEmpty(r.Culture))
+            .ToList();
+
+        if (withCulture.Count == 0)
+        {
+            GD.PrintErr("[CultureModeTest] Kültür kaydı olan il yok — culture modu doğrulanamadı.");
+            return false;
+        }
+
+        wm.SetMapMode(WorldMap.MapMode.Culture);
+        if (wm.CurrentMapMode != WorldMap.MapMode.Culture)
+        {
+            GD.PrintErr("[CultureModeTest] Mod ayarlanamadı: beklenen Culture");
+            ok = false;
+        }
+
+        // 1) İl dolgusu = kültür rengi
+        int colorCheckCount = 0;
+        foreach (var rec in withCulture)
+        {
+            Color expected = WorldMap.ColorForCulture(rec.Culture);
+            Color actual = wm.ProvinceFillColor(rec.ProvinceId);
+            if (actual != expected)
+            {
+                GD.Print($"[CultureModeTest] İl dolgusu kültür rengine eşit değil: {rec.ProvinceId} " +
+                         $"({rec.Culture}) beklenen={expected} gerçek={actual}");
+                ok = false;
+                continue;
+            }
+            colorCheckCount++;
+        }
+
+        // 2) Determinizm: aynı kültür her çağrıda aynı renk
+        Color repeatA = WorldMap.ColorForCulture(withCulture[0].Culture);
+        Color repeatB = WorldMap.ColorForCulture(withCulture[0].Culture);
+        if (repeatA != repeatB)
+        {
+            GD.PrintErr("[CultureModeTest] Renk deterministik değil: aynı kültür farklı renk üretti.");
+            ok = false;
+        }
+
+        // 3) Farklı kültürler farklı renk alır (TÜM çiftler — harita okunabilirliği için)
+        var distinctCultures = withCulture.Select(r => r.Culture).Distinct().ToList();
+        int collisionCount = 0;
+        for (int i = 0; i < distinctCultures.Count; i++)
+        {
+            Color ci = WorldMap.ColorForCulture(distinctCultures[i]);
+            for (int j = i + 1; j < distinctCultures.Count; j++)
+            {
+                if (ci == WorldMap.ColorForCulture(distinctCultures[j]))
+                {
+                    GD.PrintErr($"[CultureModeTest] Renk çakışması: '{distinctCultures[i]}' ve " +
+                                $"'{distinctCultures[j]}' aynı rengi aldı — harita okunamaz.");
+                    ok = false;
+                    collisionCount++;
+                }
+            }
+        }
+
+        // 4) Political moddan gerçekten farklı görüntü
+        wm.SetMapMode(WorldMap.MapMode.Political);
+        Color politicalColor = wm.ProvinceFillColor(withCulture[0].ProvinceId);
+        wm.SetMapMode(WorldMap.MapMode.Culture);
+        Color cultureColor = wm.ProvinceFillColor(withCulture[0].ProvinceId);
+        if (politicalColor == cultureColor)
+        {
+            GD.Print($"[CultureModeTest] Culture modu political ile aynı rengi verdi: {cultureColor} " +
+                     $"(il {withCulture[0].ProvinceId}) — mod bağlantısı eksik olabilir.");
+            ok = false;
+        }
+
+        GD.Print($"[CultureModeTest] kültür ili kontrol edildi: {colorCheckCount}/{withCulture.Count} " +
+                 $"({distinctCultures.Count} farklı kültür, renk çakışması={collisionCount}, deterministik=✓)");
+
+        // Testin sonuna geri dönmek zorunda değil, ama diğer kontroller bu modda kalmasın
+        wm.SetMapMode(WorldMap.MapMode.Political);
+
+        return ok;
     }
 
     /// <summary>

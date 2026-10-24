@@ -3026,3 +3026,64 @@ metninden geniş ama amacı tamamlamak için zorunlu.
 - Yanıtlar `release` (eşik 0.80 + stabilite ≥ 30), `grant` (eşik 0.45),
   `deferred` (grant hak edilmiş ama `AutonomySystem.CanAct` 7 günlük
   beklemede), `ignore` (eşik altı) olarak ayrıldı.
+
+---
+
+## M48.3 — Tanınma ve bağımsızlık savaşı (2026-10-24)
+
+### ÖZET
+1. **Neyi değiştirdim**
+   - `Scripts/RecognitionSystem.cs` (yeni, ~330 satır): doğuş kaydı + tanınma
+     kümesi + günlük yayılım puanlaması (kültür/ideoloji/komşuluk/olgunluk/güç).
+     Deterministik, RNG yok.
+   - `Data/recognition.json` (yeni, 12 ayar).
+   - `Scripts/FormableSystem.cs`: `Complete()` artık
+     `RecognitionSystem.OnCountryBorn(def.Id, parent.Id, GM.TotalDays, "formable")`.
+   - `Scripts/ReleasableSystem.cs`: `Release()` artık
+     `OnCountryBorn(..., "release")`; `RespondToDemand`'a bağımsızlık savaşı dalı;
+     `RaiseDemandFor`'a savaş desteği kazanımı (direniş × 0.25);
+     `DemandSettings`'e `MinDemandsBeforeWar` + `DemandWarSupportFactor`.
+   - `Data/subject_demands.json`: 2 yeni ayar.
+   - `Data/scenarios/*/casus_belli.json` (her iki senaryo): ücretsiz, 0 günlük
+     otomatik `independence_war` gerekçesi.
+   - `Scripts/SaveSystem.cs`: `RecognitionSave` DTO'ları + kök kayıt kablosu.
+   - `Scripts/GameManager.cs`: DailyTick `AdvanceAllDays` çağrısı, production
+     `ResetForNewGame` temizliği, `--recognition-test` bayrağı + koşucusu.
+2. **Neyi çözemedim**
+   - Tanınma paneline yansımadı (M45.1 ReleasablePanel hâlâ talep/tanınma
+     durumunu göstermiyor). Kapsam dışı bırakıldı.
+3. **Bilinen sorunlar**
+   - Yok.
+4. **Kullanıcının test etmesi gerekenler**
+   - Yok (headless test tüm kriterleri doğruladı).
+
+### Test sonuçları (M48.3)
+| Test | Süre | Sonuç |
+|---|---|---|
+| `--recognition-test` | 2.0 sn | PASS ✓ (7 adım) |
+| `--diplomacy-test` (regresyon) | 3.6 sn | PASS ✓ |
+| `--intervention-test` (regresyon) | 8.7 sn | PASS ✓ |
+| `--releasable-test` (regresyon) | 1.6 sn | PASS ✓ |
+| `--formable-test` (regresyon) | 1.4 sn | PASS ✓ |
+| `--save-load-test` (historical_1936) | 21.6 sn | PASS ✓ (A == B) |
+| `--save-load-test` (modern_world) | 21.7 sn | PASS ✓ (A == B) |
+
+**dotnet build:** 0 hata / 0 uyarı.
+
+**Kritik doğrulama (`--recognition-test` adım çıktıları):**
+- Doğuşta yalnızca doğaran tanır: `tanıyan=1, doğaran tanıyor mu=True, taban ilişki=25`
+- Yayılım: `120 gün: yeni tanınma=25, tanıyan=26`; `Tanınan AFG → NEW ilişki=5`
+- Determinizm: `tanıyan 26 == 26`
+- Save/load: `doğuş=1, tanınma=26, yüklenen tanıyan=26, doğum günü=0`
+- Bağımsızlık savaşı: `yanıt='war'` (beklenen 'war' yolundan ilerledi)
+
+### Belirsizlikte alınan kararlar
+- **Taban ilişki iki ayrı değer:** formable +20, release -10. Ebe kaynak
+  bölünen bir halkı iyi niyetle ayırır; ilhak eden ise baskıyla bırakır.
+- **Bağımsızlık savaşı önce koparır sonra savaş açar:** `WarSystem` ilhak
+  edilmiş bir ülkeye savaş ilanına izin vermez (attacker.IsAnnexed kontrolü).
+  Bu yüzden halk ilhak olduğu gibi güçle ayrılır (`Release`) ve ardından
+  savaş ilan eder. Yeni bir "savaş türü" eklemek yerine mevcut akış
+  kullanıldı.
+- **Savaş desteği baskıyla büyür:** bu olmadan bağımsızlık savaşı
+  ideoloji eşiğine (≥%40) hiç ulaşamazdı ve mekanizma üretimde ölü kalırdı.

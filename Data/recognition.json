@@ -1,0 +1,16 @@
+{
+  "Version": 1,
+  "Settings": {
+    "RecognitionThreshold": 0.40,
+    "FullRecognitionDays": 90.0,
+    "SameCultureWeight": 0.30,
+    "SameIdeologyWeight": 0.25,
+    "NeighborWeight": 0.20,
+    "StrengthWeight": 0.10,
+    "StrengthReference": 100.0,
+    "FounderAutomatic": true,
+    "FounderRelation": 20,
+    "ReleasedRelation": -10,
+    "RelationOnRecognition": 5
+  }
+}

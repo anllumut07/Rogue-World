@@ -12,6 +12,8 @@
     "GrantThreshold": 0.45,
     "ReleaseThreshold": 0.80,
     "WarPenalty": 0.35,
-    "MinOverlordStabilityForRelease": 30.0
+    "MinOverlordStabilityForRelease": 30.0,
+    "MinDemandsBeforeWar": 2,
+    "DemandWarSupportFactor": 0.25
   }
 }

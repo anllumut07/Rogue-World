@@ -3106,3 +3106,40 @@ Direniş eşiği günlük büyümeyle (0.06/gün) 500+ gün ister; test doğruda
 öncesi null döner (lazy state), bu yüzden yardımcı önce `DailyTick(1)`
 çarptırıyor. Ayrıca determinizm anlık görüntüsü ilk `AdvanceDay`'den ÖNCE
 alınmalı — sonra alınınca ikinci koşu birincinin beklemesini miras alır.
+
+## Milestone 48.3 — Tanınma ve Bağımsızlık Savaşı — ✅ DONE (2026-10-24)
+
+### Sistem
+- `Data/recognition.json` (yeni): tanınma eşiği (0.40), tam tanınma günü (90),
+  ağırlıklar (kültür 0.30, ideoloji 0.25, komşu 0.20, güç 0.10) ve taban
+  ilişkiler (formable +20, release -10, tanınma +5).
+- `Scripts/RecognitionSystem.cs` (yeni): doğuş kaydı + tanınma kümesi.
+  `OnCountryBorn`, `AdvanceAllDays`, `IsRecognized`, `RecognizerCount`.
+- `Scripts/GameManager.cs`: `DailyTick` → `AdvanceAllDays(TotalDays)`
+  (serbest bırakma talebinden SONRA — o gün kopan ülke de aynı gün
+  değerlendirmeye girsin); production `ResetForNewGame` temizliği.
+
+### Diplomatik yansıma zinciri
+1. Doğuş: yalnızca doğuran tanır, iki yönlü taban ilişki işlenir.
+   Formable ile release ayrı değer alır — biri ayrılmak isteyen, diğeri
+   ayrılmak zorunda kalan taraftır.
+2. Yayılım: kültür + ideoloji + komşuluk + olgunluk + güç puanı.
+3. Bağımsızlık savaşı: baskı eşiğinde ve talep tekrarlanınca halk güçle
+   koparır (ilhak olduğu gibi) ve savaş açar. Savaş desteği baskıyla
+   büyür — bu adım olmazsa mekanizma yalnızca testte çalışırdı.
+
+### Test kapsamı (`--recognition-test`)
+1) Dünya kurulumu (637 il)
+2) Doğuşta yalnızca doğaran tanır, taban ilişki 25
+3) 120 gün → 25 ülke tanır, her tanınma +5 ilişki
+4) Determinizm: tanıyan 26 == 26
+5) Save/load round-trip
+6) Talep reddi → ülke kopar, bağımsızlık savaşı başlatır
+
+### Ders (dış sistemin hazır olma koşulu)
+`CasusBelliSystem.LoadScenarioData()` yalnızca dosyayı yükler; `_initialized`
+bayrağını AÇMAZ. Yalnızca `Initialize(data)` açar. Testte `LoadScenarioData`
+çağrıldığı için sistem "hazır değil" modunda kaldı ve `GrantImmediateJustification`
+sessizce hiçbir şey yapmadı — savaş gizemli biçimde başlatılamadı. Doğru
+başlatma: `Initialize(someCountry)`. Ayrıca `LogWarDeclarationCheck`'ın koşul
+listesi gerçek engeli (hiçbir gerekçe türü yüklenemiyor) gösterdi.

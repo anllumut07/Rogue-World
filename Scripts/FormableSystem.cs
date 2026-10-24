@@ -27,6 +27,8 @@ using System.Linq;
 /// </summary>
 public static class FormableSystem
 {
+    private static GameManager GM => GameManager.Instance;
+
     /// <summary>Kurma sürecinde olan bir ülkenin durumu.</summary>
     public class FormationState
     {
@@ -302,6 +304,12 @@ public static class FormableSystem
         //    otomatik AI olur. (Harita rengi de WorldMap.ColorForId ile
         //    hash'ten türetilir; yeni kimlik otomatik renk alır.)
         CountryAI.Reset();
+
+        // 8) M48.3: Diplomatik tanınma — dünya bu ülkeyi henüz tanımıyor.
+        //    Ebe kaynak anında tanır ve iki yönlü taban ilişki işlenir;
+        //    diğer ülkeler RecognitionSystem.AdvanceAllDays ile gün gün
+        //    değerlendirme yapar.
+        RecognitionSystem.OnCountryBorn(def.Id, parent.Id, GM.TotalDays, "formable");
 
         return true;
     }

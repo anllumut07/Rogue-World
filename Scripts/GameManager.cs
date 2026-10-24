@@ -187,6 +187,7 @@ public partial class GameManager : Node
         bool formableTest = false;           // M44.3: kurgu ülke kurma testi (--formable-test)
         bool releasableTest = false;         // M44.4: ilhak/kukla ülkeyi bağımsız çıkarma testi
         bool releaseDemandTest = false;      // M48.2: AI serbest bırakma talebi testi (--release-demand-test)
+        bool recognitionTest = false;        // M48.3: tanınma ve diplomatik yansıma testi (--recognition-test)
         bool formablePanelTest = false;      // M44.5: kurgu ülke paneli testi (--formable-panel-test)
         bool releasablePanelTest = false;    // M45.1: bağımsız çıkarma paneli testi (--releasable-panel-test)
         bool autonomyTest = false;           // M45.2: özerklik sistemi testi (--autonomy-test)
@@ -356,6 +357,8 @@ public partial class GameManager : Node
                 releasableTest = true;
             else if (arg == "--release-demand-test")
                 releaseDemandTest = true;
+            else if (arg == "--recognition-test")
+                recognitionTest = true;
             else if (arg == "--formable-panel-test")
                 formablePanelTest = true;
                 else if (arg == "--releasable-panel-test")
@@ -800,6 +803,11 @@ public partial class GameManager : Node
         if (releaseDemandTest)
             RunReleaseDemandTest();
 
+        // M48.3: Tanınma ve diplomatik yansıma testi — doğan ülke, tanınma yayılımı,
+        // determinizm, Save/Load, bağımsızlık savaşı.
+        if (recognitionTest)
+            RunRecognitionTest();
+
         // M44.5: Kurgu ülke paneli testi — kurgu ülkeler, kültür haritası, kurma/iptal.
         if (formablePanelTest)
             RunFormablePanelTest();
@@ -1118,6 +1126,12 @@ public partial class GameManager : Node
         // koşul değerlendirilir. Aynı gün artan direniş talebi hemen açar.
         ReleasableSystem.AdvanceAllDays(TotalDays);
 
+        // M48.3: Yeni doğan ülkelerin tanınması — talepten SONRA çağrılır çünkü
+        // o gün bağımsızlaşan ülke de aynı gün tanınma değerlendirmesine girsin.
+        // Talep bir ülkeyi bırakmışsa yeni doğan ülke diğerleri tarafından
+        // bugünden itibaren değerlendirilir.
+        RecognitionSystem.AdvanceAllDays(TotalDays);
+
         // M12: Ocak 1'de otomatik kayıt (yeni yılın ilk günü)
         if (CurrentDate.Month == 1 && CurrentDate.Day == 1)
         {
@@ -1360,6 +1374,9 @@ public partial class GameManager : Node
 
         // M-Flags: bayrak önbelleği sıfırlanır (rapor yeni oyunda tekrar loglanır)
         FlagLibrary.ResetForNewGame();
+
+        // M48.3: Tanınma durumu — yeni oyun (eski kayıttan kalan tanınma/doğuş silinir)
+        RecognitionSystem.ResetForNewGame();
 
         // M41.1: Zafer koşulları-yeni oyun (aktif senaryonun koşul seti yeniden okunur)
         VictorySystem.ResetForNewGame();
@@ -10179,6 +10196,227 @@ private void RunBalanceTest()
         }
 
         GD.Print(ok ? "[DemandTest] SONUÇ: PASS ✓" : "[DemandTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M48.3: Doğan ülkenin diplomatik yansıması headless testi
+    /// (--recognition-test).
+    ///
+    /// Senaryo: oyun içinde yeni bir ülke doğar (kurgu ulus ya da serbest
+    /// bırakma). Doğan ülkeyi yalnızca doğuran taraf tanır; diğer ülkeler
+    /// kültür/ideoloji/komşuluk/güç puanıyla gün geçtikçe tanır. Tanınma
+    /// deterministik, iki yönlü ilişkiyi iyileştirir, loglanır ve
+    /// save/load'da korunur. Ayrıca talebi reddedilen bir ilhak edilmiş
+    /// halk bağımsızlık savaşı başlatır.
+    ///
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunRecognitionTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M48.3: TANINMA VE DIPLOMATIK YANSIMA TESTİ");
+        GD.Print("=========================================");
+
+        bool ok = true;
+        DeterministicRNG.InitializeForNewGame(0x4D4842_33DUL);
+
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ReleasableSystem.ResetForNewGame();
+        ReleasableSystem.ResetDemands();
+        AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
+        RecognitionSystem.ResetForNewGame();
+        // CasusBelliSystem.Initialize hem veri dosyasını yükler hem de
+        // _initialized'ı açar. Yalnızca LoadScenarioData() çağrılırsa türler
+        // yüklenir ama sistem "hazır değil" modunda kalır ve gerekçe verilemez.
+        CasusBelliSystem.Initialize(CountryDatabase.Get("RUS"));
+        GD.Print($"[RecogTest] 1) İl: {provinces.Count}, kültür: {ProvinceCultureSystem.RecordCount}");
+
+        // ---- 2) Ülke doğar: yalnızca doğuran tanır ----
+        var parent = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 4)
+            .OrderBy(c => c.Id, StringComparer.Ordinal)
+            .First();
+        if (parent == null)
+        {
+            GD.PrintErr("[RecogTest] HATA: doğuran ülke bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Yeni ülke gerçekten veritabanına eklenir ve ebe kaynakta il devralır
+        // (bir formable'ın kuruluşu gibi). İller olmadan yeni ülkenin kültürü
+        // ve komşusu olmaz, bu yüzden kimse onu tanıyamazdı — kurgu ülke
+        // kurulumunun gerçek yolu buydu.
+        const string newId = "NEW";
+        var newCountry = CountryDatabase.GetOrCreate(newId, "Yeni Ülke");
+        newCountry.Ideology = parent.Ideology;
+        var parentProvinces = ProvinceOwnershipSystem.GetProvincesByOwner(parent.Id)
+            .OrderBy(id => id, StringComparer.Ordinal).Take(5).ToList();
+        foreach (var p in parentProvinces)
+            ProvinceOwnershipSystem.SetProvinceOwner(p, newId);
+        ProvinceCultureSystem.ReassignCountry(parentProvinces, newId);
+
+        RecognitionSystem.OnCountryBorn(newId, parent.Id, 0, "formable");
+
+        // Doğan ülkeyi yalnızca doğuran tanır; taban ilişki 20 (formable) +
+        // tanınma anındaki +5 = 25 olur.
+        int founderCount = RecognitionSystem.RecognizerCount(newId);
+        bool founderRecognizes = RecognitionSystem.IsRecognized(parent.Id, newId);
+        int baseRelation = DiplomacySystem.GetRelation(parent.Id, newId);
+        GD.Print($"[RecogTest] 2) Doğan ülke doğdu: tanıyan={founderCount} (1 olmalı), " +
+                 $"doğuran tanıyor mu={founderRecognizes} (true olmalı), " +
+                 $"taban ilişki={baseRelation} (25 olmalı: 20 + tanınma 5), il={parentProvinces.Count}");
+        if (founderCount != 1) ok = false;
+        if (!founderRecognizes) ok = false;
+        if (baseRelation != 25) ok = false;
+
+        // ---- 3) Günler geçer: tanınma yayılır ----
+        // 120 gün koşmak yeterli: FullRecognitionDays=90 olduğundan olgunluk
+        // payı doyar ve en az komşular tanır.
+        int added = 0;
+        for (long day = 1; day <= 120; day++) added += RecognitionSystem.AdvanceAllDays(day);
+
+        int finalCount = RecognitionSystem.RecognizerCount(newId);
+        int established = RecognitionSystem.RecognitionCount;
+        GD.Print($"[RecogTest] 3) 120 gün: yeni tanınma={added}, tanıyan={finalCount} " +
+                 $"(toplam kayıt={established})");
+        if (added <= 0) ok = false;
+        if (finalCount <= 1) ok = false;
+
+        // Tanınan ülkelerin ilişkisi iyileşmiş olmalı (+5 her tanıma).
+        string other = CountryDatabase.All()
+            .Where(c => c != null && !string.Equals(c.Id, parent.Id, StringComparison.OrdinalIgnoreCase) &&
+                        RecognitionSystem.IsRecognized(c.Id, newId))
+            .Select(c => c.Id)
+            .FirstOrDefault() ?? "";
+        if (!string.IsNullOrEmpty(other))
+        {
+            int rel = DiplomacySystem.GetRelation(other, newId);
+            GD.Print($"[RecogTest] 3b) Tanınan {other} → {newId} ilişki={rel} " +
+                     $"(+{5} olmalı)");
+            if (rel != 5) ok = false;
+        }
+
+        // ---- 4) DETERMİNİZM: sıfırla, aynı koşulu tekrarla ----
+        RecognitionSystem.ResetForNewGame();
+        RecognitionSystem.OnCountryBorn(newId, parent.Id, 0, "formable");
+        for (long day = 1; day <= 120; day++) RecognitionSystem.AdvanceAllDays(day);
+        int repeatCount = RecognitionSystem.RecognizerCount(newId);
+        GD.Print($"[RecogTest] 4) Determinizm: tanıyan {finalCount} == {repeatCount} " +
+                 $"(eşit olmalı)");
+        if (repeatCount != finalCount) ok = false;
+
+        // ---- 5) Tanınma save/load round-trip ----
+        var recSave = RecognitionSystem.GetSaveData();
+        int savedBirths = recSave.Births?.Length ?? 0;
+        int savedRecs = recSave.Recognitions?.Length ?? 0;
+        RecognitionSystem.ResetForNewGame();
+        RecognitionSystem.LoadSaveData(recSave);
+        int loadedCount = RecognitionSystem.RecognizerCount(newId);
+        long loadedDay = RecognitionSystem.BirthDay(newId);
+        bool recOk = loadedCount == finalCount && savedBirths == 1 && loadedDay == 0;
+        GD.Print($"[RecogTest] 5) Save/load: doğuş={savedBirths}, tanınma={savedRecs}, " +
+                 $"yüklenen tanıyan={loadedCount} (== {finalCount}), doğuş günü={loadedDay}");
+        if (!recOk) ok = false;
+
+        // ---- 6) Bağımsızlık savaşı: talebi reddedilen halk kobar ----
+        RecognitionSystem.ResetForNewGame();
+        var overlordAi = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, parent.Id, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 3)
+            .OrderByDescending(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .First();
+        var subject = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, parent.Id, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, overlordAi?.Id, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 3)
+            .OrderBy(c => c.Id, StringComparer.Ordinal)
+            .First();
+        if (overlordAi == null || subject == null)
+        {
+            GD.PrintErr("[RecogTest] HATA: savaş deneme ülkeleri bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        int subCiv = subject.CivFactories, subMil = subject.MilFactories, subDock = subject.Dockyards;
+        var subProvinces = ProvinceOwnershipSystem.GetProvincesByOwner(subject.Id)
+            .OrderBy(id => id, StringComparer.Ordinal).ToList();
+        ReleasableSystem.RecordSubject(subject.Id, overlordAi.Id, false, subCiv, subMil, subDock);
+        subject.IsAnnexed = true;
+        subject.OwnerId = overlordAi.Id;
+        subject.Population = 100_000_000; // savaş desteği için kalabalık halk
+        overlordAi.StabilityPercent = 20.0;   // zayıf overlord: tutamaz
+        subject.PoliticalPower = 500;
+        overlordAi.CivFactories += subCiv; overlordAi.MilFactories += subMil; overlordAi.Dockyards += subDock;
+        subject.CivFactories = subject.MilFactories = subject.Dockyards = 0;
+        foreach (var p in subProvinces) ProvinceOwnershipSystem.SetProvinceOwner(p, overlordAi.Id);
+        ProvinceCultureSystem.ReassignCountry(subProvinces, overlordAi.Id);
+        CountryAI.Initialize();
+
+        // Yerel yardımcılar: M48.2 testindeki gerekçelerle aynı nedenle
+        // doğrudan durum kurulur (eşik 500+ gün sürecek bir büyümeyi beklemek
+        // anlamsızdı).
+        void SetResistance2(string id, double v)
+        {
+            if (ResistanceSystem.Get(id) == null) ResistanceSystem.DailyTick(1);
+            var rs = ResistanceSystem.Get(id);
+            if (rs != null) rs.Accumulated = v;
+        }
+        void SetAutonomy2(string id, double v)
+        {
+            if (AutonomySystem.Get(id) == null) AutonomySystem.DailyTick(1);
+            var st = AutonomySystem.Get(id);
+            if (st != null) st.Level = v;
+        }
+
+        SetAutonomy2(subject.Id, 5.0);
+        SetResistance2(subject.Id, 55.0);
+
+        // 1. talep → overlord zayıf ama talep yeni başladı (savaş eşiği = 2)
+        ReleasableSystem.AdvanceDay(overlordAi.Id, 1);
+        var d1 = ReleasableSystem.DemandFor(subject.Id);
+        GD.Print($"[RecogTest] 6a) 1. talep: açık={d1?.Open}, yanıt='{d1?.LastResponse}' " +
+                 $"(savaş değil, talep sayısı={d1?.RaiseCount})");
+        string resp1 = d1?.LastResponse ?? "";
+
+        // 2. talep → overlord yine tutamaz → bağımsızlık savaşı.
+        // Gün 20: talep beklemesi 7 gün, YANIT beklemesi 14 gün. 8'de denemek
+        // yanıtı soğukkanlılıkla düşürür ve talep 'grant' gibi görünür.
+        SetAutonomy2(subject.Id, 5.0);
+        SetResistance2(subject.Id, 55.0);
+        // Savaş desteği ideolojiye göre eşikli (en az %40); "halkın çoğu
+        // bağımsızlık için savaşmaya hazır" durumunu kurar.
+        subject.WarSupportPercent = 60.0f;
+        ReleasableSystem.AdvanceDay(overlordAi.Id, 20);
+        var d2 = ReleasableSystem.DemandFor(subject.Id);
+        bool atWarNow = WarSystem.IsAtWarWith(subject.Id, overlordAi.Id);
+        bool brokeFree = !subject.IsAnnexed;
+        bool bornNow = RecognitionSystem.WasBorn(subject.Id);
+        GD.Print($"[RecogTest] 6b) 2. talep sonrası: yanıt='{d2?.LastResponse}', " +
+                 $"savaşta mı={atWarNow} (true olmalı), koptu mu={brokeFree} " +
+                 $"(true olmalı), tanınmaya doğdu mu={bornNow} (true olmalı)");
+        if (!atWarNow) ok = false;
+        if (!brokeFree) ok = false;
+        if (!bornNow) ok = false;
+        if (resp1 != "" && string.Equals(resp1, d2?.LastResponse ?? "", StringComparison.OrdinalIgnoreCase))
+        {
+            // Yanıt değişmemişse şüphelen: ilk talep "war" olmamalıydı.
+            GD.Print($"[RecogTest] UYARI: yanıt değişmedi ('{resp1}') — savaş yolu " +
+                     $"çalışmamış olabilir");
+            ok = false;
+        }
+
+        GD.Print(ok ? "[RecogTest] SONUÇ: PASS ✓" : "[RecogTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

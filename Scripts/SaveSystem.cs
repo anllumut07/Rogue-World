@@ -70,6 +70,7 @@ public static class SaveSystem
         public MapViewSave MapView { get; set; } // M46.4: harita modu + kültür vurgusu
         public FormableSave Formable { get; set; } // M44.3: sürmekte olan kurgu ülke kurulumları
         public ReleasableSave Releasable { get; set; } // M44.4: ilhak/kukla kayıtları
+        public RecognitionSave Recognition { get; set; } // M48.3: yeni doğan ülkelerin tanınması
         public AutonomySave Autonomy { get; set; } // M45.2: bağımlı özerklik seviyeleri
         public ResistanceSave Resistance { get; set; } // M45.3: il bazlı direniş durumu
         public VictorySystem.VictorySave Victory { get; set; } // M41.2: zafer koşulu durumu
@@ -352,6 +353,20 @@ public static class SaveSystem
         public int CivTaken { get; set; }
         public int MilTaken { get; set; }
         public int DockTaken { get; set; }
+    }
+
+    // ===== Tanınma DTOs (M48.3) =====
+    public class RecognitionSave
+    {
+        public RecognitionBirthEntry[] Births { get; set; }
+        public string[] Recognitions { get; set; }
+    }
+    public class RecognitionBirthEntry
+    {
+        public string CountryId { get; set; }
+        public string ParentId { get; set; }
+        public long BirthDay { get; set; }
+        public string Reason { get; set; }
     }
 
     // ===== Özerklik DTOs (M45.2) =====
@@ -664,6 +679,7 @@ public static class SaveSystem
             MapView = MapViewSystem.GetSaveData(), // M46.4: harita modu + kültür vurgusu
             Formable = FormableSystem.GetSaveData(), // M44.3: sürmekte olan kurgu ülke kurulumları
             Releasable = ReleasableSystem.GetSaveData(), // M44.4: ilhak/kukla kayıtları
+            Recognition = RecognitionSystem.GetSaveData(), // M48.3: tanınma kayıtları
             Autonomy = AutonomySystem.GetSaveData(), // M45.2: özerklik seviyeleri
             Resistance = ResistanceSystem.GetSaveData(), // M45.3: direniş durumu
             Victory = VictorySystem.GetSaveData(), // M41.2: zafer koşulu durumu
@@ -835,6 +851,7 @@ public static class SaveSystem
                 FormableSystem.LoadSaveData(save.Formable); // M44.3: sürmekte olan kurgu ülke kurulumları
             if (save.Releasable != null)
                 ReleasableSystem.LoadSaveData(save.Releasable); // M44.4: ilhak/kukla kayıtları
+                RecognitionSystem.LoadSaveData(save.Recognition); // M48.3: tanınma kayıtları
                 AutonomySystem.LoadSaveData(save.Autonomy); // M45.2: özerklik seviyeleri
                 ResistanceSystem.LoadSaveData(save.Resistance); // M45.3: direniş durumu
             VictorySystem.ApplySave(save.Victory); // M41.2: zafer koşulu durumu

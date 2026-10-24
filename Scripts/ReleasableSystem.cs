@@ -24,6 +24,8 @@ using System.Text.Json;
 /// </summary>
 public static class ReleasableSystem
 {
+    private static GameManager GM => GameManager.Instance;
+
     /// <summary>İlak edilmiş bir ülkenin kaydı (release anında ters yön için).</summary>
     public class SubjectRecord
     {
@@ -61,7 +63,7 @@ public static class ReleasableSystem
         public int RaiseCount = 0;           // kaç kez talepte bulundu
         public long LastResponseDay = -1;    // overlord'un son yanıtı
         public int ResponseCount = 0;
-        public string LastResponse = "";     // "grant" | "ignore" | "release"
+        public string LastResponse = "";     // "grant" | "ignore" | "release" | "war" | "independence" | "blocked"
         public bool Open = true;             // talep hâlâ açık mı
         public bool SelfResolved = false;    // koşullar düzelince talebi geri çekti
     }
@@ -88,6 +90,8 @@ public static class ReleasableSystem
         public double ReleaseThreshold = 0.80;
         public double WarPenalty = 0.35;
         public double MinOverlordStabilityForRelease = 30.0;
+        public int MinDemandsBeforeWar = 2;
+        public double DemandWarSupportFactor = 0.25;
     }
 
     private sealed class DemandRoot
@@ -384,6 +388,12 @@ public static class ReleasableSystem
         // 4) Yeni ülke AI devralır (CountryAI Initialize/Reset, CountryDatabase üzerinden kurulur)
         CountryAI.Reset();
 
+        // M48.3: Diplomatik tanınma — ülke bağımsız oldu ama dünya onu
+        // resmen tanımıyor. Eski overlord tanır (kötü niyetli taban ilişki),
+        // diğer ülkeler gün gün değerlendirir.
+        RecognitionSystem.OnCountryBorn(country.Id, record.OverlordId,
+            GM != null ? GM.TotalDays : 0, "release");
+
         if (GameManager.IsAvailable)
             GameManager.Instance.EmitSignal(GameManager.SignalName.CountryOwnershipChanged);
 
@@ -490,6 +500,19 @@ public static class ReleasableSystem
         if (currentDay >= 0 && demand.FirstRaisedDay < 0) demand.FirstRaisedDay = currentDay;
         demand.RaiseCount++;
 
+        // M48.3: Baskı altındaki halk savaş desteği kazanır — işgal altında
+        // bir halkın bağımsızlık için savaşması doğal sonuçtur. Bu adım
+        // olmadan bağımsızlık savaşı yalnızca testte, üretimde hiç çıkmazdı.
+        var subject = CountryDatabase.Get(id);
+        if (subject != null)
+        {
+            double wsBefore = subject.WarSupportPercent;
+            double wsGain = resistance * D.DemandWarSupportFactor;
+            subject.WarSupportPercent = (float)Math.Clamp(wsBefore + wsGain, 0.0, 100.0);
+            GD.Print($"[M48.3] {id} savaş desteği arttı: %{wsBefore:N0} → " +
+                     $"%{subject.WarSupportPercent:N0} (direniş {resistance:N0})");
+        }
+
         GD.Print($"[M48.2] {id} serbest bırakma TALEBİ açtı → {record.OverlordId} " +
                  $"(özerklik %{autonomy:N0} < %{D.LowAutonomyLevel:N0}, " +
                  $"direniş {resistance:N0} >= {D.HighResistance:N0}, " +
@@ -503,6 +526,8 @@ public static class ReleasableSystem
     ///   skor  = baskı + overlord zayıflığı x WeaknessWeight - savas cezası
     ///
     /// - skor >= ReleaseThreshold ve overlord yeterince sağlam → ülkeyi bırakır
+    /// - skor >= ReleaseThreshold ama talep tekrarlanıyor        → "war" (bağımsızlık savaşı)
+    ///   ya da "independence" (koparır ama savaş açamaz)
     /// - skor >= GrantThreshold                            → özerklik verir
     /// - skor >= GrantThreshold ama bekleme süresinde       → "deferred" (ertelendi)
     /// - aksi halde                                        → görmezden gelir
@@ -550,6 +575,45 @@ public static class ReleasableSystem
                 return;
             }
             GD.Print($"[M48.2] {overlordId} bırakmak istedi ama olamadı: {released.Reason}");
+        }
+
+        // M48.3: Bağımsızlık savaşı. Baskı serbest bırakma eşiğinde ama
+        // overlord ya çok zayıf ya bırakmaya hazır değil — ve talep üst üste
+        // geliyorsa halk konuşmayı bırakır. WarSystem ilhak edilmiş bir ülkeye
+        // savaş ilanına izin vermediği için bağımsızlık önce ilhak olduğu gibi
+        // güçle koparılır (Release), ardından savaş ilan edilir.
+        bool wantsIndependence = score >= D.ReleaseThreshold;
+        if (wantsIndependence && demand.RaiseCount >= D.MinDemandsBeforeWar && !atWar)
+        {
+            var revolt = Release(subjectId, overlordId);
+            if (!revolt.Ok)
+            {
+                demand.LastResponse = "blocked";
+                GD.Print($"[M48.3] {subjectId} bağımsızlık için ayaklandı ama " +
+                         $"ayrılamadı: {revolt.Reason} (skor={score:N2})");
+                return;
+            }
+
+            CasusBelliSystem.GrantImmediateJustification(subjectId, overlordId, "independence_war");
+            bool hasCb = CasusBelliSystem.HasValidCasusBelli(subjectId, overlordId);
+            bool declared = WarSystem.DeclareWar(subjectId, overlordId);
+            GD.Print($"[M48.3] savaş ilanı denemesi: gerekçe var mı={hasCb}, " +
+                     $"ilan edildi mi={declared} (hedef {overlordId})");
+            if (declared)
+            {
+                demand.Open = false;
+                demand.LastResponse = "war";
+                GD.Print($"[M48.3] BAĞIMSIZLIK SAVAŞI: {subjectId} koptu ve şimdi " +
+                         $"{overlordId} üzerine savaşıyor (skor={score:N2}, " +
+                         $"talep sayısı={demand.RaiseCount})");
+                return;
+            }
+
+            demand.Open = false;
+            demand.LastResponse = "independence";
+            GD.Print($"[M48.3] BAŞLATILAN BAĞIMSIZLIK: {subjectId} güçle ayrıldı ama " +
+                     $"savaş açamadı (skor={score:N2}, talep sayısı={demand.RaiseCount})");
+            return;
         }
 
         if (score >= D.GrantThreshold)

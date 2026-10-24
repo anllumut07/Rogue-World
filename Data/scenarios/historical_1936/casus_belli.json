@@ -83,6 +83,20 @@
       "ExposeChance": 0.0,
       "LegitimacyCostOnUse": 0,
       "TensionOnUse": 0
+    },
+    {
+      "Id": "independence_war",
+      "Name": "Independence War",
+      "Description": "A subject people refused release after repeated demands and now fights for independence. Automatic, free, no build time.",
+      "IsAutomatic": true,
+      "RequiresClaim": false,
+      "RequiresDifferentIdeology": false,
+      "MinWorldTension": 0,
+      "BuildDays": 0,
+      "PPCost": 0,
+      "ExposeChance": 0.0,
+      "LegitimacyCostOnUse": 0,
+      "TensionOnUse": 2
     }
   ],
   "WarSupportThreshold": {

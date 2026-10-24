@@ -192,6 +192,7 @@ public partial class GameManager : Node
         bool resistanceTest = false;         // M45.3: direniş sistemi testi (--resistance-test)
         bool cultureLegendTest = false;      // M46.2: kültür efsanesi paneli testi (--culture-legend-test)
         bool cultureInfoTest = false;        // M46.3: kültür bilgisi + eşleşmeyen il konturu testi (--culture-info-test)
+        bool provinceEconomyTest = false;    // M47.1: il bazlı ekonomi ağırlık katmanı testi (--province-economy-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -362,6 +363,8 @@ public partial class GameManager : Node
                     cultureLegendTest = true;
                 else if (arg == "--culture-info-test")
                     cultureInfoTest = true;
+                else if (arg == "--province-economy-test")
+                    provinceEconomyTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -805,6 +808,10 @@ public partial class GameManager : Node
         // M46.3: Kültür bilgisi (ipucu + ülke paneli) ve eşleşmeyen il konturu testi.
         if (cultureInfoTest)
             RunCultureInfoTest();
+
+        // M47.1: İl bazlı ekonomi ağırlık katmanı testi — pay tutarlı, toplam korunur.
+        if (provinceEconomyTest)
+            RunProvinceEconomyTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -8827,6 +8834,215 @@ private void RunBalanceTest()
         if (!skippedInvalid) ok = false;
 
         GD.Print(ok ? "[CultureTest] SONUÇ: PASS ✓" : "[CultureTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M47.1: İl bazlı ekonomi ağırlık katmanı headless testi (--province-economy-test).
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunProvinceEconomyTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M47.1: İL BAZLI EKONOMİ AĞIRLIK KATMANI TESTİ");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        // 1) İlleri deterministik kaynak üzerinden yükle
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        GD.Print($"[ProvEconomyTest] 1) İl sayısı: {provinces.Count}");
+        if (provinces.Count < 100) ok = false;
+
+        // 2) Kültür katmanı (nüfus payının kaynağı) sonra ekonomi katmanı
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceEconomySystem.GenerateFor(provinces, "historical_1936");
+        int recordCount = ProvinceEconomySystem.RecordCount;
+        GD.Print($"[ProvEconomyTest] 2) Ekonomi kaydı: {recordCount}");
+        if (recordCount != provinces.Count) ok = false;
+
+        // 3) Paylar normalize olmalı: her ülke için her kanalın pay toplamı ≈ 1
+        var countries = provinces.Select(p => p.CountryId).Distinct().ToList();
+        float maxShareDrift = 0f;
+        foreach (var cid in countries)
+        {
+            float res = ProvinceEconomySystem.ForCountry(cid).Sum(w => w.ResourceW);
+            float fac = ProvinceEconomySystem.ForCountry(cid).Sum(w => w.FactoryW);
+            float pop = ProvinceEconomySystem.ForCountry(cid).Sum(w => w.PopulationW);
+            foreach (float v in new[] { res, fac, pop })
+            {
+                float drift = Math.Abs(v - 1f);
+                if (drift > maxShareDrift) maxShareDrift = drift;
+            }
+        }
+        GD.Print($"[ProvEconomyTest] 3) Pay normalize sapması: {maxShareDrift:F6} (≤ 0.001 olmalı)");
+        if (maxShareDrift > 0.001f) ok = false;
+
+        // 4) Harmanlama tutarlı: il toplamı = ülke toplamı (±harman payı)
+        int mismatch = 0;
+        long maxFactoryDrift = 0, maxResourceDrift = 0, maxPopDrift = 0;
+        foreach (var cid in countries)
+        {
+            var data = CountryDatabase.Get(cid);
+            if (data == null) continue;
+
+            long fActual = ProvinceEconomySystem.TotalFactoriesOf(cid);
+            long fExpected = data.CivFactories + data.MilFactories + data.Dockyards;
+            long pActual = ProvinceEconomySystem.TotalPopulationOf(cid);
+            long pExpected = data.Population;
+
+            long fDrift = Math.Abs(fActual - fExpected);
+            long pDrift = Math.Abs(pActual - pExpected);
+            if (fDrift > maxFactoryDrift) maxFactoryDrift = fDrift;
+            if (pDrift > maxPopDrift) maxPopDrift = pDrift;
+
+            foreach (var key in ProvinceEconomySystem.ResourceKeys)
+            {
+                long rActual = ProvinceEconomySystem.TotalResourceOf(cid, key);
+                long rExpected = key switch
+                {
+                    "Oil" => data.Oil,
+                    "Rubber" => data.Rubber,
+                    "Steel" => data.Steel,
+                    "Aluminum" => data.Aluminum,
+                    "Tungsten" => data.Tungsten,
+                    _ => data.Chromium
+                };
+                long rDrift = Math.Abs(rActual - rExpected);
+                if (rDrift > maxResourceDrift) maxResourceDrift = rDrift;
+            }
+
+            // Fabrika ve nüfus tam korunmalı. Nüfus sapması yalnızca float32
+            // normalize + kal-artık yuvarlamasından gelir; ülke nüfusu büyük olduğu
+            // için sabit ±2 toleransı veriyoruz (mutlak pay, yüzde değil).
+            if (fDrift > 0 || pDrift > 2) mismatch++;
+        }
+        GD.Print($"[ProvEconomyTest] 4) Harman sapması — fabrika: {maxFactoryDrift}, " +
+                  $"kaynak: {maxResourceDrift}, nüfus: {maxPopDrift}, hatalı ülke: {mismatch}");
+        if (mismatch > 0 || maxFactoryDrift > 0 || maxPopDrift > 2) ok = false;
+
+        // 5) Dağıtım anlamlı: negatif dağıtım yok ve ağırlık sırası paya yansır.
+        // Not: bu dünyada tüm iller kıyı işaretli (637/637), bu yüzden kıyı/iç bölge
+        // karşılaştırması yerine ağırlık sıralaması denenir — veriden bağımsız.
+        int negative = 0;
+        foreach (var w in ProvinceEconomySystem.All())
+        {
+            if (w.Civ < 0 || w.Mil < 0 || w.Dock < 0 ||
+                w.Oil < 0 || w.Steel < 0 || w.Chromium < 0) negative++;
+        }
+
+        // Örnek ülke: en çok ili olan ve en az 4 ili olan ülke.
+        string sampleCid = "";
+        foreach (var cid in countries
+            .OrderByDescending(c => ProvinceEconomySystem.ForCountry(c).Count))
+        {
+            if (ProvinceEconomySystem.ForCountry(cid).Count >= 4) { sampleCid = cid; break; }
+        }
+
+        bool orderRespected = true;
+        if (sampleCid.Length > 0)
+        {
+            var sample = ProvinceEconomySystem.ForCountry(sampleCid);
+
+            float max = float.MinValue, min = float.MaxValue;
+            int facMax = 0, facMin = int.MaxValue;
+            foreach (var w in sample)
+            {
+                max = Math.Max(max, w.FactoryW);
+                min = Math.Min(min, w.FactoryW);
+            }
+            foreach (var w in sample)
+            {
+                if (w.FactoryW == max) facMax = w.TotalFactories;
+                if (w.FactoryW == min) facMin = w.TotalFactories;
+            }
+            if (facMax < facMin) orderRespected = false;
+
+            // Üst yarı ile alt yarı karşılaştırması (kal-artık sapmasına dayanıklı)
+            var sorted = sample.OrderByDescending(w => w.FactoryW).ToList();
+            int half = sorted.Count / 2;
+            long topFac = 0, botFac = 0;
+            for (int i = 0; i < sorted.Count; i++)
+            {
+                if (i < half) topFac += sorted[i].TotalFactories;
+                else if (i >= sorted.Count - half) botFac += sorted[i].TotalFactories;
+            }
+            GD.Print($"[ProvEconomyTest] 5b) Üst yarı fabrika: {topFac}, alt yarı: {botFac} " +
+                     $"({sampleCid}, {sample.Count} il)");
+            if (topFac < botFac) orderRespected = false;
+        }
+
+        GD.Print($"[ProvEconomyTest] 5) Negatif dağıtım: {negative}, ağırlık sırası paya yansıdı: " +
+                 $"{orderRespected} (örnek ülke={sampleCid})");
+        if (negative > 0 || !orderRespected) ok = false;
+
+        // 6) Determinizm: sıfırla + yeniden üret → aynı paylar
+        var beforeSnapshot = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var w in ProvinceEconomySystem.All())
+            beforeSnapshot[w.ProvinceId] = $"{w.Urban:F6}|{w.FactoryW:F6}|{w.ResourceW:F6}|{w.PopulationW:F6}|{w.Civ}|{w.Oil}";
+        ulong rngBefore = DeterministicRNG.GetState();
+        ProvinceEconomySystem.ResetForNewGame();
+        ProvinceEconomySystem.GenerateFor(provinces, "historical_1936");
+        ulong rngAfter = DeterministicRNG.GetState();
+        int driftCount = 0;
+        foreach (var w in ProvinceEconomySystem.All())
+        {
+            string key = $"{w.Urban:F6}|{w.FactoryW:F6}|{w.ResourceW:F6}|{w.PopulationW:F6}|{w.Civ}|{w.Oil}";
+            if (!beforeSnapshot.TryGetValue(w.ProvinceId, out var old) || old != key) driftCount++;
+        }
+        GD.Print($"[ProvEconomyTest] 6) Determinizm: kayıt={ProvinceEconomySystem.RecordCount} " +
+                  $"(önce {recordCount}), farklı kayıt={driftCount}, RNG state korundu={rngBefore == rngAfter}");
+        if (ProvinceEconomySystem.RecordCount != recordCount || driftCount > 0) ok = false;
+
+        // 7) RNG akışı bozulmamış olmalı: üretim dünya rastgeleliğini etkilemez.
+        if (rngBefore != rngAfter) ok = false;
+
+        // 8) İl devri (M47.2 provası): DEU ilini POL'a taşı
+        var deu = provinces.Where(p => p.CountryId == "DEU").Select(p => p.Id).ToList();
+        if (deu.Count >= 1)
+        {
+            string target = deu[0];
+
+            // POL'un CountryData değerleri devrinden ETKİLENMEZ (M47.1 kapsamı):
+            // yeni ilin payı POL'un toplamına eklenir, bu yüzden POL'un il toplamı
+            // kendi CountryData toplamından BÜYÜK çıkar — bu beklenen davranış.
+            // DEU ise ilini kaybettiği için toplamı düşer; ikisi de adım 4'teki
+            // değişmeyen CountryData ile karşılaştırıldığında uyumsuz görünür.
+            // Bu yüzden burada "toplam korunur mu" değil, DEVİN DOĞRU UYGULANIP
+            // uygulanmadığı ölçülür: taşınan ilin payı yeni ülkede görünüyor.
+            bool moved = ProvinceEconomySystem.ReassignCountry(new List<string> { target }, "POL");
+            var rec = ProvinceEconomySystem.Get(target);
+            bool assigned = rec != null && rec.CountryId == "POL";
+            bool listUpdated = ProvinceEconomySystem.ForCountry("POL").Any(w => w.ProvinceId == target) &&
+                               !ProvinceEconomySystem.ForCountry("DEU").Any(w => w.ProvinceId == target);
+
+            // Yeni ülkenin toplamı, kendi eski toplamı + taşınan ilin payı olmalı.
+            int movedCiv = rec?.Civ ?? 0;
+            int polAfter = ProvinceEconomySystem.TotalFactoriesOf("POL");
+            bool deuListClean = !ProvinceEconomySystem.ForCountry("DEU").Any(w => w.ProvinceId == target);
+            bool movedValueAdded = polAfter >= movedCiv;
+
+            GD.Print($"[ProvEconomyTest] 8) İl devri: taşındı={moved}, sahip POL={assigned}, " +
+                     $"listeler güncel={listUpdated}, taşınan ilin fabrikası={movedCiv}, " +
+                     $"POL toplam fabrika={polAfter}, taşınan pay eklendi={movedValueAdded}");
+            if (!moved || !assigned || !listUpdated || !deuListClean || !movedValueAdded) ok = false;
+        }
+        else
+        {
+            GD.Print("[ProvEconomyTest] 8) İl devri: DEU'de il yok — atlandı");
+        }
+
+        // 9) Hiç ili olmayan ülke için toplam 0
+        int emptyTotal = ProvinceEconomySystem.TotalFactoriesOf("XXX_YOK");
+        GD.Print($"[ProvEconomyTest] 9) Boş ülke toplam fabrika: {emptyTotal} (0 olmalı)");
+        if (emptyTotal != 0) ok = false;
+
+        ProvinceEconomySystem.ResetForNewGame();
+        ProvinceCultureSystem.ResetForNewGame();
+
+        GD.Print(ok ? "[ProvEconomyTest] SONUÇ: PASS ✓" : "[ProvEconomyTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

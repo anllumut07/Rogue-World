@@ -1,0 +1,17 @@
+{
+  "Version": 1,
+  "Description": "M47.1 il bazli ekonomi agirliklari. Her ilin kaynak/fabrika/nufus payi alan + kentsel + kiyi faktorlerinden turetilir; uzak bolgeler kaynak, kiyti/sehri bolgeler fabrika agirlikli olur. Agirliklar ulke icinde normalize edilir, ulke toplami CountryData ile harmanlanir (uretim kaybolmaz).",
+  "Settings": {
+    "TerritoryWeight": 0.35,
+    "UrbanWeight": 0.45,
+    "CoastWeight": 0.20,
+    "ResourceTerritoryBias": 0.60,
+    "ResourceUrbanBias": 0.40,
+    "FactoryUrbanBias": 0.55,
+    "FactoryTerritoryBias": 0.25,
+    "FactoryCoastBias": 0.20,
+    "PopulationCultureWeight": 0.85,
+    "PopulationAreaWeight": 0.15,
+    "BlendTolerancePercent": 5
+  }
+}

@@ -2934,3 +2934,25 @@ ayrıca culture dışına çıkınca vurgunun düştüğü ve onun da round-trip
 
 **Test:** dotnet build 0/0; `--map-mode-test` PASS ✓ (2.92 sn), `--culture-legend-test` PASS ✓
 (1.41 sn), `--culture-info-test` PASS ✓ (1.32 sn), `--save-load-test` A==B PASS ✓ (25.00 sn).
+
+---
+
+## Milestone 47: İl Bazlı Ekonomi Dengesi — 🚧 DEVAM
+
+### M47.1 — İl bazlı ekonomi ağırlık katmanı — ✅ DONE (2026-10-24)
+- **`ProvinceEconomySystem`** (statik katman): her il için üç ayrı pay üretir — kaynak
+  (alan ağırlıklı), fabrika (kent + kıyı ağırlıklı), nüfus (il nüfusu ağırlıklı). Paylar
+  ülke içinde normalize edilir, ülke toplamı `CountryData` ile harmonmanlanır.
+- **Neden:** `CountryData` üzerindeki fabrika/kaynak alanları sabitti; il devrinde ekonomi
+  yeniden hesaplanmıyordu. Bu katman il bazlı ayrımı görünür kılar, üretimi korur.
+- **Kal-artık dağıtım:** toplam tam korunur ve yüksek ağırlıklı il avantajlı kalır
+  ("son il her şeyi alır" sapması yok).
+- **Rastgelelik:** yalnızca `DeterministicRNG` — kentsel faktör il kimliğinden türetilen
+  tohumdan çekilir, global state korunarak; dünya simülasyonu etkilenmez.
+- **`--province-economy-test`** (9 adım): pay normalizasyonu, harmanlama tutarlılığı,
+  ağırlık sırasının paya yansıması, determinizm + RNG state korunumu, il devri.
+- **Test:** dotnet build 0/0; `--province-economy-test` PASS ✓ (8.5 sn),
+  `--save-load-test` A==B PASS ✓ (historical_1936 16.6 sn, modern_world 41.9 sn).
+- **Kalan (M47.2-47.4):** il devrinde alan/veren ülkenin toplamının yeniden hesaplanması
+  (halihazırda CountryData değişmiyor — bilinen kapsam sınırı), kaynak açğı ekonomik sonucu,
+  Save/Load entegrasyonu + özet satırı.

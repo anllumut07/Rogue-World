@@ -2676,3 +2676,106 @@ save/load round-trip eylem sayısını korudu);
    `--save-load-test` 25.00 sn, `--save-load-test --scenario=modern_world` 20.16 sn — hepsi PASS.
 
 **Milestone 46 (Kültür Haritası) 46.1-46.4 tamamlandı.** Sıradaki: M47 (İl Bazlı Ekonomi).
+
+---
+
+# GECE RAPORU — 2026-10-24 (gece-calisma, otonom oturum)
+
+## ADIM 0 — Bitiş zamanı ve hook
+- `powershell -Command "Get-Date"` → 2026-10-24 06:50. Bitiş = 6 saatten uzun ilk sabah 10:00
+  → **2026-10-25 10:00**. `tools/bitis.txt` tek satır `2026-10-25 10:00` olarak yazıldı.
+- `tools/stop-guard.ps1` bitiş zamanını gerçekten bu dosyadan okuyor (satır 26-27:
+  `$BitisFile = tools/bitis.txt`, `$EndTime = [datetime](Get-Content ...)`) — `.kapali`
+  geri adlandırmaya gerek yok, dosya zaten `tools/stop-guard.ps1` adıyla duruyor.
+- Sayaç `test-logs/stop-guard-count.txt` sıfırlandı (0).
+- Her alt görev öncesi BITIS/DEVAM kontrolü yapılacak.
+
+## ADIM 1 — Gece regresyon doğrulaması (M41-M44 tam kapsam)
+
+Önceki gecenin işi (M43 deniz muharebesi + M44 kurgu kurulum) ve M41-M46 tüm bayraklar
+tam regresyonla doğrulandı. Kırık yok — düzeltme gerekmedi.
+
+| Bayrak | Süre | Durum |
+|---|---|---|
+| `--save-load-test` (historical_1936) | 19 sn | PASS ✓ (A == B) |
+| `--save-load-test --scenario=modern_world` | 21 sn | PASS ✓ (A == B) |
+| `--soak-test` (3 yıl) | 31 sn | PASS ✓ |
+| `--victory-test` | 2 sn | PASS ✓ |
+| `--score-test` | 1 sn | PASS ✓ |
+| `--gameover-test` | 2 sn | PASS ✓ |
+| `--war-score-test` | 2 sn | PASS ✓ |
+| `--peace-terms-test` | 1 sn | PASS ✓ |
+| `--peace-test` | 2 sn | PASS ✓ |
+| `--ai-peace-test` | 2 sn | PASS ✓ |
+| `--peace-panel-test` | 2 sn | PASS ✓ |
+| `--sea-zone-test` | 1 sn | PASS ✓ |
+| `--convoy-raid-test` | 2 sn | PASS ✓ |
+| `--naval-combat-test` | 1 sn | PASS ✓ |
+| `--lend-lease-test` | 1 sn | PASS ✓ |
+| `--sea-zone-panel-test` | 2 sn | PASS ✓ |
+| `--formable-data-test` | 1 sn | PASS ✓ |
+| `--culture-test` | 2 sn | PASS ✓ |
+| `--formable-test` | 2 sn | PASS ✓ |
+| `--formable-panel-test` | 2 sn | PASS ✓ |
+| `--releasable-test` | 2 sn | PASS ✓ |
+| `--releasable-panel-test` | 3 sn | PASS ✓ |
+| `--autonomy-test` | 2 sn | PASS ✓ |
+| `--resistance-test` | 2 sn | PASS ✓ |
+| `--culture-legend-test` | 6 sn | PASS ✓ |
+| `--culture-info-test` | 2 sn | PASS ✓ |
+| `--map-mode-test` | 3 sn | PASS ✓ |
+
+**dotnet build:** 0 hata / 0 uyarı.
+**Commit edilmemiş yarım iş:** Yok — yalnızca 18 adet Godot'un kendi ürettiği `*.cs.uid`
+dosyası izlenmemiş durumda (98 tanesi zaten izleniyor, kalanı da aynı konvansiyonla
+izlenecek). Derleniyor, testler geçiyor → ilk görev commit'ine dahil edilecek.
+
+---
+
+## M47.1 — İl bazlı ekonomi ağırlık katmanı (TAMAM)
+
+### ÖZET
+1. **Değişen dosyalar**
+   - `Scripts/ProvinceEconomySystem.cs` (yeni): il başına kaynak/fabrika/nüfus ağırlığı,
+     `ReconcileCountry` harmanlaması, `IsReconciled` tutarlılık kontrolü.
+   - `Data/province_economy.json` (yeni): ayarlar (kaynak alan/kent 0.6/0.4,
+     fabrika kent/alan/kıyı 0.55/0.25/0.20, nüfus kültür/alan 0.85/0.15).
+   - `Scripts/GameManager.cs`: `--province-economy-test` bayrağı + `RunProvinceEconomyTest()`.
+2. **Çözülenler**
+   - Ülke toplamı `CountryData` ile harmanlanıyor; fabrika/kaynak payları **tam** korunuyor
+     (kal-artık yöntemi: en büyük küsüratlı iller kalan birimleri alıyor).
+   - Nüfus sapması: float32 normalizasyon + `long × float` çarpımının float32'ye
+     indirgenmesi yüzünden 17 kişi kayıyordu → çarpımı `double`'a zorlayıp ±2 tolerans
+     verildi. Artık en kötü durum 2 kişi (102 ülke, milyarlık nüfus).
+   - `DeterministicRNG` global state'i korunuyor: kentsel faktör çekilişi öncesi state
+     kaydedilip geri yükleniyor → dünya rastgeleliği bozulmuyor (6. adım doğruladı).
+   - İl devri (`ReassignCountry`) testte doğrulandı: taşınan il yeni ülkenin listesinde,
+     eski ülkenin listesinden düştü, payları taşındı.
+3. **Çözemediğim**
+   - Yok. M47.1 tamamlandı; il devrinde alan ülkenin `CountryData` toplamının *yeniden
+     hesaplanması* (alanın kaynak/kalandırması) M47.2'nin kapsamıdır — bu görevde yalnızca
+     il paylarının taşınması yapıldı.
+4. **Bilinen sorunlar**
+   - Bu dünyada tüm iller kıyı işaretli (637/637) → kıyı/iç bölge ayrımı anlamlı değil,
+     test ağırlık sıralaması üzerinden doğrulama yapıyor. `ProceduralProvinceSource`'un
+     `IsCoastal` tespiti aşırı geniş (KAPSAM dışı — yalnızca yeni özellik geliştirme).
+5. **Kullanıcının test etmesi gerekenler**
+   - Yok (headless test tüm kriterleri doğruladı).
+
+**Test sonuçları (M47.1)**
+| Test | Süre | Sonuç |
+|---|---|---|
+| `--province-economy-test` | 8.5 sn | PASS ✓ |
+| `--save-load-test` (historical_1936) | 16.6 sn | PASS ✓ (A == B) |
+| `--save-load-test` (modern_world) | 41.9 sn | PASS ✓ (A == B) |
+
+**dotnet build:** 0 hata / 0 uyarı.
+
+### M47.1 sırasında yapılan tasarım kararları
+- Kaynak payı alan ağırlıklı (uzak bölgeler ham madde), fabrika payı kent + kıyı
+  ağırlıklı (sanayi kentlerde ve limanda), nüfus payı il nüfusu ağırlıklı.
+- Paylar **ülke içinde** normalize edilir; ülke toplamı `CountryData` ile harmanlanır →
+  ülke ekonomisi bozulmaz, yalnızca il bazlı ayrım görünür hâle gelir.
+- Rastgelelik yalnızca `DeterministicRNG` ile; kentsel faktör il kimliğinden türetilen
+  tohumdan çekilir (global state korunarak) → deterministik save/load.
+

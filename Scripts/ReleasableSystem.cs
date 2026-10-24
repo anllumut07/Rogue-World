@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 
 /// <summary>
 /// İlhak edilmiş / kukla ülkeyi bağımsız çıkarma (M44.4).
@@ -40,6 +41,92 @@ public static class ReleasableSystem
     private static readonly Dictionary<string, SubjectRecord> _records =
         new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// M48.2: Bir ilhak edilmiş ülkenin serbest bırakma TALEBİ.
+    ///
+    /// Talep iki taraflıdır ve tamamen deterministik (RNG yok):
+    /// - **Bağımlı taraf:** özerklik düşük + direniş yüksekse adına talep açar.
+    ///   Oyuncu değil, dünya durumu konuşur.
+    /// - **Overlord AI:** açık talebi kendi gücüne / zayıflığına göre
+    ///   değerlendirir; özerklik verir, görmezden gelir ya da ülkeyi bırakır.
+    ///   Overlord OYUNCUYSA AI karar vermez — talep açık kalır ve oyuncu
+    ///   M45.1 panelinden kendisi karar verir.
+    /// </summary>
+    public class DemandRecord
+    {
+        public string CountryId = "";        // talep eden (ilhak edilmiş ülke)
+        public string OverlordId = "";       // talep edilen
+        public long FirstRaisedDay = -1;     // ilk kez açıldığı gün
+        public long LastRaisedDay = -1;      // son baskı günü (cooldown)
+        public int RaiseCount = 0;           // kaç kez talepte bulundu
+        public long LastResponseDay = -1;    // overlord'un son yanıtı
+        public int ResponseCount = 0;
+        public string LastResponse = "";     // "grant" | "ignore" | "release"
+        public bool Open = true;             // talep hâlâ açık mı
+        public bool SelfResolved = false;    // koşullar düzelince talebi geri çekti
+    }
+
+    // Ülke kimliği → talep kaydı
+    private static readonly Dictionary<string, DemandRecord> _demands =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    private static DemandSettings D = new();
+    private static bool _demandLoaded;
+    private const string DemandDataPath = "res://Data/subject_demands.json";
+
+    private sealed class DemandSettings
+    {
+        public double LowAutonomyLevel = 25.0;
+        public double HighResistance = 35.0;
+        public double ResignResistance = 15.0;
+        public int RaiseCooldownDays = 7;
+        public int ResponseCooldownDays = 14;
+        public double AutonomyWeight = 0.45;
+        public double ResistanceWeight = 0.55;
+        public double WeaknessWeight = 0.15;
+        public double GrantThreshold = 0.45;
+        public double ReleaseThreshold = 0.80;
+        public double WarPenalty = 0.35;
+        public double MinOverlordStabilityForRelease = 30.0;
+    }
+
+    private sealed class DemandRoot
+    {
+        public int Version { get; set; } = 1;
+        public DemandSettings Settings { get; set; } = new();
+    }
+
+    private static void EnsureDemandLoaded()
+    {
+        if (_demandLoaded) return;
+        _demandLoaded = true;
+
+        try
+        {
+            using var file = Godot.FileAccess.Open(DemandDataPath, Godot.FileAccess.ModeFlags.Read);
+            if (file == null)
+            {
+                GD.PrintErr("[Releasable] subject_demands.json açılamadı — varsayılan eşikler kullanılıyor.");
+                return;
+            }
+            var root = JsonSerializer.Deserialize<DemandRoot>(file.GetAsText(), new JsonSerializerOptions
+            {
+                IncludeFields = true,
+                PropertyNameCaseInsensitive = true
+            });
+            if (root?.Settings != null)
+            {
+                D = root.Settings;
+                GD.Print($"[Releasable] Talep eşikleri yüklendi: özerklik<%{D.LowAutonomyLevel:N0}, " +
+                         $"direniş>={D.HighResistance:N0}, serbest_bırakma_eşiği={D.ReleaseThreshold:N2}");
+            }
+        }
+        catch (Exception e)
+        {
+            GD.PrintErr($"[Releasable] subject_demands.json okunamadı ({e.Message}) — varsayılan eşikler.");
+        }
+    }
+
     /// <summary>Kayıtlı ilhak/kukla sayısı.</summary>
     public static int RecordCount => _records.Count;
 
@@ -77,7 +164,37 @@ public static class ReleasableSystem
     }
 
     /// <summary>Yeni oyunda sıfırlar.</summary>
-    public static void ResetForNewGame() => _records.Clear();
+    public static void ResetForNewGame()
+    {
+        _records.Clear();
+        _demands.Clear();
+    }
+
+    /// <summary>Yalnızca talep kayıtlarını temizler (ilhak kayıtları kalır).</summary>
+    public static void ResetDemands() => _demands.Clear();
+
+    /// <summary>Kayıtlı talep sayısı (açık + kapalı).</summary>
+    public static int DemandCount => _demands.Count;
+
+    /// <summary>Bir ülkenin talebi (yoksa null).</summary>
+    public static DemandRecord DemandFor(string countryId)
+        => !string.IsNullOrEmpty(countryId) && _demands.TryGetValue(countryId, out var d) ? d : null;
+
+    /// <summary>Bir overlord'a bağlı AÇIK talepler (kimliğe göre artan).</summary>
+    public static List<DemandRecord> DemandsOf(string overlordId)
+    {
+        var result = new List<DemandRecord>();
+        if (string.IsNullOrEmpty(overlordId)) return result;
+
+        foreach (var d in _demands.Values)
+        {
+            if (!d.Open) continue;
+            if (!string.Equals(d.OverlordId, overlordId, StringComparison.OrdinalIgnoreCase)) continue;
+            result.Add(d);
+        }
+        result.Sort((a, b) => string.CompareOrdinal(a.CountryId, b.CountryId));
+        return result;
+    }
 
     public static SubjectRecord Get(string countryId)
         => !string.IsNullOrEmpty(countryId) && _records.TryGetValue(countryId, out var r) ? r : null;
@@ -278,7 +395,185 @@ public static class ReleasableSystem
     /// Bir gün ilerletir. Şu an için otomatik bir mekanizası yok; ileride
     /// ilhak edenin stabilitesi düştükçe serbest bırakma talebi gelecek.
     /// </summary>
-    public static void AdvanceDay(string overlordId) { }
+    public static int AdvanceDay(string overlordId) => AdvanceDay(overlordId, -1);
+
+    /// <summary>
+    /// M48.2 tam sürüm: <paramref name="currentDay"/> ile cooldown'lar
+    /// yönetilir. Negatif gün "gün yok" demektir (cooldown devre dışı).
+    /// </summary>
+    public static int AdvanceDay(string overlordId, long currentDay)
+    {
+        EnsureDemandLoaded();
+        if (string.IsNullOrEmpty(overlordId)) return 0;
+
+        var subjects = SubjectsOf(overlordId);
+        if (subjects.Count == 0) return 0;
+
+        // Overlord oyuncunun bağımlılarına AI karar vermez (M11 kuralı):
+        // talep doğar ama karar oyuncuya kalır.
+        bool aiOverlord = CountryAI.IsAiCountry(overlordId);
+
+        foreach (var record in subjects)
+        {
+            RaiseDemandFor(record, currentDay);
+
+            var demand = _demands.GetValueOrDefault(record.CountryId);
+            if (demand == null || !demand.Open || !aiOverlord) continue;
+
+            RespondToDemand(record, demand, currentDay);
+        }
+        return subjects.Count;
+    }
+
+    /// <summary>
+    /// Bütün overlord'lar için tek gün ilerletir (GameManager günlük tick).
+    /// </summary>
+    public static int AdvanceAllDays(long currentDay)
+    {
+        var overlords = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var r in _records.Values)
+        {
+            var country = CountryDatabase.Get(r.CountryId);
+            if (country == null || !country.IsAnnexed) continue;
+            if (!string.IsNullOrEmpty(r.OverlordId)) overlords.Add(r.OverlordId);
+        }
+
+        int total = 0;
+        foreach (var overlordId in overlords) total += AdvanceDay(overlordId, currentDay);
+        return total;
+    }
+
+    /// <summary>
+    /// Talep doğma / kendi kendine kapanma koşulu. Deterministik: yalnızca
+    /// özerklik ve direniş düzeyine bakar, RNG yok.
+    /// </summary>
+    private static void RaiseDemandFor(SubjectRecord record, long currentDay)
+    {
+        EnsureDemandLoaded();
+        string id = record.CountryId;
+
+        double autonomy = AutonomySystem.Level(id);
+        double resistance = ResistanceSystem.Accumulated(id);
+
+        var demand = _demands.GetValueOrDefault(id);
+
+        // Koşullar düzelmişse talep kendiliğinden kapanır. Overlord'un bir şey
+        // yapmasına gerek yok; kayıt geçmiş olarak durur.
+        if (demand is { Open: true } &&
+            (autonomy < 0 || autonomy >= D.LowAutonomyLevel ||
+             resistance <= D.ResignResistance))
+        {
+            demand.Open = false;
+            demand.SelfResolved = true;
+            GD.Print($"[M48.2] {id} talebini geri çekti: özerklik %{autonomy:N0}, " +
+                     $"direniş {resistance:N0} ({demand.RaiseCount} kez açılmıştı)");
+            return;
+        }
+
+        // Koşul sağlanmıyorsa hiçbir şey yapma
+        if (autonomy < 0 || autonomy >= D.LowAutonomyLevel) return;
+        if (resistance < D.HighResistance) return;
+
+        // Cooldown: aynı bağımlı en fazla N günde bir baskı yapar
+        if (demand != null && currentDay >= 0 &&
+            currentDay - demand.LastRaisedDay < D.RaiseCooldownDays) return;
+
+        if (demand == null)
+        {
+            demand = new DemandRecord { CountryId = id, OverlordId = record.OverlordId };
+            _demands[id] = demand;
+        }
+
+        demand.Open = true;
+        demand.SelfResolved = false;
+        demand.LastRaisedDay = currentDay;
+        if (currentDay >= 0 && demand.FirstRaisedDay < 0) demand.FirstRaisedDay = currentDay;
+        demand.RaiseCount++;
+
+        GD.Print($"[M48.2] {id} serbest bırakma TALEBİ açtı → {record.OverlordId} " +
+                 $"(özerklik %{autonomy:N0} < %{D.LowAutonomyLevel:N0}, " +
+                 $"direniş {resistance:N0} >= {D.HighResistance:N0}, " +
+                 $"{demand.RaiseCount}. talep)");
+    }
+
+    /// <summary>
+    /// Overlord AI'nin bir talebe yanıtı. Deterministik puanlama:
+    ///
+    ///   baskı = özerklik eksikliği x AutonomyWeight + direniş x ResistanceWeight
+    ///   skor  = baskı + overlord zayıflığı x WeaknessWeight - savas cezası
+    ///
+    /// - skor >= ReleaseThreshold ve overlord yeterince sağlam → ülkeyi bırakır
+    /// - skor >= GrantThreshold                            → özerklik verir
+    /// - skor >= GrantThreshold ama bekleme süresinde       → "deferred" (ertelendi)
+    /// - aksi halde                                        → görmezden gelir
+    ///
+    /// Overlord savaştaysa bırakmak daha zordur (WarPenalty). Puanlama yalnızca
+    /// kalıcı dünya durumundan beslenir; RNG yok.
+    /// </summary>
+    private static void RespondToDemand(SubjectRecord record, DemandRecord demand, long currentDay)
+    {
+        if (currentDay >= 0 && demand.ResponseCount > 0 &&
+            currentDay - demand.LastResponseDay < D.ResponseCooldownDays) return;
+
+        demand.LastResponseDay = currentDay;
+        demand.ResponseCount++;
+
+        string subjectId = record.CountryId;
+        string overlordId = record.OverlordId;
+
+        double autonomy = Math.Clamp(AutonomySystem.Level(subjectId), 0, 100);
+        double resistance = Math.Clamp(ResistanceSystem.Accumulated(subjectId), 0, 100);
+
+        double pressure = (1.0 - autonomy / 100.0) * D.AutonomyWeight
+                        + (resistance / 100.0) * D.ResistanceWeight;
+
+        var overlord = CountryDatabase.Get(overlordId);
+        double stability = overlord?.StabilityPercent ?? 50.0;
+        double weakness = Math.Clamp((100.0 - stability) / 100.0, 0.0, 1.0);
+
+        bool atWar = WarSystem.Wars.Any(w => w != null && !w.IsEnded &&
+            (string.Equals(w.AttackerId, overlordId, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(w.DefenderId, overlordId, StringComparison.OrdinalIgnoreCase)));
+
+        double score = pressure + weakness * D.WeaknessWeight - (atWar ? D.WarPenalty : 0.0);
+
+        if (score >= D.ReleaseThreshold && stability >= D.MinOverlordStabilityForRelease)
+        {
+            var released = Release(subjectId, overlordId);
+            if (released.Ok)
+            {
+                demand.Open = false;
+                demand.LastResponse = "release";
+                GD.Print($"[M48.2] {overlordId} TALEBİ KABUL ETTİ: {subjectId} bağımsız " +
+                         $"(skor={score:N2}, {released.ProvincesReturned} il, " +
+                         $"c{released.CivReturned}/m{released.MilReturned}/t{released.DockReturned} fabrika)");
+                return;
+            }
+            GD.Print($"[M48.2] {overlordId} bırakmak istedi ama olamadı: {released.Reason}");
+        }
+
+        if (score >= D.GrantThreshold)
+        {
+            // Skor konuşturuyor ama özerklik bekleme süresinde (AutonomySystem
+            // cooldown'u) — bu bir reddetme DEĞİL, ertelenmiş taleptir.
+            if (AutonomySystem.GrantAutonomy(subjectId, overlordId, currentDay, out var grantReason))
+            {
+                demand.LastResponse = "grant";
+                GD.Print($"[M48.2] {overlordId} pazarlık yaptı: {subjectId} özerklik verildi " +
+                         $"(skor={score:N2}, direniş {resistance:N0})");
+                return;
+            }
+
+            demand.LastResponse = "deferred";
+            GD.Print($"[M48.2] {overlordId} talebi erteleyemedi: {subjectId} — {grantReason} " +
+                     $"(skor={score:N2}, konuştu ama eylem bekletildi)");
+            return;
+        }
+
+        demand.LastResponse = "ignore";
+        GD.Print($"[M48.2] {overlordId} TALEBİ REDDETTİ: {subjectId} " +
+                 $"(skor={score:N2}, özerklik %{autonomy:N0}, direniş {resistance:N0})");
+    }
 
     /// <summary>Save/Load verisi.</summary>
     public static SaveSystem.ReleasableSave GetSaveData()
@@ -298,13 +593,32 @@ public static class ReleasableSystem
                 DockTaken = r.DockTaken
             });
         }
-        return new SaveSystem.ReleasableSave { Subjects = list.ToArray() };
+        var demands = new List<SaveSystem.ReleasableDemandEntry>(_demands.Count);
+        foreach (var d in _demands.Values)
+        {
+            demands.Add(new SaveSystem.ReleasableDemandEntry
+            {
+                CountryId = d.CountryId,
+                OverlordId = d.OverlordId,
+                FirstRaisedDay = d.FirstRaisedDay,
+                LastRaisedDay = d.LastRaisedDay,
+                RaiseCount = d.RaiseCount,
+                LastResponseDay = d.LastResponseDay,
+                ResponseCount = d.ResponseCount,
+                LastResponse = d.LastResponse ?? "",
+                Open = d.Open,
+                SelfResolved = d.SelfResolved
+            });
+        }
+
+        return new SaveSystem.ReleasableSave { Subjects = list.ToArray(), Demands = demands.ToArray() };
     }
 
     public static void LoadSaveData(SaveSystem.ReleasableSave data)
     {
         _records.Clear();
-        if (data?.Subjects == null) return;
+        _demands.Clear();
+        if (data == null) return;
 
         foreach (var e in data.Subjects)
         {
@@ -322,5 +636,28 @@ public static class ReleasableSystem
             };
         }
         GD.Print($"[Releasable] İlak kayıtları yüklendi: {_records.Count}");
+
+        // M48.2: talepler ayrı yüklenir — kaydı olmayan başlangıç kaydında boş gelir.
+        if (data.Demands != null)
+        {
+            foreach (var e in data.Demands)
+            {
+                if (e == null || string.IsNullOrEmpty(e.CountryId)) continue;
+                _demands[e.CountryId] = new DemandRecord
+                {
+                    CountryId = e.CountryId,
+                    OverlordId = e.OverlordId ?? "",
+                    FirstRaisedDay = e.FirstRaisedDay,
+                    LastRaisedDay = e.LastRaisedDay,
+                    RaiseCount = e.RaiseCount,
+                    LastResponseDay = e.LastResponseDay,
+                    ResponseCount = e.ResponseCount,
+                    LastResponse = e.LastResponse ?? "",
+                    Open = e.Open,
+                    SelfResolved = e.SelfResolved
+                };
+            }
+            GD.Print($"[M48.2] Talepler yüklendi: {_demands.Count}");
+        }
     }
 }

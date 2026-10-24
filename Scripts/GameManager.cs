@@ -186,6 +186,7 @@ public partial class GameManager : Node
         bool cultureTest = false;            // M44.2: il kültür katmanı testi (--culture-test)
         bool formableTest = false;           // M44.3: kurgu ülke kurma testi (--formable-test)
         bool releasableTest = false;         // M44.4: ilhak/kukla ülkeyi bağımsız çıkarma testi
+        bool releaseDemandTest = false;      // M48.2: AI serbest bırakma talebi testi (--release-demand-test)
         bool formablePanelTest = false;      // M44.5: kurgu ülke paneli testi (--formable-panel-test)
         bool releasablePanelTest = false;    // M45.1: bağımsız çıkarma paneli testi (--releasable-panel-test)
         bool autonomyTest = false;           // M45.2: özerklik sistemi testi (--autonomy-test)
@@ -353,6 +354,8 @@ public partial class GameManager : Node
                 formableTest = true;
             else if (arg == "--releasable-test")
                 releasableTest = true;
+            else if (arg == "--release-demand-test")
+                releaseDemandTest = true;
             else if (arg == "--formable-panel-test")
                 formablePanelTest = true;
                 else if (arg == "--releasable-panel-test")
@@ -792,6 +795,11 @@ public partial class GameManager : Node
         if (releasableTest)
             RunReleasableTest();
 
+        // M48.2: AI serbest bırakma talebi testi — koşullu talep, overlord yanıtı,
+        // oyuncu hariç, Save/Load korunumu.
+        if (releaseDemandTest)
+            RunReleaseDemandTest();
+
         // M44.5: Kurgu ülke paneli testi — kurgu ülkeler, kültür haritası, kurma/iptal.
         if (formablePanelTest)
             RunFormablePanelTest();
@@ -1105,6 +1113,10 @@ public partial class GameManager : Node
         // M45.3: İl bazlı direniş — kültür uyumsuzluğu ve düşük özerklik biriken
         // baskıyı büyütür; eşik aşılınca deterministik partizan eylemi patlar.
         ResistanceSystem.DailyTick(TotalDays);
+
+        // M48.2: Serbest bırakma talebi — özerklik + direniş taze olduktan SONRA
+        // koşul değerlendirilir. Aynı gün artan direniş talebi hemen açar.
+        ReleasableSystem.AdvanceAllDays(TotalDays);
 
         // M12: Ocak 1'de otomatik kayıt (yeni yılın ilk günü)
         if (CurrentDate.Month == 1 && CurrentDate.Day == 1)
@@ -9925,6 +9937,248 @@ private void RunBalanceTest()
         }
         else GD.Print($"[ReleasableTest] 14) Nüfus korundu: {popBefore}");
         GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M48.2: İlhak edilen ülkenin AI serbest bırakma talebi testi
+    /// (--release-demand-test). Normal oyunda ASLA çalışmaz.
+    ///
+    /// Doğrulananlar:
+    ///   1) Koşul sağlanmadan talep DOĞMAZ (özerklik yeterli / direniş düşük).
+    ///   2) Özerklik düşük + direniş yüksek → talep açar ve loglanır.
+    ///   3) Overlord AI talebi değerlendirir: özerklik verir veya reddeder.
+    ///   4) Overlord OYUNCU ise AI karar vermez — talep açık kalır.
+    ///   5) Talepler Save/Load'a girer ve geri yüklenir.
+    ///   6) Aynı durum → aynı yanıt (determinizm, RNG yok).
+    /// </summary>
+    private void RunReleaseDemandTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M48.2: SER BEST BIRAKMA TALEBI TESTI");
+        GD.Print("=========================================");
+
+        bool ok = true;
+        DeterministicRNG.InitializeForNewGame(0x4D4842_32DUL);
+
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ReleasableSystem.ResetForNewGame();
+        ReleasableSystem.ResetDemands();
+        AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
+        GD.Print($"[DemandTest] 1) İl: {provinces.Count}, kültür: {ProvinceCultureSystem.RecordCount}");
+
+        // --- Yardımcı yerel fonksiyonlar ---
+
+        // Oyuncu: AI olmayan bir ülke. Overlord seçiminde oyuncu hariç tutulur.
+        if (!HasPlayer) SetPlayerCountry("FRA");
+        string playerId = PlayerCountryId;
+
+        // Direniş birikimini doğrudan kurar. Direniş günde ~0.06 büyüdüğü için
+        // eşiğe (35) ulaşmak 500+ gün ister; testte doğrudan durum kurulur —
+        // deterministik ve tam olarak test edilmek istenen mantığı çalıştırır.
+        void SetResistance(string subjectId, double value)
+        {
+            // Direniş durumu tembel üretilir (DailyTick EnsureState); kayıt yoksa
+            // bir gün koşup durumu oluşturuyoruz.
+            if (ResistanceSystem.Get(subjectId) == null)
+                ResistanceSystem.DailyTick(1);
+            var rs = ResistanceSystem.Get(subjectId);
+            if (rs != null) rs.Accumulated = value;
+        }
+
+        // Özerklik düzeyini doğrudan kurar (AutonomySystem durumu tembel üretilir).
+        // Grant/Revoke kullanılmıyor: ikisi de 7 günlük bekleme süresine tabi,
+        // testte çakışan günler yanıtı sahte şekilde "ertelenmiş" yapardı.
+        void SetAutonomy(string subjectId, double level)
+        {
+            if (AutonomySystem.Get(subjectId) == null) AutonomySystem.DailyTick(1);
+            var st = AutonomySystem.Get(subjectId);
+            if (st != null) st.Level = level;
+        }
+
+        // Bir ülkeyi overlord'a ilhak eder ve bağımlılığı kurar.
+        void Annex(string subjectId, string overlordId)
+        {
+            var subj = CountryDatabase.Get(subjectId);
+            var over = CountryDatabase.Get(overlordId);
+            var subProvinces = ProvinceOwnershipSystem.GetProvincesByOwner(subjectId)
+                .OrderBy(id => id, StringComparer.Ordinal).ToList();
+            int civ = subj.CivFactories, mil = subj.MilFactories, dock = subj.Dockyards;
+            ReleasableSystem.RecordSubject(subjectId, overlordId, false, civ, mil, dock);
+            subj.IsAnnexed = true;
+            subj.OwnerId = overlordId;
+            over.CivFactories += civ; over.MilFactories += mil; over.Dockyards += dock;
+            subj.CivFactories = subj.MilFactories = subj.Dockyards = 0;
+            foreach (var p in subProvinces) ProvinceOwnershipSystem.SetProvinceOwner(p, overlordId);
+            ProvinceCultureSystem.ReassignCountry(subProvinces, overlordId);
+        }
+
+        // ---- 2) KOŞUL YOK: özerklik yeterli → talep doğmaz ----
+        var overlordAi = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, playerId, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count > 0)
+            .OrderByDescending(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .First();
+        var subj1 = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, playerId, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, overlordAi.Id, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 3)
+            .OrderBy(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .First();
+        if (subj1 == null)
+        {
+            GD.PrintErr("[DemandTest] HATA: deneme bağımlısı bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        Annex(subj1.Id, overlordAi.Id);
+        CountryAI.Initialize();
+        overlordAi.StabilityPercent = 90.0;
+
+        // Sakin bağımlı: özerklik yeterli + direniş düşük → talep doğmaz
+        SetAutonomy(subj1.Id, 80.0);
+        SetResistance(subj1.Id, 10.0);
+        ReleasableSystem.AdvanceDay(overlordAi.Id, 1);
+        bool demandWhenCalm = ReleasableSystem.DemandFor(subj1.Id)?.Open ?? false;
+        GD.Print($"[DemandTest] 2) Sakin bağımlı: özerklik %{AutonomySystem.Level(subj1.Id):N0}, " +
+                 $"direniş {ResistanceSystem.Accumulated(subj1.Id):N0} → talep: {demandWhenCalm} (false olmalı)");
+        if (demandWhenCalm) ok = false;
+
+        // ---- 3) KOŞUL VAR: özerklik düşük + direniş yüksek → talep açar ----
+        double autonomyBefore = 5.0;
+        SetAutonomy(subj1.Id, autonomyBefore);
+        SetResistance(subj1.Id, 55.0);
+
+        // Determinizm karşılaştırması için ilk yanıttan ÖNCEKI tam otonomi
+        // durumu saklanır (grant hem Level hem bekleme gününü değiştirir).
+        long lastChangeBeforeResponse = AutonomySystem.Get(subj1.Id)?.LastChangeDay ?? -999;
+
+        ReleasableSystem.AdvanceDay(overlordAi.Id, 2);
+        var demand1 = ReleasableSystem.DemandFor(subj1.Id);
+        bool raised = demand1 is { Open: true };
+        GD.Print($"[DemandTest] 3) Baskı altındaki bağımlı: özerklik %{autonomyBefore:N0}, " +
+                 $"direniş {ResistanceSystem.Accumulated(subj1.Id):N0} → " +
+                 $"talep: {raised} ({demand1?.RaiseCount ?? 0} kez)");
+        if (!raised) ok = false;
+        if (raised && demand1!.RaiseCount < 1) ok = false;
+
+        // ---- 4) Overlord AI yanıt verir (grant / ignore / release) ----
+        string response = demand1?.LastResponse ?? "";
+        GD.Print($"[DemandTest] 4) Overlord {overlordAi.Id} yanıtı: '{response}', " +
+                 $"özerklik %{AutonomySystem.Level(subj1.Id):N0}, yanıt sayısı {demand1?.ResponseCount ?? 0}");
+        if (string.IsNullOrEmpty(response)) ok = false;
+
+        // ---- 4b) DETERMİNİZM: aynı durum → aynı yanıt ----
+        // Yanıt otonomi durumunu değiştirir (grant: Level +10, bekleme günü
+        // yazılır). İkinci koşu gerçekten aynı dünyada başlasın diye İKİSİ de
+        // geri yüklenir; aksi halde bekleme süresi farklı çalışır ve yanıt
+        // meşru şekilde değişir (bu determinizm eksikliği değil, farklı durum).
+        if (!string.IsNullOrEmpty(response))
+        {
+            SetAutonomy(subj1.Id, autonomyBefore);
+            var autState = AutonomySystem.Get(subj1.Id);
+            if (autState != null) autState.LastChangeDay = lastChangeBeforeResponse;
+            ReleasableSystem.ResetDemands();
+
+            ReleasableSystem.AdvanceDay(overlordAi.Id, 3);
+            var demandAgain = ReleasableSystem.DemandFor(subj1.Id);
+            string responseAgain = demandAgain?.LastResponse ?? "";
+            GD.Print($"[DemandTest] 4b) Determinizm: '{response}' == '{responseAgain}', " +
+                     $"talep {demand1!.RaiseCount} == {demandAgain?.RaiseCount}");
+            if (responseAgain != response) ok = false;
+            if (demandAgain?.RaiseCount != demand1.RaiseCount) ok = false;
+        }
+
+        // ---- 5) Overlord OYUNCUYSA AI karar vermez ----
+        ReleasableSystem.ResetForNewGame();
+        ReleasableSystem.ResetDemands();
+        AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
+
+        // Oyuncu overlord = FRA: kendi bağımlısına AI karar vermemeli.
+        var playerSubject = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, playerId, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 3)
+            .OrderBy(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .First();
+        if (playerSubject == null)
+        {
+            GD.PrintErr("[DemandTest] HATA: oyuncu bağımlısı bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+        Annex(playerSubject.Id, playerId);
+        CountryAI.Initialize();
+        bool playerIsAi = CountryAI.IsAiCountry(playerId);
+        SetAutonomy(playerSubject.Id, 5.0);
+        SetResistance(playerSubject.Id, 55.0);
+        ReleasableSystem.AdvanceDay(playerId, 1);
+        var playerDemand = ReleasableSystem.DemandFor(playerSubject.Id);
+        bool playerResponded = playerDemand is { ResponseCount: > 0 };
+        GD.Print($"[DemandTest] 5) Oyuncu overlord AI mi: {playerIsAi} (false olmalı), " +
+                 $"talebi açık mı: {playerDemand?.Open ?? false} (true olmalı), " +
+                 $"AI yanıt verdi mi: {playerResponded} (false olmalı)");
+        if (playerIsAi) ok = false;
+        if (playerResponded) ok = false;
+        if (playerDemand is not { Open: true }) ok = false;
+
+        // ---- 6) Save/Load round-trip: talepler korunur ----
+        ReleasableSystem.ResetForNewGame();
+        ReleasableSystem.ResetDemands();
+        AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
+        var overlord2 = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, playerId, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count > 0)
+            .OrderByDescending(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .First();
+        var subj2 = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, playerId, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, overlord2.Id, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 3)
+            .OrderBy(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .First();
+        Annex(subj2.Id, overlord2.Id);
+        SetResistance(subj2.Id, 55.0);
+        // Overlord AI yanıt verirse talep kapanır; yanıtın gerçekten verilmiş
+        // olması kayıt için iyi bir sinyaldir — ama round-trip koşulu için
+        // kaydın durumunu yakıyoruz.
+        ReleasableSystem.AdvanceDay(overlord2.Id, 12);
+        var before = ReleasableSystem.DemandFor(subj2.Id);
+        if (before == null)
+        {
+            GD.PrintErr("[DemandTest] HATA: save/load için talep üretilemedi");
+            ok = false;
+        }
+        else
+        {
+            var save = ReleasableSystem.GetSaveData();
+            int savedDemands = save.Demands?.Length ?? 0;
+            ReleasableSystem.ResetForNewGame();
+            ReleasableSystem.LoadSaveData(save);
+            var after = ReleasableSystem.DemandFor(subj2.Id);
+            bool roundTrip = after != null && before.Open == after.Open &&
+                             before.RaiseCount == after.RaiseCount &&
+                             before.ResponseCount == after.ResponseCount &&
+                             string.Equals(before.LastResponse ?? "", after.LastResponse ?? "");
+            GD.Print($"[DemandTest] 6) Save/load: talep={savedDemands}, " +
+                     $"korundu mu={roundTrip} (açık {before.Open} == {after?.Open}, " +
+                     $"talep {before.RaiseCount} == {after?.RaiseCount})");
+            if (!roundTrip) ok = false;
+        }
+
+        GD.Print(ok ? "[DemandTest] SONUÇ: PASS ✓" : "[DemandTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

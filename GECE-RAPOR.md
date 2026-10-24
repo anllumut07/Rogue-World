@@ -2970,3 +2970,59 @@ metninden geniş ama amacı tamamlamak için zorunlu.
   `[AIFormable] Germany (DEU) kurma sürecini başlattı: Bavaria (BAV) — gerekli 9 il, 90 gün, PP 80`
 - Determinizm: `başlama günü 2 == 2, 10 gün sonra geçen gün 11 == 11, ilerleme 12.22% == 12.22%`
 - Üretim yolu: `Kuruluş tamamlandı mı: True, BAV il=9, DEU il 11 → 2, sivil fabrika 26 → 6`
+
+---
+
+## M48.2 — İlhak edilen ülkenin AI serbest bırakma talebi (2026-10-24)
+
+### ÖZET
+1. **Neyi değiştirdim**
+   - `Scripts/ReleasableSystem.cs`: talep dizini (`_demands`), `DemandRecord`,
+     `AdvanceAllDays(long)`, `RaiseDemandFor`, `RespondToDemand`, `DemandCount`,
+     `DemandFor`, `DemandsOf`, `ResetDemands`. `AdvanceDay(string)` artık
+     `AdvanceDay(string, long)` çağırıyor.
+   - `Data/subject_demands.json` (yeni): 14 ayar (eşik + ağırlık + bekleme).
+   - `Scripts/SaveSystem.cs`: `ReleasableSave.Demands` dizisi ve
+     `ReleasableDemandEntry` DTO'su; `AIBackendTest`/`GetSaveData` /
+     `LoadSaveData` kablosu.
+   - `Scripts/GameManager.cs`: `DailyTick` içinde `AdvanceAllDays(TotalDays)`
+     çağrısı (özerklik + direniş tick'inden SONRA); `--release-demand-test`
+     bayrağı, dispatch ve koşucusu.
+2. **Neyi çözemedim**
+   - Talebin oyuncuya görsel yansıması ReleasablePanel'de henüz yok (M48.3/49
+     kapsamı olabilir): talep UI'dan takip edilemiyor.
+   - "Serbest bırakma" yanıtı overlord'u anında ekonomik olarak etkilemiyor
+     (stabilite ilk kez autonomy tick'inde düşüyor, talep anında değil).
+3. **Bilinen sorunlar**
+   - Yok. (Testin 4 tane FAIL'i kendi kirliydi: direniş ellen yazılmadı,
+     `ResistanceSystem.Get()` null, bekleme savaşı, determinizm anlık
+     görüntüsü geç alınmıştı — hepsi düzeltildi.)
+4. **Kullanıcının test etmesi gerekenler**
+   - Yok (headless test 6 adımı doğruladı).
+
+### Test sonuçları (M48.2)
+| Test | Süre | Sonuç |
+|---|---|---|
+| `--release-demand-test` | 2.9 sn | PASS ✓ (6 adım) |
+| `--releasable-test` (regresyon) | 1.8 sn | PASS ✓ |
+| `--autonomy-test` (regresyon) | 1.9 sn | PASS ✓ |
+| `--resistance-test` (regresyon) | 1.8 sn | PASS ✓ |
+| `--save-load-test` (historical_1936) | 21.8 sn | PASS ✓ (A == B) |
+| `--save-load-test` (modern_world) | 22.0 sn | PASS ✓ (A == B) |
+
+**dotnet build:** 0 hata / 0 uyarı.
+
+**Kritik doğrulama (`--release-demand-test` adım çıktıları):**
+- Sakin bağımlı: `özerklik %80, direniş 10 → talep: False`
+- Baskı altındaki bağımlı: `özerklik %5, direniş 55 → talep: True (1 kez)`
+- Overlord yanıtı: `'grant', özerklik %15, yanıt sayısı 1`
+- Determinizm: `'grant' == 'grant', talep 1 == 1`
+- Oyuncu overlord: `AI mı: False, talebi açık mı: True, AI yanıt verdi mi: False`
+- Save/load: `talep=1, korundu: True (açık True == True, talep 1 == 1)`
+
+### Belirsizlikte alınan karar
+- Talep yalnızca "overlord AI ise" yanıtlanır; oyuncu overlold'ta talep açık
+  kalıp listelenir (oyuncu kararı asla otomasyona açılmaz).
+- Yanıtlar `release` (eşik 0.80 + stabilite ≥ 30), `grant` (eşik 0.45),
+  `deferred` (grant hak edilmiş ama `AutonomySystem.CanAct` 7 günlük
+  beklemede), `ignore` (eşik altı) olarak ayrıldı.

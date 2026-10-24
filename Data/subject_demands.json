@@ -1,0 +1,17 @@
+{
+  "Version": 1,
+  "Settings": {
+    "LowAutonomyLevel": 25.0,
+    "HighResistance": 35.0,
+    "ResignResistance": 15.0,
+    "RaiseCooldownDays": 7,
+    "ResponseCooldownDays": 14,
+    "AutonomyWeight": 0.45,
+    "ResistanceWeight": 0.55,
+    "WeaknessWeight": 0.15,
+    "GrantThreshold": 0.45,
+    "ReleaseThreshold": 0.80,
+    "WarPenalty": 0.35,
+    "MinOverlordStabilityForRelease": 30.0
+  }
+}

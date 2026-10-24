@@ -327,6 +327,20 @@ public static class SaveSystem
     public class ReleasableSave
     {
         public ReleasableSubjectEntry[] Subjects { get; set; }
+        public ReleasableDemandEntry[] Demands { get; set; } // M48.2
+    }
+    public class ReleasableDemandEntry
+    {
+        public string CountryId { get; set; }
+        public string OverlordId { get; set; }
+        public long FirstRaisedDay { get; set; }
+        public long LastRaisedDay { get; set; }
+        public int RaiseCount { get; set; }
+        public long LastResponseDay { get; set; }
+        public int ResponseCount { get; set; }
+        public string LastResponse { get; set; }
+        public bool Open { get; set; }
+        public bool SelfResolved { get; set; }
     }
     public class ReleasableSubjectEntry
     {

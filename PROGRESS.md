@@ -3071,3 +3071,38 @@ açılması gerekiyordu.
 - Determinizm kontrolü ilk hâlinde `Complete()`'i de çalıştırıyordu. Birinci
   koşu BAV'yi yaratıp dünyayı değiştirdiği için ikinci koşu farklı bir dünyada
   çalıştı ve sahte FAIL üretti. Tamamlanmadan ÖLÇÜLÜR hale getirildi.
+
+## Milestone 48.2 — AI Serbest Bırakma Talebi — ✅ DONE (2026-10-24)
+
+### Sistem
+- `Data/subject_demands.json` (yeni): talep eşikleri ve ağırlıklar
+  (özerklik 0.45, direniş 0.55, zayıflık 0.15, grant 0.45, release 0.80,
+  savaş cezası 0.35, bekleme süreleri 7/14 gün).
+- `Scripts/ReleasableSystem.cs`: talep skoru ve yaşam döngüsü —
+  `RaiseDemandFor`, `RespondToDemand`, `AdvanceAllDays`, `DemandCount`,
+  `DemandsOf`. Yanıtlar: `release` / `grant` / `deferred` / `ignore`.
+- `Scripts/GameManager.cs`: `DailyTick` içinde özerklik ve direniş
+  tazelendikten SONRA `AdvanceAllDays` çağrılır; aynı gün artan direniş
+  talebi aynı gün açar.
+- `Scripts/SaveSystem.cs`: `ReleasableDemandEntry` + `Demands` dizisi.
+
+### Tasarım kararı: "deferred" yanıtı
+AI özerklik vermek ister ama `AutonomySystem.CanAct` 7 günlük beklemede
+engellenirse yanıt `deferred` sayılır. "Reddedildi" demek yanıltıcı olurdu
+ve determinizm doğrulamasını bekleme taşması yüzünden sahte FAIL'e
+sürüklüyordu. Talebin bekleme kaydı ayrı tutulur.
+
+### Test kapsamı (`--release-demand-test`)
+1) Sakin bağımlı (özerklik 80, direniş 10) → talep açılmaz
+2) Baskı altındaki bağımlı (özerklik 5, direniş 55) → 1 talep
+3) Overlord RUS yanıtı `grant`, özerklik %15
+4) Determinizm: `grant` == `grant`, talep 1 == 1
+5) Oyuncu overlord → AI yanıt vermez, talep açık kalır
+6) Save/load round-trip korunur
+
+### Ders (kendi test hatam)
+Direniş eşiği günlük büyümeyle (0.06/gün) 500+ gün ister; test doğrudan
+`ResistanceState.Accumulated` yazar. `ResistanceSystem.Get()` ise ilk tick
+öncesi null döner (lazy state), bu yüzden yardımcı önce `DailyTick(1)`
+çarptırıyor. Ayrıca determinizm anlık görüntüsü ilk `AdvanceDay`'den ÖNCE
+alınmalı — sonra alınınca ikinci koşu birincinin beklemesini miras alır.

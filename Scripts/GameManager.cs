@@ -192,6 +192,7 @@ public partial class GameManager : Node
         bool releaseDemandTest = false;      // M48.2: AI serbest bırakma talebi testi (--release-demand-test)
         bool recognitionTest = false;        // M48.3: tanınma ve diplomatik yansıma testi (--recognition-test)
         bool m48IntegrationTest = false;     // M48.4: M48 zinciri Save/Load entegrasyonu (--m48-integration-test)
+        bool occupationTest = false;         // M49.1: il işgali ve cephe ilerlemesi (--occupation-test)
         bool formablePanelTest = false;      // M44.5: kurgu ülke paneli testi (--formable-panel-test)
         bool releasablePanelTest = false;    // M45.1: bağımsız çıkarma paneli testi (--releasable-panel-test)
         bool autonomyTest = false;           // M45.2: özerklik sistemi testi (--autonomy-test)
@@ -368,6 +369,8 @@ public partial class GameManager : Node
                 recognitionTest = true;
             else if (arg == "--m48-integration-test")
                 m48IntegrationTest = true;
+            else if (arg == "--occupation-test")
+                occupationTest = true;
             else if (arg == "--formable-panel-test")
                 formablePanelTest = true;
                 else if (arg == "--releasable-panel-test")
@@ -822,6 +825,10 @@ public partial class GameManager : Node
         if (m48IntegrationTest)
             RunM48IntegrationTest();
 
+        // M49.1: İl işgali — cephe ilerlemesi, el değiştiren iller, save/load.
+        if (occupationTest)
+            RunOccupationTest();
+
         // M44.5: Kurgu ülke paneli testi — kurgu ülkeler, kültür haritası, kurma/iptal.
         if (formablePanelTest)
             RunFormablePanelTest();
@@ -1146,6 +1153,10 @@ public partial class GameManager : Node
         // bugünden itibaren değerlendirilir.
         RecognitionSystem.AdvanceAllDays(TotalDays);
 
+        // M49.1: Savaş il seviyesine insin — cephe ilerlesin, iller el değiştirsin.
+        // Savaş sistemi soyut aşınmayı yönetir; bu adım haritadaki sonucu yazar.
+        OccupationSystem.AdvanceAll();
+
         // M12: Ocak 1'de otomatik kayıt (yeni yılın ilk günü)
         if (CurrentDate.Month == 1 && CurrentDate.Day == 1)
         {
@@ -1391,6 +1402,9 @@ public partial class GameManager : Node
 
         // M48.3: Tanınma durumu — yeni oyun (eski kayıttan kalan tanınma/doğuş silinir)
         RecognitionSystem.ResetForNewGame();
+
+        // M49.1: İl işgali — yeni oyunda savaş öncesi sahip kayıtları ve baskı temizlenir
+        OccupationSystem.ResetForNewGame();
 
         // M41.1: Zafer koşulları-yeni oyun (aktif senaryonun koşul seti yeniden okunur)
         VictorySystem.ResetForNewGame();
@@ -10666,6 +10680,324 @@ private void RunBalanceTest()
         if (!advOk) ok = false;
 
         GD.Print(ok ? "[M48Int] SONUÇ: PASS ✓" : "[M48Int] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M49.1: İl işgali headless testi (--occupation-test).
+    ///
+    /// Savaşın haritaya yansıması doğrulanır:
+    ///   1) Cephe köşesi: saldıran topraklarına komşu savunan ili vardır.
+    ///   2) Baskı biriktikçe il el değiştirir; ele geçirilen ilin sahibi işgalci olur.
+    ///   3) Savaş öncesi gerçek sahip ve il kültürü kayıtta kalır.
+    ///   4) Savunan güçlendiğinde toprağını geri kazanır, sahip eski haline döner.
+    ///   5) Kayıt (işgal + baskı) yazılıp geri yüklendiğinde aynı gün adımı
+    ///      birebir aynı sonucu verir (determinizm / save-load A==B).
+    ///
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunOccupationTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M49.1: İL İŞGALİ TESTİ (--occupation-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+        DeterministicRNG.InitializeForNewGame(0x4D4842_31DUL);
+
+        // ---- 1) Dünya kurulumu ----
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+
+        var byId = new Dictionary<string, ProvinceData>(StringComparer.Ordinal);
+        foreach (var p in provinces)
+            if (p != null && !string.IsNullOrEmpty(p.Id)) byId[p.Id] = p;
+
+        // M49.1: komşuluk grafiği + ayarlar + temiz durum.
+        // ProceduralProvinceSource'un RNG'si burada yeniden başlatılmaz (dünya zaten kuruldu).
+        OccupationSystem.ResetForNewGame();
+        OccupationSystem.LoadSettings();
+        OccupationSystem.SetWorld(provinces);
+
+        bool worldOk = provinces.Count > 0 && OccupationSystem.IsReady;
+        GD.Print($"[OccTest] 1) İl: {provinces.Count}, komşuluk grafi hazır: {OccupationSystem.IsReady} ({worldOk})");
+        if (!worldOk)
+        {
+            GD.PrintErr("[OccTest] HATA: dünya veya komşuluk grafi kurulamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Kültür anlık görüntüsü — işgal kültürü değiştirmemeli (M49.1).
+        var cultureBefore = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var p in provinces)
+            if (p != null && !string.IsNullOrEmpty(p.Id))
+                cultureBefore[p.Id] = ProvinceCultureSystem.CultureOf(p.Id);
+
+        // ---- 2) Oyuncu ve cephe köşesi ----
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        string playerId = PlayerCountryId;
+        var player = CountryDatabase.Get(playerId);
+        if (player == null)
+        {
+            GD.PrintErr($"[OccTest] HATA: oyuncu ülkesi ({playerId}) bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Cephe köşesi: saldıran topraklarına komşu, başka bir ülkeye ait il.
+        // Prosedürel dünyada bazı ülkelerin ili çok az olabilir; anlamlı bir
+        // cephe için komşu ülkeler arasından en çok ili olan seçilir ve hedefe
+        // yeterli toprak verilir — aksi halde "cephe" 2-3 ilde tükenir ve
+        // savaşın haritayı değiştirdiği görülemez.
+        var frontierCount = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var pid in ProvinceOwnershipSystem.GetProvincesByOwner(playerId))
+        {
+            if (!byId.TryGetValue(pid, out var prov)) continue;
+            foreach (var nb in prov.NeighborIds ?? new List<string>())
+            {
+                string o = ProvinceOwnershipSystem.GetProvinceOwner(nb);
+                if (string.IsNullOrEmpty(o) || o == "?" ||
+                    string.Equals(o, playerId, StringComparison.OrdinalIgnoreCase)) continue;
+                frontierCount[o] = frontierCount.TryGetValue(o, out var c) ? c + 1 : 1;
+            }
+        }
+        string enemyId = frontierCount
+            .OrderByDescending(kv => ProvinceOwnershipSystem.ProvinceCountFor(kv.Key))
+            .ThenBy(kv => kv.Key, StringComparer.Ordinal)
+            .Select(kv => kv.Key)
+            .FirstOrDefault();
+        bool frontierOk = frontierCount.Count > 0 && !string.IsNullOrEmpty(enemyId);
+        GD.Print($"[OccTest] 2) Cephe: {playerId} topraklarına komşu ülke={frontierCount.Count}, " +
+                 $"hedef={enemyId} ({frontierOk})");
+        if (!frontierOk)
+        {
+            GD.PrintErr("[OccTest] HATA: oyuncu topraklarına komşu düşman il bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Cephe tiyatrosu kur. Prosedürel dünyada ülkeler birbirinden izole
+        // küçük adacıklardır (DEU 2 il, komşusu 2 il) — böyle bir dünyada
+        // savaş bir günde biter ve cephe hiç ilerlemez. Testin amacı
+        // "savaş haritayı değiştirir" dediğini göstemek olduğu için oyuncunun
+        // bir ilinden BFS ile bitişik bir bölge toplanır ve ikiye bölünür:
+        // yarısı oyuncuya, yarısı hedefe. İki taraf da bitişik toprak sahibi
+        // olur ve aralarında gerçek bir sınır oluşur.
+        const int TheaterSize = 120;
+        var theater = new List<string>();
+        var inTheater = new HashSet<string>(StringComparer.Ordinal);
+        var seedIds = ProvinceOwnershipSystem.GetProvincesByOwner(playerId)
+            .OrderBy(id => id, StringComparer.Ordinal).ToList();
+        var bfs = new Queue<string>(seedIds);
+        foreach (var s in seedIds) inTheater.Add(s);
+        while (bfs.Count > 0 && theater.Count < TheaterSize)
+        {
+            var cur = bfs.Dequeue();
+            if (!byId.TryGetValue(cur, out var prov)) continue;
+            foreach (var nb in prov.NeighborIds ?? new List<string>())
+            {
+                if (theater.Count >= TheaterSize) break;
+                if (string.IsNullOrEmpty(nb) || inTheater.Contains(nb)) continue;
+                inTheater.Add(nb);
+                theater.Add(nb);
+                bfs.Enqueue(nb);
+            }
+        }
+        int half = Math.Max(1, theater.Count / 2);
+        var playerTerritory = theater.Take(half).ToList();
+        var enemyTerritory = theater.Skip(half).ToList();
+        foreach (var pid in playerTerritory)
+            ProvinceOwnershipSystem.SetProvinceOwner(pid, playerId);
+        foreach (var pid in enemyTerritory)
+            ProvinceOwnershipSystem.SetProvinceOwner(pid, enemyId);
+        ProvinceCultureSystem.ReassignCountry(enemyTerritory, enemyId);
+
+        int enemyStart = ProvinceOwnershipSystem.ProvinceCountFor(enemyId);
+        int playerStart = ProvinceOwnershipSystem.ProvinceCountFor(playerId);
+        GD.Print($"[OccTest]    tiyatro: {theater.Count} il (oyuncu +{playerTerritory.Count}, " +
+                 $"hedef +{enemyTerritory.Count}) → oyuncu {playerStart} il, hedef {enemyStart} il");
+
+        // Güç dengesi: saldıran açıkça üstün olsun ki cephe ilerlesin.
+        // Tümen sayısı StartingDivisions'tan gelir (oyuncu AI durumu tutmaz),
+        // fabrika sayısı doğrudan saha gücüne katkı verir.
+        player.StartingDivisions = 10;
+        player.CivFactories = 200;
+        player.MilFactories = 0;
+        player.Dockyards = 0;
+        var enemy = CountryDatabase.Get(enemyId);
+        enemy.StartingDivisions = 10;
+        CountryAI.ApplyDivisionLoss(enemyId, 999); // savunan zayıf: 0 tümen
+        enemy.CivFactories = 0;
+        enemy.MilFactories = 0;
+        enemy.Dockyards = 0;
+
+        var ownersAtStart = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var p in provinces)
+            if (p != null && !string.IsNullOrEmpty(p.Id))
+                ownersAtStart[p.Id] = ProvinceOwnershipSystem.GetProvinceOwner(p.Id);
+
+        // ---- 3) Savaş ilanı (--war-test deseni: PP + destek + gerekçe) ----
+        if (PlayerCountryData != null)
+        {
+            if (PlayerCountryData.PoliticalPower < WarSystem.DeclareWarPPCost + 10)
+                PlayerCountryData.PoliticalPower = WarSystem.DeclareWarPPCost + 10;
+            if (PlayerCountryData.WarSupportPercent < 50)
+                PlayerCountryData.WarSupportPercent = 50;
+        }
+        CasusBelliSystem.GrantImmediateJustification(playerId, enemyId, "historical_event");
+        bool declared = WarSystem.DeclareWar(enemyId);
+        var war = declared
+            ? WarSystem.Wars.FirstOrDefault(w => !w.IsEnded && w.DefenderId == enemyId)
+            : null;
+        bool warOk = declared && war != null;
+        GD.Print($"[OccTest] 3) Savaş: {playerId} → {enemyId}, ilan={declared}, " +
+                 $"savaş kaydı={war != null}, düşman il={enemyStart}, kendi il={playerStart} ({warOk})");
+        if (!warOk)
+        {
+            GD.PrintErr("[OccTest] HATA: savaş başlatılamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Ofensif emri olmadan saldıranın gücü düşük kalırdı; test hamleyi de kapsar.
+        war.OffensiveActive = true;
+
+        Dictionary<string, string> SnapshotOwners()
+        {
+            var m = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var p in provinces)
+                if (p != null && !string.IsNullOrEmpty(p.Id))
+                    m[p.Id] = ProvinceOwnershipSystem.GetProvinceOwner(p.Id);
+            return m;
+        }
+
+        List<string> OwnersChangedSince(Dictionary<string, string> before)
+        {
+            var changed = new List<string>();
+            foreach (var kv in before)
+            {
+                string now = ProvinceOwnershipSystem.GetProvinceOwner(kv.Key);
+                if (!string.Equals(now, kv.Value, StringComparison.OrdinalIgnoreCase))
+                    changed.Add(kv.Key);
+            }
+            changed.Sort(StringComparer.Ordinal);
+            return changed;
+        }
+
+        // ---- 4) Baskı birikir, iller el değiştirir ----
+        const int AttackDays = 15;
+        var beforeAttack = SnapshotOwners();
+        for (int d = 0; d < AttackDays; d++) OccupationSystem.AdvanceAll();
+
+        var captured = OwnersChangedSince(beforeAttack);
+        float ratio = OccupationSystem.OccupationRatio(war);
+        bool advanceOk = OccupationSystem.OccupiedCount > 0 && captured.Count > 0 && ratio > 0f;
+        GD.Print($"[OccTest] 4) İlerleme ({AttackDays} gün): işgal kaydı={OccupationSystem.OccupiedCount}, " +
+                 $"el değiştiren il={captured.Count}, işgal oranı=%{ratio * 100f:F1} ({advanceOk})");
+        if (captured.Count > 0)
+            GD.Print($"[OccTest]    örnek ele geçen iller: {string.Join(", ", captured.Take(8))}" +
+                     (captured.Count > 8 ? " …" : ""));
+        if (!advanceOk) ok = false;
+
+        // Ele geçirilen her il: sahibi işgalci, savaş öncesi sahibi düşman, kültür korunmuş.
+        bool recordOk = true;
+        foreach (var pid in captured)
+        {
+            if (!OccupationSystem.IsOccupied(pid)) recordOk = false;
+            if (!string.Equals(OccupationSystem.Occupier(pid), playerId, StringComparison.OrdinalIgnoreCase))
+                recordOk = false;
+            if (!string.Equals(OccupationSystem.PreWarOwner(pid), enemyId, StringComparison.OrdinalIgnoreCase))
+                recordOk = false;
+            if (!string.Equals(ownersAtStart[pid], enemyId, StringComparison.OrdinalIgnoreCase))
+                recordOk = false;
+            if (!string.Equals(cultureBefore[pid], ProvinceCultureSystem.CultureOf(pid), StringComparison.OrdinalIgnoreCase))
+                recordOk = false;
+        }
+        bool warKeyOk = captured.Count == 0 ||
+            captured.All(pid => string.Equals(OccupationSystem.WarKeyOf(war),
+                $"{playerId}|{enemyId}", StringComparison.Ordinal));
+        GD.Print($"[OccTest] 4) Kayıt doğrluğu: sahip/savaş öncesi sahip/kültür/savaş anahtarı = " +
+                 $"{recordOk}/{warKeyOk} (ikisi de true olmalı)");
+        if (!recordOk) ok = false;
+        if (!warKeyOk) ok = false;
+
+        // ---- 5) Savunan güçlenince toprağını geri kazanır ----
+        enemy.CivFactories += 600; // saha gücü 1200/gün → savunan da hamle yapar
+        var beforeLiberation = SnapshotOwners();
+        for (int d = 0; d < 10; d++) OccupationSystem.AdvanceAll();
+
+        var liberationChanges = OwnersChangedSince(beforeLiberation);
+        var returned = liberationChanges
+            .Where(pid => string.Equals(ProvinceOwnershipSystem.GetProvinceOwner(pid), enemyId,
+                StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        bool liberationOk = returned.Count > 0;
+        foreach (var pid in returned)
+        {
+            // Geri kazanılan il: kaydı silinir ve sahibi savaş öncesi sahibine döner.
+            if (OccupationSystem.IsOccupied(pid)) liberationOk = false;
+            if (!string.Equals(ownersAtStart[pid], enemyId, StringComparison.OrdinalIgnoreCase))
+                liberationOk = false;
+        }
+        float ratioAfter = OccupationSystem.OccupationRatio(war);
+        GD.Print($"[OccTest] 5) Geri kazanım (10 gün): dönen il={returned.Count} " +
+                 $"(örnek: {(returned.Count > 0 ? returned[0] : "—")}), kalan işgal oranı=%{ratioAfter * 100f:F1} ({liberationOk})");
+        if (!liberationOk) ok = false;
+
+        // ---- 6) Kayıt / geri yükleme: aynı adım aynı sonucu vermeli ----
+        var ownersAtSave = SnapshotOwners();
+        var occupationSave = OccupationSystem.GetSaveData();
+        int savedOccupied = occupationSave.Occupied?.Length ?? 0;
+        int savedPressures = occupationSave.Pressures?.Length ?? 0;
+        double attackerPressureBefore = OccupationSystem.AttackerPressure(war);
+        double defenderPressureBefore = OccupationSystem.DefenderPressure(war);
+        bool saveOk = savedOccupied == OccupationSystem.OccupiedCount &&
+                      savedOccupied > 0 && savedPressures >= 1;
+        GD.Print($"[OccTest] 6) Kayıt: işgal={savedOccupied}, savaş baskısı={savedPressures}, " +
+                 $"saldıran baskı={attackerPressureBefore:N1}, savunan baskı={defenderPressureBefore:N1} ({saveOk})");
+        if (!saveOk) ok = false;
+
+        // Referans: kayıt düşmeden bir gün ilerle.
+        var refBefore = SnapshotOwners();
+        OccupationSystem.AdvanceAll();
+        var refCaptured = OccupationSystem.OccupiedBy(playerId);
+        var refChanged = OwnersChangedSince(refBefore);
+
+        // Kayıttan geri yükle: sahiplik haritası sessizce geri alınır (ekonomi devri
+        // tetiklenmez — Transfer ekonomisi bu testin determinizm karşılaştırmasını bozmasın),
+        // işgal + baskı kayıttan gelir, sonra aynı gün bir daha ilerletilir.
+        ProvinceOwnershipSystem.LoadSaveData(ownersAtSave);
+        OccupationSystem.ResetForNewGame();
+        OccupationSystem.LoadSaveData(occupationSave);
+
+        bool restoredOk = OccupationSystem.OccupiedCount == savedOccupied &&
+                          Math.Abs(OccupationSystem.AttackerPressure(war) - attackerPressureBefore) < 0.001 &&
+                          Math.Abs(OccupationSystem.DefenderPressure(war) - defenderPressureBefore) < 0.001;
+        GD.Print($"[OccTest] 7) Geri yükleme: işgal={OccupationSystem.OccupiedCount}, " +
+                 $"baskı korundu={restoredOk} (true olmalı)");
+        if (!restoredOk) ok = false;
+
+        var loadBefore = SnapshotOwners();
+        OccupationSystem.AdvanceAll();
+        var loadCaptured = OccupationSystem.OccupiedBy(playerId);
+        var loadChanged = OwnersChangedSince(loadBefore);
+
+        bool sameProvinces = refChanged.Count == loadChanged.Count &&
+                             !refChanged.Except(loadChanged, StringComparer.Ordinal).Any() &&
+                             !loadChanged.Except(refChanged, StringComparer.Ordinal).Any();
+        bool sameOccupied = refCaptured.Count == loadCaptured.Count &&
+                            !refCaptured.Except(loadCaptured, StringComparer.Ordinal).Any() &&
+                            !loadCaptured.Except(refCaptured, StringComparer.Ordinal).Any();
+        GD.Print($"[OccTest] 8) Determinizm: aynı iller el değiştirdi mi={sameProvinces} " +
+                 $"({refChanged.Count} il), işgal listesi birebir aynı mı={sameOccupied} ({loadCaptured.Count} il)");
+        if (!sameProvinces) ok = false;
+        if (!sameOccupied) ok = false;
+
+        GD.Print(ok ? "[OccTest] SONUÇ: PASS ✓" : "[OccTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

@@ -3204,3 +3204,55 @@ etkisi. Kriter: tanınma 0'da örgüt/ittifak kapalı, talep deterministik,
 M49 önce çünkü en büyük eksik ve diğerlerini besler (M50 isyan savaşı M49'un
 cephe/işgal motorunu kullanır). M50 ikinci çünkü M48 sistemlerini gerçek bir
 üreticiye bağlar. M51 ve M52 bağımsız ve düşük riskli; sırayla gelir.
+
+---
+
+# M49.1 — İl İşgali: ÖZET
+
+**Ne yapıldı:**
+- `Scripts/OccupationSystem.cs` (yeni, ~440 satır): savaşı il seviyesine indiren
+  sistem. Komşuluk grafından cephe hedefi, birikmiş baskı, ele geçirilen ilin
+  sahipliğini geçici değiştirme, `PreWarOwnerId` ile orijinal sahibi koruma.
+- `Data/occupation.json` (yeni): baskı bedeli 400, günlük maks 8 il, ofensif
+  çarpanı 1.6, tümen ağırlığı 10, fabrika ağırlığı 2.
+- `Scripts/WorldMap.cs`: `SetProvinces` içinde `OccupationSystem.SetWorld`.
+- `Scripts/SaveSystem.cs`: `OccupationPressureEntry.Day` alanı eklendi.
+- `Scripts/GameManager.cs`: `RunOccupationTest()` (8 adımlı doğrulama) ve
+  dispatch bağlantısı.
+
+**Ne çözüldü:**
+Test 3 kez FAIL oldu, her biri gerçek bir kusur ortaya çıkardı:
+1. **Kalıcı pat durumu:** bir il aynı gün içinde alınıp geri alınabiliyordu,
+   iki taraf sonsuza kadar aynı iki ili takas etti. Çözüm: savaş günü sayacı
+   (kayda yazılır) + "en az bir gün işgalci kalmış olmalı" yerleşme kuralı +
+   günlük alınan il sayısını birikmiş baskıdan türetme.
+2. **Bağışçı il devri dağınıktı:** düşmanın yeni illeri rastgele dağıldı, cephe
+   2 ilden sonra durdu. BFS büyümesiyle değiştirildi.
+3. **Düşman silindi (oran %100):** prosedürel dünyada ülkeler izole adacık;
+   BFS yalnızca 4 ile ulaştı ve savunanın geri kazanacak toprağı kalmadı.
+   Çözüm: test kendi 120 illik iki taraflı "tiyatrosunu" kurar (60 oyuncu /
+   60 hedef), güç dengesi saldıran lehine ayarlanır ama savunan silinmeyecek
+   kadar toprak tutar.
+
+**Test sonuçları:**
+| Bayrak | Süre | Sonuç |
+|---|---|---|
+| `--occupation-test` | 7.8 sn | PASS (8/8 adım) |
+| `--save-load-test` A==B (2 senaryo) | 27.9 sn | PASS |
+
+**Bilinen sorunlar:**
+- `OccupationDataFile.Settings` için CS0649 uyarısı (reflection ile doldurulur,
+  zararsız). Derleme 0 hata.
+- Savunanın geri kazanımı, işgalci topraklarına komşu illerle sınırlı. Tam
+  çevrili bir toprak parçası (komşusu yoksa) teoride geri kazanılamaz. M49.3'te
+  direniş mekaniği gelince bu durum da kapsanacak.
+- İşgalci çıkarımı ve direniş birikimi M49.3'e ertelendi (TODO sırası).
+
+**Kullanıcının test etmesi gerekenler:**
+- `powershell -File tools\run-test.ps1 --occupation-test` → PASS görmeli.
+- `powershell -File tools\run-test.ps1 --save-load-test` → A==B PASS.
+- Haritada savaşan iki ülke arasındaki sınır illerinin renk/şahüs çizgisinin
+  savaş sırasında gerçekten değiştiğini gözle doğrulamak (oyunu açıp savaş
+  başlatmak — otonom modda bu yapılamadı, `dotnet run` yasak).
+- `Data/occupation.json` değerleri oynanış açısından makul mu? Baskı bedeli
+  400 → güçlü bir ülke günde ~2 il alıyor. Denge ayarı gerekebilir.

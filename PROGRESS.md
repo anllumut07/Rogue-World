@@ -3194,3 +3194,50 @@ API'leri, (2) "kurulum otomatik başlar" varsayımı. İkisi de gerçek mekaniğ
 değil testin kendi kurulumunu yanlış anlamasından kaynaklandı. Test
 yazarken "bu API kopya mı yoksa canlı mı?" ve "bu koşul gerçekten sağlanıyor
 mu?" soruları sıraya alınmalı.
+
+---
+
+## M49.1 — İl İşgali Sistemi (OccupationSystem)
+
+Savaşlar haritada bir şey değiştirmiyordu: çatışma soyut aşınmaya iniyor, il
+devri yalnızca barış masasında ve kaybedenin il kimliği sırasına göre
+yapılıyordu. Bir ülke hiç savaşmadığı ili de alabiliyordu.
+
+### Ne yapıldı
+- `Scripts/OccupationSystem.cs` (yeni): savaşın il seviyesine indirilmesi.
+  Her savaş için iki tarafın topraklarının birleştiği "cephe köşesi"
+  komşuluk grafından belirlenir (RNG yok), tarafların gücüne göre "baskı"
+  birikir, bir ilin ele geçirilmesi için `PressureCost` (400) gerekir.
+  - Ele geçirilen ilin SAHİPLİĞİ işgalciye geçer; savaş öncesi gerçek sahip
+    `PreWarOwnerId` alanında ayrıca tutulur — il geri kazanıldığında doğru
+    ülkeye döner. Kültür katmanı gerçek sahiplikten beslendiği için il
+    kültürü korunur.
+  - `Data/occupation.json` ayarları `System.Text.Json` + `IncludeFields`
+    ile okunur (proje standardı; `Json.Parse` statik değil).
+  - `Scripts/WorldMap.cs` → `SetProvinces` içinde `OccupationSystem.SetWorld`
+    çağrısı eklendi.
+  - Save/Load: `OccupationEntry` + `OccupationPressureEntry` (savaş günü
+    sayacı dahil) `SaveSystem`'e bağlandı.
+
+### Tasarım kararı: neden savaş günü sayacı + yerleşme kuralı
+İlk denemede cephe hiç ilerlemedi: bir il aynı gün içinde ele geçirilip geri
+alınabildiği için iki taraf sonsuza kadar aynı iki ili takas etti. Çözüm:
+her savaş için bir gün sayacı tutulur ve bir ilin geri kazanılabilmesi için
+en az bir gün işgalci kalmış olması gerekir. Ayrıca günde kaç il alınacağı
+birikmiş baskıdan türetilir (üstünlük kurmuş taraf birden fazla il alabilir).
+Hem sayacın hem yerleşme kuralının save'a yazılması şart — aksi halde
+yükleme sonrası kural bozulur.
+
+### Test kurulumu notu (önemli)
+Prosedürel dünya ~637 ili 50 ülkeye dağıtır ve ülkeler birbirinden izole
+küçük adacıklar halindedir (DEU 2 il, komşusu 2 il). Böyle bir dünyada
+savaş bir günde biter ve cephe hiç ilerlemez. `RunOccupationTest` bu yüzden
+oyuncunun bir ilinden BFS ile bitişik 120 illik bir "tiyatro" toplayıp
+ikiye böler: yarısı oyuncuya, yarısı hedefe. Böylece iki taraf da bitişik
+toprak sahibi olur ve aralarında gerçek bir sınır oluşur.
+
+### Test kapsamı
+| Bayrak | Süre | Sonuç |
+|---|---|---|
+| `--occupation-test` | 7.8 sn | PASS |
+| `--save-load-test` (A==B, 2 senaryo) | 27.9 sn | PASS |

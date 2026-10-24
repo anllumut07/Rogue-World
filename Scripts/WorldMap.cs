@@ -1925,6 +1925,9 @@ public partial class WorldMap : Node2D
         _provinces = new List<ProvinceData>(provinces);
         ProvinceOwnershipSystem.InitializeFromProvinces(_provinces);
 
+        // M49.1: il komşuluk grafiği — savaş cephesi ve işgal hedefleri buradan türetilir.
+        OccupationSystem.SetWorld(_provinces);
+
         // M44.2: il kültür/nüfus katmanı — sahiplikle aynı anda üretilir ki
         // formable koşulları ve kültür paneli normal oyunda da dolu olsun.
         if (ProvinceCultureSystem.RecordCount == 0)

@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Settings": {
+    "PressureCost": 400.0,
+    "MaxDailyProvinces": 8,
+    "AttackerOffensiveMultiplier": 1.6,
+    "DivisionWeight": 10.0,
+    "FactoryWeight": 2.0,
+    "MinPower": 1.0
+  }
+}

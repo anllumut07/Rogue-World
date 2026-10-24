@@ -3447,3 +3447,61 @@ Yapılanlar:
 | `--intervention-test` | 1.4 sn | PASS |
 | `--autonomy-test` | 1.4 sn | PASS |
 | `--resistance-test` | 1.4 sn | PASS |
+
+## M50.2 — İsyancı Taraf Ayrı Bir Devlet Olarak Doğar
+
+### Yapılanlar
+- **`Scripts/CivilWarSystem.cs`**:
+  - `SpawnRebelCountry(countryId, currentDay)` — isyancıyı `CountryDatabase`'ye
+    ayrı bir ülke olarak doğurur. Kimlik `REB<EBE>`; kurgusal bir devlet adı
+    üretilir (hece tablosu + devlet biçimi, gerçek ülke/kişi adı yok).
+  - İl devri: sahiplik (`ProvinceOwnershipSystem.SetProvinceOwner`) ve kültür
+    kaydı (`ProvinceCultureSystem.ReassignCountry`) birlikte taşınır — ikisi
+    ayrı taşınsa harita rengi ile idari durum birbirine karışırdı.
+  - Orantılı bölünme: nüfus (taşınan illerin toplamı), fabrika (`share` oranı,
+    `Floor`), PP. Ebe "bölge kaybetti" cezası alır
+    (`ParentStabilityHit` / `ParentWarSupportHit`).
+  - `CountryAI.Reset()` — AI yeni ülkeyi devralır.
+  - Bağımsızlık savaşı: `independence_war` gerekçesi (otomatik, ücretsiz,
+    `BuildDays=0`) + `WarSystem.DeclareWar(isyan, ebe)`.
+  - M48: `RecognitionSystem.OnCountryBorn(rebel, ebe, gün, "civil_war")` —
+    dünya bu ülkeyi gün gün tanımaya başlar.
+  - `RebelStateName` / `RebelStateStem` — deterministik kurgusal ad
+    (FNV-1a hash, RNG yok). `SpawnResult` sonucu taşır.
+  - Save/Load: `RebelCountryId`, `RebelCountryName`, `CountrySpawned`, `SpawnDay`.
+
+### Testte bulunan iki gerçek kusur (ikisi de M50.2'nin testi sayesinde)
+1. **Savaş ilanı sessizce başarısız oluyordu.** Yeni ülke `GetOrCreate` →
+   `GenerateFallback` yolundan doğduğu için 30 PP ile başlıyor; ilan maliyeti
+   50 PP olduğundan `CheckWarPreconditions` "Geçerli Gerekçe"ten önce
+   *Political Power* maddesinde bloklanıyordu. `SpawnRebelCountry` artık
+   isyancıyı `RebelWarGoalPPFloor` (60) tabanıyla doğuruyor. Ayrıca savaş
+   açılamazsa bloklayan madde `Summary` olarak loglanıyor (sessizlik yok).
+2. **Sivil savaş testi `CasusBelliSystem.Initialize` çağırmıyordu.** Gerekçe
+   türleri hiç yüklenmediğinden `GrantImmediateJustification` sessizce
+   geri dönüyordu. Test hazırlığına eklendi — aynı tuzak `--recognition-test`
+   yolunda yazılı olarak duruyordu, burayda eksikti.
+
+### Test kapsamı
+| Bayrak | Süre | Sonuç |
+|---|---|---|
+| `--civil-war-test` (23 adım, M50.1+M50.2) | 2.7 sn | PASS |
+| `--save-load-test` (A==B, 2 senaryo) | 20.3 sn | PASS |
+| `--occupation-test` | 2.6 sn | PASS |
+| `--occupation-admin-test` | 8.2 sn | PASS |
+| `--war-score-test` | 1.4 sn | PASS |
+| `--peace-terms-test` | 1.2 sn | PASS |
+| `--diplomacy-test` | 1.3 sn | PASS |
+| `--province-economy-test` | 8.2 sn | PASS |
+| `--recognition-test` | 1.7 sn | PASS |
+| `--intervention-test` | 1.4 sn | PASS |
+| `--autonomy-test` | 1.3 sn | PASS |
+| `--resistance-test` | 1.3 sn | PASS |
+
+**M50.2 yeni adımlar (15–23):** isyancı devletin doğuşu (kimlik + kurgusal ad),
+adın mevcut ülke adıyla çakışmaması ve hece kökünü sarması, il devri (ebe →
+isyancı, kültür kaydı, çakışma yok), ekonomi korunumu (nüfus/fabrika toplamı
+sabit), savaş ilanı (`IsAtWarWith` + aktif savaş kaydı), tanınma akışı
+(`WasBorn`, `Birth.Reason == "civil_war"`, ebe tanıdı, tanıyan sayısı ilerliyor),
+ikinci doğuşun `ulke_zaten_dogdu` ile reddi, doğan isyancı devletin save/load
+round-trip'i ve ad determinizmi.

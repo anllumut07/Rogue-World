@@ -27,6 +27,14 @@
     "SlumpGrowthMax": 40.0,
     "SlumpUnemploymentMax": 25.0,
     "SlumpDebtMax": 20.0,
-    "SlumpDeficitMax": 15.0
+    "SlumpDeficitMax": 15.0,
+
+    "RebelNamePrefixes": ["Mar", "Vel", "Dor", "Kal", "Ser", "Tan", "Vol", "Nor", "Bel", "Ric"],
+    "RebelNameSuffixes": ["mark", "ania", "oria", "grad", "via", "stan", "mere", "dun", "holm", "ska"],
+    "RebelStateForms": ["Free State of {0}", "Republic of {0}", "Liberated {0}", "{0} Commune"],
+
+    "ParentStabilityHit": 8.0,
+    "ParentWarSupportHit": 10.0,
+    "RebelWarGoalPPFloor": 60.0
   }
 }

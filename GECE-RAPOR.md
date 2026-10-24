@@ -3412,3 +3412,42 @@ isyana dönüştürülüyor; oyuncu ülkesi hariç tutmadım çünkü hedef "imp
 paramparça olabilir" korkusu. Ancak M50.1'de isyan yalnızca kayıt düşürdüğü
 için oyuncunun oynanışı etkilenmiyor; M50.2'de gerçek ülke doğunca bu davranış
 yeniden değerlendirilecek.
+
+---
+
+## M50.2 — İSYANCI DEVLET DOĞDU (oturum içi rapor)
+
+### 1. Neyi değiştirdim (dosya adlarıyla)
+- `Scripts/CivilWarSystem.cs` — `SpawnRebelCountry`, `RebelStateName`,
+  `RebelStateStem`, `SpawnResult`, `RebelWarGoalPPFloor` tanımı, isyanın
+  `CountrySpawned`/`RebelCountryId`/`RebelCountryName`/`SpawnDay` alanları,
+  save/load eşlemesi.
+- `Scripts/SaveSystem.cs` — `CivilWarEntry` M50.2 alanları (kimlik, ad,
+  doğdu mu, doğum günü).
+- `Scripts/GameManager.cs` — `RunCivilWarTest` 15–23 arası yeni adımlar; test
+  hazırlığına `CasusBelliSystem.Initialize` eklendi.
+- `Data/civil_war.json` — `RebelNamePrefixes`, `RebelNameSuffixes`,
+  `RebelStateForms`, `ParentStabilityHit`, `ParentWarSupportHit`,
+  `RebelWarGoalPPFloor`.
+
+### 2. Neyi çözemedim
+- İç savaşın bitiş yolları (M50.3): askeri zaferle illerin geri alınması,
+  özerklik vererek çözüm, yabancı müdahale. Henüz yazılmadı.
+
+### 3. Bilinen sorunlar
+- `--save-load-test` A==B özetine eklenen "İç çatışma: isyan=N …" satırı,
+  A==B senaryosunda isyan patlak vermediği için yalnızca 0/0/0 olarak geçiyor;
+  gerçek round-trip `--civil-war-test` adım 13 ve 22'de doğrulanıyor. A==B
+  senaryosunda eşiği aşan bir ülke üretmek M50.4 işi olarak duruyor.
+
+### 4. Kullanıcının test etmesi gerekenler
+- `powershell -File tools\run-test.ps1 --civil-war-test` — 23 adım; özellikle
+  15–20 (doğuş, il devri, korunum, savaş, tanınma) ve 22 (save/load).
+- Normal oyunda stabilitesi düşen bir imparatorluğun log'unu izleme:
+  `[CivilWar] İSYANCI DEVLET DOĞDU:` satırı (kurgusal ad, savaş=True,
+  tanınma_akışı=True olmalı).
+
+**Belirsizlik kararı:** PP tabanını 60 aldım. İsyancı devlet `GetOrCreate`
+varsayılanı 30 PP ile doğuyor ve ilan maliyeti 50 PP — bağımsızlık savaşı bir
+isyanın var oluş nedeniyse de devlet beyannameye muktedir olmalı. Ebe PP'sının
+payını da ekledim ki çöküşte doğan isyancılar tamamen PP'sız kalmasın.

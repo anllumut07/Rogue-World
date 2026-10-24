@@ -59,6 +59,29 @@ public static class CivilWarSystem
         public double SlumpUnemploymentMax = 25.0;
         public double SlumpDebtMax = 20.0;
         public double SlumpDeficitMax = 15.0;
+
+        // M50.2: İsyancı devletin adı — gerçek ülke/kişi adı kullanmaz,
+        // hece tablosundan deterministik bir isim üretir.
+        public string[] RebelNamePrefixes = new[]
+        {
+            "Mar", "Vel", "Dor", "Kal", "Ser", "Tan", "Vol", "Nor", "Bel", "Ric"
+        };
+        public string[] RebelNameSuffixes = new[]
+        {
+            "mark", "ania", "oria", "grad", "via", "stan", "mere", "dun", "holm", "ska"
+        };
+        public string[] RebelStateForms = new[]
+        {
+            "Free State of {0}",
+            "Republic of {0}",
+            "Liberated {0}",
+            "{0} Commune"
+        };
+
+        // M50.2: Merkez hükümetin isyan sonrası stabilite/vergi kaybı.
+        public double ParentStabilityHit = 8.0;
+        public double ParentWarSupportHit = 10.0;
+        public double RebelWarGoalPPFloor = 60.0;
     }
 
     private sealed class CivilWarRoot
@@ -97,6 +120,12 @@ public static class CivilWarSystem
         public long StartDay;                // patlak verdiği gün
         public string RebelCulture = "";     // isyancı illerin baskın kültürü
         public List<string> Provinces = new(); // deterministik seçilmiş il kimlikleri (sıralı)
+
+        // M50.2: isyancı taraf ayrı bir devlet olarak doğdu mu?
+        public string RebelCountryId = "";   // doğan ülkenin kimliği (henüz doğmadıysa boş)
+        public string RebelCountryName = "";// doğan ülkenin adı
+        public bool CountrySpawned = false;  // devir ve savaş ilanı yapıldı mı
+        public long SpawnDay;                // doğduğu gün
     }
 
     private static readonly List<RebellionState> _active =
@@ -538,6 +567,181 @@ public static class CivilWarSystem
         return res;
     }
 
+    /// <summary>
+    /// M50.2 — İsyancıyı ayrı bir devlet olarak doğurur.
+    ///
+    ///   • Kurgusal (gerçek ülke/kişi adı içermeyen) bir isim üretilir.
+    ///   • İsyan illeri merkez hükümetten devredilir (sahiplik + kültür kaydı).
+    ///   • Nüfus, fabrika ve kaynaklar il payı oranında merkezden ayrılır.
+    ///   • AI yeni ülkeyi devralır, merkez hükümetine bağımsızlık savaşı açılır.
+    ///   • M48 tanınma akışı başlar — dünya bu ülkeyi gün gün tanımaya başlar.
+    /// </summary>
+    public class SpawnResult
+    {
+        public bool Ok;
+        public string CountryId = "";        // merkez hükümet
+        public string RebelCountryId = "";
+        public string RebelCountryName = "";
+        public int ProvincesTransferred;
+        public bool WarDeclared;
+        public bool RecognizedFlowStarted;
+        public string Reason = "";
+    }
+
+    public static SpawnResult SpawnRebelCountry(string countryId, long currentDay)
+    {
+        EnsureLoaded();
+        var res = new SpawnResult { CountryId = countryId ?? "" };
+
+        var rebellion = RebellionOf(countryId);
+        if (rebellion == null) { res.Reason = "isyan_yok"; return res; }
+        if (rebellion.CountrySpawned)
+        {
+            res.Reason = "ulke_zaten_dogdu";
+            res.RebelCountryId = rebellion.RebelCountryId;
+            res.RebelCountryName = rebellion.RebelCountryName;
+            return res;
+        }
+
+        var parent = CountryDatabase.Get(countryId);
+        if (parent == null) { res.Reason = "ebe_kaynak_yok"; return res; }
+
+        var provinces = rebellion.Provinces
+            .Where(p => string.Equals(ProvinceOwnershipSystem.GetProvinceOwner(p),
+                                      countryId, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (provinces.Count == 0) { res.Reason = "il_devredilemez"; return res; }
+
+        // 1) Kurgusal kimlik ve ad — ebe kaynağa bağlı, bu yüzden her isyan tekil.
+        string rebelId = "REB" + countryId.ToUpperInvariant();
+        string rebelName = RebelStateName(countryId, rebellion.RebelCulture);
+        var rebel = CountryDatabase.GetOrCreate(rebelId, rebelName);
+
+        // 2) Nüfus ve idari taban — devredilen illerin toplamı
+        var movedRecords = provinces
+            .Select(p => ProvinceCultureSystem.Get(p))
+            .Where(r => r != null)
+            .ToList();
+        long movedPopulation = movedRecords.Sum(r => r.Population);
+
+        int ownedBefore = ProvinceOwnershipSystem.GetProvincesByOwner(countryId).Count;
+        float share = ownedBefore > 0 ? (float)provinces.Count / ownedBefore : 0f;
+
+        rebel.Ideology = parent.Ideology;
+        rebel.Population = Math.Max(1, movedPopulation);
+        rebel.ManpowerPool = (long)(rebel.Population / 100_000);
+        rebel.StabilityPercent = 35.0;               // yeni doğan devrak: düşük stabilite
+        rebel.WarSupportPercent = 80.0;              // isyanın kendisi: yüksek savaş desteği
+        // Bağımsızlık savaşı bir isyanın var oluş nedenidir: beyannameye yetecek
+        // siyasi güçle doğar. Yoksa GetOrCreate varsayılanı (30 PP) 50 PP'lik
+        // ilan maliyetinin altında kalıp savaşı sessizce engelliyordu.
+        rebel.PoliticalPower = Math.Max(rebel.PoliticalPower,
+            Math.Floor(parent.PoliticalPower * (double)share) + S.RebelWarGoalPPFloor);
+        rebel.IsAnnexed = false;
+        rebel.OwnerId = "";
+
+        int civ = (int)Math.Floor(parent.CivFactories * share);
+        int mil = (int)Math.Floor(parent.MilFactories * share);
+        int dock = (int)Math.Floor(parent.Dockyards * share);
+        rebel.CivFactories = civ;
+        rebel.MilFactories = mil;
+        rebel.Dockyards = dock;
+
+        parent.Population = Math.Max(1, parent.Population - movedPopulation);
+        parent.CivFactories = Math.Max(0, parent.CivFactories - civ);
+        parent.MilFactories = Math.Max(0, parent.MilFactories - mil);
+        parent.Dockyards = Math.Max(0, parent.Dockyards - dock);
+
+        // 3) İlleri devret (sahiplik zinciri + kültür indeksi)
+        foreach (var pid in provinces)
+            ProvinceOwnershipSystem.SetProvinceOwner(pid, rebelId);
+        ProvinceCultureSystem.ReassignCountry(provinces, rebelId);
+
+        // 4) Merkez hükümet bir bölge kaybettiği için zayıflar
+        parent.StabilityPercent = Math.Clamp(parent.StabilityPercent - S.ParentStabilityHit, 0, 100);
+        parent.WarSupportPercent = Math.Clamp(parent.WarSupportPercent - S.ParentWarSupportHit, 0, 100);
+
+        // 5) AI devralma — CountryAI kendi state'ini CountryDatabase üzerinden kurar
+        CountryAI.Reset();
+
+        // 6) Bağımsızlık savaşı — otomatik, ücretsiz ve beklemesiz gerekçe
+        bool justified = false;
+        try
+        {
+            CasusBelliSystem.GrantImmediateJustification(rebelId, countryId, "independence_war");
+            justified = true;
+        }
+        catch (Exception e)
+        {
+            GD.PrintErr($"[CivilWar] Gerekçe verilemedi ({e.Message}) — savaş ilansız kalabilir.");
+        }
+        res.WarDeclared = justified && WarSystem.DeclareWar(rebelId, countryId);
+        if (!res.WarDeclared)
+        {
+            // Reddedilirse nedenini görünür kıl: isyancı devlet doğar ama
+            // bağımsızlık savaşının hangi koşulda bloklandığı sessiz kalmamalı.
+            var why = CasusBelliSystem.CheckWarPreconditions(rebelId, countryId);
+            GD.PrintErr($"[CivilWar] İSYANCI DEVLET SAVAŞ AÇAMADI: {rebelId} → {countryId} — {why.Summary}");
+        }
+
+        // 7) M48: tanınma akışı — dünya bu ülkeyi henüz tanımıyor
+        RecognitionSystem.OnCountryBorn(rebelId, countryId, currentDay, "civil_war");
+        res.RecognizedFlowStarted = RecognitionSystem.WasBorn(rebelId);
+
+        rebellion.RebelCountryId = rebelId;
+        rebellion.RebelCountryName = rebel.Name;
+        rebellion.CountrySpawned = true;
+        rebellion.SpawnDay = currentDay;
+
+        res.Ok = true;
+        res.RebelCountryId = rebelId;
+        res.RebelCountryName = rebel.Name;
+        res.ProvincesTransferred = provinces.Count;
+
+        GD.Print($"[CivilWar] İSYANCI DEVLET DOĞDU: {rebel.Name} ({rebelId}) — ebe={parent.Name} " +
+                 $"({countryId}), il={provinces.Count}, pay=%{share * 100:F1}, " +
+                 $"nüfus={movedPopulation}, fabrika c{civ}/m{mil}/t{dock}, " +
+                 $"savaş={res.WarDeclared}, tanınma_akışı={res.RecognizedFlowStarted}, gün={currentDay}");
+        return res;
+    }
+
+    /// <summary>
+    /// Ebe kaynak ve kültürden deterministik, kurgusal bir devlet adı üretir.
+    /// Hiçbir gerçek ülke ya da kişi adı kullanılmaz — hece tablosu isim
+    /// mevcut şekilde büyük olasılıkla gerçek olmayan bir bileşim verir.
+    /// </summary>
+    public static string RebelStateName(string parentId, string culture)
+    {
+        EnsureLoaded();
+        ulong h = StableHash((parentId ?? "") + "|" + (culture ?? "") + "|state");
+        string form = S.RebelStateForms[(int)((h >> 32) % (ulong)S.RebelStateForms.Length)];
+        return string.Format(form, RebelStateStem(parentId, culture, h));
+    }
+
+    /// <summary>
+    /// Adın kurgusal kökünü (devlet biçim etiketi olmadan) üretir.
+    /// Test, adın gerçekten bu kökü sardığını doğrulamak için kullanır.
+    /// </summary>
+    public static string RebelStateStem(string parentId, string culture)
+    {
+        EnsureLoaded();
+        return RebelStateStem(parentId, culture,
+            StableHash((parentId ?? "") + "|" + (culture ?? "") + "|state"));
+    }
+
+    private static string RebelStateStem(string parentId, string culture, ulong h)
+    {
+        string prefix = S.RebelNamePrefixes[(int)(h % (ulong)S.RebelNamePrefixes.Length)];
+        string suffix = S.RebelNameSuffixes[(int)((h >> 16) % (ulong)S.RebelNameSuffixes.Length)];
+        return Capitalize(prefix) + Capitalize(suffix);
+    }
+
+    private static string Capitalize(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return s;
+        return char.ToUpperInvariant(s[0]) + s.Substring(1);
+    }
+
     /// <summary>İsyancı illeri sisteme bildirir ve kaydı düşürür (M50.3 çözüm yolları).</summary>
     public static void Suppress(string countryId)
     {
@@ -559,7 +763,11 @@ public static class CivilWarSystem
                 CountryId = r.CountryId,
                 StartDay = r.StartDay,
                 RebelCulture = r.RebelCulture,
-                Provinces = r.Provinces.ToArray()
+                Provinces = r.Provinces.ToArray(),
+                RebelCountryId = r.RebelCountryId,
+                RebelCountryName = r.RebelCountryName,
+                CountrySpawned = r.CountrySpawned,
+                SpawnDay = r.SpawnDay
             }).ToArray(),
             LastOutbreak = _lastOutbreakDay
                 .Select(kv => new SaveSystem.CivilWarOutbreakDay
@@ -586,7 +794,11 @@ public static class CivilWarSystem
                     CountryId = e.CountryId,
                     StartDay = e.StartDay,
                     RebelCulture = e.RebelCulture ?? "",
-                    Provinces = (e.Provinces ?? Array.Empty<string>()).ToList()
+                    Provinces = (e.Provinces ?? Array.Empty<string>()).ToList(),
+                    RebelCountryId = e.RebelCountryId ?? "",
+                    RebelCountryName = e.RebelCountryName ?? "",
+                    CountrySpawned = e.CountrySpawned,
+                    SpawnDay = e.SpawnDay
                 });
             }
         }

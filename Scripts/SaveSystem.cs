@@ -452,6 +452,10 @@ public static class SaveSystem
         public long StartDay { get; set; }
         public string RebelCulture { get; set; }
         public string[] Provinces { get; set; }
+        public string RebelCountryId { get; set; }
+        public string RebelCountryName { get; set; }
+        public bool CountrySpawned { get; set; }
+        public long SpawnDay { get; set; }
     }
     public class CivilWarOutbreakDay
     {

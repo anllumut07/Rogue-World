@@ -11509,7 +11509,7 @@ private void RunBalanceTest()
     private void RunCivilWarTest()
     {
         GD.Print("=========================================");
-        GD.Print("  M50.1: İÇ ÇATIŞMA (SİVİL SAVAŞ) TESTİ");
+        GD.Print("  M50.1-M50.2: İÇ ÇATIŞMA (SİVİL SAVAŞ) VE İSYANCI DEVLET TESTİ");
         GD.Print("=========================================");
 
         bool ok = true;
@@ -11521,6 +11521,11 @@ private void RunBalanceTest()
         ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
         CivilWarSystem.SetWorld(provinces);
         CivilWarSystem.ResetForNewGame();
+        // M50.2: İsyancı devletin bağımsızlık savaşı açabilmesi için gerekçe
+        // türlerinin yüklenmesi gerekir. Initialize hem veri dosyasını okur hem
+        // de sistemi "hazır" moda alır; yalnızca LoadScenarioData() çağrılırsa
+        // türler gelir ama gerekçe verilemez (Recognition testindeki uyarı).
+        CasusBelliSystem.Initialize(CountryDatabase.Get("RUS"));
         GD.Print($"[CivilWarTest] 1) İl: {provinces.Count}, kültür kaydı: {ProvinceCultureSystem.RecordCount}, " +
                   $"komşuluk: {CivilWarSystem.IsReady}");
 
@@ -11746,6 +11751,134 @@ private void RunBalanceTest()
         bool safeInputs = !bad.Outbroke && !missing.Outbroke;
         GD.Print($"[CivilWarTest] 14) Geçersiz girdi: boş={bad.Reason}, olmayan={missing.Reason} ({safeInputs})");
         if (!safeInputs) ok = false;
+
+        // ===== M50.2: İsyancı taraf ayrı bir devlet olarak doğar =====
+
+        // 15) Doğuş: kurgusal isimli yeni ülke, iller devredilir
+        var beforeSpawn = CountryDatabase.Get(cid);
+        int parentProvBefore = ProvinceOwnershipSystem.GetProvincesByOwner(cid).Count;
+        long parentPopBefore = beforeSpawn.Population;
+        int parentFacBefore = beforeSpawn.CivFactories + beforeSpawn.MilFactories + beforeSpawn.Dockyards;
+        int rebelProvBefore = ProvinceOwnershipSystem.GetProvincesByOwner(CivilWarSystem.RebellionOf(cid)?.RebelCountryId ?? "REB" + cid).Count;
+
+        var spawn = CivilWarSystem.SpawnRebelCountry(cid, day);
+        var rebelState = CivilWarSystem.RebellionOf(cid);
+        var rebelCountry = CountryDatabase.Get(spawn.RebelCountryId);
+        bool spawned = spawn.Ok && rebelState != null && rebelState.CountrySpawned && rebelCountry != null;
+        GD.Print($"[CivilWarTest] 15) İsyancı devlet: ad='{spawn.RebelCountryName}', " +
+                 $"kimlik={spawn.RebelCountryId}, il={spawn.ProvincesTransferred}, " +
+                 $"neden={spawn.Reason} ({spawned})");
+        GD.Print($"[CivilWarTest]    ülke: ideoloji={rebelCountry?.Ideology}, nüfus={rebelCountry?.Population}, " +
+                 $"stabilite={rebelCountry?.StabilityPercent}, savaş_desteği={rebelCountry?.WarSupportPercent}");
+        if (!spawned) ok = false;
+
+        // 16) Ad gerçek bir ülke/kişi adı olmamalı: veri dosyasındaki ülkelerden farklı
+        bool nameFictional = !string.IsNullOrEmpty(spawn.RebelCountryName) &&
+            CountryDatabase.All().Any(c => c != null &&
+                string.Equals(c.Name, spawn.RebelCountryName, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, spawn.RebelCountryId, StringComparison.OrdinalIgnoreCase));
+        bool idUnique = !string.Equals(spawn.RebelCountryId, cid, StringComparison.OrdinalIgnoreCase) &&
+                         !CountryDatabase.All().Any(c => c != null && c.Id != spawn.RebelCountryId &&
+                             string.Equals(c.Name, spawn.RebelCountryName, StringComparison.OrdinalIgnoreCase));
+        // Ad, hece tablosundan üretilen kurgusal kökü bir devlet biçimiyle sarmalı
+        string stem = CivilWarSystem.RebelStateStem(cid, rebelState.RebelCulture);
+        bool nameFormed = !string.IsNullOrEmpty(stem) && stem.Length >= 4 &&
+                          spawn.RebelCountryName.Contains(stem, StringComparison.Ordinal);
+        GD.Print($"[CivilWarTest] 16) Kurgusal ad: mevcut ülke adıyla çakışma={nameFictional}, " +
+                 "birebir kimlik=" + idUnique + $", kök='{stem}', devlet biçimi=" + nameFormed + " " +
+                 $"({!nameFictional && idUnique && nameFormed})");
+        if (nameFictional || !idUnique || !nameFormed) ok = false;
+
+        // 17) İller gerçekten devredildi mi (sahiplik + kültür kaydı)
+        int rebelProvAfter = ProvinceOwnershipSystem.GetProvincesByOwner(spawn.RebelCountryId).Count;
+        int parentProvAfter = ProvinceOwnershipSystem.GetProvincesByOwner(cid).Count;
+        bool provincesMoved = rebelProvAfter == spawn.ProvincesTransferred &&
+                              parentProvAfter == parentProvBefore - spawn.ProvincesTransferred &&
+                              parentProvAfter > 0;
+        bool cultureMoved = ProvinceCultureSystem.ForCountry(spawn.RebelCountryId).Count == rebelProvAfter;
+        bool noOverlap = ProvinceOwnershipSystem.GetProvincesByOwner(cid)
+            .All(p => !rebelState.Provinces.Contains(p));
+        GD.Print($"[CivilWarTest] 17) İl devri: ebe {parentProvBefore}→{parentProvAfter}, " +
+                 $"isyancı 0→{rebelProvAfter}, kültür kaydı={cultureMoved}, " +
+                 $"çakışma yok={noOverlap} ({provincesMoved && cultureMoved && noOverlap})");
+        if (!provincesMoved || !cultureMoved || !noOverlap) ok = false;
+
+        // 18) Ekonomi korunumu: nüfus ve fabrika toplamı devir öncesiyle aynı
+        var afterSpawn = CountryDatabase.Get(cid);
+        long popSum = afterSpawn.Population + rebelCountry.Population;
+        int facSum = afterSpawn.CivFactories + afterSpawn.MilFactories + afterSpawn.Dockyards +
+                     rebelCountry.CivFactories + rebelCountry.MilFactories + rebelCountry.Dockyards;
+        bool popConserved = Math.Abs(popSum - parentPopBefore) <= 1;
+        bool facConserved = facSum <= parentFacBefore + 1 && facSum >= parentFacBefore - 1;
+        GD.Print($"[CivilWarTest] 18) Korunum: nüfus {parentPopBefore}→{popSum} ({popConserved}), " +
+                 $"fabrika {parentFacBefore}→{facSum} ({facConserved})");
+        if (!popConserved || !facConserved) ok = false;
+
+        // 19) Savaş açıldı mı — iki taraf da birbirine savaş ilan etmiş durumda
+        bool warExists = WarSystem.IsAtWarWith(spawn.RebelCountryId, cid);
+        var activeWar = WarSystem.Wars.FirstOrDefault(w =>
+            !w.IsEnded &&
+            ((string.Equals(w.AttackerId, spawn.RebelCountryId, StringComparison.OrdinalIgnoreCase) &&
+              string.Equals(w.DefenderId, cid, StringComparison.OrdinalIgnoreCase)) ||
+             (string.Equals(w.AttackerId, cid, StringComparison.OrdinalIgnoreCase) &&
+              string.Equals(w.DefenderId, spawn.RebelCountryId, StringComparison.OrdinalIgnoreCase))));
+        bool warOk = spawn.WarDeclared && warExists && activeWar != null;
+        GD.Print($"[CivilWarTest] 19) Savaş: ilan={spawn.WarDeclared}, karşılıklı={warExists}, " +
+                 $"kayıt={activeWar?.Id} ({warOk})");
+        if (!warOk) ok = false;
+
+        // 20) Tanınma akışı: doğuş kaydı var, ebe kaynak tanıdı, yayılım ilerliyor
+        bool born = RecognitionSystem.WasBorn(spawn.RebelCountryId);
+        var birth = RecognitionSystem.Birth(spawn.RebelCountryId);
+        bool parentRecognizes = RecognitionSystem.IsRecognized(cid, spawn.RebelCountryId);
+        int recognizersBefore = RecognitionSystem.RecognizerCount(spawn.RebelCountryId);
+        int added = RecognitionSystem.AdvanceAllDays(day + 30);
+        int recognizersAfter = RecognitionSystem.RecognizerCount(spawn.RebelCountryId);
+        bool recognitionFlows = spawn.RecognizedFlowStarted && born && parentRecognizes &&
+                                birth.Reason == "civil_war" && recognizersAfter >= recognizersBefore;
+        GD.Print($"[CivilWarTest] 20) Tanınma: doğdu={born}, neden={birth?.Reason}, " +
+                 $"ebe tanıdı={parentRecognizes}, tanıyan {recognizersBefore}→{recognizersAfter} " +
+                 $"(+{added}) ({recognitionFlows})");
+        if (!recognitionFlows) ok = false;
+
+        // 21) Aynı isyan ikinci kez devlet doğurmaz
+        var secondSpawn = CivilWarSystem.SpawnRebelCountry(cid, day);
+        bool noDoubleSpawn = !secondSpawn.Ok &&
+                             string.Equals(secondSpawn.Reason, "ulke_zaten_dogdu", StringComparison.Ordinal);
+        GD.Print($"[CivilWarTest] 21) Tekrar doğuş reddedildi: neden={secondSpawn.Reason} ({noDoubleSpawn})");
+        if (!noDoubleSpawn) ok = false;
+
+        // 22) Save/Load — doğan isyancı devlet kayıttan geri geliyor
+        string savedRebelId = rebelState.RebelCountryId;
+        string savedRebelName = rebelState.RebelCountryName;
+        long savedSpawnDay = rebelState.SpawnDay;
+        int savedRebelProv = rebelState.Provinces.Count;
+        SaveSystem.SaveTestFile();
+        bool loadedSpawn = SaveSystem.LoadTestFile();
+        var backState = CivilWarSystem.RebellionOf(cid);
+        bool roundTripSpawn = loadedSpawn && backState != null &&
+            backState.CountrySpawned &&
+            string.Equals(backState.RebelCountryId, savedRebelId, StringComparison.Ordinal) &&
+            string.Equals(backState.RebelCountryName, savedRebelName, StringComparison.Ordinal) &&
+            backState.SpawnDay == savedSpawnDay &&
+            backState.Provinces.Count == savedRebelProv;
+        var reloadedRebel = CountryDatabase.Get(savedRebelId);
+        bool rebelSurvives = reloadedRebel != null &&
+            ProvinceOwnershipSystem.GetProvincesByOwner(savedRebelId).Count == rebelProvAfter;
+        GD.Print($"[CivilWarTest] 22) Save/Load: yüklendi={loadedSpawn}, isyancı={savedRebelId} " +
+                 $"({savedRebelName}), gün={savedSpawnDay}, il={savedRebelProv}→{backState?.Provinces.Count ?? 0}, " +
+                 $"ülke kayıtta={rebelSurvives} ({roundTripSpawn && rebelSurvives})");
+        if (!roundTripSpawn || !rebelSurvives) ok = false;
+
+        // 23) Ad determinizmi — aynı ebe/kültür her zaman aynı ismi verir
+        string nameA = CivilWarSystem.RebelStateName(cid, rebelState.RebelCulture);
+        string nameB = CivilWarSystem.RebelStateName(cid, rebelState.RebelCulture);
+        bool nameDeterministic = string.Equals(nameA, nameB, StringComparison.Ordinal) &&
+                                 string.Equals(nameA, spawn.RebelCountryName, StringComparison.Ordinal);
+        GD.Print($"[CivilWarTest] 23) Ad determinizmi: '{nameA}' == '{nameB}' " +
+                 $"== '{spawn.RebelCountryName}' ({nameDeterministic})");
+        if (!nameDeterministic) ok = false;
+
 
         GD.Print(ok ? "[CivilWarTest] SONUÇ: PASS ✓" : "[CivilWarTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);

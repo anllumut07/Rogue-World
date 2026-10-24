@@ -2876,3 +2876,48 @@ izlenecek). Derleniyor, testler geçiyor → ilk görev commit'ine dahil edilece
 - İki testi aynı anda arka planda koşmak log dosyasını çakıştırdı (ortak
   `save_load_test.log`) ve ilk sonucu yanlış FAIL gösterdi. Bu koşu yalnızca
   kalıyor; sonraki koşular tek tek ve senkron yapıldı.
+
+---
+
+## M47.4 — Save/Load entegrasyonu + özet satırı (TAMAM) — M47 TAMAMLANDI
+
+### ÖZET
+1. **Değişen dosyalar**
+   - `Scripts/SaveSystem.cs`: `ProvinceEconomySave` + `ProvinceEconomyEntry` DTO'ları,
+     kök alan, collect (`CollectGameState`) ve restore (`LoadGameData`) kabloları.
+   - `Scripts/ProvinceEconomySystem.cs`: `GetSaveData()` / `LoadSaveData()`.
+   - `Scripts/SaveLoadTest.cs`: kurulumda ekonomi katmanı üretimi + `İlEkonomisi` özet satırı.
+2. **Çözülenler**
+   - Veri hem ham ağırlıkları (ülke içi normalize paylar) hem `CountryData` ile
+     harmanlanmış değerleri kaydediyor. Harmanlanmış kısım KRİTİK: M47.2 il devri
+     bu değerleri fiilen taşıdığı için, yalnızca payları kaydetmek devir sonrası
+     durumu geri getiremezdi (kayıt doğru yüklenir ama ekonomik sonuç kaybolurdu).
+   - `İlEkonomisi` satırı `BuildSummaryCore`'a eklendi; hash'e Civ/Mil/Dock,
+     Steel/Oil ve Population girer → devir sonrası yüklenen kaydın gerçekten
+     geri geldiği ölçülüyor.
+   - Eski kayıtlarda (kayıt yoksa) ağırlıklar `WorldMap.SetProvinces` üzerinden
+     `CountryData`'dan yeniden türetiliyor — geriye dönük uyumlu.
+3. **Bulgu (düzeltildi)**
+   - İlk koşuda özet satırı `kayıt=0, fabrika=0, nüfus=0, hash=0` kaldı: ekonomi
+     katmanı headless akışta hiç üretilmiyordu. Kültür katmanı üretiliyordu
+     (637 kayıt) ama M47.1'in üretimi `WorldMap.SetProvinces` içindeydi ve headless
+     akışta WorldMap sahnesi yüklenmiyor. Test kurulumuna `GenerateFor` eklendi →
+     artık 637 kayıt, anlamlı hash.
+4. **Bilinen sorunlar**
+   - Yok.
+5. **Kullanıcının test etmesi gerekenler**
+   - Yok (headless test tüm kriterleri doğruladı).
+
+**Test sonuçları (M47.4)**
+| Test | Süre | Sonuç |
+|---|---|---|
+| `--save-load-test` (historical_1936) | 19.2 sn | PASS ✓ (A == B) |
+| `--save-load-test` (modern_world) | ~40 sn | PASS ✓ (A == B) |
+| `--province-economy-test` | 13.7 sn | PASS ✓ |
+| `--resource-balance-test` | ~5 sn | PASS ✓ |
+
+**dotnet build:** 0 hata / 0 uyarı.
+
+**Hash doğrulaması (A == B):**
+- historical_1936: kayıt=637, fabrika=777, nüfus=1990299913, hash=1987003719 (iki fazda aynı)
+- modern_world: kayıt=637, fabrika=4000, nüfus=5679499968, hash=-774975626 (iki fazda aynı)

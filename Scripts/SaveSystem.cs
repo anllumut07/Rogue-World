@@ -66,6 +66,7 @@ public static class SaveSystem
         public NavalCombatSave NavalCombat { get; set; }
         public ConvoyRaidSave ConvoyRaid { get; set; } // M43.4: müttefik konvoy koruması // M43.3: deniz çatışması filo hasarı
         public CultureSave Culture { get; set; } // M44.2: il kültür/nüfus katmanı
+        public ProvinceEconomySave ProvinceEconomy { get; set; } // M47.4: il ekonomi ağırlık katmanı
         public MapViewSave MapView { get; set; } // M46.4: harita modu + kültür vurgusu
         public FormableSave Formable { get; set; } // M44.3: sürmekte olan kurgu ülke kurulumları
         public ReleasableSave Releasable { get; set; } // M44.4: ilhak/kukla kayıtları
@@ -272,6 +273,33 @@ public static class SaveSystem
         public string ProvinceId { get; set; }
         public string CountryId { get; set; }
         public string Culture { get; set; }
+        public long Population { get; set; }
+    }
+
+    // ===== İl ekonomi ağırlık katmanı DTOs (M47.4) =====
+    public class ProvinceEconomySave
+    {
+        public ProvinceEconomyEntry[] Weights { get; set; }
+    }
+    public class ProvinceEconomyEntry
+    {
+        public string ProvinceId { get; set; }
+        public string CountryId { get; set; }
+        public float Territory { get; set; }
+        public float Urban { get; set; }
+        public float Coast { get; set; }
+        public float ResourceW { get; set; }
+        public float FactoryW { get; set; }
+        public float PopulationW { get; set; }
+        public int Civ { get; set; }
+        public int Mil { get; set; }
+        public int Dock { get; set; }
+        public int Oil { get; set; }
+        public int Rubber { get; set; }
+        public int Steel { get; set; }
+        public int Aluminum { get; set; }
+        public int Tungsten { get; set; }
+        public int Chromium { get; set; }
         public long Population { get; set; }
     }
 
@@ -617,6 +645,7 @@ public static class SaveSystem
             NavalCombat = NavalCombatSystem.GetSaveData(),
             ConvoyRaid = ConvoyRaidSystem.GetSaveData(), // M43.4: müttefik konvoy koruması // M43.3: deniz çatışması filo hasarı
             Culture = ProvinceCultureSystem.GetSaveData(), // M44.2: il kültür/nüfus katmanı
+            ProvinceEconomy = ProvinceEconomySystem.GetSaveData(), // M47.4: il ekonomi ağırlık katmanı
             MapView = MapViewSystem.GetSaveData(), // M46.4: harita modu + kültür vurgusu
             Formable = FormableSystem.GetSaveData(), // M44.3: sürmekte olan kurgu ülke kurulumları
             Releasable = ReleasableSystem.GetSaveData(), // M44.4: ilhak/kukla kayıtları
@@ -775,6 +804,11 @@ public static class SaveSystem
             ConvoyRaidSystem.LoadSaveData(save.ConvoyRaid); // M43.4: müttefik konvoy koruması // M43.3: deniz çatışması filo hasarı // M39.4: hava üstünlüğü durumu
             if (save.Culture != null)
                 ProvinceCultureSystem.LoadSaveData(save.Culture); // M44.2: il kültür/nüfus katmanı
+
+            // M47.4: il ekonomi ağırlık katmanı — harmanlanmış payla birlikte yüklenir.
+            // Kayıt yoksa (eski kayıt) ağırlıklar CountryData'dan yeniden türetilir.
+            if (save.ProvinceEconomy != null)
+                ProvinceEconomySystem.LoadSaveData(save.ProvinceEconomy);
 
             // M46.4: harita görünümü — harita düğümü sahne kurulmadan önce yüklenirse
             // durum MapViewSystem'te bekler, WorldMap._Ready onu alır. Harita zaten

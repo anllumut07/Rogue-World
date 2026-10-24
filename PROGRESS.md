@@ -2959,7 +2959,7 @@ ayrıca culture dışına çıkınca vurgunun düştüğü ve onun da round-trip
 
 ---
 
-## Milestone 47: İl Bazlı Ekonomi Dengesi — 🔄 DEVAM
+## Milestone 47: İl Bazlı Ekonomi Dengesi — ✅ DONE (2026-10-24)
 
 ### M47.2 — İl devrinde ekonomik yeniden hesaplama ✅ DONE (2026-10-24)
 - `Scripts/ProvinceEconomySystem.cs`: `HandleOwnershipChange(provinceId, old, new)` —
@@ -3021,3 +3021,17 @@ ayrıca culture dışına çıkınca vurgunun düştüğü ve onun da round-trip
   açıkta çıkıyordu (USA çelik ihtiyacı 72.5 / arz 40). Gerçek kapasite dağılımına
   (DEU 50 fabrika/22 çelik, USA 134/40) bakılarak 0.25/0.04 olarak kalibre edildi →
   USA çelik ihtiyacı 38.6, kendine yeterli.
+
+### M47.4 — Save/Load entegrasyonu ve özet satırı ✅ DONE (2026-10-24)
+- `Scripts/SaveSystem.cs`: `ProvinceEconomySave` + `ProvinceEconomyEntry` DTO'ları,
+  kök alan ve collect/restore kabloları.
+- `Scripts/ProvinceEconomySystem.cs`: `GetSaveData()` / `LoadSaveData()`.
+  Hem ham ağırlıklar hem `CountryData` ile harmanlanmış değerler kaydedilir —
+  harmanlanmış kısım olmadan M47.2 devir sonrası durum geri getirilemezdi.
+- `Scripts/SaveLoadTest.cs`: headless kurulumda ekonomi katmanı da üretilir ve
+  `BuildSummaryCore`'a `İlEkonomisi` satırı eklendi (kayıt/fabrika/nüfus + hash).
+  Hash'e harmanlanmış Civ/Mil/Dock/Steel/Oil/Population girer → devir sonrası
+  yüklenen kaydın gerçekten geri geldiği ölçülür.
+- **Bulgu:** ilk koşuda özet satırı `kayıt=0, hash=0` kaldı — ekonomi katmanı
+  headless akışta hiç üretilmiyordu (normal oyunda `WorldMap.SetProvinces` yapar).
+  Test kurulumuna `GenerateFor` eklendi.

@@ -797,6 +797,98 @@ public static class ProvinceEconomySystem
         return sum;
     }
 
+    // ===== M47.4: Save/Load =====
+
+    /// <summary>
+    /// M47.4 — Ağırlık katmanının kaydı.
+    ///
+    /// Hem ham ağırlıklar (ülke içi normalize paylar) hem de `CountryData` ile
+    /// harmanlanmış değerler kaydedilir. Harmanlanmış kısım özellikle önemli:
+    /// M47.2 il devri bu değerleri fiilen taşıdığı için, yalnızca payları
+    /// kaydetmek devir sonrası durumu geri getiremezdi.
+    /// </summary>
+    public static SaveSystem.ProvinceEconomySave GetSaveData()
+    {
+        var list = new List<SaveSystem.ProvinceEconomyEntry>(_weights.Count);
+        foreach (var w in _weights.Values)
+        {
+            list.Add(new SaveSystem.ProvinceEconomyEntry
+            {
+                ProvinceId = w.ProvinceId,
+                CountryId = w.CountryId,
+                Territory = w.Territory,
+                Urban = w.Urban,
+                Coast = w.Coast,
+                ResourceW = w.ResourceW,
+                FactoryW = w.FactoryW,
+                PopulationW = w.PopulationW,
+                Civ = w.Civ,
+                Mil = w.Mil,
+                Dock = w.Dock,
+                Oil = w.Oil,
+                Rubber = w.Rubber,
+                Steel = w.Steel,
+                Aluminum = w.Aluminum,
+                Tungsten = w.Tungsten,
+                Chromium = w.Chromium,
+                Population = w.Population
+            });
+        }
+        return new SaveSystem.ProvinceEconomySave { Weights = list.ToArray() };
+    }
+
+    public static void LoadSaveData(SaveSystem.ProvinceEconomySave data)
+    {
+        _weights.Clear();
+        _byCountry.Clear();
+
+        if (data?.Weights == null || data.Weights.Length == 0)
+        {
+            GD.Print("[ProvEconomy] Kayıtta il ekonomi ağırlığı yok — CountryData'dan türetilecek.");
+            return;
+        }
+
+        foreach (var e in data.Weights)
+        {
+            if (e == null || string.IsNullOrEmpty(e.ProvinceId)) continue;
+
+            var w = new Weight
+            {
+                ProvinceId = e.ProvinceId,
+                CountryId = e.CountryId ?? "",
+                Territory = e.Territory,
+                Urban = e.Urban,
+                Coast = e.Coast,
+                ResourceW = e.ResourceW,
+                FactoryW = e.FactoryW,
+                PopulationW = e.PopulationW,
+                Civ = e.Civ,
+                Mil = e.Mil,
+                Dock = e.Dock,
+                Oil = e.Oil,
+                Rubber = e.Rubber,
+                Steel = e.Steel,
+                Aluminum = e.Aluminum,
+                Tungsten = e.Tungsten,
+                Chromium = e.Chromium,
+                Population = e.Population
+            };
+            _weights[w.ProvinceId] = w;
+
+            if (!string.IsNullOrEmpty(w.CountryId))
+            {
+                if (!_byCountry.TryGetValue(w.CountryId, out var list))
+                {
+                    list = new List<string>();
+                    _byCountry[w.CountryId] = list;
+                }
+                list.Add(w.ProvinceId);
+            }
+        }
+
+        GD.Print($"[ProvEconomy] İl ekonomi ağırlıkları yüklendi: {_weights.Count}");
+    }
+
     /// <summary>Platformdan bağımsız kararlı hash (FNV-1a).</summary>
     private static int StableHash(string s)
     {

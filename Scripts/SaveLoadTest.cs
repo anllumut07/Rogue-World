@@ -51,8 +51,13 @@ public static class SaveLoadTest
             var provs = provinceSource.LoadProvinces().ToList();
             ProvinceOwnershipSystem.InitializeFromProvinces(provs);
             ProvinceCultureSystem.GenerateFor(provs, ScenarioSystem.ActiveId ?? "historical_1936");
-            GD.Print($"[Test] İller + kültür katmanı kuruldu: {provs.Count} il, " +
-                     $"{ProvinceCultureSystem.RecordCount} kayıt");
+            // M47.4: il ekonomi ağırlık katmanı — kültür katmanından SONRA üretilir
+            // (nüfus payı il nüfus kaydına bağlanır). Bu olmadan "İlEkonomisi"
+            // özet satırı kayıt=0/hash=0 kalır ve M47.2'den sonraki devir durumu
+            // A==B karşılaştırmasına hiç girmiyordu.
+            ProvinceEconomySystem.GenerateFor(provs, ScenarioSystem.ActiveId ?? "historical_1936");
+            GD.Print($"[Test] İller + kültür + ekonomi katmanı kuruldu: {provs.Count} il, " +
+                     $"kültür={ProvinceCultureSystem.RecordCount}, ekonomi={ProvinceEconomySystem.RecordCount}");
         }
 
         // M45.4: Save/load testine GERÇEK bir bağımlılık ekle.
@@ -478,6 +483,28 @@ public static class SaveLoadTest
                 cultureHash = cultureHash * 31 + (r.ProvinceId + "|" + r.Culture + "|" + r.Population).GetHashCode();
         }
         sb.AppendLine($"KültürKatmanı: kayıt={cultureRecords}, nüfus={culturePopulation}, hash={cultureHash}");
+
+        // M47.4: İl ekonomi ağırlık katmanı özeti (save/load A==B karşılaştırması kapsar).
+        // Hash'e harmanlanmış paylar da girer: M47.2 devri sonrası yüklenen kaydın
+        // ağırlıkları gerçekten geri geldiğini gösterir.
+        var econSave = ProvinceEconomySystem.GetSaveData();
+        int econRecords = econSave?.Weights?.Length ?? 0;
+        long econFactories = 0, econPopulation = 0;
+        int econHash = 0;
+        if (econSave?.Weights != null)
+        {
+            foreach (var w in econSave.Weights)
+            {
+                econFactories += w.Civ + w.Mil + w.Dock;
+                econPopulation += w.Population;
+                econHash = econHash * 31 +
+                    (w.ProvinceId + "|" + w.CountryId + "|" +
+                     w.Civ + "/" + w.Mil + "/" + w.Dock + "|" +
+                     w.Steel + "/" + w.Oil + "|" + w.Population).GetHashCode();
+            }
+        }
+        sb.AppendLine($"İlEkonomisi: kayıt={econRecords}, fabrika={econFactories}, " +
+                      $"nüfus={econPopulation}, hash={econHash}");
 
         // M44.3: Kurgu ülke kurulumları özeti
         var formableSave = FormableSystem.GetSaveData();

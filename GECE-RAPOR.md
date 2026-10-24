@@ -3366,3 +3366,49 @@ Test 3 kez FAIL oldu, her biri gerçek bir kusur ortaya çıkardı:
 Nedeni — savaş puanının anlamlı ölçülebilir değişimi için yeterli, ama koşucunun
 120 sn zaman aşımına yaklaşmayacak kadar kısa. Daha uzun süre aynı sonucu
 gösterir, yalnızca yavaşlar.
+
+---
+
+### M50.1 — İç Çatışma: Çöküş Puanı ve İsyan Patlak Verme
+
+**1. Neyi değiştirdim**
+- `Scripts/CivilWarSystem.cs` (yeni) — beş kanallı çöküş puanı (stabilite,
+  memnuniyet, huzursuzluk, savaş desteği, ekonomik bunalım), eşik aşımında
+  deterministik isyan kaydı (RNG yok, FNV-1a sıralı hash + komşuluk BFS),
+  bekleme süresi, Save/Load.
+- `Data/civil_war.json` (yeni) — ağırlıklar, eşik, kap, ölçekler.
+- `Scripts/SaveSystem.cs` — `CivilWarSave` DTO + ana kayda alan + kayıt/yükleme.
+- `Scripts/GameManager.cs` — `--civil-war-test` bayrağı, `RunCivilWarTest`
+  (14 adım), günlük `EvaluateCivilWars()` (tüm canlı ülkeler), yeni oyun
+  sıfırlaması.
+- `Scripts/WorldMap.cs` — `CivilWarSystem.SetWorld(_provinces)`.
+- `Scripts/SaveLoadTest.cs` — A==B özetine iç çatışma hash'i.
+- `TODO.md` (50.1 → `[x]`), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**2. Neyi çözemedim**
+- İsyancı taraf henüz ayrı bir ülke değil: isyan yalnızca kayıtta duruyor,
+  il devri / savaş / tanınma M50.2'de.
+- Hükümetin isyanı bitirme yolları (askeri zafer, özerklik, yabancı müdahale)
+  M50.3'te.
+
+**3. Bilinen sorunlar**
+- A==B senaryosunda hiçbir ülke çöküş eşiğini aşmıyor → özet hash'teki iç
+  çatışma satırı `isyan=0` olarak geçiyor, yani A==B bu durumu gerçekten
+  karsılaştırmıyor. M50.4'te isyanı save/load penceresine sokup tam kapsama
+  alınacak (M50.1'in kendi adım 13 dönüşümü zaten doğruluyor).
+- Çöküş puanı kanalları doyuma ulaşabilir: RUS gibi büyük ülkelerde stabilite
+  + memnuniyet + huzursuzluk birlikte 100'e yaklaşabilir, bu da eşiği her
+  koşulda aşar. Dengeleme M50.3'te isyanın yayılım hızıyla birlikte
+  gözden geçirilecek.
+
+**4. Kullanıcının test etmesi gerekenler**
+- `powershell -File tools\run-test.ps1 --civil-war-test` — 14 adım; özellikle
+  adım 9 (coğrafi bağlantı) ve adım 10 (determinizm).
+- Normal oyunda uzun süre oynayıp stabilitesi düşen bir ülkede isyan
+  patlayıp patlamadığını log'dan izleme: `[CivilWar] İSYAN PATLAK VERDİ:`.
+
+**Belirsizlik kararı:** Çöküş puanı tüm ülkeler için (AI dahil) hesaplanıp
+isyana dönüştürülüyor; oyuncu ülkesi hariç tutmadım çünkü hedef "imparatorluk
+paramparça olabilir" korkusu. Ancak M50.1'de isyan yalnızca kayıt düşürdüğü
+için oyuncunun oynanışı etkilenmiyor; M50.2'de gerçek ülke doğunca bu davranış
+yeniden değerlendirilecek.

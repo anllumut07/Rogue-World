@@ -3380,3 +3380,70 @@ Yapılanlar:
 
 Ayrıntı (admin test adım 8): `kayıt: il 60→60, yıkım fabrika 719→719, yıkım
 kaynak 721→721, direniş 0.00→0.00` ve `yükleme sonrası 3 gün: işgal 60→60`.
+
+---
+
+## M50.1 — İç Çatışma: Çöküş Puanı ve İsyan Patlak Verme
+
+**Amaç:** Ülkeleri sonsu dek ayakta tutan yapıyı kırmak. Stabilite, halk
+memnuniyeti, siyasi huzursuzluk, savaş desteği ve ekonomik bunalım tek bir
+çöküş puanına toplanır; puan eşiği aşınca ülkenin belirli illerinde isyan
+patlak verir.
+
+Yapılanlar:
+
+1. **`Scripts/CivilWarSystem.cs` (yeni, ~540 satır).** Beş kanalı ağırlıklı
+   ortalama ile 0-100 arası bir puana toplar:
+   - `stabilite` = 100 − StabilityPercent
+   - `memnuniyet` = 100 − dokuz grubun ortalaması
+   - `huzursuzluk` = protesto/grev/güven oylaması/darbe sayaçlarının
+     *tazeliğe göre sönümlenen* toplamı (sayaçlar kümülatif olduğu için ham
+     değer kullanılamaz: son olaydan 30 gün sonra etki sıfırlanır)
+   - `savaş desteği` = yalnızca savaş varken 100 − WarSupportPercent
+   - `ekonomik bunalım` = GSYİH büyümesi + işsizlik + kamu borcu + bütçe
+     açığı (toplam tavanı 100)
+
+2. **Deterministik il seçimi (RNG yok).** En kalabalık azınlık kültürünün
+   *coğrafi olarak bitişik en büyük bileşeni* alınır; tohum en düşük
+   FNV-1a hashli il, yayılma komşuluk üzerinden aynı hash sırasıyla BFS.
+   Böylece seçim dictionary sırasından, dosya okuma sırasından ve
+   kayıt/yüklemeden bağımsızdır. Merkez hükümet her zaman en az 1 il korur.
+
+3. **`--civil-war-test` (14 adım, yeni).** Dünya kurulumu, sağlıklı puanın
+   eşik altında olduğu, formülün elle hesapla birebir doğrulanması, savaş
+   desteği kanalının barışta sıfır olduğu, bunalımın girdilerle arttığı,
+   eşik aşımı ve patlak verme, illerin sahibi/kültürü, coğrafi bağlantı ve
+   kap sınırı, determinizm (tekrar koşuda birebir aynı iller), sağlıklı
+   ülkede 30 gün yanlış alarm çıkmaması, bekleme süresi içinde ikinci isyan
+   çıkmaması, Save/Load ve geçersiz girdilerin sessiz yok sayılması.
+
+**İki tasarım düzeltmesi** (test sırasında ortaya çıktı):
+
+- **Bunalım kanalı doyuyordu.** Açık için `BudgetSystem.GetBudgetDeficit`
+  okunuyordu; ham bakiye her ülkede yapısal olarak negatif (varsayılan vergi
+  toplamı < varsayılan harcama toplamı) ve RUS için −%31 veriyordu → kanal
+  doğuştan 100'e sabitleniyor, hiçbir şeyi ayırt edemiyordu. Artık bütçenin
+  beslediği `budget_deficit` göstergesi okunuyor (tabance −%2).
+
+- **İsyan bölgesi dağınık seçilebiliordu.** İlk sürümde aday havuzunun tamamı
+  hash sırasıyla toplanıyordu; azınlık kültür dağınıksa (RUS içinde 12
+  "english" ili) sonuç birbirine komşu olmayan 12 tekillik oluyordu — emperyal
+  dağılma "bölge kopması" değil "dağınık isyan" görünümündeydi. Şimdi aday
+  havuzunun bağlı bileşenleri çıkarılıp en büyükü seçiliyor; take = min(kap,
+  bileşen boyu). Testte 12 il → 2 il (gerçekten bitişik bölge).
+
+### Test kapsamı
+| Bayrak | Süre | Sonuç |
+|---|---|---|
+| `--civil-war-test` (yeni, 14 adım) | 2.5 sn | PASS |
+| `--save-load-test` (A==B, 2 senaryo) | 20.5 sn | PASS |
+| `--occupation-test` | 2.6 sn | PASS |
+| `--occupation-admin-test` (8 adım) | 8.1 sn | PASS |
+| `--war-score-test` | 1.4 sn | PASS |
+| `--peace-terms-test` | 1.2 sn | PASS |
+| `--diplomacy-test` | 1.4 sn | PASS |
+| `--province-economy-test` | 8.2 sn | PASS |
+| `--recognition-test` | 1.7 sn | PASS |
+| `--intervention-test` | 1.4 sn | PASS |
+| `--autonomy-test` | 1.4 sn | PASS |
+| `--resistance-test` | 1.4 sn | PASS |

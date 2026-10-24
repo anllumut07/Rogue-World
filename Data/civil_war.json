@@ -1,0 +1,32 @@
+{
+  "Version": 1,
+  "Settings": {
+    "StabilityWeight": 0.30,
+    "SatisfactionWeight": 0.25,
+    "UnrestWeight": 0.20,
+    "WarSupportWeight": 0.10,
+    "SlumpWeight": 0.15,
+
+    "OutbreakThreshold": 55.0,
+    "OutbreakCooldownDays": 180,
+    "MaxProvinceShare": 0.35,
+    "MinProvinces": 1,
+    "KeepHomeProvinces": 1,
+
+    "UnrestProtestScale": 6.0,
+    "UnrestStrikeScale": 12.0,
+    "UnrestVoteScale": 5.0,
+    "UnrestCoupScale": 45.0,
+    "UnrestRecencyDays": 30.0,
+
+    "SlumpGrowthFloor": -0.5,
+    "SlumpUnemploymentFull": 12.0,
+    "SlumpDebtFull": 90.0,
+    "SlumpDeficitFull": -6.0,
+
+    "SlumpGrowthMax": 40.0,
+    "SlumpUnemploymentMax": 25.0,
+    "SlumpDebtMax": 20.0,
+    "SlumpDeficitMax": 15.0
+  }
+}

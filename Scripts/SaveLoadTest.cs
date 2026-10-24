@@ -584,6 +584,27 @@ public static class SaveLoadTest
                      "|" + p.Day).GetHashCode();
         }
         sb.AppendLine($"İşgal: il={occupiedCount}, basınç={pressureCount}, hash={occupationHash}");
+
+        // M50.1: İç çatışma özeti. İsyanın illeri ve patlak geçmişi de A==B
+        // karşılaştırmasına girer — isyan save/load sonrası başka bir bölgeye
+        // kayarsa (yani seçim deterministik değilse) test bunu yakalar.
+        var civilWarSave = CivilWarSystem.GetSaveData();
+        int rebellionCount = civilWarSave?.Rebellions?.Length ?? 0;
+        int outbreakCount = civilWarSave?.LastOutbreak?.Length ?? 0;
+        int civilWarHash = 0;
+        if (civilWarSave?.Rebellions != null)
+        {
+            foreach (var r in civilWarSave.Rebellions)
+                civilWarHash = civilWarHash * 31 +
+                    (r.CountryId + "|" + r.StartDay + "|" + r.RebelCulture + "|" +
+                     string.Join(",", r.Provinces ?? Array.Empty<string>())).GetHashCode();
+        }
+        if (civilWarSave?.LastOutbreak != null)
+        {
+            foreach (var o in civilWarSave.LastOutbreak)
+                civilWarHash = civilWarHash * 31 + (o.CountryId + "|" + o.Day).GetHashCode();
+        }
+        sb.AppendLine($"İç çatışma: isyan={rebellionCount}, patlak_geçmişi={outbreakCount}, hash={civilWarHash}");
         if (leaderCount > 0)
         {
             foreach (var kv in LeaderSystem.All.OrderBy(k => k.Key))

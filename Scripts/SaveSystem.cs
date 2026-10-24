@@ -74,6 +74,7 @@ public static class SaveSystem
         public OccupationSave Occupation { get; set; } // M49.1: savaşta ele geçirilen iller + baskı
         public AutonomySave Autonomy { get; set; } // M45.2: bağımlı özerklik seviyeleri
         public ResistanceSave Resistance { get; set; } // M45.3: il bazlı direniş durumu
+        public CivilWarSave CivilWar { get; set; } // M50.1: aktif isyanlar ve patlak geçmişi
         public VictorySystem.VictorySave Victory { get; set; } // M41.2: zafer koşulu durumu
         public DiplomacySave Diplomacy { get; set; }
         public CasusBelliSave CasusBelli { get; set; } // M17A: gerekçe/ateşkes/meşruiyet
@@ -439,6 +440,25 @@ public static class SaveSystem
         public double OccupationRate { get; set; }
     }
 
+    // ===== İç çatışma DTOs (M50.1) =====
+    public class CivilWarSave
+    {
+        public CivilWarEntry[] Rebellions { get; set; }
+        public CivilWarOutbreakDay[] LastOutbreak { get; set; }
+    }
+    public class CivilWarEntry
+    {
+        public string CountryId { get; set; }
+        public long StartDay { get; set; }
+        public string RebelCulture { get; set; }
+        public string[] Provinces { get; set; }
+    }
+    public class CivilWarOutbreakDay
+    {
+        public string CountryId { get; set; }
+        public long Day { get; set; }
+    }
+
 
     // ===== Deniz invazyonu DTOs (M39.2) =====
     public class NavalInvasionSave
@@ -722,6 +742,7 @@ public static class SaveSystem
             Occupation = OccupationSystem.GetSaveData(), // M49.1: işgal kayıtları + baskı
             Autonomy = AutonomySystem.GetSaveData(), // M45.2: özerklik seviyeleri
             Resistance = ResistanceSystem.GetSaveData(), // M45.3: direniş durumu
+            CivilWar = CivilWarSystem.GetSaveData(), // M50.1: isyan durumu
             Victory = VictorySystem.GetSaveData(), // M41.2: zafer koşulu durumu
             Diplomacy = DiplomacySystem.GetSaveData(),
             CasusBelli = CasusBelliSystem.GetSaveData(),
@@ -895,6 +916,7 @@ public static class SaveSystem
                 OccupationSystem.LoadSaveData(save.Occupation); // M49.1: işgal + baskı durumu
                 AutonomySystem.LoadSaveData(save.Autonomy); // M45.2: özerklik seviyeleri
                 ResistanceSystem.LoadSaveData(save.Resistance); // M45.3: direniş durumu
+            CivilWarSystem.LoadSaveData(save.CivilWar); // M50.1: isyan durumu
             VictorySystem.ApplySave(save.Victory); // M41.2: zafer koşulu durumu
             DiplomacySystem.LoadSaveData(save.Diplomacy);
             CasusBelliSystem.LoadSaveData(save.CasusBelli);

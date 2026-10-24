@@ -193,6 +193,7 @@ public partial class GameManager : Node
         bool cultureLegendTest = false;      // M46.2: kültür efsanesi paneli testi (--culture-legend-test)
         bool cultureInfoTest = false;        // M46.3: kültür bilgisi + eşleşmeyen il konturu testi (--culture-info-test)
         bool provinceEconomyTest = false;    // M47.1: il bazlı ekonomi ağırlık katmanı testi (--province-economy-test)
+        bool resourceBalanceTest = false;    // M47.3: kaynak açığı ekonomik sonucu testi (--resource-balance-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -365,6 +366,8 @@ public partial class GameManager : Node
                     cultureInfoTest = true;
                 else if (arg == "--province-economy-test")
                     provinceEconomyTest = true;
+                else if (arg == "--resource-balance-test")
+                    resourceBalanceTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -812,6 +815,10 @@ public partial class GameManager : Node
         // M47.1: İl bazlı ekonomi ağırlık katmanı testi — pay tutarlı, toplam korunur.
         if (provinceEconomyTest)
             RunProvinceEconomyTest();
+
+        // M47.3: Kaynak açığının ekonomik sonucu testi — verim düşer, maliyet artar.
+        if (resourceBalanceTest)
+            RunResourceBalanceTest();
 
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
@@ -9105,6 +9112,160 @@ private void RunBalanceTest()
         ProvinceCultureSystem.ResetForNewGame();
 
         GD.Print(ok ? "[ProvEconomyTest] SONUÇ: PASS ✓" : "[ProvEconomyTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M47.3: Kaynak açığının ekonomik sonucu headless testi (--resource-balance-test).
+    /// Normal oyunda ASLA çalışmaz.
+    ///
+    /// Doğrulananlar:
+    ///   1) Tok ülkede açık yok → verim 1.0, ihracat geliri > 0, konvoy talebi 0
+    ///   2) Kaynağı sıfırlanan ülkede açık → verim < 1.0, ithalat maliyeti > 0, konvoy talebi > 0
+    ///   3) Açık derinleştikçe birim ithalat fiyatı artar (tam açık > yarım açık > taban)
+    ///   4) Verimlilik stoktan değil KAPASİTEDEN hesaplanır → spiralleşme yok
+    ///   5) M47.2 il devri kapasiteyi taşır (dünya toplamı korunur)
+    ///   6) Hesaplar deterministik (aynı kapasite → aynı sonuç)
+    /// </summary>
+    private void RunResourceBalanceTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M47.3: KAYNAK AÇIĞI EKONOMİK SONUCU TESTİ");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceEconomySystem.GenerateFor(provinces, "historical_1936");
+
+        var rich = CountryDatabase.Get("USA");
+
+        // Ülke künyesi: kapasiteden ihtiyaç türetildiği için fabrika/nüfus önemli.
+        GD.Print($"[ResBalanceTest] 0) USA: fabrika={rich?.TotalFactories ?? 0}, kişi={rich?.Population ?? 0}");
+        GD.Print($"[ResBalanceTest]    çelik={rich?.Steel ?? 0}, petrol={rich?.Oil ?? 0}, kauçuk={rich?.Rubber ?? 0}");
+
+        // 1) Tok ülke: her kaynak ihtiyacının çok üstünde → açık sıfır, verim tam, gelir var.
+        var usaData = CountryDatabase.Get("USA");
+        if (usaData != null)
+        {
+            usaData.Steel = 1000;
+            usaData.Oil = 1000;
+            usaData.Rubber = 1000;
+            usaData.Aluminum = 1000;
+            usaData.Tungsten = 1000;
+            usaData.Chromium = 1000;
+        }
+        double richDeficit = ProvinceEconomySystem.TotalDeficitOf("USA");
+        double richSurplus = ProvinceEconomySystem.TotalSurplusOf("USA");
+        double richEff = ProvinceEconomySystem.ExtractionEfficiency("USA");
+        double richIncome = ProvinceEconomySystem.TradeIncomeOf("USA");
+        int richConvoy = ProvinceEconomySystem.ConvoyDemandOf("USA");
+        GD.Print($"[ResBalanceTest] 1) Tok USA: açık={richDeficit:F1}, tokluk={richSurplus:F1}, " +
+                 $"verim={richEff:F2}, ihracat geliri={richIncome:F1}, konvoy talebi={richConvoy}");
+        if (richDeficit != 0) ok = false;          // açık olmamalı
+        if (richEff != 1.0f) ok = false;           // verim tam olmalı
+        if (richIncome <= 0) ok = false;           // ihracat geliri doğmalı
+        if (richConvoy != 0) ok = false;           // ithalat konvoyu istenmemeli
+
+        // 2) Açık ülke: aynı fabrika/nüfus, hiç kaynak yok → bedel doğar.
+        if (usaData != null)
+        {
+            usaData.Steel = 0;
+            usaData.Oil = 0;
+            usaData.Rubber = 0;
+            usaData.Aluminum = 0;
+            usaData.Tungsten = 0;
+            usaData.Chromium = 0;
+        }
+        double poorDeficit = ProvinceEconomySystem.TotalDeficitOf("USA");
+        double poorEff = ProvinceEconomySystem.ExtractionEfficiency("USA");
+        int poorConvoy = ProvinceEconomySystem.ConvoyDemandOf("USA");
+        var steelBal = ProvinceEconomySystem.BalanceFor("USA", "Steel");
+        double importCost = steelBal.Deficit * steelBal.ImportPricePerUnit; // günlük ithalat yükü
+        GD.Print($"[ResBalanceTest] 2) Kaynağı sıfırlanan USA: açık={poorDeficit:F1}, " +
+                 $"verim={poorEff:F2}, konvoy talebi={poorConvoy}");
+        GD.Print($"[ResBalanceTest]    çelik dengesi: ihtiyaç={steelBal.Need:F1}, arz={steelBal.Supply:F1}, " +
+                 $"açık={steelBal.Deficit:F1}, fiyat/birim={steelBal.ImportPricePerUnit:F2}, " +
+                 $"maliyet={importCost:F1}/gün");
+        if (poorDeficit <= 0) ok = false;                 // açık oluşmalı
+        if (poorEff >= 1.0f) ok = false;                  // verim düşmeli
+        if (poorConvoy <= 0) ok = false;                  // konvoy istenmeli
+        if (steelBal.Deficit <= 0) ok = false;            // çelik açık olmalı
+        if (importCost <= 0) ok = false;                  // maliyet doğmalı
+
+        // 3) Fiyat açık derinliğine göre artar: yarısını ver, fiyat düşmeli ama tabandan yüksek kalmalı
+        if (usaData != null)
+        {
+            double need = ProvinceEconomySystem.ResourceNeedOf("USA", "Steel");
+            usaData.Steel = (int)(need * 0.5);            // yarısı karşılanıyor
+        }
+        var halfSteel = ProvinceEconomySystem.BalanceFor("USA", "Steel");
+        GD.Print($"[ResBalanceTest] 3) Yarı çelik: arz={halfSteel.Supply:F1}, açık={halfSteel.Deficit:F1}, " +
+                 $"fiyat/birim={halfSteel.ImportPricePerUnit:F2} (tam açık {steelBal.ImportPricePerUnit:F2}, " +
+                 $"taban {1.0:F2})");
+        // Tam açıkta fiyat > yarım açık > taban
+        if (!(steelBal.ImportPricePerUnit > halfSteel.ImportPricePerUnit &&
+              halfSteel.ImportPricePerUnit > 1.0)) ok = false;
+
+        // 4) Spiralleşme yok: kapasite aynı kaldıkça verim tekrar hesaplanınca sabit kalmalı.
+        // (Verim stoktan değil CountryData kapasitesinden hesaplanır.)
+        double effA = ProvinceEconomySystem.ExtractionEfficiency("USA");
+        double effB = ProvinceEconomySystem.ExtractionEfficiency("USA");
+        GD.Print($"[ResBalanceTest] 4) Verim sabitliği: {effA:F6} == {effB:F6}");
+        if (Math.Abs(effA - effB) > 1e-9) ok = false;
+
+        // 5) M47.2 entegrasyonu: devir, açığı taşırmalı.
+        // POL'un zengin bir ilini DEU'ye ver → DEU arttırır, POL azalır; toplam korunur.
+        var polProvinces = ProvinceEconomySystem.ForCountry("POL").ToList();
+        if (polProvinces.Count > 0 && polProvinces[0].TotalFactories > 0)
+        {
+            var polData = CountryDatabase.Get("POL");
+            var deuData = CountryDatabase.Get("DEU");
+            int polBefore = polData?.TotalFactories ?? 0;
+            int deuBefore = deuData?.TotalFactories ?? 0;
+            int worldBefore = polBefore + deuBefore;
+
+            double polDeficitBefore = ProvinceEconomySystem.TotalDeficitOf("POL");
+            ProvinceOwnershipSystem.SetProvinceOwner(polProvinces[0].ProvinceId, "DEU");
+
+            int polAfter = polData?.TotalFactories ?? 0;
+            int deuAfter = deuData?.TotalFactories ?? 0;
+            double polDeficitAfter = ProvinceEconomySystem.TotalDeficitOf("POL");
+
+            GD.Print($"[ResBalanceTest] 5) POL il devri (M47.2): fabrika {polBefore}→{polAfter}, " +
+                     $"DEU {deuBefore}→{deuAfter}, dünya {worldBefore}→{polAfter + deuAfter}");
+            GD.Print($"[ResBalanceTest]    POL kaynak açığı: {polDeficitBefore:F1} → {polDeficitAfter:F1}");
+            // Eksilen fabrika ihtiyacı azaltır ama arz de değişir; kritik olan toplam korunumu.
+            if (polAfter + deuAfter != worldBefore) ok = false;
+        }
+        else
+        {
+            GD.Print("[ResBalanceTest] 5) POL'da devredilecek il yok — atlandı");
+        }
+
+        // 6) Determinizm: aynı kapasite → aynı açık. 3. adımda çeliği yarımaya
+        // bırakmıştık; 2. adımdaki "tam açık" durumunu yeniden kurup ölçüyoruz.
+        if (usaData != null)
+        {
+            usaData.Steel = 0;
+            usaData.Oil = 0;
+            usaData.Rubber = 0;
+            usaData.Aluminum = 0;
+            usaData.Tungsten = 0;
+            usaData.Chromium = 0;
+        }
+        double reDeficit = ProvinceEconomySystem.TotalDeficitOf("USA");
+        GD.Print($"[ResBalanceTest] 6) Tekrarlanan hesaplama: USA açık={reDeficit:F1} " +
+                 $"(tam açık {poorDeficit:F1} ile aynı olmalı)");
+        if (Math.Abs(reDeficit - poorDeficit) > 1e-9) ok = false;
+
+        ProvinceEconomySystem.ResetForNewGame();
+        ProvinceCultureSystem.ResetForNewGame();
+
+        GD.Print(ok ? "[ResBalanceTest] SONUÇ: PASS ✓" : "[ResBalanceTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

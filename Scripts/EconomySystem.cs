@@ -70,6 +70,36 @@ public static class EconomySystem
     // Konvoy filosu (inşa edilebilir; Convoy tamamlanınca artar)
     private static int _convoyCount = 20; // HOI4 benzeri başlangıç
 
+    // M47.3: kaynak açığının bütçeye yansıması — son güncel hesap.
+    private static ResourceBudget _resourceBudget = new();
+
+    /// <summary>
+    /// M47.3 — Kaynak dengesinin bütçe dökümü.
+    ///
+    /// Açık kaynaklar çıkarımı düşürür ve ithalat maliyetini artırır; zengin
+    /// kaynaklar ihracat geliri doğurur. Degerleri `ProvinceEconomySystem`
+    /// üzerinden kapasiteden hesaplanır, rastgelelik yoktur.
+    /// </summary>
+    public sealed class ResourceBudget
+    {
+        public string CountryId = "";
+        public double ExtractionEfficiency = 1.0;   // 1.0 = tam çıkarım
+        public double TotalNeed;
+        public double TotalSupply;
+        public double TotalDeficit;
+        public double TotalSurplus;
+        public double ImportCostPerDay;             // açık kaynakların günlük maliyeti
+        public double TradeIncomePerDay;            // zengin kaynakların günlük geliri
+        public int ConvoyDemand;                    // ithalat için gereken konvoy
+        public int ConvoyShortfall;                 // filo yetmediğinde eksik konvoy
+
+        public bool HasShortage => TotalDeficit > 0;
+        public bool HasSurplus => TotalSurplus > 0;
+    }
+
+    /// <summary>M47.3: son hesaplanan kaynak bütçesi (UI/log okur).</summary>
+    public static ResourceBudget CurrentResourceBudget => _resourceBudget;
+
     // Ticaret anlaşması: belirli bir kaynağı günde X birim ithal eder
     public class TradeDeal
     {
@@ -174,11 +204,57 @@ public static class EconomySystem
         // 4) Otomatik ticaret (M4.5): eksik kaynak → konvoyla ithalat
         ProcessAutomaticTrade();
 
+        // 4.5) M47.3: kaynak açığının bütçeye yazılması
+        ApplyResourceBudget();
+
         // 5) Ayda bir durum logu
         if (GM.TotalDays > 0 && GM.TotalDays % 30 == 0)
+        {
             GD.Print($"[Economy] Gün {GM.TotalDays}: BoşSivil={freeCivs}, CG={CGRate*100:F0}%, " +
                      $"Kuyruk={_constructionQueue.Count}, Petrol={_stockpiles.GetValueOrDefault("Oil")}, " +
                      $"Çelik={_stockpiles.GetValueOrDefault("Steel")}, Konvoy={_convoyCount}");
+            if (_resourceBudget.HasShortage || _resourceBudget.HasSurplus)
+                GD.Print($"[Economy]   Kaynak dengesi (M47.3): verim={_resourceBudget.ExtractionEfficiency:F2}, " +
+                         $"açık={_resourceBudget.TotalDeficit:F1}, tokluk={_resourceBudget.TotalSurplus:F1}, " +
+                         $"ithalat maliyeti={_resourceBudget.ImportCostPerDay:F1}/gün, " +
+                         $"ihracat geliri={_resourceBudget.TradeIncomePerDay:F1}/gün" +
+                         (_resourceBudget.ConvoyShortfall > 0
+                             ? $", konvoy eksiği={_resourceBudget.ConvoyShortfall}"
+                             : ""));
+        }
+    }
+
+    // M47.3: oyuncunun kaynak açığını/tokluğunu hesaplayıp bütçeye yaz.
+    // Verimlilik zaten ProduceResources içinde çıkarımı düşürmek için kullanıldı;
+    // burada döküm tutulur (UI, log ve ileride save/load için).
+    private static void ApplyResourceBudget()
+    {
+        var d = Player;
+        if (d == null) return;
+
+        var b = new ResourceBudget { CountryId = d.Id };
+        double need = 0, supply = 0, importCost = 0;
+
+        foreach (var key in TrackedResources)
+        {
+            var bal = ProvinceEconomySystem.BalanceFor(d.Id, key);
+            need += bal.Need;
+            supply += bal.Supply;
+            // Açık birimi ithal etmek fiyat kadar konvoy (ve bütçe yükü) ister.
+            importCost += bal.Deficit * bal.ImportPricePerUnit;
+        }
+
+        b.TotalNeed = need;
+        b.TotalSupply = supply;
+        b.TotalDeficit = need - supply;
+        if (b.TotalDeficit < 0) b.TotalDeficit = 0;
+        b.TotalSurplus = ProvinceEconomySystem.TotalSurplusOf(d.Id);
+        b.ExtractionEfficiency = ProvinceEconomySystem.ExtractionEfficiency(d.Id);
+        b.ImportCostPerDay = importCost;
+        b.TradeIncomePerDay = ProvinceEconomySystem.TradeIncomeOf(d.Id);
+        b.ConvoyDemand = ProvinceEconomySystem.ConvoyDemandOf(d.Id);
+        b.ConvoyShortfall = Math.Max(0, b.ConvoyDemand - _convoyCount);
+        _resourceBudget = b;
     }
 
     // Üretim: CountryData'daki kaynak alanları günlük üretim birimi sayılır (HOI4 modeli)
@@ -189,6 +265,11 @@ public static class EconomySystem
 
         // M45.2: özerk bağımlılardan gelen kaynak azalır (kesinti katsayısı)
         resMult *= (float)AutonomySystem.ResourceExtractionFactor(d.Id);
+
+        // M47.3: kaynak açığı olan ülkede çıkarım verimliliği düşer. Verimlilik
+        // üretim KAPASİTESİNDEN (CountryData) hesaplanır, stoktan değil — bu yüzden
+        // ceza üretime uygulansa da kendini besleyen bir spirale dönüşmez.
+        resMult *= (float)ProvinceEconomySystem.ExtractionEfficiency(d.Id);
 
         AddToStock("Oil", (int)(d.Oil * resMult));
         AddToStock("Rubber", (int)(d.Rubber * resMult));

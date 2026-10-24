@@ -44,6 +44,15 @@ public static class ProvinceEconomySystem
         public double PopulationCultureWeight = 0.85;
         public double PopulationAreaWeight = 0.15;
         public int BlendTolerancePercent = 5;
+
+        // M47.3 — kaynak açğı/tokluk dengesi
+        public double NeedPerFactory = 0.25;   // fabrika başına kaynak ihtiyacı
+        public double NeedPerMillionPop = 0.04; // milyon kişi başına kaynak ihtiyacı
+        public double MinEfficiency = 0.5;     // çıkarım verimliliği tabanı (ölümsüz spirali önler)
+        public double UnitsPerConvoy = 2.0;    // bir konvoyun günlük taşıyabildiği kaynak
+        public double ImportPriceBase = 1.0;   // birim ithalat maliyetinin tabanı
+        public double DeficitPriceScale = 0.6; // açık derinleştikçe fiyat artış katsayısı
+        public double IncomePerSurplusUnit = 0.5; // fazla birim kaynağın ihracat geliri
     }
 
     private sealed class EconomyRoot
@@ -639,6 +648,154 @@ public static class ProvinceEconomySystem
                  (moveValues ? "" : " (CountryData taşınmadı: kayıt yok)"));
     }
 
+    // ===== M47.3: Kaynak açığının ekonomik sonucu =====
+
+    /// <summary>
+    /// M47.3 — Bir kaynağın ülkedeki durumu: ihtiyaç, arz, açık/tokluk ve bedeli.
+    ///
+    /// İhtiyaç ülkenin sanayi ve nüfus hacminden türetilir (fabrika + milyon kişi);
+    /// arz `CountryData`'daki üretim alanıdır. M47.2 sayesinde il devri bu arzı
+    /// fiilen taşıdığı için, bir ülke zengin illerini kaybettiğinde açık burada
+    /// kendiliğinden ortaya çıkar — ayrı bir olay dinlemeye gerek yoktur.
+    ///
+    /// Açık derinleştikçe birim ithalat maliyeti artar (kıt piyasa), toklukta ise
+    /// ihracat geliri doğar. Hiçbir yerde rastgelelik kullanılmaz.
+    /// </summary>
+    public sealed class ResourceBalance
+    {
+        public string CountryId = "";
+        public string Key = "";           // "Oil", "Steel"...
+        public double Need;               // günlük ihtiyaç
+        public double Supply;             // ülke üretimi (CountryData)
+        public double Deficit;            // max(0, Need − Supply)
+        public double Surplus;            // max(0, Supply − Need)
+        public double ImportPricePerUnit; // açık derinliğine göre artan birim fiyat
+        public int ConvoyCost;            // açığı karşılamak için gereken konvoy
+    }
+
+    // Kaynağın endüstriyel ağırlığı: aynı fabrika/nüfus petrolu çelikten çok tüketir.
+    private static readonly Dictionary<string, double> NeedWeight = new(StringComparer.Ordinal)
+    {
+        { "Oil", 1.20 },
+        { "Rubber", 1.00 },
+        { "Steel", 1.00 },
+        { "Aluminum", 0.80 },
+        { "Tungsten", 0.70 },
+        { "Chromium", 0.60 }
+    };
+
+    private static double SupplyOf(CountryData d, string key) => key switch
+    {
+        "Oil" => d.Oil,
+        "Rubber" => d.Rubber,
+        "Steel" => d.Steel,
+        "Aluminum" => d.Aluminum,
+        "Tungsten" => d.Tungsten,
+        "Chromium" => d.Chromium,
+        _ => 0
+    };
+
+    /// <summary>Ülkenin bir kaynağa günlük ihtiyacı (fabrika + nüfus hacminden).</summary>
+    public static double ResourceNeedOf(string countryId, string key)
+    {
+        var d = CountryDatabase.Get(countryId);
+        if (d == null) return 0;
+        EnsureLoaded();
+        if (!NeedWeight.TryGetValue(key, out double w)) return 0;
+
+        double million = d.Population / 1_000_000.0;
+        return w * (d.TotalFactories * S.NeedPerFactory + million * S.NeedPerMillionPop);
+    }
+
+    /// <summary>Bir kaynağın açık/tokluk dökümü.</summary>
+    public static ResourceBalance BalanceFor(string countryId, string key)
+    {
+        var bal = new ResourceBalance { CountryId = countryId, Key = key };
+        var d = CountryDatabase.Get(countryId);
+        if (d == null) return bal;
+
+        EnsureLoaded();
+        bal.Need = ResourceNeedOf(countryId, key);
+        bal.Supply = SupplyOf(d, key);
+        bal.Deficit = Math.Max(0.0, bal.Need - bal.Supply);
+        bal.Surplus = Math.Max(0.0, bal.Supply - bal.Need);
+
+        // Açık, ihtiyacın ne kadarıysa fiyat o oranda artar (0 → taban fiyat).
+        double depth = bal.Need > 0 ? bal.Deficit / bal.Need : 0.0;
+        bal.ImportPricePerUnit = S.ImportPriceBase * (1.0 + depth * S.DeficitPriceScale);
+        bal.ConvoyCost = (int)Math.Ceiling(bal.Deficit / Math.Max(0.0001, S.UnitsPerConvoy));
+        return bal;
+    }
+
+    /// <summary>Takip edilen tüm kaynaklar için döküm (deterministik sırada).</summary>
+    public static List<ResourceBalance> BalancesOf(string countryId)
+    {
+        var list = new List<ResourceBalance>();
+        foreach (var key in ResourceKeys) list.Add(BalanceFor(countryId, key));
+        return list;
+    }
+
+    /// <summary>Ülkenin toplam kaynak açığı (birim/gün).</summary>
+    public static double TotalDeficitOf(string countryId)
+    {
+        double sum = 0;
+        foreach (var key in ResourceKeys) sum += BalanceFor(countryId, key).Deficit;
+        return sum;
+    }
+
+    /// <summary>Ülkenin toplam kaynak tokluğu (birim/gün).</summary>
+    public static double TotalSurplusOf(string countryId)
+    {
+        double sum = 0;
+        foreach (var key in ResourceKeys) sum += BalanceFor(countryId, key).Surplus;
+        return sum;
+    }
+
+    /// <summary>
+    /// Çıkarım verimliliği (1.0 → tabana kadar). Açık, ülkenin kendi
+    /// üretim kapasitesinden (`CountryData`) hesaplanır — stoktan değil. Bu yüzden
+    /// ceza üretime uygulansa bile bir ölüm spirali oluşmaz: kapasite değişmedikçe
+    /// verimlilik sabit kalır, yalnızca M47.2 il devriyle birlikte değişir.
+    /// </summary>
+    public static double ExtractionEfficiency(string countryId)
+    {
+        EnsureLoaded();
+        double need = 0, deficit = 0;
+        foreach (var key in ResourceKeys)
+        {
+            var bal = BalanceFor(countryId, key);
+            need += bal.Need;
+            deficit += bal.Deficit;
+        }
+        if (need <= 0) return 1.0;
+
+        double eff = 1.0 - deficit / need;
+        return Math.Clamp(eff, Math.Min(S.MinEfficiency, 1.0), 1.0);
+    }
+
+    /// <summary>Zengin kaynakların ihracat geliri (günlük).</summary>
+    public static double TradeIncomeOf(string countryId)
+    {
+        EnsureLoaded();
+        var d = CountryDatabase.Get(countryId);
+        if (d == null) return 0;
+
+        double income = 0;
+        foreach (var key in ResourceKeys)
+        {
+            var bal = BalanceFor(countryId, key);
+            income += bal.Surplus * S.IncomePerSurplusUnit;
+        }
+        return income;
+    }
+
+    /// <summary>Açık kaynakları karşılamak için gereken toplam konvoy sayısı.</summary>
+    public static int ConvoyDemandOf(string countryId)
+    {
+        int sum = 0;
+        foreach (var key in ResourceKeys) sum += BalanceFor(countryId, key).ConvoyCost;
+        return sum;
+    }
 
     /// <summary>Platformdan bağımsız kararlı hash (FNV-1a).</summary>
     private static int StableHash(string s)

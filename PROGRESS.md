@@ -2985,3 +2985,39 @@ ayrıca culture dışına çıkınca vurgunun düştüğü ve onun da round-trip
 ### M47.2 sırasında düzeltilen test hatası
 - Test başlangıçta `CivFactories` değişimini ilin `TotalFactories` payıyla karşılaştırıyordu →
   Civ/Mil/Dock ayrımı yapıldı (üçü ayrı ayrı doğrulanıyor).
+
+### M47.3 — Kaynak açığının ekonomik sonucu ✅ DONE (2026-10-24)
+- `Scripts/ProvinceEconomySystem.cs`: M47.3 kaynak dengesi katmanı.
+  - `ResourceNeedOf` — ihtiyaç fabrika + nüfus hacminden türetilir
+    (`NeedPerFactory` 0.25, `NeedPerMillionPop` 0.04); kaynak bazlı ağırlık
+    (petrol 1.2 … krom 0.6) ile aynı fabrika farklı kaynağı farklı tüketir.
+  - `BalanceFor` / `BalancesOf` — kaynağın dökümü: Need, Supply, Deficit, Surplus,
+    ImportPricePerUnit, ConvoyCost.
+  - `ExtractionEfficiency` — çıkarım verimliliği (1.0 → 0.5 taban). Kapasiteden
+    (CountryData) hesaplanır, stoktan DEĞİL → ceza üretime uygulanırken
+    kendini besleyen bir ölüm spirali oluşmaz.
+  - `TradeIncomeOf` — tokluktaki kaynakların ihracat geliri.
+  - `ConvoyDemandOf` — açığı karşılamak için gereken konvoy sayısı.
+- `Scripts/EconomySystem.cs`: bütçe yazımı + ceza.
+  - `ProduceResources` çıkarım verimliliği ile çarpılır (M45.2 özerklik
+    kesintisinden SONRA, teknoloji çarpanıyla birlikte).
+  - `ResourceBudget` (yeni sınıf) + `CurrentResourceBudget` — ExtractionEfficiency,
+    TotalNeed/Supply/Deficit/Surplus, ImportCostPerDay, TradeIncomePerDay,
+    ConvoyDemand, ConvoyShortfall.
+  - `ApplyResourceBudget()` günlük tick'te; aylık durum loguna durum satırı eklendi.
+- `Data/province_economy.json`: M47.3 ayarları eklendi.
+- `Scripts/GameManager.cs`: `--resource-balance-test` (6 adım).
+
+### Test kapsamı (`--resource-balance-test`)
+1) Tok ülke: açık=0, verim=1.0, ihracat geliri>0, konvoy talebi=0
+2) Açık ülke: verim<1.0, ithalat maliyeti>0, konvoy talebi>0
+3) Fiyat açık derinliğine göre artar (tam açık > yarım açık > taban)
+4) Verim sabitlığı (spiralleşme yok)
+5) M47.2 il devri kapasiteyi taşır, dünya toplamı korunur
+6) Aynı kapasite → aynı sonuç (determinizm)
+
+### Kalibrasyon notu
+- İlk denemede `NeedPerFactory=0.35` ile dünyanın neredeyse her sanayi ülkesi
+  açıkta çıkıyordu (USA çelik ihtiyacı 72.5 / arz 40). Gerçek kapasite dağılımına
+  (DEU 50 fabrika/22 çelik, USA 134/40) bakılarak 0.25/0.04 olarak kalibre edildi →
+  USA çelik ihtiyacı 38.6, kendine yeterli.

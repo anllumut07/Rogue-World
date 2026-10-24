@@ -12,6 +12,13 @@
     "FactoryCoastBias": 0.20,
     "PopulationCultureWeight": 0.85,
     "PopulationAreaWeight": 0.15,
-    "BlendTolerancePercent": 5
+    "BlendTolerancePercent": 5,
+    "NeedPerFactory": 0.25,
+    "NeedPerMillionPop": 0.04,
+    "MinEfficiency": 0.5,
+    "UnitsPerConvoy": 2.0,
+    "ImportPriceBase": 1.0,
+    "DeficitPriceScale": 0.6,
+    "IncomePerSurplusUnit": 0.5
   }
 }

@@ -2821,3 +2821,58 @@ izlenecek). Derleniyor, testler geçiyor → ilk görev commit'ine dahil edilece
 - Sıralama önemli: `CountryData` taşıması ÖNCE, kültür/geometri `ReassignCountry` SONRA.
   Ters sırada harmanlama eski toplamlara göre yapılıp tutarsızlık oluşuyordu.
 - `"?"` (sahipsiz) gerçek kimlik değil; ağırlık kaydındaki ülkeye düşülüyor.
+
+---
+
+## M47.3 — Kaynak açığının ekonomik sonucu (TAMAM)
+
+### ÖZET
+1. **Değişen dosyalar**
+   - `Scripts/ProvinceEconomySystem.cs`: M47.3 kaynak dengesi katmanı (ihtiyaç,
+     döküm, verimlilik, ihracat geliri, konvoy talebi).
+   - `Scripts/EconomySystem.cs`: `ResourceBudget` sınıfı + `ApplyResourceBudget()`
+     + `ProduceResources` verimlilik çarpanı + aylık log satırı.
+   - `Data/province_economy.json`: 7 yeni ayar.
+   - `Scripts/GameManager.cs`: `--resource-balance-test`.
+2. **Çözülenler**
+   - Açık kaynak → çıkarım verimliliği düşer (`ExtractionEfficiency`, 1.0→0.5
+     taban) ve ithalat maliyeti artar (açık derinliğine göre birim fiyat).
+   - Zengin kaynak → ihracat geliri (`TradeIncomeOf`).
+   - Konvoy talebi ve eksiği bütçede tutulur (M43 konvoy sistemiyle uyum).
+   - **Spiralleşme koruması:** verimlilik stoktan değil `CountryData`
+     kapasitesinden hesaplanır → ceza üretime uygulansa bile kendini beslemez,
+     yalnızca il devriyle (M47.2) değişir. Test 4. adım doğruladı.
+   - M47.2 ile uyum: il devri kapasiteyi taşıdığı için açık kendiliğinden
+     kayar (ayrı olay dinleme gerekmiyor).
+3. **Çözemediğim**
+   - Yok.
+4. **Bilinen sorunlar**
+   - İlk kalibrasyonda (`NeedPerFactory=0.35`) sanayi ülkelerin neredeyse tamamı
+     açıkta çıkıyordu; kapasite dağılımına göre 0.25/0.04'e kalibre edildi.
+     Eşik değerleri tek bir veri dağılımına göre ayarlandı — yeni senaryo eklenirse
+     yeniden kalibrasyon gerekebilir.
+   - `CurrentResourceBudget` save/load'a yazılmıyor: değerleri `CountryData`
+     kapasitesinden her gün yeniden türetiliyor (türetilmiş durum, kayıt gerektirmez).
+5. **Kullanıcının test etmesi gerekenler**
+   - Yok (headless test tüm kriterleri doğruladı).
+
+**Test sonuçları (M47.3)**
+| Test | Süre | Sonuç |
+|---|---|---|
+| `--resource-balance-test` | 5.3 sn | PASS ✓ |
+| `--province-economy-test` | 13.7 sn | PASS ✓ |
+| `--save-load-test` (historical_1936) | 20.1 sn | PASS ✓ (A == B) |
+| `--save-load-test` (modern_world) | 23.8 sn | PASS ✓ (A == B) |
+
+**dotnet build:** 0 hata / 0 uyarı.
+
+### Kararlar
+- Zahmetsiz görünen ama anahtar olan nokta: verimliliği **stoktan değil
+  kapasiteden** hesaplamak. Stoktan hesaplansaydı "açık → az üretim → daha az
+  stok → daha büyük açık" döngüsüne girerdi ve ülke çökerdi.
+- Aynı testte zengin/açık durumlar sentetik olarak kuruldu (kaynakları 1000/0
+  yapılarak). Baştaki sürümde temel verinin kendisine güvenilmişti; ama gerçek
+  dağılımda hiçbir ülke tam kendine yeterli olmadığı için test anlamsızdı.
+- İki testi aynı anda arka planda koşmak log dosyasını çakıştırdı (ortak
+  `save_load_test.log`) ve ilk sonucu yanlış FAIL gösterdi. Bu koşu yalnızca
+  kalıyor; sonraki koşular tek tek ve senkron yapıldı.

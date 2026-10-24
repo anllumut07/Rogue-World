@@ -724,7 +724,7 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 |-----------|----------|--------------|-------|
 | 47.1 | `Scripts/ProvinceEconomySystem.cs` (yeni): il başına kaynak/fabrika/nüfus ağırlığı (alan + nüfus + kıyı + şehir), `DeterministicRNG` ile üretim; ülke toplamı `CountryData` ile harmanlanır (üretim kaybolmaz, kaynak taşınır) | Ağırlık tutarlı (il toplamı = ülke toplamı ±harman payı), `--province-economy-test` PASS | [x] |
 | 47.2 | İl devri sonrası yeniden hesaplama: `ProvinceOwnershipSystem.SetProvinceOwner`, ilhak, serbest bırakma ve kurgu kurma sonrası ülke ekonomisi güncellenir (M42/M44.3/M44.4 çağrı noktalarına kanca) | Devir sonrası veren/alan ülkenin kaynağı doğru kayar, toplam kaya korunur, loglanır | [x] |
-| 47.3 | Kaynak açğının ekonomik sonucu: eksik kaynak → ithalat maliyeti/ceza (M43 konvoy sistemiyle uyum), zengin kaynak → ticaret geliri | Açık olan ülkede kaynak çıkarımı düşer ve maliyet artar, `EconomySystem` bütçesine yazılır | [ ] |
+| 47.3 | Kaynak açğının ekonomik sonucu: eksik kaynak → ithalat maliyeti/ceza (M43 konvoy sistemiyle uyum), zengin kaynak → ticaret geliri | Açık olan ülkede kaynak çıkarımı düşer ve maliyet artar, `EconomySystem` bütçesine yazılır | [x] |
 | 47.4 | Save/Load entegrasyonu + `SaveLoadTest.BuildSummaryCore` özetine eklenmesi | A==B PASS (2 senaryo), il ekonomisi hash'i özette görünür | [ ] |
 
 ---

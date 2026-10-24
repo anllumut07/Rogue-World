@@ -743,3 +743,72 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 ---
 
 ## Notlar
+
+---
+
+## M49 — Savaş Haritayı Değiştirsin (İl İşgali + Emsal Baskı)
+
+**Hedef:** Şu an savaşlar haritada hiçbir şey değiştirmiyor. `WarSystem` savaşı
+soyut aşınmaya (battles won / strength) indirgiyor; il devri yalnızca barış
+masasında ve kaybedenin il kimliği sırasına göre yapılıyor — yani ülke hiç
+savaşmadığı ili de alabiliyor. Cephe çizgisi çiziliyor ama çizginin arkasında
+toprak kazanma/guidock kaybetme yok. Grand strategy oyununun omurgası bu.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 49.1 | `Scripts/OccupationSystem.cs` (yeni): her savaş için cephe köşeleri (savaşan iki ülkenin komşu il ikilileri), deterministik ilerleme (ordu gücü + cephe duruşu + tedarik) ve isgal edilen ilin SAHİPLİĞİNİ geçici değiştirme; orijinal sahip ayrı tutulur (işgal bayrağı), il kültük kaydı korunur | İlerleme deterministik, işgal edilen il başkasına geçer, orijinal sahip kayıtta, kültük korunur, `--occupation-test` PASS | [ ] |
+| 49.2 | İşgalin savaş puanına ve barış masasına yansıması: işgal oranı → `WarScoreSystem` geliri; `PeaceConferenceSystem` il talebi YALNIZCA gerçekten işgal edilmiş illeri kabul eder (aksi halde reddedilir), işgal oranı talep kapasitesini sınırlar | İşgal oranı arttıkça puan artar, işgal edilmemiş il talebi reddedilir, `--occupation-test` ve `--war-score-test` PASS | [ ] |
+| 49.3 | İşgal altındaki toprağın yönetimi: işgalciya kaynak/fabrika kısmi çıkarım, halkta direniş birikimi (M45 `ResistanceSystem` bağlantısı), serbest bırakma isteği | İşgalci çıkarım görür, direniş işgalde hızlı büyür, mevcut ekonomi testleri bozulmaz | [ ] |
+| 49.4 | Save/Load entegrasyonu + `SaveLoadTest.BuildSummaryCore` özeti + tüm savaş/eğilim testlerinde regresyon | A==B PASS (2 senaryo), `--war-test`, `--occupation-test`, `--diplomacy-test` PASS | [ ] |
+
+---
+
+## M50 — İç Çatışma: Sivil Savaş ve Devlet Dağılması
+
+**Hedef:** Oyun şu an ülkeleri sonsu kadar ayakta tutuyor. Stabilite, halk
+memnuniyeti, siyasi huzursuzluk ve direniş ölçülüyor ama aşırı değerlerin
+hiçbir sonucu yok — darbe sadece stabilite düşürüp geçiyor. Grand strategy'nin
+kalbi "imparatorluk paramparça olabilir" korkusudur. Bu mekanik aynı zamanda
+M48'de kurduğumuz tanınma/serbest bırakma/kurgu ulus sistemlerini besleyen
+gerçek bir üretici olur.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 50.1 | `Scripts/CivilWarSystem.cs` (yeni): çöküş puanı (stabilite + memnuniyet + huzursuzluk + savaş desteği + ekonomik bunalım), eşik aşılınca deterministik isyan patlaması; isyanın doğduğu iller kültük/coğrafyaya göre seçilir (RNG yok, sıralı hash) | Çöküş puanı formülle artar, eşik aşılınca isyan illeri doğru seçilir, deterministik, `--civil-war-test` PASS | [ ] |
+| 50.2 | İsyancı taraf: yeni ülke `CountryDatabase`'ye eklenir (gerçek kişi adı yok), isyan illeri devredilir, AI devralır, merkez hükümetiyle savaş açılır (`WarSystem`) ve M48 `RecognitionSystem.OnCountryBorn` ile dünyanın tanıma süreci başlar | İsyancı ülke oluşur, illeri devredilir, savaş açılır, tanınma akışı çalışır | [ ] |
+| 50.3 | Hükümetin iç savaşı bitirme yolları: isyancıyı yenip illeri geri alma, özerklik verip çözüm (M45 `AutonomySystem`), yabancı güç müdahalesi (M23 `InterventionSystem`); isyanın yayılması/yatışması | Barış/özerklik ile çözülür, müdahale çalışır, isyan yayılımı hızı formüle uyar | [ ] |
+| 50.4 | Save/Load entegrasyonu + özet hash + regresyon (siyasi, savaş, M45/M48 testleri) | A==B PASS (2 senaryo), `--civil-war-test`, `--intervention-test`, `--recognition-test` PASS | [ ] |
+
+---
+
+## M51 — Casusluğun Sonucu: Görev Etkileri
+
+**Hedef:** `EspionageSystem` çok derin (casus, eğitim, kiralık havuz, yakalanma,
+counter-intel, kültür uyumu) ama bir casusun görevdeyken yaptığı hiçbir ŞEY
+yok — yalnızca yakalanma riski ve yakalanınca -15 ilişki var. Yani oyuncu
+casusluk yatırımının karşılığını almıyor; sistem tam bir kabuk. Bu onarılacak
+en net tasarım boşluğu.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 51.1 | Görev türleri ve ilerleme: hedef ülkede casusun görev süresi, uyum puanı ve hedef counter-intel'i ile deterministik ilerleme; tamamlanan görev loglanır ve etki kuyruğuna girer | İlerleme deterministik, görev tamamlanır, etki uygulanır, `--espionage-mission-test` PASS | [ ] |
+| 51.2 | Etkilerin dünyaya yazılması: istihbarat (hedefin ordu/fabrika özeti), teknoloji hırsızlığı (`TechnologySystem` kredi), fabrika sabotajı (`EquipmentSystem`/fabrika hasarı), hükümete karşı olumsuz propaganda (`PublicSatisfactionSystem`/`PoliticalUnrestSystem`) | Her etki hedef sistemde ölçülebilir ve loglanır, olumsuz etki ilişkiyi düşürür | [ ] |
+| 51.3 | Counter-intel ve misilleme: yüksek counter-intel görev yavaşlatır/bozar; yakalanan casusun sahibi ülke karşı casusluk başlatabilir, ilişki ve yaptırım zinciri | Counter-intel yavaşlatma ölçülür, misilleme çalışır, `--espionage-mission-test` kapsar | [ ] |
+| 51.4 | Save/Load + özet hash + regresyon (mevcut casusluk testi, diplomasi, ekonomi) | A==B PASS (2 senaryo), mevcut espionage testi PASS | [ ] |
+
+---
+
+## M52 — Tanınmanin Sonucu: Tanınmayan Devlet
+
+**Hedef:** M48.3'te kurdğumuz tanınma şu an yalnızca ilişki puanı veriyor —
+dünyaca tanınmayan bir ülkeyle tanınmış bir ülke arasında mekaniksel hiçbir
+fark yok. Bu yüzden yeni doğan ülkeler (kurgu ulus, isyan, serbest bırakma)
+"kırılgan" hissettirmiyor. Tanınma, oyunun diğer sistemlerini kilitleyen gerçek
+bir kuruma dönüşmeli.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 52.1 | Tanınma sayısının kurumsal sonucu: `OrganizationSystem` üyeliği minimum tanınma ister; tanınmayan ülke ticaret gelirinden ve AI ittifak/garanti isteklerinden çıkarılır (M48.3 `RecognitionSystem` + `DiplomacySystem` + `OrganizationSystem` bağlantısı) | Tanınma 0 ise örgüte girilemez ve ittifak teklifi reddedilir, tanınma artınca açılır | [ ] |
+| 52.2 | Oyuncu eylemi: "TANINMA TALEP ET" diplomatik eylemi (`DiplomacyPanel`) — büyük güçleri tek tek ikna etme; kabul ilişkiyi artırır, ret prestiji/prestij kaybı yaratır; AI talebi prestij + ilişki + ideoloji + komşulukla değerlendirir | Kabul/ret deterministik ve loglanır, kabul tanınma sayısını artırır, `--recognition-request-test` PASS | [ ] |
+| 52.3 | Tanınmanın savaş kararlarına etkisi: tanınmayan devlete saldıran için dünya gerginliği bedeli düşük, tanınmış devlete saldıranın garantilere ve müdahaleye yol açma ihtimali yüksek (`CasusBelliSystem` + `InterventionSystem`) | Gerginlik bedeli tanınmayla azalır, müdahale olasılığı tanımayla artar | [ ] |
+| 52.4 | Save/Load + özet hash + regresyon (tanınma, diplomasi, örgüt, müdahale testleri) | A==B PASS (2 senaryo), `--recognition-test`, `--diplomacy-test`, `--intervention-test` PASS | [ ] |

@@ -3145,3 +3145,62 @@ okuyan entegrasyon testi yazıldı ve geçti. Ardından tüm regresyonlar koşul
   savaşının çıkışını görmek.
 - Save/Load sonrası sürmekte olan formable ve açık talebin kaldığı yerden
   devam ettiğini doğrulamak.
+
+---
+
+# SONRAKI 4 MİLESTONE — Vizyon Değerine Göre Seçim (2026-10-24)
+
+TODO.md'daki tüm alt görevler (M18.3 → M48.4) bitti. Kalan süre (~21 saat)
+için yeni iş tanımlandı. Seçim ölçütü: oyunun "grand strategy" vaadini şu an
+geri tutan, test edilebilir ve mevcut sistemleri bozmayan boşluklar. M14
+(yayınlama/Steam/itch) ve hesap gerektiren işler hariç.
+
+## M49 — Savaş haritayı değiştirsin (il işgali + emsal baskı)
+Savaşlar şu an haritada hiçbir şey değiştirmiyor: `WarSystem` çatışmayı soyut
+aşınmaya indirgiyor, il devri yalnızca barış masasında ve kaybedenin il kimliği
+sırasına göre yapılıyor — ülke hiç savaşmadığı ili de alabiliyor. Cephe çizgisi
+çiziliyor ama toprak kazanma yok. Grand strategy'nin omurgası budur; oyuncunun
+savaş yapma nedeni büyük ölçüde haritayı değiştirmektir. Kapsam: savaş başına
+cephe köşeleri, deterministik ilerleme, il sahipliğinin işgal bayrağıyla geçici
+değişmesi, işgal oranının savaş puanına ve barış taleplerine kilitlenmesi,
+işgal toprağında yönetim ve direniş. Kriter: isgal edilmemiş il talebi
+reddedilir, işgal oranı puanı sürükler, A==B korunur, `--occupation-test` PASS.
+
+## M50 — İç çatışma: sivil savaş ve devlet dağılması
+Stabilite, memnuniyet, huzursuzluk ve direniş ölçülüyor ama aşırı değerlerin
+sonucu yok — darbe sadece stabilite düşürüp geçiyor. "İmparatorluk paramparça
+olabilir" grand strategy'nin kalbidir ve oyuncunun uzun vadeli korkusu
+olmalıdır. Ekografi olarak bu mekanik aynı zamanda M48'de kurduğumuz tanınma,
+serbest bırakma ve kurgu ulus sistemlerini besleyen gerçek bir üretici olur:
+isyancı bir ülke doğar, dünya onu tanımak zorunda kalır. Kapsam: çöküş puanı,
+deterministik isyan illeri, isyancı tarafın ülke/savaş/tanınma akışı ve
+hükümetin çözüm yolları (askeri, özerklik, yabancı müdahale). Kriter:
+`--civil-war-test`, mevcut siyasi/savaş/M48 testleri ve A==B korunur.
+
+## M51 — Casusluğun sonucu: görev etkileri
+`EspionageSystem` çok derin (casus, eğitim, kiralık havuz, yakalanma,
+counter-intel, kültür uyumu) ama görevdeki casusun yaptığı hiçbir şey yok —
+yalnızca yakalanma riski ve yakalanınca -15 ilişki var. Oyuncu casusluk
+yatırımının karşılığını almıyor; sistem tam bir kabuk. Bu onarılacak en net
+tasarım boşluğu ve düşük riskli: dokunulacak sistemler (teknoloji, fabrika,
+halk memnuniyeti, huzursuzluk) zaten var ve test dokuçu da hazır. Kapsam:
+görev türleri ve deterministik ilerleme; istihbarat, teknoloji hırsızlığı,
+fabrika sabotajı, olumsuz propaganda; counter-intel ve misilleme. Kriter:
+`--espionage-mission-test`, mevcut casusluk/diplomasi testleri ve A==B korunur.
+
+## M52 — Tanınmanın sonucu: tanınmayan devlet
+M48.3'te kurdğumuz tanınma şu an yalnızca ilişki puanı veriyor; dünyaca
+tanınmayan ülke ile tanınmış ülke arasında mekaniksel fark yok, bu yüzden yeni
+doğan ülkeler kırılgan hissettirmiyor. Tanınma oyunun diğer sistemlerini
+kilitleyen gerçek kuruma dönüşmeli: örgüt üyeliği, ittifak/garanti, ticaret
+geliri ve savaş kararlarının bedeli tanınmaya bağlansın. Bu aynı zamanda M49 ve
+M50'nin ürettiği yeni ülkeler için anlam kazanmasını sağlar — yeni doğan devlet
+yalnızca kalan değil, kırılgan da olur. Kapsam: kurumsal kilitler, "TANINMA
+TALEP ET" diplomatik eylemi, tanınmanın savaş/gerginlik/müdahale kararlarına
+etkisi. Kriter: tanınma 0'da örgüt/ittifak kapalı, talep deterministik,
+`--recognition-request-test`, A==B korunur.
+
+## Sıralama gerekçesi
+M49 önce çünkü en büyük eksik ve diğerlerini besler (M50 isyan savaşı M49'un
+cephe/işgal motorunu kullanır). M50 ikinci çünkü M48 sistemlerini gerçek bir
+üreticiye bağlar. M51 ve M52 bağımsız ve düşük riskli; sırayla gelir.

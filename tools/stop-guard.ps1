@@ -2,7 +2,7 @@
 # Claue Code Stop hook'undan stdin girdisini okur (tüketilir, karar üzerinde etki yok).
 # Aşağıdaki üç koşuldan biri doğruysa duruma izin verilir (sessiz exit 0):
 #   1) Proje kökünde STOP.txt varsa
-#   2) Zaman 2026-10-21 10:00'ye ulaştıysa/geçtiyse
+#   2) Zaman tools/bitis.txt içindeki bitiş zamanına ulaştıysa/geçtiyse
 #   3) test-logs/stop-guard-count.txt sayacı 400'u geçtiyse (sonsuz döngü emniyeti)
 # Aksi halde engelleme JSON'u basılır ve durdurma engellenir.
 

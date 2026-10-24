@@ -9005,29 +9005,81 @@ private void RunBalanceTest()
         {
             string target = deu[0];
 
-            // POL'un CountryData değerleri devrinden ETKİLENMEZ (M47.1 kapsamı):
-            // yeni ilin payı POL'un toplamına eklenir, bu yüzden POL'un il toplamı
-            // kendi CountryData toplamından BÜYÜK çıkar — bu beklenen davranış.
-            // DEU ise ilini kaybettiği için toplamı düşer; ikisi de adım 4'teki
-            // değişmeyen CountryData ile karşılaştırıldığında uyumsuz görünür.
-            // Bu yüzden burada "toplam korunur mu" değil, DEVİN DOĞRU UYGULANIP
-            // uygulanmadığı ölçülür: taşınan ilin payı yeni ülkede görünüyor.
-            bool moved = ProvinceEconomySystem.ReassignCountry(new List<string> { target }, "POL");
+            // --- M47.2: üretim fiilen taşınır ---
+            // Devir öncesi her iki ülkenin CountryData toplamı ve ilin payı.
+            var deuData = CountryDatabase.Get("DEU");
+            var polData = CountryDatabase.Get("POL");
+            var targetWeight = ProvinceEconomySystem.Get(target);
+
+            int deuCivBefore = deuData?.CivFactories ?? 0;
+            int polCivBefore = polData?.CivFactories ?? 0;
+            int deuMilBefore = deuData?.MilFactories ?? 0;
+            int polMilBefore = polData?.MilFactories ?? 0;
+            int deuDockBefore = deuData?.Dockyards ?? 0;
+            int polDockBefore = polData?.Dockyards ?? 0;
+            int deuSteelBefore = deuData?.Steel ?? 0;
+            int polSteelBefore = polData?.Steel ?? 0;
+            long deuPopBefore = deuData?.Population ?? 0;
+            long polPopBefore = polData?.Population ?? 0;
+
+            int movedCiv = targetWeight?.Civ ?? 0;
+            int movedMil = targetWeight?.Mil ?? 0;
+            int movedDock = targetWeight?.Dock ?? 0;
+            int movedSteel = targetWeight?.Steel ?? 0;
+            long movedPop = targetWeight?.Population ?? 0;
+            int deuIlTotal = ProvinceEconomySystem.TotalFactoriesOf("DEU");
+            int polIlTotal = ProvinceEconomySystem.TotalFactoriesOf("POL");
+            GD.Print($"[ProvEconomyTest]    TEŞHİS: DEU il toplamı={deuIlTotal} " +
+                     $"({ProvinceEconomySystem.ForCountry("DEU").Count} il), " +
+                     $"POL il toplamı={polIlTotal} ({ProvinceEconomySystem.ForCountry("POL").Count} il), " +
+                     $"DEU-01 payı=Civ{movedCiv}/Mil{movedMil}/Dock{movedDock}");
+
+            // SetProvinceOwner → OnOwnerChanged → HandleOwnershipChange zinciri.
+            // Gerçek çağrı yolu (M42 barış konferansı / M44.3 / M44.4 bunu kullanır).
+            ProvinceOwnershipSystem.SetProvinceOwner(target, "POL");
+            bool moved = ProvinceOwnershipSystem.GetProvinceOwner(target) == "POL";
+
             var rec = ProvinceEconomySystem.Get(target);
             bool assigned = rec != null && rec.CountryId == "POL";
             bool listUpdated = ProvinceEconomySystem.ForCountry("POL").Any(w => w.ProvinceId == target) &&
                                !ProvinceEconomySystem.ForCountry("DEU").Any(w => w.ProvinceId == target);
 
-            // Yeni ülkenin toplamı, kendi eski toplamı + taşınan ilin payı olmalı.
-            int movedCiv = rec?.Civ ?? 0;
-            int polAfter = ProvinceEconomySystem.TotalFactoriesOf("POL");
-            bool deuListClean = !ProvinceEconomySystem.ForCountry("DEU").Any(w => w.ProvinceId == target);
-            bool movedValueAdded = polAfter >= movedCiv;
+            // Verenin toplamı düşmüş, alanın artmış olmalı; taşınan kadar.
+            int deuCivAfter = deuData?.CivFactories ?? 0;
+            int polCivAfter = polData?.CivFactories ?? 0;
+            int deuSteelAfter = deuData?.Steel ?? 0;
+            int polSteelAfter = polData?.Steel ?? 0;
+            long deuPopAfter = deuData?.Population ?? 0;
+            long polPopAfter = polData?.Population ?? 0;
 
-            GD.Print($"[ProvEconomyTest] 8) İl devri: taşındı={moved}, sahip POL={assigned}, " +
-                     $"listeler güncel={listUpdated}, taşınan ilin fabrikası={movedCiv}, " +
-                     $"POL toplam fabrika={polAfter}, taşınan pay eklendi={movedValueAdded}");
-            if (!moved || !assigned || !listUpdated || !deuListClean || !movedValueAdded) ok = false;
+            bool donorLost = deuCivAfter == deuCivBefore - movedCiv &&
+                             deuPopAfter == deuPopBefore - movedPop;
+            bool receiverGained = polCivAfter == polCivBefore + movedCiv &&
+                                  polPopAfter == polPopBefore + movedPop;
+            bool steelMoved = deuSteelAfter == deuSteelBefore - movedSteel &&
+                              polSteelAfter == polSteelBefore + movedSteel;
+            bool milDockMoved = deuData?.MilFactories == deuMilBefore - movedMil &&
+                                polData?.MilFactories == polMilBefore + movedMil &&
+                                deuData?.Dockyards == deuDockBefore - movedDock &&
+                                polData?.Dockyards == polDockBefore + movedDock;
+
+            // Dünya genelinde toplam üretim korunmuş olmalı (üç fabrika türü).
+            int worldBefore = deuCivBefore + polCivBefore + deuMilBefore + polMilBefore +
+                              deuDockBefore + polDockBefore;
+            int worldAfter = deuCivAfter + polCivAfter +
+                             (deuData?.MilFactories ?? 0) + (polData?.MilFactories ?? 0) +
+                             (deuData?.Dockyards ?? 0) + (polData?.Dockyards ?? 0);
+
+            GD.Print($"[ProvEconomyTest] 8) İl devri ({target} → POL): taşındı={moved}, " +
+                     $"sahip POL={assigned}, listeler güncel={listUpdated}");
+            GD.Print($"[ProvEconomyTest]    taşınan: Civ={movedCiv}, Mil={movedMil}, Dock={movedDock}, " +
+                     $"çelik={movedSteel}, kişi={movedPop}");
+            GD.Print($"[ProvEconomyTest]    DEU fabrika {deuCivBefore}→{deuCivAfter}, " +
+                     $"POL fabrika {polCivBefore}→{polCivAfter}, dünya {worldBefore}→{worldAfter}");
+            GD.Print($"[ProvEconomyTest]    veren kaybetti={donorLost}, alan kazandı={receiverGained}, " +
+                     $"çelik taşındı={steelMoved}");
+            if (!moved || !assigned || !listUpdated || !donorLost || !receiverGained ||
+                !steelMoved || !milDockMoved || worldBefore != worldAfter) ok = false;
         }
         else
         {
@@ -9038,6 +9090,16 @@ private void RunBalanceTest()
         int emptyTotal = ProvinceEconomySystem.TotalFactoriesOf("XXX_YOK");
         GD.Print($"[ProvEconomyTest] 9) Boş ülke toplam fabrika: {emptyTotal} (0 olmalı)");
         if (emptyTotal != 0) ok = false;
+
+        // 9) Ters devir: POL'dan DEU'ye geri taşı → dünya toplamı hâlâ korunur.
+        if (deu.Count >= 1 && ProvinceOwnershipSystem.GetProvinceOwner(deu[0]) == "POL")
+        {
+            ProvinceOwnershipSystem.SetProvinceOwner(deu[0], "DEU");
+            bool backHome = ProvinceOwnershipSystem.GetProvinceOwner(deu[0]) == "DEU";
+            bool listRestored = ProvinceEconomySystem.ForCountry("DEU").Any(w => w.ProvinceId == deu[0]);
+            GD.Print($"[ProvEconomyTest] 9) Ters devir: geri döndü={backHome}, listesi geri geldi={listRestored}");
+            if (!backHome || !listRestored) ok = false;
+        }
 
         ProvinceEconomySystem.ResetForNewGame();
         ProvinceCultureSystem.ResetForNewGame();

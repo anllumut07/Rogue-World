@@ -563,6 +563,83 @@ public static class ProvinceEconomySystem
         GD.Print("[ProvEconomy] Yeni oyun için sıfırlandı.");
     }
 
+    // ===== M47.2: İl devrinde ekonomik yeniden hesaplama =====
+
+    /// <summary>
+    /// M47.2: Tek ilin sahibi değiştiğinde ekonomiyi günceller.
+    ///
+    /// `ProvinceOwnershipSystem.OnOwnerChanged` olayından çağrılır — böylece M42
+    /// barış konferansı, M44.3 kurgu kurma, M44.4 serbest bırakma ve ilhak gibi
+    /// tüm devir noktaları tek merkezden geçer (15 ayrı çağrı yerine tek yerde).
+    ///
+    /// Üretim taşınır: ilin o ana kadarki harmanlanmış payı (fabrika/kaynak/nüfus)
+    /// veren ülkenin `CountryData` toplamından düşülüp alan ülkesine eklenir.
+    /// Böylece dünya genelinde toplam üretim korunur — ilhak eden ülke kurbanının
+    /// fabrikalarını kazanır, kurbanı boşalmaz.
+    /// </summary>
+    public static void HandleOwnershipChange(string provinceId, string oldCountryId, string newCountryId)
+    {
+        // Ekonomi katmanı henüz üretilmediyse (kurulumdan önce devir) hiçbir şey
+        // yapma — bu katman oyun kurulumunda üretilir.
+        if (_weights.Count == 0) return;
+        if (!_weights.TryGetValue(provinceId, out var w)) return;
+
+        // GetProvinceOwner sahipsiz il için "?" döndürür — bu da gerçek bir ülke
+        // kimliği değil, "kayıt yok" anlamına gelir. Bu yüzden hem boş hem "?"
+        // durumunda ilin kendi ağırlık kaydındaki ülkeye düşülür.
+        bool knownOld = !string.IsNullOrEmpty(oldCountryId) && oldCountryId != "?";
+        string from = knownOld ? oldCountryId : w.CountryId;
+        string to = newCountryId;
+        if (string.IsNullOrEmpty(to) || from == to) return;
+
+        // 1) İlin mevcut payını oku (hâlâ veren ülkenin içinde)
+        int civ = w.Civ, mil = w.Mil, dock = w.Dock;
+        int oil = w.Oil, rubber = w.Rubber, steel = w.Steel;
+        int alu = w.Aluminum, tung = w.Tungsten, chrome = w.Chromium;
+        long pop = w.Population;
+
+        // 2) Üretimi CountryData'dan taşı (sadece il gerçekten pay taşıyorsa)
+        var fromData = CountryDatabase.Get(from);
+        var toData = CountryDatabase.Get(to);
+        bool moveValues = fromData != null && toData != null;
+
+        if (moveValues)
+        {
+            fromData.CivFactories -= civ;
+            fromData.MilFactories -= mil;
+            fromData.Dockyards -= dock;
+            fromData.Oil -= oil;
+            fromData.Rubber -= rubber;
+            fromData.Steel -= steel;
+            fromData.Aluminum -= alu;
+            fromData.Tungsten -= tung;
+            fromData.Chromium -= chrome;
+            fromData.Population -= pop;
+
+            toData.CivFactories += civ;
+            toData.MilFactories += mil;
+            toData.Dockyards += dock;
+            toData.Oil += oil;
+            toData.Rubber += rubber;
+            toData.Steel += steel;
+            toData.Aluminum += alu;
+            toData.Tungsten += tung;
+            toData.Chromium += chrome;
+            toData.Population += pop;
+        }
+
+        // 3) Kültür ve ağırlık katmanını taşı (ReassignCountry içindeki
+        //    ReconcileAll, CountryData taşınmasından SONRA çalıştığı için tüm
+        //    ülkeler yeni toplamlara göre yeniden adımlanır).
+        ProvinceCultureSystem.ReassignCountry(new List<string> { provinceId }, to);
+        ReassignCountry(new List<string> { provinceId }, to);
+
+        GD.Print($"[ProvEconomy] Devir: {provinceId} {from} → {to} — taşınan " +
+                 $"{civ + mil + dock} fabrika, {pop} kişi" +
+                 (moveValues ? "" : " (CountryData taşınmadı: kayıt yok)"));
+    }
+
+
     /// <summary>Platformdan bağımsız kararlı hash (FNV-1a).</summary>
     private static int StableHash(string s)
     {

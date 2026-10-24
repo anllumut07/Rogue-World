@@ -1933,6 +1933,14 @@ public partial class WorldMap : Node2D
             GD.Print($"WorldMap: {ProvinceCultureSystem.RecordCount} il kültür kaydı üretildi.");
         }
 
+        // M47.1: il ekonomi ağırlık katmanı — kültür katmanından SONRA üretilir,
+        // çünkü nüfus payı il nüfus kaydına bağlanır.
+        if (ProvinceEconomySystem.RecordCount == 0)
+        {
+            ProvinceEconomySystem.GenerateFor(_provinces, ScenarioSystem.ActiveId ?? "historical_1936");
+            GD.Print($"WorldMap: {ProvinceEconomySystem.RecordCount} il ekonomi ağırlık kaydı üretildi.");
+        }
+
         _provinceBounds.Clear();
         foreach (var prov in _provinces)
             _provinceBounds[prov.Id] = ComputeBounds(prov);

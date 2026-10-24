@@ -56,6 +56,10 @@ public static class ProvinceOwnershipSystem
         _ownerByProvince[provinceId] = countryId;
         Reindex(provinceId, old, countryId);
         OnOwnerChanged?.Invoke(provinceId, old, countryId);
+        // M47.2: il devri ekonomiyi de taşır — veren ülkenin kaynağı/fabrikası
+        // azalır, alanın artar. Tüm devir noktaları (M42 barış konferansı,
+        // M44.3 kurgu kurma, M44.4 serbest bırakma, ilhak) buradan geçer.
+        ProvinceEconomySystem.HandleOwnershipChange(provinceId, old, countryId);
         GD.Print($"[ProvinceOwnership] {provinceId}: {old} → {countryId}");
     }
 

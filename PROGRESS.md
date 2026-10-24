@@ -2956,3 +2956,32 @@ ayrıca culture dışına çıkınca vurgunun düştüğü ve onun da round-trip
 - **Kalan (M47.2-47.4):** il devrinde alan/veren ülkenin toplamının yeniden hesaplanması
   (halihazırda CountryData değişmiyor — bilinen kapsam sınırı), kaynak açğı ekonomik sonucu,
   Save/Load entegrasyonu + özet satırı.
+
+---
+
+## Milestone 47: İl Bazlı Ekonomi Dengesi — 🔄 DEVAM
+
+### M47.2 — İl devrinde ekonomik yeniden hesaplama ✅ DONE (2026-10-24)
+- `Scripts/ProvinceEconomySystem.cs`: `HandleOwnershipChange(provinceId, old, new)` —
+  `ProvinceOwnershipSystem.OnOwnerChanged` olayına bağlı, TEK merkezden geçer.
+- `Scripts/ProvinceOwnershipSystem.cs`: `SetProvinceOwner` içinde olay tetikleyicisinden
+  sonra `HandleOwnershipChange` çağrısı eklendi.
+- **Üretim fiilen taşınır:** ilin o ana kadarki harmanlanmış payı (Civ/Mil/Dock fabrika,
+  7 kaynak, nüfus) verenin `CountryData` toplamından düşülüp alanınkine eklenir →
+  dünya genelinde toplam üretim korunur.
+- **`"?"` sentinel düzeltmesi:** `GetProvinceOwner` sahipsiz il için `"?"` döndürüyordu;
+  bu değer gerçek ülke kimliği değil. `HandleOwnershipChange` artık boş VEYA `"?"` durumunda
+  ilin kendi ağırlık kaydındaki ülkeye düşüyor → ilk sahiplenmede de taşıma çalışıyor.
+- **Kültür/geometri katmanı `CountryData` taşımasından SONRA** yeniden adımlanır
+  (`ReassignCountry` içindeki `ReconcileAll`), böylece tüm ülkeler yeni toplamlara göre
+  tutarlı kalır.
+- **Geri taşıma (ters devir) da doğrulandı:** POL→DEU dönüşünde dünya toplamı hâlâ korunur.
+
+### M47.2 test kapsamı (`--province-economy-test`)
+- 8) İl devri `SetProvinceOwner` üzerinden: taşındı / sahip / listeler güncel + veren kaybetti +
+  alan kazandı + çelik taşındı + Mil/Dock taşındı + dünya toplamı korundu (6 fabrika türü).
+- 9) Ters devir (POL→DEU): geri döndü, listesi geri geldi.
+
+### M47.2 sırasında düzeltilen test hatası
+- Test başlangıçta `CivFactories` değişimini ilin `TotalFactories` payıyla karşılaştırıyordu →
+  Civ/Mil/Dock ayrımı yapıldı (üçü ayrı ayrı doğrulanıyor).

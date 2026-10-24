@@ -2779,3 +2779,45 @@ izlenecek). Derleniyor, testler geçiyor → ilk görev commit'ine dahil edilece
 - Rastgelelik yalnızca `DeterministicRNG` ile; kentsel faktör il kimliğinden türetilen
   tohumdan çekilir (global state korunarak) → deterministik save/load.
 
+
+---
+
+## M47.2 — İl devrinde ekonomik yeniden hesaplama (TAMAM)
+
+### ÖZET
+1. **Değişen dosyalar**
+   - `Scripts/ProvinceEconomySystem.cs`: `HandleOwnershipChange()` (yeni) — olay tabanlı
+     ekonomi taşıma; `"?"` sentinel koruması; kültür/geometri katmanı sıralaması.
+   - `Scripts/ProvinceOwnershipSystem.cs`: `SetProvinceOwner` → olay sonrası ekonomi kancası.
+   - `Scripts/GameManager.cs`: `--province-economy-test` 8. ve 9. adımları genişletildi
+     (Civ/Mil/Dock ayrı doğrulama + dünya toplamı korunumu + ters devir).
+2. **Çözülenler**
+   - Üretim fiilen taşınıyor: veren ülke fabrika/kaynak/nüfus kaybeder, alan kazanır,
+     dünya toplamı korunur (denetim: DEU 26→12, POL 15→29, dünya 41→41).
+   - İlk sahiplenmede (eski sahip `"?"`) de taşıma çalışıyor.
+   - M42 barış konferansı, M44.3 kurgu kurma, M44.4 serbest bırakma ve ilhak — hepsi
+     `SetProvinceOwner` üzerinden geçtiği için tek noktadan güncelleniyor.
+3. **Çözemediğim**
+   - Yok. M47.2 tamamlandı.
+4. **Bilinen sorunlar**
+   - M47.4'e kadar il ekonomi ağırlık katmanı ayrı hash'lenmiyor (özete eklenmedi).
+   - `CountryData` taşıması negatif değere düüşebilir tehlikesi: mevcut dünyada ildeki
+     toplam pay ülke toplamını aşmıyor (harmanlama ülke içinde normalize), test doğruladı.
+5. **Kullanıcının test etmesi gerekenler**
+   - Yok (headless test tüm kriterleri doğruladı).
+
+**Test sonuçları (M47.2)**
+| Test | Süre | Sonuç |
+|---|---|---|
+| `--province-economy-test` | 8.7 sn | PASS ✓ |
+| `--save-load-test` (historical_1936) | 17.1 sn | PASS ✓ (A == B) |
+| `--save-load-test` (modern_world) | 20.6 sn | PASS ✓ (A == B) |
+
+**dotnet build:** 0 hata / 0 uyarı.
+
+### Kararlar
+- Ekonomi taşıması olay (`OnOwnerChanged`) üzerinden yapıldı — çağrı noktalarına tek tek
+  kanca koymak yerine tek merkez. Böylece ileride eklenecek her devir yolu otomatik kapsanır.
+- Sıralama önemli: `CountryData` taşıması ÖNCE, kültür/geometri `ReassignCountry` SONRA.
+  Ters sırada harmanlama eski toplamlara göre yapılıp tutarsızlık oluşuyordu.
+- `"?"` (sahipsiz) gerçek kimlik değil; ağırlık kaydındaki ülkeye düşülüyor.

@@ -758,7 +758,7 @@ toprak kazanma/guidock kaybetme yok. Grand strategy oyununun omurgası bu.
 |-----------|----------|--------------|-------|
 | 49.1 | `Scripts/OccupationSystem.cs` (yeni): her savaş için cephe köşeleri (savaşan iki ülkenin komşu il ikilileri), deterministik ilerleme (ordu gücü + cephe duruşu + tedarik) ve isgal edilen ilin SAHİPLİĞİNİ geçici değiştirme; orijinal sahip ayrı tutulur (işgal bayrağı), il kültük kaydı korunur | İlerleme deterministik, işgal edilen il başkasına geçer, orijinal sahip kayıtta, kültük korunur, `--occupation-test` PASS | [x] |
 | 49.2 | İşgalin savaş puanına ve barış masasına yansıması: işgal oranı → `WarScoreSystem` geliri; `PeaceConferenceSystem` il talebi YALNIZCA gerçekten işgal edilmiş illeri kabul eder (aksi halde reddedilir), işgal oranı talep kapasitesini sınırlar | İşgal oranı arttıkça puan artar, işgal edilmemiş il talebi reddedilir, `--occupation-test` ve `--war-score-test` PASS | [x] |
-| 49.3 | İşgal altındaki toprağın yönetimi: işgalciya kaynak/fabrika kısmi çıkarım, halkta direniş birikimi (M45 `ResistanceSystem` bağlantısı), serbest bırakma isteği | İşgalci çıkarım görür, direniş işgalde hızlı büyür, mevcut ekonomi testleri bozulmaz | [ ] |
+| 49.3 | İşgal altındaki toprağın yönetimi: işgalciya kaynak/fabrika kısmi çıkarım, halkta direniş birikimi (M45 `ResistanceSystem` bağlantısı), serbest bırakma isteği | İşgalci çıtarım görür, direniş işgalde hızlı büyür, mevcut ekonomi testleri bozulmaz | [x] |
 | 49.4 | Save/Load entegrasyonu + `SaveLoadTest.BuildSummaryCore` özeti + tüm savaş/eğilim testlerinde regresyon | A==B PASS (2 senaryo), `--war-test`, `--occupation-test`, `--diplomacy-test` PASS | [ ] |
 
 ---

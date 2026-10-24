@@ -288,6 +288,15 @@ public static class ProvinceEconomySystem
     /// <summary>
     /// Bir ülkenin `CountryData` değerlerini il paylara göre dağıtır (harmanlama).
     /// Son il kalan farkı alır → il toplamı ülke toplamına tam eşittir.
+    ///
+    /// ÖNCE payları yeniden normalize eder: paylar il üretildiğinde o anki
+    /// ülkesine göre normalize edilir. Bir il başka ülkeye devredilince
+    /// (<see cref="ReassignCountry"/>) alan ülkenin listesine, eski ülkesinin
+    /// normalize'ine göre ölçeklenmiş değerlerle girer — toplam 1'i aşar.
+    /// `DistributeInts` pay toplamını 1 varsayar (kalanı dağıtımı ile düzeltir);
+    /// toplam 1'i aştığında kalan NEGATİF olur, düzeltme hiç çalışmaz ve il
+    /// toplamı ülke toplamının katlarını gösterir. Bu yüzden dağıtımdan önce
+    /// listenin kendi içinde payları 1'e normalize etmek zorunludur.
     /// </summary>
     public static void ReconcileCountry(string countryId)
     {
@@ -295,6 +304,8 @@ public static class ProvinceEconomySystem
 
         var ids = _byCountry.GetValueOrDefault(countryId);
         if (ids == null || ids.Count == 0) return;
+
+        NormalizeShares(ids);
 
         var data = CountryDatabase.Get(countryId);
         if (data == null)
@@ -349,6 +360,22 @@ public static class ProvinceEconomySystem
             return;
         }
 
+        // Pay toplamı listenin kendi içinde 1 olacak şekilde ölçeklenir.
+        // NormalizeShares zaten bunu yapar ama float32'de toplam 1'e tam eşit
+        // olmaz (1 ± 1e-7). Toplam 1'in ÜZERİNDEYse aşağıdaki "kalan" negatife
+        // düşer, düzeltme hiç çalışmaz ve il toplamı ülke toplamını aşar.
+        // Bu yüzden dağıtım pay toplamına bölünerek yapılır — çıktı toplamı
+        // matematiksel olarak her zaman `total`'e eşittir.
+        double shareSum = 0;
+        int known = 0;
+        foreach (var id in ids)
+        {
+            if (!_weights.TryGetValue(id, out var w)) continue;
+            shareSum += share(w);
+            known++;
+        }
+        bool even = known == 0 || shareSum <= 1e-9;
+
         var entries = new List<(Weight W, int Value, double Frac)>();
         long assigned = 0;
         foreach (var id in ids)
@@ -356,7 +383,9 @@ public static class ProvinceEconomySystem
             if (!_weights.TryGetValue(id, out var w)) continue;
             // DİKKAT: çarpım double'da yapılmalı. long * float → float olur ve
             // milyarlık nüfusta 128'lik adımlarla yuvarlanır → toplam kayar.
-            double exact = (double)total * share(w);
+            double exact = even
+                ? (double)total / known
+                : (double)total * ((double)share(w) / shareSum);
             int v = (int)Math.Floor(exact);
             if (v < 0) v = 0;
             entries.Add((w, v, exact - v));
@@ -403,6 +432,19 @@ public static class ProvinceEconomySystem
             return;
         }
 
+        // Pay toplamına bölerek dağıt (DistributeInts ile aynı gerekçe):
+        // float32 payların toplamı 1'e tam eşit olmadığı için "kalan" negatife
+        // düşebilir ve toplam kayar.
+        double popSum = 0;
+        int known = 0;
+        foreach (var id in ids)
+        {
+            if (!_weights.TryGetValue(id, out var w)) continue;
+            popSum += w.PopulationW;
+            known++;
+        }
+        bool even = known == 0 || popSum <= 1e-9;
+
         var entries = new List<(Weight W, long Value, double Frac)>();
         long assigned = 0;
         foreach (var id in ids)
@@ -410,7 +452,9 @@ public static class ProvinceEconomySystem
             if (!_weights.TryGetValue(id, out var w)) continue;
             // DİKKAT: çarpım double'da yapılmalı — aksi hâlde float32 yuvarlaması
             // milyarlık nüfusta toplamı kaydırır.
-            double exact = (double)total * w.PopulationW;
+            double exact = even
+                ? (double)total / known
+                : (double)total * (w.PopulationW / popSum);
             long v = (long)Math.Floor(exact);
             if (v < 0) v = 0;
             entries.Add((w, v, exact - v));

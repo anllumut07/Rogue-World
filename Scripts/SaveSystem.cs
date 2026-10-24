@@ -383,6 +383,18 @@ public static class SaveSystem
         public string PreWarOwnerId { get; set; }
         public string WarKey { get; set; }
         public long Day { get; set; }
+        // M49.3: kısmi çıkarım — işgalcinin kullanamadığı kapasite (yükleme
+        // sonrası dünya toplamının korunması için kayda yazılır)
+        public int DisruptedCiv { get; set; }
+        public int DisruptedMil { get; set; }
+        public int DisruptedDock { get; set; }
+        public int DisruptedOil { get; set; }
+        public int DisruptedRubber { get; set; }
+        public int DisruptedSteel { get; set; }
+        public int DisruptedAluminum { get; set; }
+        public int DisruptedTungsten { get; set; }
+        public int DisruptedChromium { get; set; }
+        public long DisruptedPopulation { get; set; }
     }
     public class OccupationPressureEntry
     {
@@ -421,6 +433,10 @@ public static class SaveSystem
         public double LastDailyRate { get; set; }
         public int StrikeCount { get; set; }
         public string LastStrikeProvinceId { get; set; }
+        // M49.3: işgal direnci (bağımlılık zincirinden bağımsız)
+        public bool IsOccupied { get; set; }
+        public int OccupiedDays { get; set; }
+        public double OccupationRate { get; set; }
     }
 
 

@@ -3290,3 +3290,42 @@ Test 3 kez FAIL oldu, her biri gerçek bir kusur ortaya çıkardı:
 - `powershell -File tools\run-test.ps1 --war-test=POL --country=GER` (tek başına
   `--war-test` değil).
 - Barış masasında işgal edilmemiş il talep edilince reddedilme mesajı.
+
+---
+
+## M49.3 ÖZET — İşgal Yönetimi (2026-10-24)
+
+**1. Neyi değiştirdim (dosya adlarıyla)**
+- `Scripts/OccupationSystem.cs` — `CaptureDisruption` (kısmi çıkarım/yıkım),
+  `AccumulateResistance` (işgal direnci), `WantsLandBack` /
+  `LandBackDemandsOf` / `DisruptedFactoriesOf` / `DisruptedResourcesOf` sorguları,
+  `Occupation` kaydına 10 yıkım alanı, ayarlara 6 yeni parametre.
+- `Scripts/ResistanceSystem.cs` — `AddOccupationPressure` +
+  `ResolveOccupationStrike` (işgalciyi hedef alan eylem), `ResistanceState`e
+  `IsOccupied`/`OccupiedDays`/`OccupationRate`, budama işareti korumalı.
+- `Scripts/ProvinceEconomySystem.cs` — **var olan hata giderildi**:
+  `ReconcileCountry` artık `NormalizeShares(ids)` çağırır; `DistributeInts` ve
+  `DistributePopulation` dağıtımı pay toplamına bölerek yapar (çıktı toplamı
+  her zaman ülke toplamına eşit).
+- `Data/occupation.json` — `ExtractionEfficiency`, `ResistancePerOccupiedProvince`,
+  `ResistancePerDayCap`, `LandBackDemandThreshold`, `StrikeFactoryDamage`,
+  `StrikeStabilityLoss`.
+- `Scripts/GameManager.cs` — yeni `--occupation-admin-test` (7 adımlı).
+- `Scripts/SaveSystem.cs` — yeni alanların kayıt/geri yüklemesi.
+- `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**2. Neyi çözemedim**
+- `--war-test` hâlâ `SONUÇ:` satırı basmıyor ve kendini bitirmiyor (M49.4'te).
+
+**3. Bilinen sorunlar**
+- `OccupationDataFile.Settings` için CS0649 uyarısı (reflection, zararsız).
+- İşgal direnci eylemi ilk sıradaki ili hedefler (RNG yok, deterministik) —
+  gerçekçilik için ağırlıklı seçim M49.4+'a bırakıldı.
+- Kısmi çıkarım "yıkım" modeliyle modellendi: işgalcinin `CountryData`'sı ve il
+  kaydı AYNI miktarda azalır, dünya toplamı küçülür. Bu bilinçli tasarım.
+
+**4. Kullanıcının test etmesi gerekenler**
+- `powershell -File tools\run-test.ps1 --occupation-admin-test` — 7 adım (tiyatro,
+  kısmi çıkarım, direniş birikimi, eylem, toprak geri isteği, mutabakat).
+- Ekonomi katmanının devirde doğru davrandığı: normal oyunda bir ilhak sonrası
+  il toplamlarının ülke toplamlarına eşit kalması (eski 23× şişme hatası).

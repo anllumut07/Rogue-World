@@ -193,6 +193,7 @@ public partial class GameManager : Node
         bool recognitionTest = false;        // M48.3: tanınma ve diplomatik yansıma testi (--recognition-test)
         bool m48IntegrationTest = false;     // M48.4: M48 zinciri Save/Load entegrasyonu (--m48-integration-test)
         bool occupationTest = false;         // M49.1: il işgali ve cephe ilerlemesi (--occupation-test)
+        bool occupationAdminTest = false;    // M49.3: işgal yönetimi — çıkarım, direniş, serbest bırakma isteği
         bool formablePanelTest = false;      // M44.5: kurgu ülke paneli testi (--formable-panel-test)
         bool releasablePanelTest = false;    // M45.1: bağımsız çıkarma paneli testi (--releasable-panel-test)
         bool autonomyTest = false;           // M45.2: özerklik sistemi testi (--autonomy-test)
@@ -371,6 +372,8 @@ public partial class GameManager : Node
                 m48IntegrationTest = true;
             else if (arg == "--occupation-test")
                 occupationTest = true;
+            else if (arg == "--occupation-admin-test")
+                occupationAdminTest = true;
             else if (arg == "--formable-panel-test")
                 formablePanelTest = true;
                 else if (arg == "--releasable-panel-test")
@@ -828,6 +831,10 @@ public partial class GameManager : Node
         // M49.1: İl işgali — cephe ilerlemesi, el değiştiren iller, save/load.
         if (occupationTest)
             RunOccupationTest();
+
+        // M49.3: İşgal yönetimi — kısmi çıkarım, direniş birikimi, toprak geri isteği.
+        if (occupationAdminTest)
+            RunOccupationAdminTest();
 
         // M44.5: Kurgu ülke paneli testi — kurgu ülkeler, kültür haritası, kurma/iptal.
         if (formablePanelTest)
@@ -11085,6 +11092,284 @@ private void RunBalanceTest()
         if (!overRejected) ok = false;
 
         GD.Print(ok ? "[OccTest] SONUÇ: PASS ✓" : "[OccTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M49.3: İşgal altındaki toprağın yönetimi testi (--occupation-admin-test).
+    /// Normal oyunda ASLA çalışmaz.
+    ///
+    /// Üç şey doğrulanır:
+    ///   1) KISMI ÇIKARIM: işgalci ilin tamamını alır (M49.1) ama yalnızca
+    ///      ExtractionEfficiency kadarını kullanabilir; kullanılamayan kısım
+    ///      işgalcinin toplamından düşer ve ProvinceEconomySystem mutabakatı
+    ///      bozulmaz.
+    ///   2) DİRENÇ: işgal her gün biriktikçe toprak kaybeden halkın direnci
+    ///      hızlı büyür (M45 ResistanceSystem'e kısmi bağımsız kanal).
+    ///   3) SERBEST BIRAKMA İSTEĞİ: direniş eşiği aşılınca halk toprağını
+    ///      geri ister; direnç düşünce istek kalkar.
+    /// </summary>
+    private void RunOccupationAdminTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M49.3: İŞGAL YÖNETİMİ TESTİ (--occupation-admin-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+        DeterministicRNG.InitializeForNewGame(0x4D4842_33DUL);
+
+        // ---- 1) Dünya kurulumu ----
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceEconomySystem.GenerateFor(provinces, "historical_1936");
+
+        var byId = new Dictionary<string, ProvinceData>(StringComparer.Ordinal);
+        foreach (var p in provinces)
+            if (p != null && !string.IsNullOrEmpty(p.Id)) byId[p.Id] = p;
+
+        OccupationSystem.ResetForNewGame();
+        OccupationSystem.LoadSettings();
+        OccupationSystem.SetWorld(provinces);
+        ResistanceSystem.ResetForNewGame();
+
+        bool worldOk = provinces.Count > 0 && OccupationSystem.IsReady;
+        GD.Print($"[AdminTest] 1) İl: {provinces.Count}, komşuluk grafi hazır: {OccupationSystem.IsReady} ({worldOk})");
+        if (!worldOk)
+        {
+            GD.PrintErr("[AdminTest] HATA: dünya veya komşuluk grafi kurulamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // ---- 2) Oyuncu, hedef ve cephe tiyatrosu ----
+        if (!HasPlayer) SetPlayerCountry("DEU");
+        string playerId = PlayerCountryId;
+        var player = CountryDatabase.Get(playerId);
+        if (player == null)
+        {
+            GD.PrintErr($"[AdminTest] HATA: oyuncu ülkesi ({playerId}) bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var frontierCount = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var pid in ProvinceOwnershipSystem.GetProvincesByOwner(playerId))
+        {
+            if (!byId.TryGetValue(pid, out var prov)) continue;
+            foreach (var nb in prov.NeighborIds ?? new List<string>())
+            {
+                string o = ProvinceOwnershipSystem.GetProvinceOwner(nb);
+                if (string.IsNullOrEmpty(o) || o == "?" ||
+                    string.Equals(o, playerId, StringComparison.OrdinalIgnoreCase)) continue;
+                frontierCount[o] = frontierCount.TryGetValue(o, out var c) ? c + 1 : 1;
+            }
+        }
+        string enemyId = frontierCount
+            .OrderByDescending(kv => ProvinceOwnershipSystem.ProvinceCountFor(kv.Key))
+            .ThenBy(kv => kv.Key, StringComparer.Ordinal)
+            .Select(kv => kv.Key)
+            .FirstOrDefault();
+        bool frontierOk = frontierCount.Count > 0 && !string.IsNullOrEmpty(enemyId);
+        GD.Print($"[AdminTest] 2) Cephe: {playerId} topraklarına komşu ülke={frontierCount.Count}, hedef={enemyId} ({frontierOk})");
+        if (!frontierOk)
+        {
+            GD.PrintErr("[AdminTest] HATA: oyuncu topraklarına komşu düşman il bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        const int TheaterSize = 120;
+        var theater = new List<string>();
+        var inTheater = new HashSet<string>(StringComparer.Ordinal);
+        var seedIds = ProvinceOwnershipSystem.GetProvincesByOwner(playerId)
+            .OrderBy(id => id, StringComparer.Ordinal).ToList();
+        var bfs = new Queue<string>(seedIds);
+        foreach (var s in seedIds) inTheater.Add(s);
+        while (bfs.Count > 0 && theater.Count < TheaterSize)
+        {
+            var cur = bfs.Dequeue();
+            if (!byId.TryGetValue(cur, out var prov)) continue;
+            foreach (var nb in prov.NeighborIds ?? new List<string>())
+            {
+                if (theater.Count >= TheaterSize) break;
+                if (string.IsNullOrEmpty(nb) || inTheater.Contains(nb)) continue;
+                inTheater.Add(nb);
+                theater.Add(nb);
+                bfs.Enqueue(nb);
+            }
+        }
+        int half = Math.Max(1, theater.Count / 2);
+        var playerTerritory = theater.Take(half).ToList();
+        var enemyTerritory = theater.Skip(half).ToList();
+        foreach (var pid in playerTerritory)
+            ProvinceOwnershipSystem.SetProvinceOwner(pid, playerId);
+        foreach (var pid in enemyTerritory)
+            ProvinceOwnershipSystem.SetProvinceOwner(pid, enemyId);
+        ProvinceCultureSystem.ReassignCountry(enemyTerritory, enemyId);
+
+        var enemy = CountryDatabase.Get(enemyId);
+        if (enemy == null)
+        {
+            GD.PrintErr($"[AdminTest] HATA: hedef ülke ({enemyId}) bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Güç dengesi ve kapasite. Tiyatro devri (yukarıda) harmanlamayı eski
+        // değerlerle çalıştırdığı için kapasite ayarları burada yapılır ve
+        // ardından ReconcileAll çağrılır — aksi halde il payları CountryData'yı
+        // yansıtmaz, "kısmi çıtarım" hiçbir şey düşüremez.
+        player.StartingDivisions = 10;
+        player.CivFactories = 600;
+        player.MilFactories = 0;
+        player.Dockyards = 0;
+
+        enemy.StartingDivisions = 10;
+        CountryAI.ApplyDivisionLoss(enemyId, 999); // savunan tümensiz: alan gücü yalnızca fabrikalardan
+        enemy.CivFactories = 200;
+        enemy.MilFactories = 80;
+        enemy.Dockyards = 40;
+        enemy.Oil = 200;
+        enemy.Rubber = 120;
+        enemy.Steel = 200;
+        enemy.Aluminum = 100;
+        enemy.Tungsten = 60;
+        enemy.Chromium = 60;
+
+        // Tiyatro devri harmanlamayı tetikler; son ayarların da yayılması için
+        // tüm ülkeler yeniden harmanlanır — böylece il payları CountryData ile
+        // tutarlı olur ve IsReconciled anlamlı bir ölçütür.
+        ProvinceEconomySystem.ReconcileAll();
+
+        int enemyCivBefore = enemy.CivFactories;
+        int enemyMilBefore = enemy.MilFactories;
+        int enemyOilBefore = enemy.Oil;
+        GD.Print($"[AdminTest]    tiyatro: {theater.Count} il (oyuncu +{playerTerritory.Count}, " +
+                 $"hedef +{enemyTerritory.Count}); hedef kapasitesi: civ={enemyCivBefore}, " +
+                 $"mil={enemyMilBefore}, petrol={enemyOilBefore}");
+
+        // Diognostik (M49.3): savaştan ÖNCE mutabakat bozuksa sebep kurulumun
+        // kendisidir (il payları dağıtılmamış), işgal çıkarımı değil.
+        var pSetup = CountryDatabase.Get(playerId);
+        var eSetup = CountryDatabase.Get(enemyId);
+        GD.Print($"[AdminTest]    kurulum sonrası mutabakat: oyuncu={ProvinceEconomySystem.IsReconciled(playerId, 10)} " +
+                 $"(il {ProvinceEconomySystem.TotalFactoriesOf(playerId)} fabrika / ülke " +
+                 $"{(pSetup?.CivFactories ?? 0) + (pSetup?.MilFactories ?? 0) + (pSetup?.Dockyards ?? 0)}), " +
+                 $"hedef={ProvinceEconomySystem.IsReconciled(enemyId, 10)} " +
+                 $"(il {ProvinceEconomySystem.TotalFactoriesOf(enemyId)} fabrika / ülke " +
+                 $"{(eSetup?.CivFactories ?? 0) + (eSetup?.MilFactories ?? 0) + (eSetup?.Dockyards ?? 0)})");
+
+        if (PlayerCountryData != null)
+        {
+            if (PlayerCountryData.PoliticalPower < WarSystem.DeclareWarPPCost + 10)
+                PlayerCountryData.PoliticalPower = WarSystem.DeclareWarPPCost + 10;
+            if (PlayerCountryData.WarSupportPercent < 50)
+                PlayerCountryData.WarSupportPercent = 50;
+        }
+        CasusBelliSystem.GrantImmediateJustification(playerId, enemyId, "historical_event");
+        bool declared = WarSystem.DeclareWar(enemyId);
+        var war = declared
+            ? WarSystem.Wars.FirstOrDefault(w => !w.IsEnded && w.DefenderId == enemyId)
+            : null;
+        bool warOk = declared && war != null;
+        GD.Print($"[AdminTest] 3) Savaş: {playerId} → {enemyId}, ilan={declared}, savaş kaydı={war != null} ({warOk})");
+        if (!warOk)
+        {
+            GD.PrintErr("[AdminTest] HATA: savaş başlatılamadı");
+            GetTree().Quit(1);
+            return;
+        }
+        war.OffensiveActive = true;
+
+        // ---- 4) Kısmi çıkarım (M49.3) ----
+        GD.Print("[AdminTest] 4) Kısmi çıtarım — cephe ilerlesin, işgalci kapasite kaybı yaşasın");
+        int guard = 0;
+        while (OccupationSystem.OccupiedCount < enemyTerritory.Count && guard++ < 15)
+            OccupationSystem.AdvanceDay(war);
+
+        int occupied = OccupationSystem.OccupiedCount;
+        int disruptedFactories = OccupationSystem.DisruptedFactoriesOf(playerId);
+        int disruptedResources = OccupationSystem.DisruptedResourcesOf(playerId);
+        bool extractionOk = occupied > 0 &&
+            (disruptedFactories > 0 || disruptedResources > 0) &&
+            ProvinceEconomySystem.IsReconciled(playerId, 10);
+        GD.Print($"[AdminTest]    ele geçirilen il={occupied}, işgalcinin kullanamadığı " +
+                 $"kapasite: {disruptedFactories} fabrika + {disruptedResources} kaynak, " +
+                 $"ülke mutabakatı={ProvinceEconomySystem.IsReconciled(playerId, 10)} ({extractionOk})");
+        if (!extractionOk) ok = false;
+
+        // ---- 5) Direniş birikimi (M49.3) ----
+        GD.Print("[AdminTest] 5) Direniç birikimi — işgal her gün sürdükçe büyür");
+        // 4. adımdaki cephe koşusu direnci de biriktirdi; ölçümü net yapmak
+        // için sıfırlanıp tam olarak bilinen bir sayıda gün ilerletilir.
+        var rsMid = ResistanceSystem.Get(enemyId);
+        if (rsMid != null)
+        {
+            rsMid.Accumulated = 0.0;
+            rsMid.StrikeCount = 0;
+        }
+
+        // Gün 1: birikim henüz eylem eşiğine ulaşmamıştır → tam olarak bilinen
+        // miktarda artar (il × kat sayı, günlük tavan). Bu "toprak işgal
+        // edilince halk ayaklanır" kanalının çalıştığını kanıtlar.
+        double ratePerProvince = OccupationSystem.ResistancePerProvincePerDay;
+        double dailyCap = OccupationSystem.ResistancePerDayCap;
+        double expectedPerDay = Math.Min(OccupationSystem.OccupiedCount * ratePerProvince, dailyCap);
+
+        OccupationSystem.AdvanceDay(war);
+        double afterFirst = ResistanceSystem.Accumulated(enemyId);
+        bool grewOnce = expectedPerDay > 0 &&
+                        Math.Abs(afterFirst - expectedPerDay) < 0.01;
+
+        // Gün 2-3: birikim eylem eşiğini aşar → partizan eylemi patlak verir ve
+        // baskı boşalır. Bu da direnişin yalnızca sigmetrik değil, eyleme
+        // dönüştüğünü gösterir.
+        OccupationSystem.AdvanceDay(war);
+        OccupationSystem.AdvanceDay(war);
+        rsMid = ResistanceSystem.Get(enemyId);
+        bool escalated = rsMid != null && rsMid.StrikeCount > 0;
+        bool marked = rsMid != null && rsMid.IsOccupied && rsMid.OccupiedDays >= 3;
+
+        int occupiedAfter = OccupationSystem.OccupiedCount;
+        GD.Print($"[AdminTest]    ilk gün birikim={afterFirst:F2} (beklenen {expectedPerDay:F2}), " +
+                 $"sonraki 2 günde eylem={rsMid?.StrikeCount ?? 0}, " +
+                 $"işgal günü={rsMid?.OccupiedDays ?? 0}, işgal {occupied}→{occupiedAfter} il " +
+                 $"({grewOnce && escalated && marked})");
+        if (!(grewOnce && escalated && marked)) ok = false;
+
+        // ---- 6) Serbest bırakma isteği (M49.3) ----
+        GD.Print("[AdminTest] 6) Toprak geri isteği — direniş eşiği aşılınca talep doğar");
+        bool wantsBefore = OccupationSystem.WantsLandBack(enemyId);
+        var demandsBefore = OccupationSystem.LandBackDemandsOf(playerId);
+        if (rsMid != null) rsMid.Accumulated = OccupationSystem.LandBackThreshold;
+        bool wantsAfter = OccupationSystem.WantsLandBack(enemyId);
+        var demandsAfter = OccupationSystem.LandBackDemandsOf(playerId);
+
+        bool demandOk = !wantsBefore && wantsAfter &&
+                        demandsBefore.Count == 0 && demandsAfter.Count > 0 &&
+                        demandsAfter.Contains(enemyId);
+        GD.Print($"[AdminTest]    eşik öncesi istek={wantsBefore}, eşik sonrası istek={wantsAfter}, " +
+                 $"işgalciye gelen talep sayısı={demandsAfter.Count} ({demandOk})");
+        if (!demandOk) ok = false;
+
+        // Direniç düşünce talep kalkar (durum devingen, kalıcı değil).
+        if (rsMid != null) rsMid.Accumulated = 0.0;
+        bool wantsCleared = !OccupationSystem.WantsLandBack(enemyId) &&
+                            OccupationSystem.LandBackDemandsOf(playerId).Count == 0;
+        GD.Print($"[AdminTest]    direniş sıfırlanınca istek kalktı={wantsCleared} ({wantsCleared})");
+        if (!wantsCleared) ok = false;
+
+        // ---- 7) Ekonomi regresyonu: mutabakat bozulmadı ----
+        bool reconciled = ProvinceEconomySystem.IsReconciled(playerId, 10) &&
+                          ProvinceEconomySystem.IsReconciled(enemyId, 10);
+        GD.Print($"[AdminTest] 7) Ekonomi mutabakatı: oyuncu={ProvinceEconomySystem.IsReconciled(playerId, 10)}, " +
+                 $"hedef={ProvinceEconomySystem.IsReconciled(enemyId, 10)} ({reconciled})");
+        if (!reconciled) ok = false;
+
+        GD.Print(ok ? "[AdminTest] SONUÇ: PASS ✓" : "[AdminTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

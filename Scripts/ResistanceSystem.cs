@@ -61,6 +61,12 @@ public static class ResistanceSystem
         public double LastDailyRate = 0;    // son günkü artış hızı (UI/log)
         public int StrikeCount = 0;         // bugüne kadar patlak veren eylem
         public string LastStrikeProvinceId = ""; // son eylemin ili
+
+        // M49.3: İşgal direnci. Bağımlılık zincirinden (ReleasableSystem)
+        // bağımsız bir kaynak — toprağı işgal edilmiş halk da ayaklanır.
+        public bool IsOccupied = false;     // toprakları şu an işgal altında
+        public int OccupiedDays = 0;        // üst üste kaç gündür işgal altında
+        public double OccupationRate = 0;   // son günkü işgal kaynaklı artış
     }
 
     private static readonly Dictionary<string, ResistanceState> _states =
@@ -129,6 +135,87 @@ public static class ResistanceSystem
     /// <summary>Birikmiş baskı (kayıt yoksa 0).</summary>
     public static double Accumulated(string countryId) => Get(countryId)?.Accumulated ?? 0.0;
 
+    // ===== M49.3: İşgal direnci =====
+
+    /// <summary>
+    /// İşgal altındaki halka günlük direniş baskısı ekler.
+    ///
+    /// Bu yol bağımlılık zincirinden (ReleasableSystem / AutonomySystem)
+    /// TAMAMEN bağımsızdır: bir ülkenin toprakları savaşta işgal edilmişse,
+    /// ilhak kaydı ya da özerklik düzeyi olmasa da halkı ayaklanır. Budama
+    /// işaretinden (<see cref="ResistanceState.IsOccupied"/>) dolayı kayıt
+    /// bir sonraki <see cref="DailyTick"/>'te de yaşamaya devam eder.
+    ///
+    /// Determinizm: büyüklük tam olarak verilir (RNG yok); eylemin hedef il
+    /// seçimi ise sıralı taramayla yapılır — RNG'e gerek yoktur.
+    /// </summary>
+    public static void AddOccupationPressure(string countryId, double amount, int occupiedProvinces)
+    {
+        if (string.IsNullOrEmpty(countryId) || amount <= 0) return;
+        EnsureLoaded();
+
+        var state = Get(countryId) ?? EnsureState(countryId);
+        if (state == null) return;
+
+        state.IsOccupied = occupiedProvinces > 0;
+        state.OccupiedDays = occupiedProvinces > 0 ? state.OccupiedDays + 1 : 0;
+        state.OccupationRate = amount;
+        state.Accumulated = Math.Clamp(state.Accumulated + amount, 0.0, S.MaxAccumulated);
+
+        // Bağımlılık kaydı olmayan halk için eylem özel yolla çözülür.
+        if (state.Accumulated >= S.MaxAccumulated * S.StrikeChanceThreshold)
+            ResolveOccupationStrike(countryId, state);
+    }
+
+    /// <summary>Toprağı işgal edilmiş halkın eylemi — kurban İŞGALCİ olur.</summary>
+    private static void ResolveOccupationStrike(string countryId, ResistanceState state)
+    {
+        if (!OccupationSystem.IsReady) return;
+
+        // Hedef il: işgalci elindeki, bu halka ait topraklar (sıralı — deterministik).
+        var occupied = OccupationSystem.LostProvincesOf(countryId)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToList();
+        if (occupied.Count == 0) return;
+
+        string target = occupied[0];
+        string occupierId = OccupationSystem.Occupier(target);
+        if (string.IsNullOrEmpty(occupierId)) return;
+
+        state.LastStrikeProvinceId = target;
+        state.StrikeCount++;
+        state.Accumulated = 0;
+
+        var occupier = CountryDatabase.Get(occupierId);
+        int damaged = 0;
+        if (occupier != null && S.FactoryDamagePerStrike > 0)
+        {
+            if (occupier.CivFactories >= S.FactoryDamagePerStrike)
+            {
+                occupier.CivFactories -= S.FactoryDamagePerStrike;
+                damaged = S.FactoryDamagePerStrike;
+            }
+            else if (occupier.MilFactories >= S.FactoryDamagePerStrike)
+            {
+                occupier.MilFactories -= S.FactoryDamagePerStrike;
+                damaged = S.FactoryDamagePerStrike;
+            }
+            else if (occupier.Dockyards >= S.FactoryDamagePerStrike)
+            {
+                occupier.Dockyards -= S.FactoryDamagePerStrike;
+                damaged = S.FactoryDamagePerStrike;
+            }
+
+            if (S.OverlordStabilityLoss > 0)
+                occupier.StabilityPercent = Math.Clamp(
+                    occupier.StabilityPercent - S.OverlordStabilityLoss, 0, 100);
+        }
+
+        GD.Print($"[Resistance] {countryId}: İŞGAL DİRENCİ EYLEMİ — hedef il={target}, " +
+                 $"işgalci={occupierId} fabrika hasarı={damaged}, " +
+                 $"stabilite -{S.OverlordStabilityLoss} (eylem no={state.StrikeCount})");
+    }
+
     // ===== Kültür uyumsuzluğu puanı =====
 
     /// <summary>
@@ -184,7 +271,12 @@ public static class ResistanceSystem
             ReleasableSystem.Releasable().Select(r => r.CountryId), StringComparer.OrdinalIgnoreCase);
         if (_states.Count > 0)
         {
-            var stale = _states.Keys.Where(id => !live.Contains(id)).ToList();
+            // M49.3: işgal direnci bağımsızdır — toprağı işgal edilmiş bir halk
+            // bağımlılık kaydı olmadan da direnir. Bu kayıtlar budanmaz.
+            var stale = _states
+                .Where(kv => !live.Contains(kv.Key) && !kv.Value.IsOccupied)
+                .Select(kv => kv.Key)
+                .ToList();
             foreach (var id in stale)
                 _states.Remove(id);
         }
@@ -291,7 +383,10 @@ public static class ResistanceSystem
                 Accumulated = s.Accumulated,
                 LastDailyRate = s.LastDailyRate,
                 StrikeCount = s.StrikeCount,
-                LastStrikeProvinceId = s.LastStrikeProvinceId
+                LastStrikeProvinceId = s.LastStrikeProvinceId,
+                IsOccupied = s.IsOccupied,
+                OccupiedDays = s.OccupiedDays,
+                OccupationRate = s.OccupationRate
             });
         }
         return new SaveSystem.ResistanceSave { Entries = list.ToArray() };
@@ -312,7 +407,10 @@ public static class ResistanceSystem
                 Accumulated = e.Accumulated,
                 LastDailyRate = e.LastDailyRate,
                 StrikeCount = e.StrikeCount,
-                LastStrikeProvinceId = e.LastStrikeProvinceId ?? ""
+                LastStrikeProvinceId = e.LastStrikeProvinceId ?? "",
+                IsOccupied = e.IsOccupied,
+                OccupiedDays = e.OccupiedDays,
+                OccupationRate = e.OccupationRate
             };
         }
         GD.Print($"[Resistance] Direniş durumları yüklendi: {_states.Count}");

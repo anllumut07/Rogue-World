@@ -3281,3 +3281,60 @@ güvenlik ağı.
 | `--war-score-test` | 1.46 sn | PASS |
 | `--peace-terms-test` | 1.19 sn | PASS |
 | `--save-load-test` (A==B, 2 senaryo) | 20.8 sn | PASS |
+
+---
+
+## M49.3 — İşgal Yönetimi: Kısmi Çıkarım, Direniş ve Toprak Geri İsteği (2026-10-24)
+
+İşgal artık yalnızca haritayı değiştirmiyor — işgale edilen toprağın **ekonomik
+ve toplumsal sonucu** var. İki mekanik eklendi:
+
+- **Kısmi çıkarım (`CaptureDisruption`)**: il işgal edildiğinde işgalci ilin
+  kapasitesini %100 kullanmak zorunda değil. `ExtractionEfficiency` (0.45)
+  kadarını devrede kullanır; kalan **yıkım** olarak hem işgalcinin
+  `CountryData`'sından hem ilin kendi ağırlık kaydından düşülür. Böylece dünya
+  toplamı gerçekten küçülür (savaş toprağı harap eder) ve `IsReconciled`
+  tutarlılığı korunur. İl kaydında 10 "yıkım" alanı (`DisruptedCiv` … ) tutulur.
+- **Direniş birikimi (`AccumulateResistance` + `AddOccupationPressure`)**:
+  işgalcinin elindeki her il, eski sahibinin halkında günlük baskı biriktirir
+  (`ResistancePerOccupiedProvince` × il, `ResistancePerDayCap` tavanı). Bu kanal
+  `ReleasableSystem` bağımlılık zincirinden **tamamen bağımsız**dır: bağımlılık
+  kaydı olmayan bir halk da toprağı işgal edilmişse ayaklanır. Baskı eylem
+  eşiğini aşarsa **işgalciyi** hedef alan bir eylem patlak verir (fabrika hasarı
+  + stabilite kaybı). Kayıt budanmaz (`ResistanceState.IsOccupied` işareti).
+- **Toprak geri isteği (`WantsLandBack` / `LandBackDemandsOf`)**: yeterli sayıda
+  ilini kaybetmiş halk, `LandBackDemandThreshold` aşılınca toprak geri ister;
+  işgalcinin diplomasi ekranına talep düşer. Direniş eylemle boşalınca talep
+  kalkar.
+
+### Mimari düzeltme: il payları devrinde normalize edilmiyordu
+Bu adım sırasında **var olan bir hata** ortaya çıktı ve giderildi.
+`NormalizeShares` yalnızca `GenerateFor` içinde, o anki ülkeye göre çalışıyordu.
+Bir il başka ülkeye devredince alan ülkenin listesine, *eski ülkesinin
+normalize'ine* göre ölçeklenmiş paylar giriyordu — ülke içi pay toplamı 1'i
+aşıyordu (testte DEU'nun `FactoryW` toplamı ≈ 23.75). `DistributeInts` /
+`DistributePopulation` pay toplamını 1 varsayar; toplam 1'i aştığında "kalan"
+NEGATİF olur, hiçbir düzeltme çalışmaz ve il toplamı ülke toplamının
+katlarını gösterir (oyuncu 600 fabrikalı ülke için 14250 görüyordu).
+İkili çözüm:
+1. `ReconcileCountry` dağıtımdan önce `NormalizeShares(ids)` çağırır — liste
+   kendi içinde yeniden normalize edilir.
+2. `DistributeInts` / `DistributePopulation` dağıtımı **pay toplamına bölerek**
+   yapar. Çıktı toplamı matematiksel olarak her zaman ülke toplamına eşittir;
+   böylece float32'de kalan 1 ± 1e-7 sapması da (nüfusta ~9 kişi kayma)
+   toplamı bozamaz.
+
+Eklenen başka bir düzeltme: `ResolveOccupationStrike` hedef ili süzerken
+`!PreWarOwner == countryId` filtresi vardı; `LostProvincesOf` zaten yalnızca o
+halkın illerini döndürdüğü için filtre HER ZAMAN boş kalıyor ve işgal direnci
+eylemi hiç patlak vermiyordu. Filtre kaldırıldı.
+
+### Test kapsamı
+| Bayrak | Süre | Sonuç |
+|---|---|---|
+| `--occupation-admin-test` (yeni, 7 adım) | ~25 sn | PASS |
+| `--province-economy-test` (regresyon) | ~8 sn | PASS (sapma 0) |
+| `--occupation-test` | ~8 sn | PASS |
+| `--war-score-test` | ~1.5 sn | PASS |
+| `--peace-terms-test` | ~1.2 sn | PASS |
+| `--save-load-test` (A==B, 2 senaryo) | 20.4 sn | PASS |

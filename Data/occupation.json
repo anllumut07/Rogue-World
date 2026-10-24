@@ -6,6 +6,12 @@
     "AttackerOffensiveMultiplier": 1.6,
     "DivisionWeight": 10.0,
     "FactoryWeight": 2.0,
-    "MinPower": 1.0
+    "MinPower": 1.0,
+    "ExtractionEfficiency": 0.45,
+    "ResistancePerOccupiedProvince": 0.35,
+    "ResistancePerDayCap": 6.0,
+    "LandBackDemandThreshold": 40.0,
+    "StrikeFactoryDamage": 1,
+    "StrikeStabilityLoss": 0.25
   }
 }

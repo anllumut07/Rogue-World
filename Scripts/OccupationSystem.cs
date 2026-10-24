@@ -34,6 +34,20 @@ public static class OccupationSystem
         public string PreWarOwnerId = "";   // savaş öncesi gerçek sahip
         public string WarKey = "";          // "ATKC|DEFN" — hangi savaşta işgal edildi
         public long Day = 0;                // işgalin yapıldığı SAVAŞ GÜNÜ (yerleşme kuralı)
+
+        // M49.3: Kısmi çıkarım. Sahiplik ilin TÜM kapasitesini işgalciye
+        // taşıdığı için (M47.2), işgalcinin fiilen kullanamadığı kısım burada
+        // ayrıca tutulur — kayda yazılır ki yükleme sonrası toplam korunabilsin.
+        public int DisruptedCiv = 0;
+        public int DisruptedMil = 0;
+        public int DisruptedDock = 0;
+        public int DisruptedOil = 0;
+        public int DisruptedRubber = 0;
+        public int DisruptedSteel = 0;
+        public int DisruptedAluminum = 0;
+        public int DisruptedTungsten = 0;
+        public int DisruptedChromium = 0;
+        public long DisruptedPopulation = 0;
     }
 
     /// <summary>Savaş başına birikmiş baskı (determinizm için kayda yazılır).</summary>
@@ -68,6 +82,24 @@ public static class OccupationSystem
         public double FactoryWeight = 2;
         /// <summary>Hiç tümeni olmayan ülkenin taban gücü.</summary>
         public double MinPower = 1;
+        /// <summary>
+        /// M49.3: İşgalcinin işgal ettiği toprağın kapasitesinden
+        /// FIİLEN yararlanabildiği pay (0-1). Sahiplik zaten %100 işgalciye
+        /// geçiyor (M49.1) ama bir işgalci, yabancı toprakta fabrikayı tam
+        /// kapasiteyle çalıştıramaz — kalanı "yıkılmış/kullanılamaz" sayılır
+        /// ve işgalcinin kapasitesinden düşülür.
+        /// </summary>
+        public double ExtractionEfficiency = 0.45;
+        /// <summary>M49.3: İşgal altındaki HER il için günlük direniş artışı.</summary>
+        public double ResistancePerOccupiedProvince = 0.35;
+        /// <summary>M49.3: Bir ülkenin günlük toplam direniş artışı üst sınırı.</summary>
+        public double ResistancePerDayCap = 6.0;
+        /// <summary>M49.3: Direniş bu düzeye ulaşan halk toprağını geri ister.</summary>
+        public double LandBackDemandThreshold = 40.0;
+        /// <summary>M49.3: Direniş eyleminin işgalci fabrikasına verdiği hasar.</summary>
+        public int StrikeFactoryDamage = 1;
+        /// <summary>M49.3: Direniş eyleminin işgalci stabilitesine verdiği kayıp.</summary>
+        public double StrikeStabilityLoss = 0.25;
     }
 
     /// <summary>occupation.json kök DTO'su (IncludeFields=true ile okunur).</summary>
@@ -271,6 +303,92 @@ public static class OccupationSystem
     public static float LossRatio(WarSystem.War war)
         => OccupationRatio(war);
 
+    // ===== M49.3: İşgal yönetimi sorguları =====
+
+    /// <summary>
+    /// Şu an işgal altında olan, savaş öncesi sahibi <paramref name="countryId"/>
+    /// olan iller. Liste kopyadır — çağıran taraf sıralayabilir, iç liste
+    /// değişmez (canlı referans sızmaması için).
+    /// </summary>
+    public static List<string> LostProvincesOf(string countryId)
+    {
+        var list = new List<string>();
+        if (string.IsNullOrEmpty(countryId)) return list;
+        foreach (var kv in _occupations)
+            if (string.Equals(kv.Value.PreWarOwnerId, countryId, StringComparison.OrdinalIgnoreCase))
+                list.Add(kv.Key);
+        list.Sort(StringComparer.Ordinal);
+        return list;
+    }
+
+    /// <summary>İşgal altındaki il sayısı (toprağını kaybeden ülke bakımından).</summary>
+    public static int LostProvinceCount(string countryId) => LostProvincesOf(countryId).Count;
+
+    /// <summary>
+    /// M49.3: Toprağı işgal edilmiş halk, direnci eşiği aştıysa toprağını
+    /// geri ister. Bu "serbest bırakma isteği"dir: fiilen kaybedilen toprak
+    /// için diplomasi baskısı doğuran sinyal.
+    /// </summary>
+    public static bool WantsLandBack(string countryId)
+    {
+        if (string.IsNullOrEmpty(countryId)) return false;
+        if (LostProvinceCount(countryId) == 0) return false;
+        return ResistanceSystem.Accumulated(countryId) >= D.LandBackDemandThreshold;
+    }
+
+    /// <summary>Toprağını geri isteyen ülkeler (hangi işgalcinin elindeki toprak).</summary>
+    public static List<string> LandBackDemandsOf(string occupierId)
+    {
+        var list = new List<string>();
+        if (string.IsNullOrEmpty(occupierId)) return list;
+        foreach (var kv in _occupations)
+        {
+            if (!string.Equals(kv.Value.OccupierId, occupierId, StringComparison.OrdinalIgnoreCase))
+                continue;
+            string owner = kv.Value.PreWarOwnerId;
+            if (string.IsNullOrEmpty(owner) || list.Contains(owner)) continue;
+            if (WantsLandBack(owner)) list.Add(owner);
+        }
+        list.Sort(StringComparer.Ordinal);
+        return list;
+    }
+
+    /// <summary>İşgalcinin kullanamadığı toplam fabrika sayısı (çıkarım özeti).</summary>
+    public static int DisruptedFactoriesOf(string occupierId)
+    {
+        int n = 0;
+        foreach (var kv in _occupations)
+        {
+            if (!string.Equals(kv.Value.OccupierId, occupierId, StringComparison.OrdinalIgnoreCase))
+                continue;
+            n += kv.Value.DisruptedCiv + kv.Value.DisruptedMil + kv.Value.DisruptedDock;
+        }
+        return n;
+    }
+
+    /// <summary>İşgalcinin kullanamadığı toplam kaynak birimi (çıkarım özeti).</summary>
+    public static int DisruptedResourcesOf(string occupierId)
+    {
+        int n = 0;
+        foreach (var kv in _occupations)
+        {
+            if (!string.Equals(kv.Value.OccupierId, occupierId, StringComparison.OrdinalIgnoreCase))
+                continue;
+            n += kv.Value.DisruptedOil + kv.Value.DisruptedRubber + kv.Value.DisruptedSteel +
+                 kv.Value.DisruptedAluminum + kv.Value.DisruptedTungsten + kv.Value.DisruptedChromium;
+        }
+        return n;
+    }
+
+    /// <summary>M49.3: Bu düzeyde direniş biriken halk toprağını geri ister.</summary>
+    public static double LandBackThreshold => D.LandBackDemandThreshold;
+
+    /// <summary>M49.3: İşgaldeki her il için günlük direniç artışı.</summary>
+    public static double ResistancePerProvincePerDay => D.ResistancePerOccupiedProvince;
+
+    /// <summary>M49.3: Günlük direniç artışı üst sınırı.</summary>
+    public static double ResistancePerDayCap => D.ResistancePerDayCap;
+
     // ===== Günlük ilerleme =====
 
     /// <summary>
@@ -370,6 +488,44 @@ public static class OccupationSystem
                      $"+{taken} il ele geçirildi, {liberated} il geri kazanıldı " +
                      $"(işgal oranı %{OccupationRatio(war) * 100f:F0})");
         }
+
+        // M49.3: işgal altındaki halkta direniş biriktir. Yabancı yönetim
+        // uzun sürdükçe baskı büyür — bu, savaşın kendisinden bağımsız ve
+        // savaşın siyasi sonuçlarını (serbest bırakma isteği) besleyen
+        // ikinci bir kanaldır. Deterministik: büyüklük il sayısı × sabit.
+        AccumulateResistance(war);
+    }
+
+    /// <summary>
+    /// M49.3: Bu savaşta işgal edilmiş toprakların halklarına direniş baskısı
+    /// ekler. Hesaplama savaşın KENDİ işgal kayıtlarıyla sınırlıdır — aynı iki
+    /// ülke arka arkaya savaşırsa önceki savaşın kayıtları karışmaz (M49.2).
+    /// </summary>
+    private static void AccumulateResistance(WarSystem.War war)
+    {
+        if (D.ResistancePerOccupiedProvince <= 0) return;
+
+        string key = WarKeyOf(war);
+        var byOwner = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var kv in _occupations)
+        {
+            var occ = kv.Value;
+            if (!string.Equals(occ.WarKey, key, StringComparison.Ordinal)) continue;
+            if (string.IsNullOrEmpty(occ.PreWarOwnerId)) continue;
+            byOwner.TryGetValue(occ.PreWarOwnerId, out int n);
+            byOwner[occ.PreWarOwnerId] = n + 1;
+        }
+        if (byOwner.Count == 0) return;
+
+        // Topraklarını kaybeden halk da direnir: savunanın kendi işgalsiz
+        // topraklarını saymıyoruz, yalnızca fiilen işgal altındakileri.
+        foreach (var kv in byOwner)
+        {
+            double gain = Math.Min(
+                kv.Value * D.ResistancePerOccupiedProvince, D.ResistancePerDayCap);
+            if (gain <= 0) continue;
+            ResistanceSystem.AddOccupationPressure(kv.Key, gain, kv.Value);
+        }
     }
 
     /// <summary>Saldıranın hamle yapabileceği bir sonraki il (deterministik sıra).</summary>
@@ -429,7 +585,7 @@ public static class OccupationSystem
         string preWarOwnerId, string warKey, long warDay)
     {
         ProvinceOwnershipSystem.SetProvinceOwner(provinceId, occupierId);
-        _occupations[provinceId] = new Occupation
+        var record = new Occupation
         {
             ProvinceId = provinceId,
             OccupierId = occupierId,
@@ -437,8 +593,97 @@ public static class OccupationSystem
             WarKey = warKey,
             Day = warDay
         };
+        // M49.3: kısmi çıkarım — işgalcinin kullanamadığı kapasiteyi kaydet.
+        CaptureDisruption(provinceId, occupierId, record);
+        _occupations[provinceId] = record;
+
         GD.Print($"[Occupation] {provinceId}: {preWarOwnerId} → {occupierId} " +
                  $"(işgal, savaş günü {warDay})");
+    }
+
+    /// <summary>
+    /// M49.3 — İşgalcinin fiilen yararlanamadığı kapasiteyi hesaplar ve
+    /// işgalcinin toplamından düşer.
+    ///
+    /// Zemin: sahiplik değişimi (M47.2) ilin fabrika/kaynak/nüfus payının
+    /// tamamını işgalciye taşır — yani "işgal hiçbir şey kazandırmıyor" sorunu
+    /// M49.1'de çözüldü. Ama bir işgalci yabancı toprakta fabrikayı tam
+    /// kapasiteyle çalıştıramaz: üretim sabote edilir, işçiler kaçar, tedarik
+    /// karışır. Bu yüzden ilin kapasitesinden yalnızca
+    /// <see cref="OccupationSettings.ExtractionEfficiency"/> kadarı gerçten
+    /// kullanılabilir kalır; kalanı işgalcinin toplamından düşülür ve ilin
+    /// kaydına yazılır (yükleme sonrası toplamın korunması için).
+    /// </summary>
+    private static void CaptureDisruption(string provinceId, string occupierId, Occupation record)
+    {
+        double keep = D.ExtractionEfficiency;
+        if (keep >= 1.0 || keep < 0.0) return;
+
+        var w = ProvinceEconomySystem.Get(provinceId);
+        var data = CountryDatabase.Get(occupierId);
+        if (w == null || data == null) return;
+
+        record.DisruptedCiv = Lost(w.Civ, keep);
+        record.DisruptedMil = Lost(w.Mil, keep);
+        record.DisruptedDock = Lost(w.Dock, keep);
+        record.DisruptedOil = Lost(w.Oil, keep);
+        record.DisruptedRubber = Lost(w.Rubber, keep);
+        record.DisruptedSteel = Lost(w.Steel, keep);
+        record.DisruptedAluminum = Lost(w.Aluminum, keep);
+        record.DisruptedTungsten = Lost(w.Tungsten, keep);
+        record.DisruptedChromium = Lost(w.Chromium, keep);
+        record.DisruptedPopulation = LostL(w.Population, keep);
+
+        int factories = record.DisruptedCiv + record.DisruptedMil + record.DisruptedDock;
+        int resources = record.DisruptedOil + record.DisruptedRubber + record.DisruptedSteel +
+                        record.DisruptedAluminum + record.DisruptedTungsten + record.DisruptedChromium;
+        if (factories == 0 && resources == 0 && record.DisruptedPopulation == 0) return;
+
+        data.CivFactories = Math.Max(0, data.CivFactories - record.DisruptedCiv);
+        data.MilFactories = Math.Max(0, data.MilFactories - record.DisruptedMil);
+        data.Dockyards = Math.Max(0, data.Dockyards - record.DisruptedDock);
+        data.Oil = Math.Max(0, data.Oil - record.DisruptedOil);
+        data.Rubber = Math.Max(0, data.Rubber - record.DisruptedRubber);
+        data.Steel = Math.Max(0, data.Steel - record.DisruptedSteel);
+        data.Aluminum = Math.Max(0, data.Aluminum - record.DisruptedAluminum);
+        data.Tungsten = Math.Max(0, data.Tungsten - record.DisruptedTungsten);
+        data.Chromium = Math.Max(0, data.Chromium - record.DisruptedChromium);
+        data.Population = Math.Max(0, data.Population - record.DisruptedPopulation);
+
+        // İlin kendi pay kaydını da aynı miktarda düşür. Aksi halde il payları
+        // toplamı CountryData'yı aşar ve ProvinceEconomySystem.IsReconciled
+        // (M47.1 testi) kısa süre sonra tutarsızlık bildirirdi. Böylece toplam
+        // korunur: yıkılan kapasite DÜNYA genelinde de kaybolur — bu, savaşın
+        // toprağa verdiği bedeldir ve doğru olan budur.
+        w.Civ = Math.Max(0, w.Civ - record.DisruptedCiv);
+        w.Mil = Math.Max(0, w.Mil - record.DisruptedMil);
+        w.Dock = Math.Max(0, w.Dock - record.DisruptedDock);
+        w.Oil = Math.Max(0, w.Oil - record.DisruptedOil);
+        w.Rubber = Math.Max(0, w.Rubber - record.DisruptedRubber);
+        w.Steel = Math.Max(0, w.Steel - record.DisruptedSteel);
+        w.Aluminum = Math.Max(0, w.Aluminum - record.DisruptedAluminum);
+        w.Tungsten = Math.Max(0, w.Tungsten - record.DisruptedTungsten);
+        w.Chromium = Math.Max(0, w.Chromium - record.DisruptedChromium);
+        w.Population = Math.Max(0, w.Population - record.DisruptedPopulation);
+
+        GD.Print($"[Occupation] {provinceId}: kısmi çıkarım — işgalci {occupierId} " +
+                 $"ilin %{(keep * 100f):F0}'ini kullanabiliyor, " +
+                 $"{factories} fabrika + {resources} kaynak + " +
+                 $"{record.DisruptedPopulation} kişi kullanılamaz");
+    }
+
+    private static int Lost(int value, double keep)
+    {
+        if (value <= 0) return 0;
+        double lost = value * (1.0 - keep);
+        return lost < 1.0 ? 0 : (int)Math.Ceiling(lost);
+    }
+
+    private static long LostL(long value, double keep)
+    {
+        if (value <= 0) return 0;
+        double lost = value * (1.0 - keep);
+        return lost < 1.0 ? 0 : (long)Math.Ceiling(lost);
     }
 
     /// <summary>İl işgal kaydını sessizce düşürür (sahilik DEĞİŞMEZ).</summary>
@@ -486,7 +731,17 @@ public static class OccupationSystem
                 OccupierId = o.OccupierId,
                 PreWarOwnerId = o.PreWarOwnerId,
                 WarKey = o.WarKey,
-                Day = o.Day
+                Day = o.Day,
+                DisruptedCiv = o.DisruptedCiv,
+                DisruptedMil = o.DisruptedMil,
+                DisruptedDock = o.DisruptedDock,
+                DisruptedOil = o.DisruptedOil,
+                DisruptedRubber = o.DisruptedRubber,
+                DisruptedSteel = o.DisruptedSteel,
+                DisruptedAluminum = o.DisruptedAluminum,
+                DisruptedTungsten = o.DisruptedTungsten,
+                DisruptedChromium = o.DisruptedChromium,
+                DisruptedPopulation = o.DisruptedPopulation
             });
 
         var pressures = new List<SaveSystem.OccupationPressureEntry>(_pressures.Count);
@@ -523,7 +778,17 @@ public static class OccupationSystem
                     OccupierId = e.OccupierId ?? "",
                     PreWarOwnerId = e.PreWarOwnerId ?? "",
                     WarKey = e.WarKey ?? "",
-                    Day = e.Day
+                    Day = e.Day,
+                    DisruptedCiv = e.DisruptedCiv,
+                    DisruptedMil = e.DisruptedMil,
+                    DisruptedDock = e.DisruptedDock,
+                    DisruptedOil = e.DisruptedOil,
+                    DisruptedRubber = e.DisruptedRubber,
+                    DisruptedSteel = e.DisruptedSteel,
+                    DisruptedAluminum = e.DisruptedAluminum,
+                    DisruptedTungsten = e.DisruptedTungsten,
+                    DisruptedChromium = e.DisruptedChromium,
+                    DisruptedPopulation = e.DisruptedPopulation
                 };
             }
         }

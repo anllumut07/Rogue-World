@@ -35,6 +35,18 @@
 
     "ParentStabilityHit": 8.0,
     "ParentWarSupportHit": 10.0,
-    "RebelWarGoalPPFloor": 60.0
+    "RebelWarGoalPPFloor": 60.0,
+
+    "SpreadScoreThreshold": 70.0,
+    "CalmScoreThreshold": 35.0,
+    "MaxDailyProvinces": 1.0,
+
+    "AutonomySatisfactionBoost": 15.0,
+
+    "InterventionCalmFactor": 0.5,
+    "InterventionUnrestEvents": 2,
+
+    "VictoryStabilityGain": 5.0,
+    "VictoryWarSupportGain": 5.0
   }
 }

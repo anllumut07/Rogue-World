@@ -1234,6 +1234,17 @@ public partial class GameManager : Node
             if (data == null || data.IsAnnexed) continue;
             CivilWarSystem.Evaluate(data.Id, TotalDays);
         }
+
+        // M50.3: Devam eden isyanlar çöküş puanına göre yayılır/yatışır.
+        // Evaluate yukarıda yeni patlaka kaydını düşürür; bu döngü mevcut
+        // isyanların sınırlarını hareket ettirir. Liste silinebileceği için
+        // geriye doğru dolaşılır.
+        for (int i = CivilWarSystem.Active.Count - 1; i >= 0; i--)
+        {
+            var rebellion = CivilWarSystem.Active[i];
+            if (rebellion == null || string.IsNullOrEmpty(rebellion.CountryId)) continue;
+            CivilWarSystem.AdvanceRebellion(rebellion.CountryId, TotalDays);
+        }
     }
 
     // M24.2: Oyuncu karakterinin 7 niteliği ilgili istatistik göstergelerini düşük,
@@ -11879,9 +11890,295 @@ private void RunBalanceTest()
                  $"== '{spawn.RebelCountryName}' ({nameDeterministic})");
         if (!nameDeterministic) ok = false;
 
+        // ===== M50.3: Yayılım, yatışma ve çözüm yolları =====
+
+        // 24) Yayılım: çöküş puanı yayılım eşiğini geçince isyancı bölge komşu ile büyür
+        // Puanı eşiğin üstünde tutan sağlıksız bir durum kurup gün gün ilerlet.
+        CivilizationCollapse(cid, day);
+        var beforeSpread = CivilWarSystem.RebellionOf(cid);
+        int sizeBefore = beforeSpread.Provinces.Count;
+        int joinedSpread = 0;
+        string joinedProvince = "";
+        for (int d = 0; d < 40; d++)
+        {
+            var adv = CivilWarSystem.AdvanceRebellion(cid, day + d);
+            if (adv.Joined > 0)
+            {
+                joinedSpread += adv.Joined;
+                joinedProvince = adv.JoinedProvince;
+                if (joinedSpread >= 2) break;
+            }
+        }
+        var afterSpread = CivilWarSystem.RebellionOf(cid);
+        bool spreadWorks = afterSpread != null &&
+                           afterSpread.Provinces.Count == sizeBefore + joinedSpread &&
+                           joinedSpread > 0;
+        bool spreadContiguous = afterSpread != null &&
+            afterSpread.Provinces.All(p =>
+                afterSpread.Provinces.Count <= 1 ||
+                NeighborsInSet(p, afterSpread.Provinces) > 0);
+        int joinedTotal = afterSpread?.JoinedCount ?? 0;
+        GD.Print($"[CivilWarTest] 24) Yayılım: {sizeBefore}→{afterSpread?.Provinces.Count ?? 0} " +
+                 $"(+{joinedSpread}, son il={joinedProvince}, kayıtlı toplam={joinedTotal}) " +
+                 $"bağlı={spreadContiguous} ({spreadWorks && spreadContiguous})");
+        if (!spreadWorks || !spreadContiguous) ok = false;
+
+        // 25) Yatışma: çöküş puanı düşünce isyan geri çekilir
+        // Puanı yatışma eşiğinin altına çeken bir durum kur (yüksek stabilite/memnuniyet).
+        CivilizationRecover(cid);
+        int sizeAtPeak = afterSpread.Provinces.Count;
+        int leftTotal = 0;
+        string leftProvince = "";
+        for (int d = 0; d < 40; d++)
+        {
+            var adv = CivilWarSystem.AdvanceRebellion(cid, day + 100 + d);
+            if (adv.Left > 0)
+            {
+                leftTotal += adv.Left;
+                leftProvince = adv.LeftProvince;
+                if (leftTotal >= 2) break;
+            }
+        }
+        var afterCalm = CivilWarSystem.RebellionOf(cid);
+        bool calmWorks = afterCalm == null
+            ? leftTotal == sizeAtPeak && afterCalm == null
+            : afterCalm.Provinces.Count == sizeAtPeak - leftTotal && leftTotal > 0;
+        GD.Print($"[CivilWarTest] 25) Yatışma: {sizeAtPeak}→{afterCalm?.Provinces.Count ?? 0} " +
+                 $"(-{leftTotal}, son il={leftProvince}, kayıt={afterCalm?.LeftCount ?? 0}) ({calmWorks})");
+        if (!calmWorks) ok = false;
+
+        // 26) Yatışma sınırları: eşikler arasında isyan sabit kalır
+        // Patlak veren isyanı orta puanlı bir düzende tut.
+        CivilWarSystem.ResetForNewGame();
+        CollapseAndOutbreak(cid, day);
+        CivilizationStasis(cid);
+        var mid = CivilWarSystem.RebellionOf(cid);
+        int stableSize = mid?.Provinces.Count ?? 0;
+        bool stayedStable = mid != null;
+        for (int d = 0; d < 20 && mid != null; d++)
+        {
+            var adv = CivilWarSystem.AdvanceRebellion(cid, day + d);
+            if (adv.Joined > 0 || adv.Left > 0) stayedStable = false;
+        }
+        var midAfter = CivilWarSystem.RebellionOf(cid);
+        GD.Print($"[CivilWarTest] 26) Dengede sabit kalma: {stableSize}→{midAfter?.Provinces.Count ?? 0} " +
+                 $"(değişim yok={stayedStable}) ({stayedStable})");
+        if (!stayedStable) ok = false;
+
+        // 27) Askeri zafer: isyan illeri merkeze döner, isyancı devlet ilhak edilir
+        // Sağlıklı bir duruma çek (puan düşük) + sonra Resolve.
+        var beforeVictory = CivilWarSystem.RebellionOf(cid);
+        int provinceCountVictory = beforeVictory.Provinces.Count;
+        var rebelAtWar = CivilWarSystem.RebellionOf(cid);
+        // İsyancı devleti doğur (mezpatlak devlet yoksa zafer illeri geri alamaz)
+        var spawnForVictory = CivilWarSystem.SpawnRebelCountry(cid, day);
+        var victoryRebelId = spawnForVictory.RebelCountryId;
+        int rebelProvincesBefore = ProvinceOwnershipSystem.GetProvincesByOwner(victoryRebelId).Count;
+        int parentProvincesBefore = ProvinceOwnershipSystem.GetProvincesByOwner(cid).Count;
+        var victory = CivilWarSystem.ResolveRebellion(cid, CivilWarSystem.RebelOutcome.MilitaryVictory, day + 30);
+        var rebelAfterVictory = CountryDatabase.Get(victoryRebelId);
+        bool victoryOk = victory.Ok &&
+                         victory.Outcome == "MilitaryVictory" &&
+                         victory.WarEnded &&
+                         rebelAfterVictory.IsAnnexed &&
+                         !CivilWarSystem.IsRebelling(cid) &&
+                         ProvinceOwnershipSystem.GetProvincesByOwner(victoryRebelId).Count == 0 &&
+                         ProvinceOwnershipSystem.GetProvincesByOwner(cid).Count ==
+                             parentProvincesBefore + rebelProvincesBefore;
+        GD.Print($"[CivilWarTest] 27) Askeri zafer: nokta={victory.Reason}, " +
+                 $"dönen il={victory.ProvincesReturned}/{rebelProvincesBefore}, " +
+                 $"ebe {parentProvincesBefore}→{ProvinceOwnershipSystem.GetProvincesByOwner(cid).Count}, " +
+                 $"isyancı ilhak={rebelAfterVictory.IsAnnexed}, " +
+                 $"savaş bitti={victory.WarEnded}, isyan kaydı={CivilWarSystem.IsRebelling(cid)} ({victoryOk})");
+        if (!victoryOk) ok = false;
+
+        // 28) Özerklik: isyancı özerk bağımlı olur, statüko barışıyla savaş biter
+        CivilWarSystem.ResetForNewGame();
+        CollapseAndOutbreak(cid, day);
+        var autonomyRebel = CivilWarSystem.RebellionOf(cid);
+        var spawnAutonomy = CivilWarSystem.SpawnRebelCountry(cid, day);
+        var rebelIdAutonomy = spawnAutonomy.RebelCountryId;
+        var autonomy = CivilWarSystem.ResolveRebellion(cid, CivilWarSystem.RebelOutcome.AutonomyGrant, day + 30);
+        var rebelAfterAutonomy = CountryDatabase.Get(rebelIdAutonomy);
+        bool autonomyOk = autonomy.Ok &&
+                          autonomy.Outcome == "AutonomyGrant" &&
+                          autonomy.WarEnded &&
+                          rebelAfterAutonomy.IsAnnexed &&
+                          rebelAfterAutonomy.OwnerId == cid &&
+                          AutonomySystem.Get(rebelIdAutonomy) != null &&
+                          !CivilWarSystem.IsRebelling(cid) &&
+                          ProvinceOwnershipSystem.GetProvincesByOwner(rebelIdAutonomy).Count > 0;
+        GD.Print($"[CivilWarTest] 28) Özerklik: nokta={autonomy.Reason}, " +
+                 $"dönen il={autonomy.ProvincesReturned}, " +
+                 $"bağımlı={rebelAfterAutonomy.OwnerId}, özerklik kaydı={AutonomySystem.Get(rebelIdAutonomy)?.Level:F1}, " +
+                 $"savaş bitti={autonomy.WarEnded}, isyan kaydı={CivilWarSystem.IsRebelling(cid)} ({autonomyOk})");
+        if (!autonomyOk) ok = false;
+
+        // 29) Yabancı müdahale — hükümeti desteklemek isyanı yatıştırır
+        CivilWarSystem.ResetForNewGame();
+        CollapseAndOutbreak(cid, day);
+        int unrestBefore = UnrestCounter(cid);
+        // Müdahale öncesi puan: hükümet yardımı alınca düşmeli
+        double scoreBeforeAid = CivilWarSystem.CollapseScore(cid, day);
+        var aid = CivilWarSystem.ApplyForeignIntervention(cid, "government", "emergency_aid", day);
+        int unrestAfter = UnrestCounter(cid);
+        bool aidOk = aid.Ok && aid.Side == "government" &&
+                     unrestAfter < unrestBefore &&
+                     InterventionSystem.InterventionHistory.Any(r => r.CountryId == cid);
+        GD.Print($"[CivilWarTest] 29) Müdahale (hükümet): uygulandı={aid.Ok}, " +
+                 $"neden={aid.Reason}, huzursuzluk {unrestBefore}→{unrestAfter}, " +
+                 $"puan {scoreBeforeAid:F1}→{CivilWarSystem.CollapseScore(cid, day):F1} ({aidOk})");
+        if (!aidOk) ok = false;
+
+        // 30) Yabancı müdahale — isyancıyı desteklemek huzursuzluğu büyütür
+        CivilWarSystem.ResetForNewGame();
+        CollapseAndOutbreak(cid, day);
+        var spawnProRebel = CivilWarSystem.SpawnRebelCountry(cid, day);
+        int unrestBeforePro = UnrestCounter(cid);
+        var pro = CivilWarSystem.ApplyForeignIntervention(cid, "rebels", "international_aid", day);
+        int unrestAfterPro = UnrestCounter(cid);
+        bool proOk = pro.Ok && pro.Side == "rebels" &&
+                     unrestAfterPro > unrestBeforePro;
+        GD.Print($"[CivilWarTest] 30) Müdahale (isyancı): uygulandı={pro.Ok}, " +
+                 $"neden={pro.Reason}, huzursuzluk {unrestBeforePro}→{unrestAfterPro} ({proOk})");
+        if (!proOk) ok = false;
+
+        // 31) Geçersiz müdahale girdileri — isyan yok / yanlış taraf
+        CivilWarSystem.ResetForNewGame();
+        var noRebellion = CivilWarSystem.ApplyForeignIntervention(cid, "government", "emergency_aid", day);
+        CollapseAndOutbreak(cid, day);
+        var badSide = CivilWarSystem.ApplyForeignIntervention(cid, "yanlis_taraf", "emergency_aid", day);
+        bool badInputs = !noRebellion.Ok && !badSide.Ok;
+        GD.Print($"[CivilWarTest] 31) Geçersiz müdahale: isyansız={noRebellion.Reason}, " +
+                 $"yanlış taraf={badSide.Reason} ({badInputs})");
+        if (!badInputs) ok = false;
+
+        // 32) Save/Load — yayılım/yatışma sayaçları ve çözüm sonrası durum
+        CivilWarSystem.ResetForNewGame();
+        CollapseAndOutbreak(cid, day);
+        var stateBeforeSave = CivilWarSystem.RebellionOf(cid);
+        int joinedBeforeSave = stateBeforeSave.JoinedCount;
+        int leftBeforeSave = stateBeforeSave.LeftCount;
+        int provincesBeforeSave = stateBeforeSave.Provinces.Count;
+        // Birkaç gün ilerlet: sayaçlar ve il listesi değişsin
+        for (int d = 0; d < 30; d++) CivilWarSystem.AdvanceRebellion(cid, day + d);
+        var stateAfterRun = CivilWarSystem.RebellionOf(cid);
+        SaveSystem.SaveTestFile();
+        bool loadedM503 = SaveSystem.LoadTestFile();
+        var backAfterRun = CivilWarSystem.RebellionOf(cid);
+        bool roundTripM503;
+        if (backAfterRun == null)
+        {
+            roundTripM503 = loadedM503 && stateAfterRun == null; // isyan tükendiyse kayıt da yok
+        }
+        else
+        {
+            roundTripM503 = loadedM503 &&
+                backAfterRun.Provinces.Count == stateAfterRun.Provinces.Count &&
+                backAfterRun.JoinedCount == stateAfterRun.JoinedCount &&
+                backAfterRun.LeftCount == stateAfterRun.LeftCount;
+        }
+        GD.Print($"[CivilWarTest] 32) Save/Load (M50.3): yüklendi={loadedM503}, " +
+                 $"il {provincesBeforeSave}→{stateAfterRun?.Provinces.Count ?? 0}→{backAfterRun?.Provinces.Count ?? 0}, " +
+                 $"katılan {joinedBeforeSave}→{stateAfterRun?.JoinedCount ?? 0}→{backAfterRun?.JoinedCount ?? 0}, " +
+                 $"ayrılan {leftBeforeSave}→{stateAfterRun?.LeftCount ?? 0}→{backAfterRun?.LeftCount ?? 0} ({roundTripM503})");
+        if (!roundTripM503) ok = false;
+
+
 
         GD.Print(ok ? "[CivilWarTest] SONUÇ: PASS ✓" : "[CivilWarTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M50.3 test yardımcısı: çöküş puanını yayılım eşiğinin üstüne çıkarır.
+    /// Düşük stabilite, düşük memnuniyet ve taze huzursuzluk — ilerleme
+    /// testlerinde isyanın büyümesi için gereken puanı deterministik kurar.
+    /// </summary>
+    private void CivilizationCollapse(string countryId, long day)
+    {
+        var data = CountryDatabase.Get(countryId);
+        if (data != null) data.StabilityPercent = 15.0;
+        foreach (var g in PublicSatisfactionSystem.Groups)
+            PublicSatisfactionSystem.SetSatisfaction(countryId, g.Id, 5.0);
+        if (PoliticalUnrestSystem.States.TryGetValue(countryId, out var unrest))
+        {
+            unrest.ProtestCount = 3;
+            unrest.StrikeCount = 2;
+            unrest.CoupAttemptCount = 1;
+            unrest.LastProtestDay = day;
+            unrest.LastStrikeDay = day;
+        }
+        StatisticsSystem.SetValue(countryId, "unemployment", 24.0);
+        StatisticsSystem.SetValue(countryId, "public_debt", 140.0);
+        StatisticsSystem.SetValue(countryId, "gdp_growth", -4.0);
+    }
+
+    /// <summary>M50.3 test yardımcısı: yüksek stabilite/memnuniyet — yatışma durumu.</summary>
+    private void CivilizationRecover(string countryId)
+    {
+        var data = CountryDatabase.Get(countryId);
+        if (data != null) data.StabilityPercent = 85.0;
+        foreach (var g in PublicSatisfactionSystem.Groups)
+            PublicSatisfactionSystem.SetSatisfaction(countryId, g.Id, 90.0);
+        ClearUnrestCounters(countryId);
+        StatisticsSystem.SetValue(countryId, "unemployment", 2.0);
+        StatisticsSystem.SetValue(countryId, "public_debt", 20.0);
+        StatisticsSystem.SetValue(countryId, "gdp_growth", 3.0);
+    }
+
+    /// <summary>
+    /// M50.3 test yardımcısı: çöküş durumunu kurup isyanı patlatır.
+    /// CivilizationCollapse yalnızca göstergeleri kurar; isyan kaydını
+    /// Evaluate oluşturur — ikisi ayrı adımlar olduğu için birlikte çağrılır.
+    /// </summary>
+    private void CollapseAndOutbreak(string countryId, long day)
+    {
+        CivilizationCollapse(countryId, day);
+        CivilWarSystem.Evaluate(countryId, day);
+    }
+
+    /// <summary>
+    /// M50.3 test yardımcısı: eşikler arası orta puan — isyan ne büyür ne küçülür.
+    /// Stabilite ve memnuniyet yayılım (≥70) ve yatışma (≤35) eşiklerinin
+    /// arasında bir düzene çekilir; huzursuzluk kanalı söndürülür.
+    /// </summary>
+    private void CivilizationStasis(string countryId)
+    {
+        var data = CountryDatabase.Get(countryId);
+        if (data != null) data.StabilityPercent = 40.0;
+        foreach (var g in PublicSatisfactionSystem.Groups)
+            PublicSatisfactionSystem.SetSatisfaction(countryId, g.Id, 40.0);
+        ClearUnrestCounters(countryId);
+        StatisticsSystem.SetValue(countryId, "unemployment", 8.0);
+        StatisticsSystem.SetValue(countryId, "public_debt", 60.0);
+        StatisticsSystem.SetValue(countryId, "gdp_growth", 1.0);
+    }
+
+    /// <summary>M50.3 test yardımcısı: huzursuzluk sayaçlarını ve olay günlerini sıfırlar.</summary>
+    private void ClearUnrestCounters(string countryId)
+    {
+        if (!PoliticalUnrestSystem.States.TryGetValue(countryId, out var unrest)) return;
+        unrest.ProtestCount = 0;
+        unrest.StrikeCount = 0;
+        unrest.CoupAttemptCount = 0;
+        unrest.VoteOfConfidenceCount = 0;
+        unrest.LastProtestDay = long.MinValue;
+        unrest.LastStrikeDay = long.MinValue;
+        unrest.LastVoteOfConfidenceDay = long.MinValue;
+    }
+
+    /// <summary>M50.3 test yardımcısı: huzursuzluk sayaçlarının toplamı.</summary>
+    private int UnrestCounter(string countryId) =>
+        PoliticalUnrestSystem.States.TryGetValue(countryId, out var st)
+            ? st.ProtestCount + st.StrikeCount + st.VoteOfConfidenceCount + st.CoupAttemptCount
+            : 0;
+
+    /// <summary>M50.3 test yardımcısı: ilin, verilen küme içindeki komşu sayısı.</summary>
+    private int NeighborsInSet(string provinceId, List<string> set)
+    {
+        var inSet = new HashSet<string>(set, StringComparer.Ordinal);
+        return CivilWarSystem.NeighborIdsOf(provinceId).Count(n => inSet.Contains(n));
     }
 
 

@@ -456,6 +456,9 @@ public static class SaveSystem
         public string RebelCountryName { get; set; }
         public bool CountrySpawned { get; set; }
         public long SpawnDay { get; set; }
+        // M50.3: yayılım/yatışma geçmişi — özet hash'ine girer.
+        public int JoinedCount { get; set; }
+        public int LeftCount { get; set; }
     }
     public class CivilWarOutbreakDay
     {

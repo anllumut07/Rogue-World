@@ -3505,3 +3505,72 @@ sabit), savaş ilanı (`IsAtWarWith` + aktif savaş kaydı), tanınma akışı
 (`WasBorn`, `Birth.Reason == "civil_war"`, ebe tanıdı, tanıyan sayısı ilerliyor),
 ikinci doğuşun `ulke_zaten_dogdu` ile reddi, doğan isyancı devletin save/load
 round-trip'i ve ad determinizmi.
+
+## M50.3 — İç Savaşı Bitirme Yolları, Yayılım ve Yatışma
+
+### Yapılanlar
+- `Scripts/CivilWarSystem.cs`
+  - `AdvanceRebellion` günlük yayılım/yatışma: çöküş puanı ≥ 70 ise en çok 1 il
+    katılır (komşuluk üzerinden), puan ≤ 35 ise en çok 1 il ayrılır; iki eşik
+    arasında isyan mevcut sınırlarında sabit kalır.
+  - `ResolveRebellion` iki yol:
+    - `MilitaryVictory` — isyancı devletin elinde kalan BÜTÜN iller ebeye döner,
+      isyancı devlet ilhak edilir, savaş kapatılır, ebe toparlanır.
+    - `AutonomyGrant` — isyancı iller isyancıda kalır, devlet özerk bağımlı
+      (`OwnerId` = ebe) olur, M45 `AutonomySystem` kaydı açılır, isyancı
+      kültürünün memnuniyeti %15 yükselir, statüko barışıyla savaş biter.
+  - `ApplyForeignIntervention` — `government` tarafı huzursuzluğu yarıya indirir,
+    `rebels` tarafı huzursuzluk kanalına dış kaynaklı olay ekler (M23
+    `InterventionSystem` üzerinden uygulanır).
+- `Data/civil_war.json` — `SpreadScoreThreshold`, `CalmScoreThreshold`,
+  `MaxDailyProvinces`, `AutonomySatisfactionBoost`, `InterventionCalmFactor`,
+  `InterventionUnrestEvents`, `VictoryStabilityRecovery`,
+  `VictoryWarSupportRecovery`.
+- `Scripts/CasusBelliSystem.cs` — `ClearTruce` eklendi: iç savaş bir ülkenin kendi
+  bağırsaklarındaki çatışmadır, eski ateşkes yeni isyanı bağlamaz.
+- `Scripts/GameManager.cs` — `RunCivilWarTest` 32 adıma çıkarıldı (24–32 yeni);
+  yardımcılar `CollapseAndOutbreak`, `CivilizationStasis`, `ClearUnrestCounters`.
+
+### Testte bulunan üç gerçek kusur
+1. **`ResolveRebellion` `WarEnded`'i hiç atamıyordu** — sonuç nesnesinde
+   `false` kalıyor, savaş kaydı kapatılsa bile. Artık savaş bulunup
+   kapatılırsa `true` atanıyor.
+2. **Askeri zafer yalnızca kayıtlı isyan illerini geri alıyordu** — isyancı
+   devlet önceki isyanlardan il devretmiş olabilir; bu iller ebeye
+   dönmüyordu. Artık isyancı devletin sahip olduğu BÜTÜN iller geri alınır.
+3. **`GetProvincesByOwner` canlı iç listeyi döndürüğü için `InvalidOperationException`** —
+   il devrederken koleksiyon değişiyordu. Kopya (`.ToList()`) üzerinde
+   geziliyor.
+
+### Belirsizlik kararı
+- **Yayılım kültür eşleşmesine sıkı sürügilmiyor:** kültürü uyan komşu önce
+  gelir, o adaylar tükenince çöküş farklı kültürlü komşu illere de sızar.
+  Gerekçe: isyanın patlak verdiği küçük bölgenin sınırına hapsolmasını
+  engellemek — büyük bir imparatorluğun gerçekten dağılabilmesi hedefi.
+  Isınma daracık kültür bloklarında takılı kalırsa M50.4 regresyonunda
+  yeniden değerlendirilecek.
+- **İç savaşta ateşkes kaldırılıyor:** ebe ile isyancı arasındaki eski ateşkes
+  (önceki isyanın sonu) yeni isyanı bağlamamalı.
+
+### Test kapsamı
+| Bayrak | Süre | Sonuç |
+|---|---|---|
+| `--civil-war-test` (32 adım, M50.1+M50.2+M50.3) | 4.0 sn | PASS |
+| `--save-load-test` (A==B, 2 senaryo) | 20.7 sn | PASS |
+| `--intervention-test` | 1.6 sn | PASS |
+| `--recognition-test` | 1.9 sn | PASS |
+
+**M50.3 yeni adımlar (24–32):** yayılım (puan eşiği aşılınca komşu il katılır,
+coğrafi bağlantı korunur), yatışma (puan düşünce il geri döner), iki eşik
+arasında sabit kalma, askeri zafer (bütün iller geri döner, isyancı ilhak,
+savaş biter), özerklik (özerk bağımlı + M45 kaydı + memnuniyet yükselişi +
+statüko barışı), hükümeti destekleyen müdahale (huzursuzluk düşer), isyancıyı
+destekleyen müdahale (huzursuzluk yükselir), geçersiz müdahale girdileri ve
+save/load round-trip (yayılım/yatışma sayaçları + il listesi).
+
+**Not:** `--civil-war-test` stderr'inde "İSYANCI DEVLET SAVAŞ AÇAMADI …
+Zaten Savaşta" görülebilir. Bu test tarifinin kalıntısıdır: adım 26'daki
+`ResetForNewGame` WarSystem'i sıfırlamadığından adım 19'dan kalan REBRUS↔RUS
+savaşı hâlâ aktif olur. 32 adımın hepsi bu duruma rağmen (eski savaş kaydı
+bulunup kapatıldığı için) geçiyor; gerçek oyunda `ResolveRebellion` savaşı
+kapattığı için durum oluşmaz.

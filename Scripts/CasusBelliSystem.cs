@@ -689,6 +689,20 @@ public static class CasusBelliSystem
         return Math.Max(0, endDay - (GM?.TotalDays ?? 0));
     }
 
+    /// <summary>
+    /// İki ülke arasındaki ateşkesi kaldırır. İç savaş bir ülkenin kendi
+    /// bağırsaklarındaki çatışmadır: ebe ile isyancı arasındaki eski ateşkes
+    /// (önceki isyanın sonu) yeni isyanı bağlamaz — yoksa ikinci isyan hiç
+    /// savaş açamaz.
+    /// </summary>
+    public static void ClearTruce(string countryA, string countryB)
+    {
+        if (string.IsNullOrEmpty(countryA) || string.IsNullOrEmpty(countryB)) return;
+        string key = GetTruceKey(countryA, countryB);
+        if (_truces.Remove(key))
+            GD.Print($"[CasusBelli] ATEŞKES KALKTI: {countryA} ↔ {countryB} — iç çatışma eski barışı geçersiz kıldı.");
+    }
+
     // ===== Legitimacy (Dünya İtibarı) =====
 
     public static float GetLegitimacy(string countryId)

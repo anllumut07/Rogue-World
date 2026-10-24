@@ -82,6 +82,24 @@ public static class CivilWarSystem
         public double ParentStabilityHit = 8.0;
         public double ParentWarSupportHit = 10.0;
         public double RebelWarGoalPPFloor = 60.0;
+
+        // M50.3: Yayılım / yatışma — çöküş puanı bu iki eşik arasında isyan
+        // mevcut sınırlarında kalır; çöküş derinleştikçe büyür, hükümet
+        // toparlandıkça küçülür. Günlük en çok MaxDailyProvinces il değişir.
+        public double SpreadScoreThreshold = 70.0;
+        public double CalmScoreThreshold = 35.0;
+        public double MaxDailyProvinces = 1.0;
+
+        // M50.3: Özerklikle çözüm — isyancı kültürün memnuniyeti yükselir.
+        public double AutonomySatisfactionBoost = 15.0;
+
+        // M50.3: Yabancı müdahalenin huzursuzluk kanalına etkisi (oran).
+        public double InterventionCalmFactor = 0.5;
+        public int InterventionUnrestEvents = 2;
+
+        // M50.3: Askeri zafer — merkez hükümetin toparlanması.
+        public double VictoryStabilityGain = 5.0;
+        public double VictoryWarSupportGain = 5.0;
     }
 
     private sealed class CivilWarRoot
@@ -126,6 +144,10 @@ public static class CivilWarSystem
         public string RebelCountryName = "";// doğan ülkenin adı
         public bool CountrySpawned = false;  // devir ve savaş ilanı yapıldı mı
         public long SpawnDay;                // doğduğu gün
+
+        // M50.3: Yayılım / yatışma geçmişi — save/load özet hash'ine girer.
+        public int JoinedCount;              // isyancıya katılan il sayısı
+        public int LeftCount;                // ayrılan il sayısı
     }
 
     private static readonly List<RebellionState> _active =
@@ -477,6 +499,10 @@ public static class CivilWarSystem
     private static IEnumerable<string> NeighborsOf(string provinceId) =>
         _neighbors.TryGetValue(provinceId, out var nb) ? nb : Array.Empty<string>();
 
+    /// <summary>Bir ilin komşu kimlikleri (grafik hazırsa).</summary>
+    public static IReadOnlyList<string> NeighborIdsOf(string provinceId) =>
+        _neighbors.TryGetValue(provinceId, out var nb) ? nb : Array.Empty<string>();
+
     /// <summary>
     /// İl komşuluk grafını bir kez kurar. Üretim (WorldMap.SetProvinces) ve
     /// headless testler illeri zaten hazırladığı için burada yalnızca graf
@@ -665,6 +691,9 @@ public static class CivilWarSystem
         CountryAI.Reset();
 
         // 6) Bağımsızlık savaşı — otomatik, ücretsiz ve beklemesiz gerekçe
+        // İç savaş ülke içi çatışkadır: ebe ile isyancı arasındaki eski ateşkes
+        // (önceki isyanın sonu) yeni çatışmaya engel olmaz.
+        CasusBelliSystem.ClearTruce(rebelId, countryId);
         bool justified = false;
         try
         {
@@ -751,6 +780,445 @@ public static class CivilWarSystem
             GD.Print($"[CivilWar] {countryId}: isyan bastırıldı kayıttan düşürüldü ({removed}).");
     }
 
+    // ===== M50.3: Yayılım, yatışma ve çözüm yolları =====
+
+    public enum RebelOutcome { MilitaryVictory, AutonomyGrant }
+
+    public class SpreadResult
+    {
+        public string CountryId = "";
+        public string Reason = "";
+        public double Score;
+        public double SpreadThreshold;
+        public double CalmThreshold;
+        public int ProvinceCount;         // işlem sonrası isyanın ili sayısı
+        public int Joined;                // bu gün isyancıya katılan il
+        public string JoinedProvince = ""; // katılan il (varsa)
+        public int Left;                  // bu gün ayrılan il
+        public string LeftProvince = "";  // ayrılan il (varsa)
+        public bool Suppressed;           // isyan tükendi, kayıt düştü
+    }
+
+    /// <summary>
+    /// İsyanın günlük akışı: çöküş puanı yayılım eşiğini aştıkça isyancı bölge
+    /// komşu illere yayılır, puan yatışma eşiğinin altına indikçe küçülür.
+    /// Seçim deterministiktir (hash), RNG yok. İller hem devretme hem de il bazlı
+    /// kültür kaydıyla birlikte taşınır.
+    /// </summary>
+    public static SpreadResult AdvanceRebellion(string countryId, long currentDay)
+    {
+        EnsureLoaded();
+        var res = new SpreadResult
+        {
+            CountryId = countryId ?? "",
+            SpreadThreshold = S.SpreadScoreThreshold,
+            CalmThreshold = S.CalmScoreThreshold
+        };
+
+        var rebellion = RebellionOf(countryId);
+        if (rebellion == null) { res.Reason = "isyan_yok"; return res; }
+
+        res.Score = CollapseScore(countryId, currentDay);
+        res.ProvinceCount = rebellion.Provinces.Count;
+        int move = Math.Max(1, (int)S.MaxDailyProvinces);
+
+        if (res.Score >= S.SpreadScoreThreshold)
+        {
+            for (int i = 0; i < move; i++)
+            {
+                var join = PickJoinProvince(rebellion);
+                if (join == null) break;
+                TransferProvince(join, countryId, rebellion);
+                rebellion.Provinces.Add(join);
+                rebellion.JoinedCount++;
+                res.Joined++;
+                res.JoinedProvince = join;
+            }
+
+            if (res.Joined > 0)
+                GD.Print($"[CivilWar] İSYAN YAYILDI: {countryId} +{res.Joined} il " +
+                         $"[{res.JoinedProvince}] — puan={res.Score:F1} " +
+                         $"(eşik={S.SpreadScoreThreshold:F1}), toplam={rebellion.Provinces.Count}");
+
+            res.ProvinceCount = rebellion.Provinces.Count;
+            return res;
+        }
+
+        if (res.Score <= S.CalmScoreThreshold)
+        {
+            for (int i = 0; i < move; i++)
+            {
+                var leave = PickLeaveProvince(rebellion);
+                if (leave == null) break;
+                TransferProvince(leave, countryId, rebellion, back: true);
+                rebellion.Provinces.Remove(leave);
+                rebellion.LeftCount++;
+                res.Left++;
+                res.LeftProvince = leave;
+            }
+
+            if (rebellion.Provinces.Count == 0)
+            {
+                // Bütün iller geri döndü — isyan tükendi.
+                Suppress(countryId);
+                res.Suppressed = true;
+                res.ProvinceCount = 0;
+                GD.Print($"[CivilWar] İSYAN TÜKENDİ: {countryId} — son il geri döndü " +
+                         $"(puan={res.Score:F1}), kayıt düşürüldü.");
+                return res;
+            }
+
+            if (res.Left > 0)
+                GD.Print($"[CivilWar] İSYAN YATIŞTI: {countryId} -{res.Left} il " +
+                         $"[{res.LeftProvince}] — puan={res.Score:F1} " +
+                         $"(eşik={S.CalmScoreThreshold:F1}), toplam={rebellion.Provinces.Count}");
+        }
+
+        res.ProvinceCount = rebellion.Provinces.Count;
+        return res;
+    }
+
+    /// <summary>
+    /// İsyancı bölgeye katılacak komşu ili seçer: hâlâ merkez hükümette olan
+    /// adaylar arasından isyancı kültürüyle uyumlu olanı önceleyip en düşük
+    /// hashliyi seçer. Yoksa null.
+    /// </summary>
+    private static string PickJoinProvince(RebellionState rebellion)
+    {
+        var owned = ProvinceOwnershipSystem.GetProvincesByOwner(rebellion.CountryId);
+        var ownedSet = new HashSet<string>(owned, StringComparer.Ordinal);
+        var current = new HashSet<string>(rebellion.Provinces, StringComparer.Ordinal);
+
+        var candidates = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var p in rebellion.Provinces)
+            foreach (var nb in NeighborsOf(p))
+            {
+                if (ownedSet.Contains(nb) && !current.Contains(nb)) candidates.Add(nb);
+            }
+
+        // Kültür eşleşen komşu önce gelir; o adaylar tükenince çöküş farklı
+        // kültürlü komşu illere de sıçar — isyanın büyümesi, patlak verdiği
+        // küçük bölgenin sınırına hapsolmasın.
+        return candidates
+            .OrderBy(p => MatchesRebelCulture(p, rebellion.RebelCulture) ? 0 : 1)
+            .ThenBy(p => StableHash(rebellion.CountryId + "|join|" + p))
+            .ThenBy(p => p, StringComparer.Ordinal)
+            .FirstOrDefault();
+    }
+
+    /// <summary>
+    /// İsyandan ayrılacak ili seçer: bölgeden çıkarınca geri kalan parçanın
+    /// bağlantısını bozmayacak (derece 1) ve en düşük hashli il. Böylece bölge
+    /// kopuk parçalara dağılmaz; dairenin kenarından geri çekilir.
+    /// </summary>
+    private static string PickLeaveProvince(RebellionState rebellion)
+    {
+        var pool = new HashSet<string>(rebellion.Provinces, StringComparer.Ordinal);
+        var edge = rebellion.Provinces
+            .Where(p => NeighborsOf(p).Count(nb => pool.Contains(nb)) <= 1)
+            .OrderBy(p => StableHash(rebellion.CountryId + "|leave|" + p))
+            .ThenBy(p => p, StringComparer.Ordinal)
+            .ToList();
+
+        return edge.Count > 0 ? edge[0] : null;
+    }
+
+    private static bool MatchesRebelCulture(string provinceId, string rebelCulture)
+    {
+        if (string.IsNullOrEmpty(rebelCulture)) return true;
+        var rec = ProvinceCultureSystem.Get(provinceId);
+        return rec != null && string.Equals(rec.Culture ?? "", rebelCulture, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Bir ili isyancıya (back=false) ya da merkez hükümete (back=true) devreder.
+    /// Sahiplik ve kültür kaydı birlikte taşınır.
+    /// </summary>
+    private static void TransferProvince(string provinceId, string parentId,
+        RebellionState rebellion, bool back = false)
+    {
+        string target = back
+            ? parentId
+            : (rebellion.CountrySpawned && !string.IsNullOrEmpty(rebellion.RebelCountryId)
+                ? rebellion.RebelCountryId
+                : parentId);
+
+        ProvinceOwnershipSystem.SetProvinceOwner(provinceId, target);
+        ProvinceCultureSystem.ReassignCountry(new List<string> { provinceId }, target);
+    }
+
+    public class ResolveResult
+    {
+        public bool Ok;
+        public string CountryId = "";
+        public string Outcome = "";
+        public string RebelCountryId = "";
+        public int ProvincesReturned;     // merkez hükümete dönen il
+        public bool WarEnded;
+        public string Reason = "";
+    }
+
+    /// <summary>
+    /// Hükümetin iç savaşı bitirme yolu.
+    ///
+    ///   • MilitaryVictory — isyancı yenildi: bütün isyan illeri (henüz isyancı
+    ///     ülkede kalanlar) merkeze döner, isyancı devlet ilhak edilir, savaş
+    ///     kapitülasyonla biter ve hükümet biraz toparlanır.
+    ///   • AutonomyGrant — hükümet özerklik verir: isyancı ülke merkeze bağlı
+    ///     özerk bir devlet olarak kalır (M45), savaş statüko barışıyla biter,
+    ///     isyancı kültürün memnuniyeti yükselir.
+    /// </summary>
+    public static ResolveResult ResolveRebellion(string countryId, RebelOutcome outcome, long currentDay)
+    {
+        EnsureLoaded();
+        var res = new ResolveResult { CountryId = countryId ?? "", Outcome = outcome.ToString() };
+
+        var rebellion = RebellionOf(countryId);
+        if (rebellion == null) { res.Reason = "isyan_yok"; return res; }
+
+        var parent = CountryDatabase.Get(countryId);
+        if (parent == null) { res.Reason = "ebe_kaynak_yok"; return res; }
+
+        res.RebelCountryId = rebellion.RebelCountryId ?? "";
+        var rebel = string.IsNullOrEmpty(res.RebelCountryId)
+            ? null
+            : CountryDatabase.Get(res.RebelCountryId);
+
+        // Savaşı tek seferde bitir: isyan çözülürken kayıt düşmüş olsa bile
+        // savaş açık kalırsa o iki ülke ebediyen savaşta görünür.
+        var war = FindCivilWar(countryId, res.RebelCountryId);
+        if (war != null)
+        {
+            EndCivilWar(war, parent, rebel);
+            res.WarEnded = true;
+        }
+
+        switch (outcome)
+        {
+            case RebelOutcome.MilitaryVictory:
+            {
+                // 1) İlleri geri al — isyancı devletin elinde kalan BÜTÜN iller.
+                // Kayıt listesi yalnızca bu isyanı taşır; isyancı devlet önceki
+                // isyanlardan il devretmiş olabilir. İlahak hepsini geri alır.
+                // Sahiplik değişnce sahip listesi canlı değişir — kopya üzerinde git.
+                var returning = string.IsNullOrEmpty(res.RebelCountryId)
+                    ? new List<string>()
+                    : ProvinceOwnershipSystem.GetProvincesByOwner(res.RebelCountryId).ToList();
+                foreach (var p in returning)
+                {
+                    ProvinceOwnershipSystem.SetProvinceOwner(p, countryId);
+                    ProvinceCultureSystem.ReassignCountry(new List<string> { p }, countryId);
+                }
+                res.ProvincesReturned = returning.Count;
+
+                // 2) İsyancı devlet ilhak edilir: yeniden savaş açamaz.
+                if (rebel != null)
+                {
+                    // Fabrikayı geri ver (yenilginin tersi bir bütünleşme).
+                    parent.CivFactories += rebel.CivFactories;
+                    parent.MilFactories += rebel.MilFactories;
+                    parent.Dockyards += rebel.Dockyards;
+                    parent.Population += rebel.Population;
+                    rebel.Population = 0;
+                    rebel.CivFactories = 0;
+                    rebel.MilFactories = 0;
+                    rebel.Dockyards = 0;
+                    rebel.IsAnnexed = true;
+                    rebel.OwnerId = countryId;
+                    rebel.StabilityPercent = Math.Clamp(rebel.StabilityPercent - 10.0, 0, 100);
+                    rebel.WarSupportPercent = 0;
+                }
+
+                // 3) Merkez hükümet toparlanır.
+                parent.StabilityPercent = Math.Clamp(parent.StabilityPercent + S.VictoryStabilityGain, 0, 100);
+                parent.WarSupportPercent = Math.Clamp(parent.WarSupportPercent + S.VictoryWarSupportGain, 0, 100);
+                CountryAI.Reset();
+                break;
+            }
+
+            case RebelOutcome.AutonomyGrant:
+            {
+                if (string.IsNullOrEmpty(res.RebelCountryId) || rebel == null)
+                {
+                    res.Reason = "isyancı_devlet_yok";
+                    return res;
+                }
+
+                // 1) Özerk bağımlı kaydı — iller devredilmeden önce snapshot alınır.
+                ReleasableSystem.RecordSubject(res.RebelCountryId, countryId, false, 0, 0, 0);
+                rebel.IsAnnexed = true;
+                rebel.OwnerId = countryId;
+
+                // 2) Özerklik ver (M45) — gerekçe boşsa sebebi yansın.
+                string autonomyReason;
+                bool granted = AutonomySystem.GrantAutonomy(res.RebelCountryId, countryId, currentDay, out autonomyReason);
+                res.Reason = granted ? "ozerklik_verildi" : $"ozerklik_verilemedi:{autonomyReason}";
+                res.ProvincesReturned = rebellion.Provinces.Count;
+
+                // 3) Bölgenin huzuru: isyancı kültürün memnuniyeti merkezde yükselir.
+                CultureSatisfactionBump(countryId, rebellion.RebelCulture);
+
+                // 4) Kriz yatışsın — merkezdeki huzursuzluk kanalı sakinleşir.
+                PoliticalUnrestSystem.CalmUnrest(countryId, 0.5);
+
+                CountryAI.Reset();
+                break;
+            }
+        }
+
+        // 5) Kaydı düşür — çözülen isyan tekrar değerlendirilebilir.
+        Suppress(countryId);
+        res.Ok = true;
+
+        GD.Print($"[CivilWar] İSYAN ÇÖZÜLDÜ ({outcome}): {countryId} — " +
+                 $"isyancı={res.RebelCountryId}, dönen il={res.ProvincesReturned}, " +
+                 $"savaş bitti={war != null}");
+        return res;
+    }
+
+    public class InterventionResult
+    {
+        public bool Ok;
+        public string CountryId = "";
+        public string Side = "";          // "government" | "rebels"
+        public string InterventionId = "";
+        public int UnrestEvents;          // huzursuzluk kanalına eklenen olay
+        public string Reason = "";
+    }
+
+    /// <summary>
+    /// M50.3: Yabancı bir gücün iç savaşın bir tarafına müdahalesi.
+    ///
+    /// Müdahale M23 `InterventionSystem` üzerinden uygulanır (PP, bakanlık
+    /// kalitesi, gösterge ve memnuniyet etkileri) — yani dünya durumuna gerçek
+    /// etkisi olur. Sivil savaş tarafı ise huzursuzluk kanalına düşer:
+    /// hükümeti desteklemek isyanı yatıştırır, isyancıyı desteklemek
+    /// çöküş puanını yükseltip yayılımı hızlandırır.
+    /// </summary>
+    public static InterventionResult ApplyForeignIntervention(string countryId, string side,
+        string interventionId, long currentDay)
+    {
+        EnsureLoaded();
+        var res = new InterventionResult
+        {
+            CountryId = countryId ?? "",
+            Side = (side ?? "").ToLowerInvariant(),
+            InterventionId = interventionId ?? ""
+        };
+
+        var rebellion = RebellionOf(countryId);
+        if (rebellion == null) { res.Reason = "isyan_yok"; return res; }
+
+        if (res.Side != "government" && res.Side != "rebels")
+        {
+            res.Reason = "gecersiz_taraf";
+            return res;
+        }
+
+        var recipient = res.Side == "government"
+            ? countryId
+            : rebellion.RebelCountryId;
+        if (res.Side == "rebels" && string.IsNullOrEmpty(recipient))
+        {
+            res.Reason = "isyancı_devlet_yok";
+            return res;
+        }
+
+        var target = CountryDatabase.Get(recipient);
+        if (target == null || target.IsAnnexed)
+        {
+            res.Reason = "hedef_gecersiz";
+            return res;
+        }
+
+        if (!InterventionSystem.CanApply(recipient, interventionId))
+        {
+            res.Reason = "mudahale_uygun_degil";
+            return res;
+        }
+
+        if (!InterventionSystem.ApplyIntervention(recipient, interventionId, (int)currentDay))
+        {
+            res.Reason = "mudahale_uygulanamadi";
+            return res;
+        }
+
+        if (res.Side == "government")
+        {
+            PoliticalUnrestSystem.CalmUnrest(countryId, S.InterventionCalmFactor);
+        }
+        else
+        {
+            int events = Math.Max(1, S.InterventionUnrestEvents);
+            for (int i = 0; i < events; i++)
+                PoliticalUnrestSystem.AddUnrestEvent(countryId, "protest", currentDay);
+            res.UnrestEvents = events;
+        }
+
+        res.Ok = true;
+        GD.Print($"[CivilWar] YABANCI MÜDAHALE ({res.Side}): {countryId} — " +
+                 $"müdahale={interventionId}, alıcı={recipient}");
+        return res;
+    }
+
+    private static WarSystem.War FindCivilWar(string countryId, string rebelCountryId)
+    {
+        if (string.IsNullOrEmpty(rebelCountryId)) return null;
+        return WarSystem.Wars.FirstOrDefault(w =>
+            !w.IsEnded &&
+            ((string.Equals(w.AttackerId, rebelCountryId, StringComparison.OrdinalIgnoreCase) &&
+              string.Equals(w.DefenderId, countryId, StringComparison.OrdinalIgnoreCase)) ||
+             (string.Equals(w.AttackerId, countryId, StringComparison.OrdinalIgnoreCase) &&
+              string.Equals(w.DefenderId, rebelCountryId, StringComparison.OrdinalIgnoreCase))));
+    }
+
+    /// <summary>
+    /// Savaşı hukuki olarak bitirir: kapitülasyon varsa kaydedilir, işgal
+    /// kaydı düşer, ateşkes başlar. İç savaş bitiş yolları bunu paylaşır.
+    /// </summary>
+    private static void EndCivilWar(WarSystem.War war, CountryData parent, CountryData rebel)
+    {
+        war.IsEnded = true;
+        war.EndReason = "Civil war resolved";
+
+        OccupationSystem.EndWar(war);
+        CasusBelliSystem.NotifyWarEnded(war.AttackerId, war.DefenderId);
+        DiplomacySystem.ModifyRelation(war.AttackerId, war.DefenderId, +10);
+
+        if (parent != null && rebel != null && !rebel.IsAnnexed)
+            VictorySystem.RecordCapitulation(parent.Id, rebel.Id,
+                rebel.CivFactories + rebel.MilFactories + rebel.Dockyards);
+
+        if (GameManager.IsAvailable)
+        {
+            GameManager.Instance.EmitSignal(GameManager.SignalName.CountryOwnershipChanged);
+            GameManager.Instance.EmitSignal(GameManager.SignalName.PlayerCountryDataChanged);
+        }
+    }
+
+    /// <summary>
+    /// Özerklikle çözümde bölgenin huzuru: bütün memnuniyet grupları yükselir.
+    /// Memnuniyet grupları kültüre göre ayrılmaz (workers/urban/…); çöküş puanı
+    /// bu grupların ortalamasını okuduğu için genel yükseliş doğrudan puanı düşürür.
+    /// </summary>
+    private static void CultureSatisfactionBump(string countryId, string culture)
+    {
+        if (string.IsNullOrEmpty(culture)) return;
+        int bumped = 0;
+        foreach (var group in PublicSatisfactionSystem.Groups)
+        {
+            if (group == null || string.IsNullOrEmpty(group.Id)) continue;
+            double cur = PublicSatisfactionSystem.GetSatisfaction(countryId, group.Id);
+            PublicSatisfactionSystem.SetSatisfaction(countryId, group.Id,
+                Math.Clamp(cur + S.AutonomySatisfactionBoost, 0, 100));
+            bumped++;
+        }
+
+        if (bumped > 0)
+            GD.Print($"[CivilWar] {countryId}: özerklik sonrası {bumped} grubun " +
+                     $"memnuniyeti %{S.AutonomySatisfactionBoost:N0} yükseldi (kültür={culture}).");
+    }
+
     // ===== Save/Load =====
 
     public static SaveSystem.CivilWarSave GetSaveData()
@@ -767,7 +1235,9 @@ public static class CivilWarSystem
                 RebelCountryId = r.RebelCountryId,
                 RebelCountryName = r.RebelCountryName,
                 CountrySpawned = r.CountrySpawned,
-                SpawnDay = r.SpawnDay
+                SpawnDay = r.SpawnDay,
+                JoinedCount = r.JoinedCount,
+                LeftCount = r.LeftCount
             }).ToArray(),
             LastOutbreak = _lastOutbreakDay
                 .Select(kv => new SaveSystem.CivilWarOutbreakDay
@@ -798,7 +1268,9 @@ public static class CivilWarSystem
                     RebelCountryId = e.RebelCountryId ?? "",
                     RebelCountryName = e.RebelCountryName ?? "",
                     CountrySpawned = e.CountrySpawned,
-                    SpawnDay = e.SpawnDay
+                    SpawnDay = e.SpawnDay,
+                    JoinedCount = e.JoinedCount,
+                    LeftCount = e.LeftCount
                 });
             }
         }

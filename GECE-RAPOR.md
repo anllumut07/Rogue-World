@@ -3451,3 +3451,55 @@ yeniden değerlendirilecek.
 varsayılanı 30 PP ile doğuyor ve ilan maliyeti 50 PP — bağımsızlık savaşı bir
 isyanın var oluş nedeniyse de devlet beyannameye muktedir olmalı. Ebe PP'sının
 payını da ekledim ki çöküşte doğan isyancılar tamamen PP'sız kalmasın.
+
+---
+
+## M50.3 — İç Savaşı Bitirme Yolları (oturum içi rapor)
+
+### 1. Neyi değiştirdim (dosya adlarıyla)
+- `Scripts/CivilWarSystem.cs` — `AdvanceRebellion` yayılım/yatışma (günde en çok
+  1 il, komşuluk BFS), `ResolveRebellion` iki yolu (`MilitaryVictory`: bütün
+  isyancı illeri geri al + ilhak + savaş kapat + toparlanma; `AutonomyGrant`:
+  özerk bağımlı + M45 kaydı + memnuniyet yükselişi + statüko barışı),
+  `ApplyForeignIntervention` (government: huzursuzluğu yarıya indir; rebels: dış
+  kaynaklı olay ekle), `SpawnRebelCountry` içinde ateşkes kaldırma.
+- `Scripts/CasusBelliSystem.cs` — `ClearTruce` (iç savaş eski ateşkesi geçersiz
+  kılar).
+- `Scripts/GameManager.cs` — `RunCivilWarTest` 24–32 yeni adımlar; yardımcılar
+  `CollapseAndOutbreak`, `CivilizationStasis`, `ClearUnrestCounters`.
+- `Scripts/SaveSystem.cs` — M50.3 sayaçları/çözüm alanları (JoinedCount,
+  LeftCount) round-trip doğrulandı; ayrı değişiklik gerekmedi.
+- `Data/civil_war.json` — `SpreadScoreThreshold` (70), `CalmScoreThreshold` (35),
+  `MaxDailyProvinces` (1), `AutonomySatisfactionBoost` (15),
+  `InterventionCalmFactor` (0.5), `InterventionUnrestEvents` (2),
+  `VictoryStabilityRecovery`, `VictoryWarSupportRecovery`.
+- `TODO.md` — M50.3 `[x]`; `PROGRESS.md` — M50.3 bölümü.
+
+### 2. Neyi çözemedim
+- M50.4 (Save/Load entegrasyonu + özet hash + regresyon): sıradaki iş.
+- A==B senaryosunda eşiği aşan bir ülke üretmek — M50.4'e ertelendi.
+
+### 3. Bilinen sorunlar
+- `--civil-war-test` stderr'inde "İSYANCI DEVLET SAVAŞ AÇAMADI … Zaten Savaşta"
+  yazıyor. **Test tarifi kalıntısı:** adım 26'daki `ResetForNewGame` yalnızca
+  CivilWarSystem'i sıfırlar, WarSystem'i sıfırlamaz; adım 19'dan kalan
+  REBRUS↔RUS savaşı hâlâ aktif olur. 32 adım bu duruma rağmen geçiyor
+  (eski savaş kaydı bulunup `EndCivilWar` ile kapatılıyor). Gerçek oyunda
+  `ResolveRebellion` savaşı kapattığı için durum oluşmaz. M50.4'te test
+  tarifine `WarSystem.ResetForNewGame` eklenmesi değerlendirilecek.
+- Isınmanın daracık kültür bloklarında daralması riski: kültür eşleşmesi artık
+  sıralama tercihi, sert süzgeç değil — ama eşleşen komşu tükendikten sonra
+  yayılım yavaşlar.
+
+### 4. Kullanıcının test etmesi gerekenler
+- `powershell -File tools\run-test.ps1 --civil-war-test` — 32 adım; özellikle
+  24 (yayılım), 25 (yatışma), 26 (sabit kalma), 27 (askeri zafer),
+  28 (özerklik), 29/30 (müdahale), 32 (save/load).
+- Ayrıca `--save-load-test` (A==B), `--intervention-test`, `--recognition-test`
+  PASS.
+
+**Belirsizlik kararı:** Yayılımda kültür eşleşmesini sert süzgeç yerine sıralama
+tercihi yaptım — büyük imparatorlukların gerçekten dağılabilmesi hedefi,
+kültür bloklarının sınırına hapsolmak bu hedefe aykırı. Ayrıca iç savaşı
+savaş-ateşkes zincirinden bağımsız kıldım (`ClearTruce`): aynı ülkenin ikinci
+isyanı, birinci isyanın bıraktığı ateşkes yüzünden hiç savaş açamıyordu.

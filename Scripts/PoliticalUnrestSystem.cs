@@ -281,6 +281,62 @@ public static class PoliticalUnrestSystem
         }
     }
 
+    /// <summary>
+    /// M50.3: Huzursuzluk kanalına dışarıdan bir olay ekler (yabancı güç
+    /// ajitasyonu, dış müdahale). Çöküş puanı formülü değişmez; girdisi değişir.
+    /// </summary>
+    public static void AddUnrestEvent(string countryId, string kind, long currentDay)
+    {
+        if (string.IsNullOrEmpty(countryId)) return;
+        var state = GetState(countryId);
+        if (state == null) return;
+
+        switch ((kind ?? "").ToLowerInvariant())
+        {
+            case "strike":
+                state.LastStrikeDay = currentDay;
+                state.StrikeCount++;
+                break;
+            case "vote":
+                state.LastVoteOfConfidenceDay = currentDay;
+                state.VoteOfConfidenceCount++;
+                break;
+            default:
+                state.LastProtestDay = currentDay;
+                state.ProtestCount++;
+                break;
+        }
+
+        GD.Print($"[PoliticalUnrest] {countryId}: dış kaynaklı olay ({kind}) kaydedildi " +
+                 $"(gün {currentDay}) — huzursuzluk kanalı yükseldi.");
+    }
+
+    /// <summary>
+    /// M50.3: Huzursuzluk kanalını yumuşatır — sayaçları orana göre azaltır.
+    /// Yabancı yardım/hukumetin yatıştırıcı adımları buradan çöküş puanına
+    /// iner. Oran 0 kanalı tamamen sıfırlar, 1 dokunmaz.
+    /// </summary>
+    public static void CalmUnrest(string countryId, double factor)
+    {
+        if (string.IsNullOrEmpty(countryId) || factor <= 0.0) return;
+        var state = GetState(countryId);
+        if (state == null) return;
+
+        double keep = Math.Clamp(1.0 - factor, 0.0, 1.0);
+        int before = state.ProtestCount + state.StrikeCount +
+                     state.VoteOfConfidenceCount + state.CoupAttemptCount;
+        if (before == 0) return;
+
+        state.ProtestCount = (int)Math.Floor(state.ProtestCount * keep);
+        state.StrikeCount = (int)Math.Floor(state.StrikeCount * keep);
+        state.VoteOfConfidenceCount = (int)Math.Floor(state.VoteOfConfidenceCount * keep);
+        state.CoupAttemptCount = (int)Math.Floor(state.CoupAttemptCount * keep);
+
+        GD.Print($"[PoliticalUnrest] {countryId}: huzursuzluk kanalı yatıştırıldı " +
+                 $"(oran=%{factor * 100:F0}) — {before} → " +
+                 $"{state.ProtestCount + state.StrikeCount + state.VoteOfConfidenceCount + state.CoupAttemptCount}");
+    }
+
     // ===== M12: Save/Load =====
     public static PoliticalUnrestSave GetSaveData() => new PoliticalUnrestSave
     {

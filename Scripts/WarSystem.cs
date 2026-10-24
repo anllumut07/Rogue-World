@@ -348,6 +348,9 @@ public static class WarSystem
         war.IsEnded = true;
         war.WarProgress = winnerId == war.AttackerId ? 100 : 0;
 
+        // M49.2: işgal kaydı savaşa özgüdür — kapitülasyonda da düşer.
+        OccupationSystem.EndWar(war);
+
         // M42.1: kaybeden tarafı işaretle (savaş puanı)
         if (string.Equals(winnerId, war.AttackerId, StringComparison.OrdinalIgnoreCase))
             war.DefenderCapitulated = true;
@@ -534,6 +537,9 @@ public static class WarSystem
         war.EndReason = reason;
         war.DefenderCapitulated = true; // M42.1: savaş puanı — savunan kaybetti
 
+        // M49.2: işgal kaydı savaşa özgüdür — savaş bitince düşer.
+        OccupationSystem.EndWar(war);
+
         var loser = CountryDatabase.Get(war.DefenderId);
         var winner = CountryDatabase.Get(war.AttackerId) ?? Player;
 
@@ -581,6 +587,9 @@ public static class WarSystem
         war.EndReason = reason;
         // M42.1: oyuncu saldıran taraf olarak kapitüle oluyor (savaş puanı — kaybeden taraf)
         war.AttackerCapitulated = true;
+
+        // M49.2: işgal kaydı savaşa özgüdür — savaş bitince düşer.
+        OccupationSystem.EndWar(war);
 
         var winner = CountryDatabase.Get(war.DefenderId);
         if (Player != null)

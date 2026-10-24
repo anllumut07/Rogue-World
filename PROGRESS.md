@@ -3241,3 +3241,43 @@ toprak sahibi olur ve aralarında gerçek bir sınır oluşur.
 |---|---|---|
 | `--occupation-test` | 7.8 sn | PASS |
 | `--save-load-test` (A==B, 2 senaryo) | 27.9 sn | PASS |
+
+---
+
+## M49.2 — İşgal War Score'u ve Barış Masasını Bağlasın
+
+### Ne yapıldı
+İşgal (M49.1) artık yalnızca haritayı boyamıyor: savaş puanını besliyor ve
+barış masasında yalnızca **gerçekten işgal edilmiş** il talep edilebiliyor.
+
+- `Scripts/WarScoreSystem.cs` — `OccupationPart` artık `OccupationSystem`
+  hazırsa `OccupationRatio(war) * 100` kullanır; hazır değilse eski davranış
+  (`war.WarProgress`) korunur. Eski testler harita kurmadığı için bozulmadı.
+- `Scripts/PeaceConferenceSystem.cs`:
+  - `province_demand` talebi `ApplyTerm`'den ÖNCE kapasite kontrolünden geçer.
+  - Devredilecek iller rastgele değil, savaşın kendi işgal kayıtlarından
+    (`ClaimableProvinces`) seçilir; devredilen ilin işgal kaydı silinir.
+  - `FinishWar` ve `WhitePeaceDeal` savaş sonunda `OccupationSystem.EndWar`
+    çağırır.
+- `Scripts/OccupationSystem.cs` — kayıtlar **savaşa** ait, ülke çiftine değil:
+  `OccupiedInWar` / `EnemyTotalInWar` / `ProvinceWarKey` tüm sayımları aktif
+    savaşın anahtarına göre süzer; `EndWar` + `AdvanceAll` içindeki
+    `ReapEndedWars` savaş bitince kayıtları düşürür.
+
+### Mimari düzeltme: savaş anahtarı ülke çiftine göreydi
+İki düzeltme gerektiren bir hata vardı. `WarKeyOf` = `"{AttackerId}|{DefenderId}"`
+olduğu için aynı iki ülke arka arkaya iki kez savaşırsa ikinci savaş, birincinin
+**hâlâ duran işgal kayıtlarını** miras alıyor ve barış kapasitesi şişiyordu
+(5 gerçekten işgal edilmemiş il "talep edilebilir" görünüyordu). Üç parçalı
+çözüm: (a) tüm sayımlar aktif savaş anahtarına göre süzülür, (b) 5 savaş sonu
+noktasında (`WarSystem` AI ilhak + capitülasyonlar, `DiplomacySystem` barış +
+beyaz barış) kayıtlar açıkça düşürülür, (c) `AdvanceAll` içinde `ReapEndedWars`
+güvenlik ağı.
+
+### Test kapsamı
+| Bayrak | Süre | Sonuç |
+|---|---|---|
+| `--occupation-test` | ~8 sn | PASS (11/11 faz) |
+| `--war-score-test` | 1.46 sn | PASS |
+| `--peace-terms-test` | 1.19 sn | PASS |
+| `--save-load-test` (A==B, 2 senaryo) | 20.8 sn | PASS |

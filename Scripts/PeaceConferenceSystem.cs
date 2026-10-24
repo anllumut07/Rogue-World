@@ -323,6 +323,21 @@ public static class PeaceConferenceSystem
                 continue;
             }
 
+            // M49.2: il talebi yalnızca gerçekten işgal edilmiş toprak için
+            // geçerli. Aksi halde kazanan, hiç girmemiş olduğu ili de konuşup
+            // alabiliyordu — savaş puanı ise (M49.2) aynı orana bağlandığı
+            // için bu tutarsızlık doğrudan puanla da çelişiyordu.
+            if (check.Definition.KindEnum == TermKind.Province)
+            {
+                int claimable = OccupiedClaimCount(war, winner, loser);
+                if (claimable >= 0 && d.Units > claimable)
+                {
+                    res.Rejected.Add(
+                        $"{d.TermId}: {d.Units} il talep edildi ama yalnızca {claimable} il gerçekten işgal edildi");
+                    continue;
+                }
+            }
+
             ApplyTerm(war, check.Definition, check.Units, winner, loser, res);
             budget -= (float)check.Cost;
             res.ScoreSpent += (float)check.Cost;
@@ -343,6 +358,45 @@ public static class PeaceConferenceSystem
         return res;
     }
 
+    /// <summary>
+    /// Kaybeden topraklarından kazananın GERÇEKTEN işgal ettiği iller.
+    ///
+    /// İşgal edilen ilin sahipliği işgalciye geçtiği için bunlar kaybedenin
+    /// "şu anki illeri" listesinde bulunmaz — yetkili kaynak savaş öncesi
+    /// sahiptir. Komşuluk grafiği kurulmamışsa (harita hiç üretilmeyen
+    /// salt-test koşuları) işgal verisi yoktur; bu durumda eski deterministik
+    /// id sırası korunur, çünkü kısıtlama yapacak veri de yoktur.
+    /// </summary>
+    private static List<string> ClaimableProvinces(WarSystem.War war, CountryData winner,
+        CountryData loser, List<string> loserProvinces)
+    {
+        if (!OccupationSystem.IsReady || OccupationSystem.OccupiedCount == 0)
+            return loserProvinces;
+
+        // Yalnızca BU savaşın kayıtları: bitmiş savaştan kalan kayıtlar
+        // yeni barış masasında sahte kapasite üretmesin.
+        string warKey = OccupationSystem.WarKeyOf(war);
+        return OccupationSystem.OccupiedBy(winner.Id)
+            .Where(pid => string.Equals(OccupationSystem.ProvinceWarKey(pid), warKey, StringComparison.Ordinal) &&
+                string.Equals(OccupationSystem.PreWarOwner(pid), loser.Id, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    /// <summary>Kazananın talep edebileceği işgal edilmiş il sayısı; -1 = sınır yok.</summary>
+    private static int OccupiedClaimCount(WarSystem.War war, CountryData winner, CountryData loser)
+    {
+        if (!OccupationSystem.IsReady) return -1;
+        if (OccupationSystem.OccupiedCount == 0) return 0;
+        return ClaimableProvinces(war, winner, loser, new List<string>()).Count;
+    }
+
+    /// <summary>Barış devriyle ilin işgal kaydını düşürür (kayıt yoksa sessizce geçer).</summary>
+    private static void ClearOccupation(string provinceId)
+    {
+        if (OccupationSystem.IsOccupied(provinceId))
+            OccupationSystem.Release(provinceId);
+    }
+
     /// <summary>Doğrulanmış tek talebi dünya durumuna uygular.</summary>
     private static void ApplyTerm(WarSystem.War war, TermDefinition def, int units,
         CountryData winner, CountryData loser, DealResult res)
@@ -353,7 +407,8 @@ public static class PeaceConferenceSystem
             {
                 // Kaybedenin illerinden deterministik sırayla (id sırası) `units` kadarını devret.
                 // Id sırası sabit olduğu için RNG gerekmez — aynı durum her zaman aynı sonucu verir.
-                var candidates = ProvinceOwnershipSystem.GetProvincesByOwner(loser.Id)
+                var owned = ProvinceOwnershipSystem.GetProvincesByOwner(loser.Id);
+                var candidates = ClaimableProvinces(war, winner, loser, owned)
                     .OrderBy(id => id, StringComparer.Ordinal)
                     .ToList();
                 int take = Math.Min(units, candidates.Count);
@@ -361,6 +416,9 @@ public static class PeaceConferenceSystem
                 {
                     ProvinceOwnershipSystem.SetProvinceOwner(candidates[i], winner.Id);
                     res.TransferredProvinceIds.Add(candidates[i]);
+                    // Barış yoluyla geçen il artık "işgal altında" değil: kayıt düşer,
+                    // böylece sonraki barış masasında ikinci kez talep edilemez.
+                    ClearOccupation(candidates[i]);
                 }
                 res.ProvincesTransferred += take;
                 GD.Print($"[PeaceTerms] İl talebi: {take} il {loser.Id} → {winner.Id}");
@@ -479,6 +537,10 @@ public static class PeaceConferenceSystem
         war.IsEnded = true;
         war.EndReason = "Peace conference (white peace)";
 
+        // M49.2: işgal kaydı savaşa özgüdür — savaş bitince düşer. Aksi halde
+        // aynı ülke çifti arasındaki yeni savaşta eski kayıtlar kapasite verir.
+        OccupationSystem.EndWar(war);
+
         // Statüko: kapitülasyon yok, yalnızca ateşkes + ilişki toparlanması
         CasusBelliSystem.NotifyWarEnded(war.AttackerId, war.DefenderId);
         DiplomacySystem.ModifyRelation(war.AttackerId, war.DefenderId, +15);
@@ -499,6 +561,9 @@ public static class PeaceConferenceSystem
     {
         war.IsEnded = true;
         war.EndReason = "Peace conference";
+
+        // M49.2: işgal kaydı savaşa özgüdür — savaş bitince düşer.
+        OccupationSystem.EndWar(war);
 
         bool attackerWon = string.Equals(war.AttackerId, winner.Id, StringComparison.OrdinalIgnoreCase);
         if (attackerWon) war.DefenderCapitulated = true;

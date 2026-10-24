@@ -10997,6 +10997,93 @@ private void RunBalanceTest()
         if (!sameProvinces) ok = false;
         if (!sameOccupied) ok = false;
 
+        // ---- 9) İşgal oranı savaş puanına yansısın (M49.2) ----
+        // Savaş puanının ağırlıklı yarısı haritadaki gerçek işgalden hesaplanır;
+        // işgal azaldıkça (15 il geri kazanıldı) puan da geri düşmeli.
+        float scoreNow = WarScoreSystem.AttackerScore(war);
+        bool scoreOk = scoreNow >= 0f && scoreNow <= 100f;
+        // İşgal oranı 0 olsaydı işgal payı 0 olurdu; şu an %23 işgal var, yani
+        // 55 ağırlığın en az %20'si dolu olmalı (tümen/fabrika payları hariç).
+        float occRatioNow = OccupationSystem.OccupationRatio(war);
+        bool occDrivesScore = occRatioNow > 0f && scoreNow > 0f;
+        GD.Print($"[OccTest] 9) Puan bağlantısı: saldıran puanı={scoreNow:F1}, " +
+                 $"işgal oranı=%{occRatioNow * 100f:F1}, " +
+                 $"işgal payı dolu={occDrivesScore} ({scoreOk})");
+        if (!scoreOk || !occDrivesScore) ok = false;
+
+        // ---- 10) Barış masası il talebi: sınır içi talep uygulanır (M49.2) ----
+        // Barış masasına oturulacak puanı garanti et: düşman tümenleri ve
+        // fabrikaları tükenmiş olsun (işgal zaten gerçekleşti). Aksi halde
+        // "Demand Provinces" talebinin puan eşiğine (25) işgal oranı tek başına
+        // yetmeyebilir — mekanik değil senaryo eksikliği olurdu.
+        enemy.CivFactories = 0;
+        enemy.MilFactories = 0;
+        enemy.Dockyards = 0;
+        war.EnemyDivisions = 0;
+
+        int claimable = OccupationSystem.OccupiedBy(playerId)
+            .Count(pid => string.Equals(OccupationSystem.PreWarOwner(pid), enemyId,
+                StringComparison.OrdinalIgnoreCase));
+        int withinClaim = Math.Max(1, Math.Min(claimable, 2));
+        int occupiedBeforeWithin = OccupationSystem.OccupiedCount;
+        var withinDemand = new List<PeaceConferenceSystem.Demand>
+        {
+            new PeaceConferenceSystem.Demand("province_demand", withinClaim)
+        };
+        var withinResult = PeaceConferenceSystem.ApplyDeal(war, withinDemand, playerId, enemyId);
+        bool withinOk = withinResult.ProvincesTransferred > 0 &&
+                        withinResult.ProvincesTransferred <= withinClaim &&
+                        OccupationSystem.OccupiedCount < occupiedBeforeWithin &&
+                        withinResult.TransferredProvinceIds.All(pid => !OccupationSystem.IsOccupied(pid));
+        GD.Print($"[OccTest] 10) Sınır içi talep (M49.2): kapasite={claimable}, {withinClaim} il istendi, " +
+                 $"devredilen={withinResult.ProvincesTransferred}, işgal kaydı {occupiedBeforeWithin}→{OccupationSystem.OccupiedCount} " +
+                 $"reddedilen={withinResult.Rejected.Count}");
+        if (ok && !withinOk)
+        {
+            GD.PrintErr("[OccTest] 10 HATA: sınır içi il talebi uygulanmadı veya kayıt düşmedi");
+            ok = false;
+        }
+
+        // ---- 11) Barış masası il talebi: AŞAN talep reddedilir (M49.2) ----
+        // ApplyDeal savaşı sonuçlandırır, bu yüzden temiz bir savaş üzerinde
+        // koşulur. Eşik yeterli yapılır ki reddin nedeni PUAN DEĞİL, kapasite
+        // olsun: işgal hiç yapılmamşken 5 il istenir → kapasite 0 → red.
+        CasusBelliSystem.Initialize(PlayerCountryData);
+        if (PlayerCountryData != null)
+        {
+            if (PlayerCountryData.PoliticalPower < WarSystem.DeclareWarPPCost + 10)
+                PlayerCountryData.PoliticalPower = WarSystem.DeclareWarPPCost + 10;
+            if (PlayerCountryData.WarSupportPercent < 50)
+                PlayerCountryData.WarSupportPercent = 50;
+        }
+        CasusBelliSystem.GrantImmediateJustification(playerId, enemyId, "historical_event");
+        WarSystem.DeclareWar(enemyId);
+        var freshWar = WarSystem.Wars.FirstOrDefault(w => !w.IsEnded && w.DefenderId == enemyId);
+
+        // Puan eşiğini aş: düşman tümeni yok olsun → tümen payı (20) + işgal
+        // payı + nötr çatışma payı, eşik olan 25'in üzerine çıkar. Böylece
+        // talebin puan yüzünden değil, İŞGAL KAPASİTESİ yüzünden düştüğü görülür.
+        if (freshWar != null)
+        {
+            freshWar.EnemyDivisions = 0;
+            enemy.StartingDivisions = 10;
+        }
+
+        int overClaim = 5;
+        var overDemand = new List<PeaceConferenceSystem.Demand>
+        {
+            new PeaceConferenceSystem.Demand("province_demand", overClaim)
+        };
+        var overResult = PeaceConferenceSystem.ApplyDeal(freshWar, overDemand, playerId, enemyId);
+        // Reddin nedeni kapasite olmalı: en az bir "(işgal)" kaynaklı ret.
+        bool overRejected = freshWar == null ||
+            (overResult.ProvincesTransferred == 0 &&
+             overResult.Rejected.Any(r => r.Contains("gerçekten işgal edildi", StringComparison.Ordinal)));
+        GD.Print($"[OccTest] 11) Aşan talep (M49.2): yeni savaş={freshWar != null}, {overClaim} il istendi, " +
+                 $"devredilen={overResult.ProvincesTransferred}, puan başlangıcı={overResult.StartingScore:F1} ({overRejected})");
+        foreach (var r in overResult.Rejected) GD.Print($"[OccTest]    red: {r}");
+        if (!overRejected) ok = false;
+
         GD.Print(ok ? "[OccTest] SONUÇ: PASS ✓" : "[OccTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);

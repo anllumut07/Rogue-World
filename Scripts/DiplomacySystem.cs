@@ -763,6 +763,8 @@ public static class DiplomacySystem
         if (war != null)
         {
             war.IsEnded = true;
+            // M49.2: işgal kaydı savaşa özgüdür — savaş bitince düşer.
+            OccupationSystem.EndWar(war);
             // M17A: Barış antlaşması — ateşkes başlat
             CasusBelliSystem.NotifyWarEnded(deal.WinnerId, deal.LoserId);
         }
@@ -782,6 +784,8 @@ public static class DiplomacySystem
 
         war.IsEnded = true;
         war.EndReason = "White peace (statüko)";
+        // M49.2: işgal kaydı savaşa özgüdür — savaş bitince düşer.
+        OccupationSystem.EndWar(war);
         // M17A: Beyaz barış — ateşkes başlat
         CasusBelliSystem.NotifyWarEnded(GM.PlayerCountryId, enemyId);
         IncreaseTension(-5);

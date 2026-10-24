@@ -3256,3 +3256,37 @@ Test 3 kez FAIL oldu, her biri gerçek bir kusur ortaya çıkardı:
   başlatmak — otonom modda bu yapılamadı, `dotnet run` yasak).
 - `Data/occupation.json` değerleri oynanış açısından makul mu? Baskı bedeli
   400 → güçlü bir ülke günde ~2 il alıyor. Denge ayarı gerekebilir.
+
+---
+
+## M49.2 ÖZET — İşgal War Score'u ve Barış Masasını Bağlasın
+
+**1. Neyi değiştirdim**
+- `Scripts/WarScoreSystem.cs`: `OccupationPart` artık işgal oranını kullanıyor.
+- `Scripts/PeaceConferenceSystem.cs`: kapasite kapısı + `ClaimableProvinces`
+  seçimi + işgal kaydı temizliği + `EndWar` çağrıları.
+- `Scripts/OccupationSystem.cs`: savaş anahtarına göre süzme (`OccupiedInWar`,
+  `EnemyTotalInWar`, `ProvinceWarKey`), `EndWar`, `ReapEndedWars`.
+- `Scripts/WarSystem.cs` / `Scripts/DiplomacySystem.cs`: 5 savaş sonu noktasına
+  `OccupationSystem.EndWar(war)` eklendi.
+- `Scripts/GameManager.cs`: `RunOccupationTest` 9-11. fazları eklendi.
+- `TODO.md` (M49.2 → [x]), `PROGRESS.md`.
+
+**2. Neyi çözemedim**
+- `--war-test` bayrağı tek başına çalışmıyor: `warTestTarget` kod yolu
+  `HasPlayer` şartına bağlı ve `--country` verilmeden oyuncu ülkesi atanmıyor,
+  oyun menüde kalıp 120 sn'de zaman aşımına uğruyor. `--war-test=POL
+  --country=GER` biçiminde koşulması gerekiyor — koşucu (`run-test.ps1`) bunu
+  belgelemiyor. Bu bir kullanılabilirlik kusuru, M50'ye not düşüldü.
+
+**3. Bilinen sorunlar**
+- `OccupationDataFile.Settings` için CS0649 uyarısı (reflection, zararsız).
+- Barış kapasitesi yalnızca *mevcut* işgal kayıtlarına bakıyor; savaş sırasında
+  kaybedilen topraklar barışta "asla sahip olunmamış" sayılır (HOI4'ten farklı,
+  bilinçli tasarım: yalnızca fiilen tutulan toprak talep edilebilir).
+- `--war-test` bayrak kombinasyonu belgesiz.
+
+**4. Kullanıcının test etmesi gerekenler**
+- `powershell -File tools\run-test.ps1 --war-test=POL --country=GER` (tek başına
+  `--war-test` değil).
+- Barış masasında işgal edilmemiş il talep edilince reddedilme mesajı.

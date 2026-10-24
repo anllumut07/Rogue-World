@@ -68,11 +68,21 @@ public static class WarScoreSystem
 
     // ===== Puan kırılımı =====
 
-    /// <summary>İşgal payı: WarProgress doğrudan kullanılır (0-100 → 0-55).</summary>
+    /// <summary>İşgal payı: haritada gerçekten el değiştiren iller üzerinden (0-100 → 0-55).</summary>
     private static float OccupationPart(WarSystem.War war)
     {
         if (war.IsEnded && war.DefenderCapitulated) return WeightOccupation;
-        return Math.Clamp(war.WarProgress, 0f, 100f) / 100f * WeightOccupation;
+
+        // M49.1'den sonra işgal somut: savaşçı topraklarına girip çıkan
+        // gerçek iller var. Komşuluk grafiği kurulmuşsa (harita üretilmişse)
+        // puanın ağırlıklı yarısı bu gözlemlenen orana bağlanır — böylece
+        // "kaç il alamazsak barış masasında o il talep edilemez" kuralı
+        // puanla da tutarlı olur. Grafik hiç kurulmamışsa (savaşı elle
+        // hazırlayan salt-test koşuları) soyut WarProgress göstergesi korunur.
+        float percent = OccupationSystem.IsReady
+            ? OccupationSystem.OccupationRatio(war) * 100f
+            : Math.Clamp(war.WarProgress, 0f, 100f);
+        return Math.Clamp(percent, 0f, 100f) / 100f * WeightOccupation;
     }
 
     /// <summary>Tümen kaybı payı: savaş başındaki düşman tümenine göre oran.</summary>

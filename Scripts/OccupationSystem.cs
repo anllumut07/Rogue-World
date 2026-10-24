@@ -212,24 +212,42 @@ public static class OccupationSystem
 
     /// <summary>Savaştaki bir ülkenin işgal ettiği düşman il sayısı.</summary>
     public static int OccupiedEnemyProvinces(string countryId, string enemyId)
+        => OccupiedInWar(null, countryId, enemyId);
+
+    /// <summary>Düşmanın savaş öncesi toplam il sayısı (işgal oranı payı).</summary>
+    public static int EnemyTotalProvinces(string enemyId)
+        => EnemyTotalInWar(enemyId, null);
+
+    /// <summary>
+    /// Bir il kaydının hangi savaşa ait olduğu. Barış masası taleplerini
+    /// doğrularken "bu savaşta gerçekten işgal edilmiş mi?" sorusunun
+    /// yanıtı bu anahtardadır — bitmiş savaştan kalan eski kayıtlar
+    /// yeni savaşın kapasitesini şişirmemeli.
+    /// </summary>
+    public static string ProvinceWarKey(string provinceId)
+        => _occupations.TryGetValue(provinceId ?? "", out var occ) ? occ.WarKey : "";
+
+    /// <summary>Savaş kaydını düşürür; kayıt yoksa sessizce geçer.</summary>
+    private static int OccupiedInWar(string warKey, string countryId, string enemyId)
     {
         if (string.IsNullOrEmpty(countryId) || string.IsNullOrEmpty(enemyId)) return 0;
         int n = 0;
         foreach (var kv in _occupations)
             if (string.Equals(kv.Value.OccupierId, countryId, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(kv.Value.PreWarOwnerId, enemyId, StringComparison.OrdinalIgnoreCase))
+                string.Equals(kv.Value.PreWarOwnerId, enemyId, StringComparison.OrdinalIgnoreCase) &&
+                (warKey == null || string.Equals(kv.Value.WarKey, warKey, StringComparison.Ordinal)))
                 n++;
         return n;
     }
 
-    /// <summary>Düşmanın savaş öncesi toplam il sayısı (işgal oranı payı).</summary>
-    public static int EnemyTotalProvinces(string enemyId)
+    private static int EnemyTotalInWar(string enemyId, string warKey)
     {
         if (string.IsNullOrEmpty(enemyId)) return 0;
         int now = ProvinceOwnershipSystem.ProvinceCountFor(enemyId);
         int occupied = 0;
         foreach (var kv in _occupations)
-            if (string.Equals(kv.Value.PreWarOwnerId, enemyId, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(kv.Value.PreWarOwnerId, enemyId, StringComparison.OrdinalIgnoreCase) &&
+                (warKey == null || string.Equals(kv.Value.WarKey, warKey, StringComparison.Ordinal)))
                 occupied++;
         // Şu anki sahibi + savaş öncesi sahibi bu ülke olan işgal edilmiş iller
         return now + occupied;
@@ -239,9 +257,13 @@ public static class OccupationSystem
     public static float OccupationRatio(WarSystem.War war)
     {
         if (war == null) return 0f;
-        int total = EnemyTotalProvinces(war.DefenderId);
+        // Kayıtlar yalnızca BU savaşa ait olanlarla sayılır: bitmiş bir
+        // savaştan kalan kayıt, aynı ülke çifti arasındaki yeni savaşta
+        // sahte bir işgal oranı üretmesin.
+        string key = WarKeyOf(war);
+        int total = EnemyTotalInWar(war.DefenderId, key);
         if (total <= 0) return 0f;
-        int held = OccupiedEnemyProvinces(war.AttackerId, war.DefenderId);
+        int held = OccupiedInWar(key, war.AttackerId, war.DefenderId);
         return Mathf.Clamp((float)held / total, 0f, 1f);
     }
 
@@ -257,8 +279,42 @@ public static class OccupationSystem
     public static void AdvanceAll()
     {
         if (!_worldReady) return;
+        ReapEndedWars();
         foreach (var war in WarSystem.ActiveWars)
             AdvanceDay(war);
+    }
+
+    /// <summary>
+    /// Bitmiş savaşlardan kalan işgal kayıtlarını düşürür.
+    ///
+    /// İşgal kaydı savaşa özgü geçici bir durumdur: savaş bittiğinde toprağın
+    /// sahibi zaten barış masası / kapitülasyon tarafından kararlaştırılmıştır,
+    /// kayda ihtiyaç kalmaz. Bu yöntem günlük tick'te çağrılır ve savaşı biten
+    /// üç ayrı yol (barış, beyaz barış, kapitülasyon) yalnızca kendi kaydını
+    /// düşürür — böylece uzun savaş geçmişinde kayıt birikmez ve aynı ülke
+    /// çifti arasında ikinci bir savaşta eski kayıt kapasite/oyan üretmez.
+    /// </summary>
+    public static void EndWar(WarSystem.War war)
+    {
+        if (war == null) return;
+        string key = WarKeyOf(war);
+        foreach (var kv in _occupations.ToList())
+            if (string.Equals(kv.Value.WarKey, key, StringComparison.Ordinal))
+                _occupations.Remove(kv.Key);
+    }
+
+    /// <summary>
+    /// Bitmiş savaşlardan kalan işgal kayıtlarını düşürür.
+    /// </summary>
+    public static void ReapEndedWars()
+    {
+        if (!_worldReady || _occupations.Count == 0) return;
+        var live = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var war in WarSystem.ActiveWars)
+            live.Add(WarKeyOf(war));
+        foreach (var kv in _occupations.ToList())
+            if (!live.Contains(kv.Value.WarKey))
+                _occupations.Remove(kv.Key);
     }
 
     /// <summary>Tek savaşı bir gün ilerletir.</summary>
@@ -383,6 +439,20 @@ public static class OccupationSystem
         };
         GD.Print($"[Occupation] {provinceId}: {preWarOwnerId} → {occupierId} " +
                  $"(işgal, savaş günü {warDay})");
+    }
+
+    /// <summary>İl işgal kaydını sessizce düşürür (sahilik DEĞİŞMEZ).</summary>
+    /// <remarks>
+    /// Savaş bittiğinde il hâlâ işgalci elinde geçer: yaşanan gerçek sahiplik
+    /// budur. Kaydın düşürülmesi yalnızca "bir sonraki barış masasında aynı il
+    /// tekrar işgal edilmiş sayılıp talep edilemesin" kontrolü içindir
+    /// (M49.2). Yeni bir savaşta bu iller normal cephe kurallarıyla tekrar
+    /// hedef olur — çünkü hedef seçimi sahiplikten beslenir, kayıttan değil.
+    /// </remarks>
+    public static void Release(string provinceId)
+    {
+        if (string.IsNullOrEmpty(provinceId)) return;
+        _occupations.Remove(provinceId);
     }
 
     /// <summary>İli savaş öncesi sahibine döndürür ve kaydı siler.</summary>

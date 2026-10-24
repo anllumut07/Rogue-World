@@ -3087,3 +3087,61 @@ metninden geniş ama amacı tamamlamak için zorunlu.
   kullanıldı.
 - **Savaş desteği baskıyla büyür:** bu olmadan bağımsızlık savaşı
   ideoloji eşiğine (≥%40) hiç ulaşamazdı ve mekanizma üretimde ölü kalırdı.
+
+---
+
+# M48.4 ÖZET — M48 Save/Load Entegrasyonu + Regresyon
+
+**Durum:** TAMAM. `dotnet build` 0 hata, tüm testler PASS.
+
+## Değiştirilen dosyalar
+- `Scripts/GameManager.cs`
+  - `RunM48IntegrationTest()` düzeltildi: formable kurulumu artık bağışçıdan il
+    transfer ederek BAŞLATILIR (prosedürel dünyada hedef kültür il yoktu).
+  - "Devam" adımının gün karşılaştırması düzeltildi: `State()` canlı referans
+    döndürdüğü için değer `AdvanceDay` önce kopyalanıyor.
+  - `--soak-years=N` bayrağı eklendi (1-3 yıl sınırı; verilmezse 10 yıl).
+- `TODO.md` — 48.4 `[x]`.
+- `PROGRESS.md` — M48.4 bölümü.
+
+## Ne yapıldı
+Tek kayda (`SaveSystem.SaveFile`) üç M48 sistemini birlikte yazıp geri
+okuyan entegrasyon testi yazıldı ve geçti. Ardından tüm regresyonlar koşuldu.
+
+## Test tablosu
+| Bayrak | Süre | Sonuç |
+|---|---|---|
+| `--m48-integration-test` | 2.0 sn | PASS |
+| `--save-load-test` historical_1936 | ~27 sn | PASS (A==B) |
+| `--save-load-test` modern_world | ~27 sn | PASS (A==B) |
+| `--formable-test` | 1.6 sn | PASS |
+| `--intervention-test` | 1.6 sn | PASS |
+| `--diplomacy-test` | ~2 sn | PASS |
+| `--province-economy-test` | ~2 sn | PASS |
+| `--formable-data-test` | ~2 sn | PASS |
+| `--war-score-test` | ~2 sn | PASS |
+| `--soak-test --soak-years=1` | 5.5 sn | PASS |
+
+## Belirsizlikte alınan kararlar
+1. **Entegrasyon testi kök kaydı yalnızca üç sistemi taşır.** Diğer alanlar
+   bu testte sıfır kalır — tam kurgu kurulumunu kopyalamak yerine M48'in
+   kendi üç sınırını izole ettim. Gerçek kayıt yolu `--save-load-test` ile
+   zaten kapsanıyor (A==B, iki senaryo).
+2. **`--soak-years` verilmezse 10 yıl korundu.** Kural "en fazla 3 yıl" diyor;
+   varsayılanı değiştirmek başka koşucuları/CI beklentilerini kırabilirdi.
+   Bayrak verildiğinde 1-3 arasına kırpılır.
+3. **Bağışçı il transferi test içinde yapıldı.** Gerçek dünyada oyuncu bu illeri
+   zaten elinde tutmalı; test bunu taklit eder.
+
+## Bilinen sorunlar
+- `[InterventionSystem] Müdahale tanımı yok: bölmeyici_id` uyarısı eski
+  koddan, davranışı bozmuyor (test PASS).
+- Çıkışta "1 ObjectDB instance leaked" uyarısı tüm headless testlerde
+  ortaya çıkıyor, koşul bozmuyor.
+
+## Kullanıcının test etmesi gerekenler
+- Oyunda DEU ile BAV kurmayı denemek (panel 9+ bavarian il ister).
+- İlhak edilmiş bir ülkeye baskıyı arttırıp talebin reddini ve bağımsızlık
+  savaşının çıkışını görmek.
+- Save/Load sonrası sürmekte olan formable ve açık talebin kaldığı yerden
+  devam ettiğini doğrulamak.

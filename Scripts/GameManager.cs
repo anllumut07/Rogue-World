@@ -85,6 +85,9 @@ public partial class GameManager : Node
     // M13.3: Harita görünüm modu sistemi test durumu (--map-mode-test).
     private bool mapModeTest = false;
 
+    // --soak-years=N: soak testi yıl sayısı (0 = varsayılan 10 yıl, 1-3 = gece çalışması sınırı).
+    private int soakYears = 0;
+
     // M13.4: Ayarlar paneli testi durumu (--settings-test).
     private bool settingsTest = false;
 
@@ -188,6 +191,7 @@ public partial class GameManager : Node
         bool releasableTest = false;         // M44.4: ilhak/kukla ülkeyi bağımsız çıkarma testi
         bool releaseDemandTest = false;      // M48.2: AI serbest bırakma talebi testi (--release-demand-test)
         bool recognitionTest = false;        // M48.3: tanınma ve diplomatik yansıma testi (--recognition-test)
+        bool m48IntegrationTest = false;     // M48.4: M48 zinciri Save/Load entegrasyonu (--m48-integration-test)
         bool formablePanelTest = false;      // M44.5: kurgu ülke paneli testi (--formable-panel-test)
         bool releasablePanelTest = false;    // M45.1: bağımsız çıkarma paneli testi (--releasable-panel-test)
         bool autonomyTest = false;           // M45.2: özerklik sistemi testi (--autonomy-test)
@@ -319,6 +323,9 @@ public partial class GameManager : Node
                 aiNuclearTest = true;
             else if (arg == "--soak-test")
                 soakTest = true;
+            else if (arg.StartsWith("--soak-years=") &&
+                     int.TryParse(arg.Substring(13), out var sy))
+                soakYears = sy;
             else if (arg == "--balance-test")
                 balanceTest = true;
             else if (arg == "--victory-test")
@@ -359,6 +366,8 @@ public partial class GameManager : Node
                 releaseDemandTest = true;
             else if (arg == "--recognition-test")
                 recognitionTest = true;
+            else if (arg == "--m48-integration-test")
+                m48IntegrationTest = true;
             else if (arg == "--formable-panel-test")
                 formablePanelTest = true;
                 else if (arg == "--releasable-panel-test")
@@ -807,6 +816,11 @@ public partial class GameManager : Node
         // determinizm, Save/Load, bağımsızlık savaşı.
         if (recognitionTest)
             RunRecognitionTest();
+
+        // M48.4: M48 zinciri Save/Load entegrasyonu — kurulum + talep + tanınma
+        // birlikte kayıttan geçer.
+        if (m48IntegrationTest)
+            RunM48IntegrationTest();
 
         // M44.5: Kurgu ülke paneli testi — kurgu ülkeler, kültür haritası, kurma/iptal.
         if (formablePanelTest)
@@ -5315,8 +5329,11 @@ public partial class GameManager : Node
         int provinceCount = ProvinceOwnershipSystem.GetSaveData().Count;
         GD.Print($"[SoakTest] İl: {provinceCount}");
 
-        const int Years = 10;
+        // Night-work rule: --soak-test must run 1-3 years, never 10.
+        // Without --soak-years the legacy default stays for reference runs.
+        int years = soakYears > 0 ? Math.Clamp(soakYears, 1, 3) : 10;
         const int DaysPerYear = 30;
+        GD.Print($"[SoakTest] Yil sayisi: {years} (--soak-years ile 1-3 sinirli)");
 
         var totalSw = System.Diagnostics.Stopwatch.StartNew();
         GC.Collect();
@@ -5324,7 +5341,7 @@ public partial class GameManager : Node
         GC.Collect();
         long initialMemory = GC.GetTotalMemory(false);
 
-        for (int year = 1; year <= Years && ok; year++)
+        for (int year = 1; year <= years && ok; year++)
         {
             var yearSw = System.Diagnostics.Stopwatch.StartNew();
             int startDay = TotalDays;
@@ -5337,7 +5354,7 @@ public partial class GameManager : Node
 
             double yearMs = yearSw.Elapsed.TotalMilliseconds;
             double msPerTick = yearDays > 0 ? yearMs / yearDays : 0;
-            GD.Print($"[SoakTest] Yıl {year}/{Years}: {yearDays} gün, {yearMs:F1} ms, ms/tick={msPerTick:F3}, tarih={CurrentDate:yyyy-MM-dd}");
+            GD.Print($"[SoakTest] Yil {year}/{years}: {yearDays} gun, {yearMs:F1} ms, ms/tick={msPerTick:F3}, tarih={CurrentDate:yyyy-MM-dd}");
 
             if (msPerTick > 50.0)
                 GD.Print($"[SoakTest] UYARI: ms/tick = {msPerTick:F1} > 50 (performans iyileştirmesi gerekebilir, M33.5)");
@@ -10417,6 +10434,238 @@ private void RunBalanceTest()
         }
 
         GD.Print(ok ? "[RecogTest] SONUÇ: PASS ✓" : "[RecogTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M48.4: M48 zincirinin Save/Load entegrasyonu ve regresyon testi
+    /// (--m48-integration-test).
+    ///
+    /// M48 dört ayrı sistemi üst üste kurdu: kurgu ulus kurulumu (M44.3),
+    /// AI'nın kurulumu değerlendirmesi (M48.1), serbest bırakma talebi
+    /// (M48.2) ve tanınma (M48.3). Bu test dördünün birden aynı dünyada
+    /// yaşayıp kayıttan sağ çıktığını doğrular — çünkü tam olarak böyle
+    /// kullanılıyorlar.
+    ///
+    /// Senaryo: bir yandan sürmekte olan kurgu ulus kurulumu, diğer yandan
+    /// ilhak edilmiş bir halkın açık talebi ve daha yeni doğmuş bir ülkenin
+    /// tanınma durumu. Üçü tek kayda yazılıp geri yüklenir ve her alan
+    /// korunur.
+    ///
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunM48IntegrationTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M48.4: M48 SAVE/LOAD ENTEGRASYON TESTİ");
+        GD.Print("=========================================");
+
+        bool ok = true;
+        DeterministicRNG.InitializeForNewGame(0x4D4842_34DUL);
+
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ReleasableSystem.ResetForNewGame();
+        ReleasableSystem.ResetDemands();
+        AutonomySystem.ResetForNewGame();
+        ResistanceSystem.ResetForNewGame();
+        RecognitionSystem.ResetForNewGame();
+        FormableSystem.ResetForNewGame();
+        CasusBelliSystem.Initialize(CountryDatabase.Get("RUS"));
+        GD.Print($"[M48Int] 1) İl: {provinces.Count}, kültür: {ProvinceCultureSystem.RecordCount}");
+
+        // ---- A) Sürmekte olan kurgu ulus kurulumu (M44.3 + M48.1) ----
+        // Formable'lar sabit ebe kaynaklara bağlı (GBR/DEU/ITA), bu yüzden
+        // kurucu veri dosyasında en az bir formable'ı olan ülkelerden seçilir.
+        var founder = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                FormableDataSystem.ForParent(c.Id).Count > 0)
+            .OrderBy(c => c.Id, StringComparer.Ordinal)
+            .First();
+        var formable = founder != null
+            ? FormableDataSystem.ForParent(founder.Id).FirstOrDefault()
+            : null;
+        if (founder == null || formable == null)
+        {
+            GD.PrintErr("[M48Int] HATA: kurucu ya da formable bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // Procedural worlds rarely own enough target-culture provinces, so the
+        // test transfers provinces from the largest donor and stamps the
+        // formable's culture onto them, exactly like the player would in game.
+        int neededProvinces = formable.RequiredProvinces;
+        var donor = provinces
+            .Where(p => !string.Equals(p.CountryId, founder.Id, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(p => p.CountryId, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.Count())
+            .Select(g => g.ToList())
+            .FirstOrDefault();
+        if (donor == null || donor.Count < neededProvinces)
+        {
+            GD.PrintErr("[M48Int] HATA: yeterli iline sahip bagisci ulke yok");
+            GetTree().Quit(1);
+            return;
+        }
+        var movedIds = donor.Select(p => p.Id).Take(neededProvinces).ToList();
+        foreach (var pid in movedIds)
+            ProvinceOwnershipSystem.SetProvinceOwner(pid, founder.Id);
+        ProvinceCultureSystem.ReassignCountry(movedIds, founder.Id);
+        foreach (var pid in movedIds)
+            ProvinceCultureSystem.SetCulture(pid, formable.Culture);
+
+        founder.PoliticalPower = 500f;
+        string startReason;
+        bool started = FormableSystem.TryStart(founder.Id, formable.Id, out startReason);
+        GD.Print($"[M48Int] 2) Kurulum baslatma: {founder.Id} → {formable.Id}, " +
+                 $"basladi={started} (gerekce: '{startReason}'), bagisci il={movedIds.Count}");
+        if (!started)
+        {
+            foreach (var c in FormableSystem.EvaluateConditions(founder.Id, formable.Id))
+                GD.Print($"    - {c.Label}: {c.Met} ({c.Detail})");
+            GetTree().Quit(1);
+            return;
+        }
+        FormableSystem.AdvanceDay(founder.Id);
+        var pendingBefore = FormableSystem.State(founder.Id);
+        bool pendingOk = pendingBefore != null;
+        GD.Print($"[M48Int] 2) Kurulum: {founder.Id} → {formable.Id}, " +
+                 $"gun={pendingBefore?.DaysElapsed:N0}/{pendingBefore?.DaysRequired:N0} " +
+                 $"({pendingOk})");
+        if (!pendingOk) ok = false;
+
+        // ---- B) İlhak edilmiş halkın açık talebi (M48.2) ----
+        var overlord = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, founder.Id, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 3)
+            .OrderByDescending(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .First();
+        var subject = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, founder.Id, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(c.Id, overlord?.Id, StringComparison.OrdinalIgnoreCase) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 3)
+            .OrderBy(c => c.Id, StringComparer.Ordinal)
+            .First();
+        if (overlord == null || subject == null)
+        {
+            GD.PrintErr("[M48Int] HATA: ilhak deneme ülkeleri bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        void SetResistance3(string id, double v)
+        {
+            if (ResistanceSystem.Get(id) == null) ResistanceSystem.DailyTick(1);
+            var rs = ResistanceSystem.Get(id);
+            if (rs != null) rs.Accumulated = v;
+        }
+        void SetAutonomy3(string id, double v)
+        {
+            if (AutonomySystem.Get(id) == null) AutonomySystem.DailyTick(1);
+            var st = AutonomySystem.Get(id);
+            if (st != null) st.Level = v;
+        }
+
+        int sCiv = subject.CivFactories, sMil = subject.MilFactories, sDock = subject.Dockyards;
+        var subProvinces = ProvinceOwnershipSystem.GetProvincesByOwner(subject.Id)
+            .OrderBy(id => id, StringComparer.Ordinal).ToList();
+        ReleasableSystem.RecordSubject(subject.Id, overlord.Id, false, sCiv, sMil, sDock);
+        subject.IsAnnexed = true;
+        subject.OwnerId = overlord.Id;
+        overlord.CivFactories += sCiv; overlord.MilFactories += sMil; overlord.Dockyards += sDock;
+        subject.CivFactories = subject.MilFactories = subject.Dockyards = 0;
+        foreach (var p in subProvinces) ProvinceOwnershipSystem.SetProvinceOwner(p, overlord.Id);
+        ProvinceCultureSystem.ReassignCountry(subProvinces, overlord.Id);
+        CountryAI.Initialize();
+        overlord.StabilityPercent = 90.0;
+
+        SetAutonomy3(subject.Id, 5.0);
+        SetResistance3(subject.Id, 55.0);
+        ReleasableSystem.AdvanceDay(overlord.Id, 1);
+        var demandBefore = ReleasableSystem.DemandFor(subject.Id);
+        bool demandOk = demandBefore is { Open: true };
+        GD.Print($"[M48Int] 3) Talep: {subject.Id} → {overlord.Id}, " +
+                 $"açık={demandBefore?.Open}, kez={demandBefore?.RaiseCount} ({demandOk})");
+        if (!demandOk) ok = false;
+
+        // ---- C) Yeni doğmuş ülkenin tanınması (M48.3) ----
+        string bornId = "NAT";
+        var born = CountryDatabase.GetOrCreate(bornId, "Yeni Bağımsız");
+        born.Ideology = founder.Ideology;
+        RecognitionSystem.OnCountryBorn(bornId, founder.Id, 3, "release");
+        RecognitionSystem.AdvanceAllDays(4);
+        int recBefore = RecognitionSystem.RecognizerCount(bornId);
+        bool recOk = recBefore >= 1;
+        GD.Print($"[M48Int] 4) Tanınma: tanıyan={recBefore}, doğuş günü=" +
+                 $"{RecognitionSystem.BirthDay(bornId)} ({recOk})");
+        if (!recOk) ok = false;
+
+        // ---- D) Tek kayda yaz ve geri yükle ----
+        // Her sistemin kendi GetSaveData/LoadSaveData çifti çağrılır; kök kayıt
+        // nesnesi yalnızca bu üçünü taşır (diğer alanlar bu testte sıfır kalır).
+        var m48Save = new SaveSystem.SaveFile
+        {
+            Releasable = ReleasableSystem.GetSaveData(),
+            Recognition = RecognitionSystem.GetSaveData(),
+            Formable = FormableSystem.GetSaveData()
+        };
+        int formableCount = m48Save.Formable?.Pending?.Length ?? 0;
+        int demandCount = m48Save.Releasable?.Demands?.Length ?? 0;
+        int birthCount = m48Save.Recognition?.Births?.Length ?? 0;
+        GD.Print($"[M48Int] 5) Kayıt: kurulum={formableCount}, talep={demandCount}, " +
+                 $"doğuş={birthCount} (1 / >=1 / 1 olmalı)");
+        if (formableCount != 1 || demandCount < 1 || birthCount != 1) ok = false;
+
+        ReleasableSystem.ResetForNewGame();
+        ReleasableSystem.ResetDemands();
+        RecognitionSystem.ResetForNewGame();
+        FormableSystem.ResetForNewGame();
+
+        bool cleanOk = !FormableSystem.IsPending(founder.Id) &&
+                       ReleasableSystem.DemandFor(subject.Id) == null &&
+                       !RecognitionSystem.WasBorn(bornId);
+        GD.Print($"[M48Int] 6) Sıfırlama temiz mi: {cleanOk} (true olmalı)");
+        if (!cleanOk) ok = false;
+
+        ReleasableSystem.LoadSaveData(m48Save.Releasable);
+        RecognitionSystem.LoadSaveData(m48Save.Recognition);
+        FormableSystem.LoadSaveData(m48Save.Formable);
+
+        var pendingAfter = FormableSystem.State(founder.Id);
+        var demandAfter = ReleasableSystem.DemandFor(subject.Id);
+        int recAfter = RecognitionSystem.RecognizerCount(bornId);
+
+        bool fOk = pendingAfter != null &&
+                   Math.Abs(pendingAfter.DaysElapsed - (pendingBefore?.DaysElapsed ?? -1)) < 0.01f;
+        bool dOk = demandAfter is { Open: true } &&
+                   demandBefore!.RaiseCount == demandAfter.RaiseCount &&
+                   string.Equals(demandBefore.LastResponse ?? "", demandAfter.LastResponse ?? "");
+        bool rOk = recBefore == recAfter && RecognitionSystem.BirthDay(bornId) == 3;
+        GD.Print($"[M48Int] 7) Geri yükleme: kurulum={fOk} " +
+                 $"({pendingAfter?.DaysElapsed:N0} gün), talep={dOk} " +
+                 $"(kez {demandAfter?.RaiseCount}), tanınma={rOk} ({recAfter})");
+        if (!fOk) ok = false;
+        if (!dOk) ok = false;
+        if (!rOk) ok = false;
+
+        // ---- E) Loaded state keeps playing ----
+        // State() returns a live reference, so snapshot the value before advancing.
+        float elapsedAfterLoad = pendingAfter?.DaysElapsed ?? 0f;
+        FormableSystem.AdvanceDay(founder.Id);
+        var pendingAdvanced = FormableSystem.State(founder.Id);
+        bool advOk = pendingAdvanced != null &&
+                     pendingAdvanced.DaysElapsed > elapsedAfterLoad;
+        GD.Print($"[M48Int] 8) Devam: kurulum {elapsedAfterLoad:N0} → " +
+                 $"{pendingAdvanced?.DaysElapsed:N0} gun ({advOk})");
+        if (!advOk) ok = false;
+
+        GD.Print(ok ? "[M48Int] SONUÇ: PASS ✓" : "[M48Int] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

@@ -3143,3 +3143,54 @@ bayrağını AÇMAZ. Yalnızca `Initialize(data)` açar. Testte `LoadScenarioDat
 sessizce hiçbir şey yapmadı — savaş gizemli biçimde başlatılamadı. Doğru
 başlatma: `Initialize(someCountry)`. Ayrıca `LogWarDeclarationCheck`'ın koşul
 listesi gerçek engeli (hiçbir gerekçe türü yüklenemiyor) gösterdi.
+
+---
+
+## M48.4 — M48 Save/Load Entegrasyonu + Regresyon (2026-10-24)
+
+M48.1 (formable AI), M48.2 (ilhak talebi) ve M48.3 (tanınma) ayrı ayrı
+çalışıyor ve kendi save/load'u ile doğrulanmıştı. Bu adımda üçünün TEK
+kayıtta birlikte round-trip yaptığı ve yüklenen durumun oyunu kaldığı yerden
+sürdürdüğü doğrulandı.
+
+### Sistem
+- `--m48-integration-test` (`Scripts/GameManager.cs`): zorunlu kurulum
+  (sürmekte olan formable), açık serbest bırakma talebi ve yeni doğmuş bir
+  ülkenin tanınma durumu aynı `SaveSystem.SaveFile` içinde toplanır,
+  sistemler sıfırlanır, geri yüklenir ve karşılaştırılır.
+
+### Düzeltilen iki test hatası
+1. **Formable başlamıyordu.** `TryStart`, `CanForm` koşullarını denetler;
+   prosedürel dünyada hedef kültürte (BAV → bavarian) yeterli il yoktur. Test
+   artık en büyük bağışçı ülkeden `RequiredProvinces` kadar il transfer edip
+   kültürü basıyor — oyuncunun oynunda yapacağı işlemin aynısı.
+2. **"Gün arttı mı" kontrolü her zaman yanlıştı.** `FormableSystem.State()`
+   sözlükteki NESNEYİ döndürür; `AdvanceDay` aynı nesneyi değiştirdiği için
+   "önce" ve "sonra" değeri aynı referanstı ve karşılaştırma hep False verdi.
+   Değer `AdvanceDay` ÖNCE ayrı bir değişkene kopyalanıyor.
+
+### Ek: `--soak-years=N`
+Gece çalışması kuralı `--soak-test`'i 1-3 yılla sınırlar, kod ise sabit 10
+yıl koşturuyordu. Bayrak eklendi: verilirse 1-3 arasına kırpılır,
+verilmezse 10 yıl varsayılanı korunur (başka koşucuları kırmamak için).
+
+### Test kapsamı
+| Bayrak | Sonuç |
+|---|---|
+| `--m48-integration-test` | PASS |
+| `--save-load-test` (historical_1936) | PASS (A==B) |
+| `--save-load-test` (modern_world) | PASS (A==B) |
+| `--formable-test` | PASS |
+| `--intervention-test` | PASS |
+| `--diplomacy-test` | PASS |
+| `--province-economy-test` | PASS |
+| `--formable-data-test` | PASS |
+| `--war-score-test` | PASS |
+| `--soak-test --soak-years=1` | PASS |
+
+### Ders (testte yaşayan referans tuzakları)
+İki kez aynı sınıf hata: (1) sistemlerin "sözlükteki canlı nesneyi döndür"
+API'leri, (2) "kurulum otomatik başlar" varsayımı. İkisi de gerçek mekaniği
+değil testin kendi kurulumunu yanlış anlamasından kaynaklandı. Test
+yazarken "bu API kopya mı yoksa canlı mı?" ve "bu koşul gerçekten sağlanıyor
+mu?" soruları sıraya alınmalı.

@@ -2921,3 +2921,52 @@ izlenecek). Derleniyor, testler geçiyor → ilk görev commit'ine dahil edilece
 **Hash doğrulaması (A == B):**
 - historical_1936: kayıt=637, fabrika=777, nüfus=1990299913, hash=1987003719 (iki fazda aynı)
 - modern_world: kayıt=637, fabrika=4000, nüfus=5679499968, hash=-774975626 (iki fazda aynı)
+
+---
+
+## M48.1 — AI Kurgu Ülke Değerlendirmesi (ÖZET)
+
+**Varsayım (kayda geçen, kullanıcı sorusu yok):** Milestone tanımı yalnızca
+"AI `FormableSystem.TryStart` çağırsın" diyor. Ama incelemede `AdvanceDay`'in
+üretimde hiçbir çağrısı olmadığı görüldü — yalnızca testlerde koşuyordu. Yani
+AI kuruluş başlatsa bile %0'da ebedi kalırdı. Milestone'un gerçek amacı
+"AI'ın kendi kültürel talebini gündeme getirmesi" olduğundan, iki parça
+(başlatma kararı + günlük ilerleme yolu) birlikte yapıldı. Bu, milestone
+metninden geniş ama amacı tamamlamak için zorunlu.
+
+1. **Neyi değiştirdim (dosya adlarıyla)**
+   - `Scripts/FormableSystem.cs`: `AdvanceAll()` (yeni) — bekleyen tüm süreçleri
+     bir gün ilerletir; kimlik listesi kopyalanır (Complete silebilir).
+   - `Scripts/GameManager.cs`: `DailyTick` içine `FormableSystem.AdvanceAll()`
+     (CountryAI.DailyTick sonrası). `--ai-formable-test` bayrağı + `RunAiFormableTest`.
+   - `Scripts/CountryAI.cs`: `MaybeFormNation(st, data)` adımı, `AIState.LastFormableDay`
+     cooldown'u, GetSaveData/LoadSaveData kablosu.
+   - `Scripts/SaveSystem.cs`: `AiStateSave.LastFormableDay`.
+   - `TODO.md`, `PROGRESS.md`, `GECE-RAPOR.md`.
+2. **Neyi çözemedin**
+   - `FormableSystem` yalnızca oyuncu/AI "ebe kaynak" ülkesi için kurgu ülke
+     kuruyor. Farklı kültür topraklarından çok-uluslu bir formable (örn. çok
+     kültürlü bir imparatorluk) kurulamıyor — bu mevcut M44.3 tasarımı, M48
+     kapsamında değiştirilmedi.
+3. **Bilinen sorunlar**
+   - Yok. (Testin determinizm adımı ilk hâlinde sahte FAIL üretmişti; sebebi
+     testin kendi kirliliğiydi — tamamlanmadan ölçülecek şekilde düzeltildi.)
+4. **Kullanıcının test etmesi gerekenler**
+   - Yok (headless test tüm kriterleri doğruladı).
+
+**Test sonuçları (M48.1)**
+| Test | Süre | Sonuç |
+|---|---|---|
+| `--ai-formable-test` | 17.6 sn | PASS ✓ |
+| `--formable-test` (regresyon) | 1.5 sn | PASS ✓ |
+| `--save-load-test` (historical_1936) | 22.0 sn | PASS ✓ (A == B) |
+| `--save-load-test` (modern_world) | 21.6 sn | PASS ✓ (A == B) |
+
+**dotnet build:** 0 hata / 0 uyarı.
+
+**Kritik doğrulama (`--ai-formable-test` adım çıktıları):**
+- Koşul yok → süreç başlamaz: `Kültür il=0/9 → süreç başladı mı: False`
+- Koşul var → başlar: `Kültür il=9/9 → süreç başladı mı: True`,
+  `[AIFormable] Germany (DEU) kurma sürecini başlattı: Bavaria (BAV) — gerekli 9 il, 90 gün, PP 80`
+- Determinizm: `başlama günü 2 == 2, 10 gün sonra geçen gün 11 == 11, ilerleme 12.22% == 12.22%`
+- Üretim yolu: `Kuruluş tamamlandı mı: True, BAV il=9, DEU il 11 → 2, sivil fabrika 26 → 6`

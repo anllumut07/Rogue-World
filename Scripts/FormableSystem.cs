@@ -314,6 +314,24 @@ public static class FormableSystem
         _pending.Clear();
     }
 
+    /// <summary>
+    /// Bekleyen TÜM kuruluşları bir gün ilerletir (oyuncu + AI).
+    /// M48.1: geliştirme sadece test kodundan çağrılıyordu; oyun içinde hiçbir
+    /// kuruluş tamamlanamıyordu. Artık günlük tick'in tek noktası bu.
+    /// </summary>
+    public static int AdvanceAll()
+    {
+        if (_pending.Count == 0) return 0;
+
+        // Values üzerinde iterasyon sırasında Complete() _pending'i silebilir,
+        // bu yüzden kimlik listesi önce kopyalanır.
+        var ids = new List<string>(_pending.Count);
+        foreach (var s in _pending.Values) ids.Add(s.CountryId);
+
+        foreach (var id in ids) AdvanceDay(id);
+        return ids.Count;
+    }
+
     /// <summary>Save/Load verisi (M44.5'te SaveSystem'e bağlanır).</summary>
     public static SaveSystem.FormableSave GetSaveData()
     {

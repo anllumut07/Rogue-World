@@ -51,6 +51,10 @@ public static class CountryAI
         // M19.8: Askeri hareket cooldown'u (her X günde bir harekete geçsin)
         public int LastMoveDay = -1000;
         public int LastPeaceDay = -1000;   // M42.4: barış değerlendirme cooldown'u
+
+        // M48.1: ulus kurma değerlendirme cooldown'u — koşullar bir günde
+        // birden fazla kez değerlendirilip PP harcanmasın.
+        public int LastFormableDay = -1000;
     }
 
     // ===== Yapı tipleri — EconomySystem.BuildType ile aynı sıra/ Günler =====
@@ -253,6 +257,11 @@ public static class CountryAI
         // 4b) Barış davranışı (M42.4): ezilen/rakip tarafta savaşı bitirme arzusu.
         // Hergün değil — cooldown'lu çalışır ki savaş ilanı ile çelişmesin.
         MaybePeace(st, data);
+
+        // 4c) Ulus kurma (M48.1): kültürü yeterli il + yeterli PP varsa
+        // FormableSystem sürecini başlatır. Sürecin kendisi FormableSystem.AdvanceAll
+        // ile GameManager günlük tick'inde ilerler — burada yalnızca başlatma kararı var.
+        MaybeFormNation(st, data);
 
         // 5) Askeri hareket: AI ordularını düşman illere hareket ettir (M19.8)
         MaybeMoveArmies(st, data);
@@ -650,6 +659,50 @@ public static class CountryAI
     }
 
     /// <summary>
+    /// M48.1: AI ulus kurma değerlendirmesi.
+    ///
+    /// Kurallar:
+    /// - Cooldown: aynı ülke en erken 30 günde bir kurmayı dener (PP'yi aynın
+    ///   günde birden fazla süreçte harcamamak için).
+    /// - O ülkede zaten bekleyen süreç varsa dokunulmaz.
+    /// - Adaylar <see cref="FormableDataSystem.ForParent"/> ile ebe kaynak
+    ///   listesinden alınır; RNG YOKTUR — sıradaki İLK uygun aday seçilir
+    ///   (deterministik: aynı dünya + aynı gün → aynı karar).
+    /// - Koşullar tam değilse hiçbir şey yapılmaz (PP harcanmaz, süreç başlamaz).
+    ///
+    /// Oyuncu ülkesi bu metod tarafından ASLA görülmez: RunDecisions yalnızca
+    /// AI <see cref="AIState"/>'leri için çağrılır (M11 kuralı).
+    /// </summary>
+    private static void MaybeFormNation(AIState st, CountryData data)
+    {
+        if (GM.TotalDays - st.LastFormableDay < 30) return;
+
+        // Bu turda kurma deneniyor — koşul sağlansa da tek deneme
+        st.LastFormableDay = GM.TotalDays;
+
+        if (FormableSystem.IsPending(data.Id)) return;
+
+        var candidates = FormableDataSystem.ForParent(data.Id);
+        if (candidates == null || candidates.Count == 0) return;
+
+        foreach (var def in candidates)
+        {
+            if (def == null || string.IsNullOrEmpty(def.Id)) continue;
+            if (!FormableSystem.CanForm(data.Id, def.Id)) continue;
+
+            if (FormableSystem.TryStart(data.Id, def.Id, out var reason))
+            {
+                GD.Print($"[AIFormable] {data.Name} ({data.Id}) kurma sürecini başlattı: " +
+                         $"{def.Name} ({def.Id}) — gerekli {def.RequiredProvinces} il, " +
+                         $"{def.DaysRequired} gün, PP {def.PoliticalPowerCost}");
+                return; // Aynı anda tek süreç
+            }
+
+            GD.Print($"[AIFormable] {data.Id} → {def.Id} başlatılamadı: {reason}");
+        }
+    }
+
+    /// <summary>
     /// Savaştaki AI ülkesinin barış isteğini değerlendirir. Deterministik:
     /// eşikler puan/fabrika/askeri güce bakar, RNG yalnızca "bu gün değerlendir"
     /// anında kullanılır ve sonuç puan gibi kalıcı duruma yazılmaz.
@@ -919,6 +972,7 @@ public static class CountryAI
                 LastDecisionDay = st.LastDecisionDay,
                 LastMoveDay = st.LastMoveDay,
                 LastPeaceDay = st.LastPeaceDay,
+                LastFormableDay = st.LastFormableDay,
                 AiExhausted = st.AiExhausted
             }).ToArray(),
             AiCountryIds = _aiCountryIds.ToArray(),

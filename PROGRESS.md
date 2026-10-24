@@ -3035,3 +3035,39 @@ ayrıca culture dışına çıkınca vurgunun düştüğü ve onun da round-trip
 - **Bulgu:** ilk koşuda özet satırı `kayıt=0, hash=0` kaldı — ekonomi katmanı
   headless akışta hiç üretilmiyordu (normal oyunda `WorldMap.SetProvinces` yapar).
   Test kurulumuna `GenerateFor` eklendi.
+
+### M48.1 — AI kurgu ülke değerlendirmesi ve kuruluş ilerlemesi ✅ DONE (2026-10-24)
+**Tespit (milestone'u değiştiren):** `FormableSystem.AdvanceDay` yalnızca test
+kodundan çağrılıyordu (GameManager 9366/9401/9968 satırları `RunFormableTest` /
+`RunFormablePanelTest` içinde). Oyun içinde hiçbir kuruluş bir gün bile
+ilerlemiyordu — oyuncunun panelden başlattığı kuruluş bile ebedi %0'da kalıyordu.
+Yani M48.1 sadece "AI başlatsın" ile yetinmezdi; önce üretimde ilerleme yolu
+açılması gerekiyordu.
+
+- `Scripts/FormableSystem.cs`: `AdvanceAll()` — bekleyen TÜM süreçleri bir gün
+  ilerletir. `Complete()` `_pending`'i silebildiğinden kimlik listesi önce
+  kopyalanır (iterasyon sırasında koleksiyon değişmez).
+- `Scripts/GameManager.cs`: `DailyTick` içine `CountryAI.DailyTick()` SONRASINA
+  bağlandı. Sıra önemli: (a) o gün AI'ın başlattığı süreç de bugün sayılır,
+  (b) `Complete()` `CountryAI.Reset()` çağırdığı için DailyTick'in AI iterasyonu
+  bitmeden koşmamalı.
+- `Scripts/CountryAI.cs`: `MaybeFormNation(st, data)` — `RunDecisions` içinde
+  MaybePeace sonrası, MaybeMoveArmies öncesi. 30 günlük cooldown
+  (`LastFormableDay`), bekleyen süreç varsa dokunulmaz, `ForParent` adayları
+  arasından sıradaki ilk uygun seçilir (RNG YOK).
+- `Scripts/SaveSystem.cs`: `AiStateSave.LastFormableDay` eklendi (cooldown
+  kalıcı — yoksa kayıt yüklenince AI yarın tekrar başlatma dener).
+
+### Test kapsamı (`--ai-formable-test`)
+1) Dünya + kültür kurulur; DEU AI olur, FRA (oyuncu) AI listesinde OLMAZ
+2) Koşul yok (0 bavarian il): 40 gün AI koşar → süreç BAŞLAMAZ
+3) 9 il bavarian yapılır → AI süreci başlatır (`Kurma başladı: DEU → BAV`)
+4) Determinizm: süreç sıfırlanıp yeniden koşulur → aynı günde başlar,
+   10 gün sonra aynı ilerleme
+5) `AdvanceDaysForTest(90+5)` ile üretim yolu → BAV kurulur, DEU 11→2 il,
+   fabrika 26→6
+
+### Ders (kendi test hatam)
+- Determinizm kontrolü ilk hâlinde `Complete()`'i de çalıştırıyordu. Birinci
+  koşu BAV'yi yaratıp dünyayı değiştirdiği için ikinci koşu farklı bir dünyada
+  çalıştı ve sahte FAIL üretti. Tamamlanmadan ÖLÇÜLÜR hale getirildi.

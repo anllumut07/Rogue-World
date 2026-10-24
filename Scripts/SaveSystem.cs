@@ -508,6 +508,7 @@ public static class SaveSystem
         public int LastDecisionDay { get; set; }
         public int LastMoveDay { get; set; } // M19.8: AI ordusu hareket cooldown'u
         public int LastPeaceDay { get; set; } // M42.4: AI barış değerlendirme cooldown'u
+        public int LastFormableDay { get; set; } // M48.1: ulus kurma değerlendirme cooldown'u
         public bool AiExhausted { get; set; }
     }
 

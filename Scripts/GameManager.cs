@@ -194,6 +194,7 @@ public partial class GameManager : Node
         bool cultureInfoTest = false;        // M46.3: kültür bilgisi + eşleşmeyen il konturu testi (--culture-info-test)
         bool provinceEconomyTest = false;    // M47.1: il bazlı ekonomi ağırlık katmanı testi (--province-economy-test)
         bool resourceBalanceTest = false;    // M47.3: kaynak açığı ekonomik sonucu testi (--resource-balance-test)
+        bool aiFormableTest = false;         // M48.1: AI ulus kurma değerlendirmesi testi (--ai-formable-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -368,6 +369,8 @@ public partial class GameManager : Node
                     provinceEconomyTest = true;
                 else if (arg == "--resource-balance-test")
                     resourceBalanceTest = true;
+                else if (arg == "--ai-formable-test")
+                    aiFormableTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -820,6 +823,11 @@ public partial class GameManager : Node
         if (resourceBalanceTest)
             RunResourceBalanceTest();
 
+        // M48.1: AI ulus kurma değerlendirmesi testi — koşullu başlatma + günlük
+        // tick'ten ilerleme + oyuncu hariç + determinizm.
+        if (aiFormableTest)
+            RunAiFormableTest();
+
         // M13.2: Tooltip sistemi testi — Set/Show/Hide/Unset'i doğrular.
         if (tooltipTest)
             RunTooltipTest();
@@ -1009,6 +1017,12 @@ public partial class GameManager : Node
 
         // M11: AI ülkeleri (oyuncu DIŞI) — hafif güncellemeler + karar dilimi
         CountryAI.DailyTick();
+
+        // M48.1: Bekleyen ulus kuruluşları bir gün ilerler (oyuncu + AI).
+        // AI kararından SONRA çağrılır: o gün başlatılan kuruluş da sayılmaya
+        // bugün başlasın (sıfırdan değil). Complete() yeni ülkeyi yaratır ve
+        // il devirlerini tetikler; o yüzden M23.3 seçim denetiminden önce olmalı.
+        FormableSystem.AdvanceAll();
 
         // M20.1: İstatistik göstergelerinin günlük dalgalanması
         StatisticsSystem.DailyTick();
@@ -9271,7 +9285,221 @@ private void RunBalanceTest()
     }
 
     /// <summary>
-    /// M44.3: Kurgu ülke kurma headless testi (--formable-test).
+    /// M48.1: AI ulus kurma değerlendirmesi headless testi (--ai-formable-test).
+    /// Normal oyunda ASLA çalışmaz.
+    ///
+    /// Doğrulananlar:
+    ///   1) Koşullar sağlanmadan AI kurma BAŞLATMAZ (sessizce dokunmaz).
+    ///   2) Koşullar sağlanınca AI kurmayı başlatır (ebe kaynak + kültür il + PP).
+    ///   3) Süreç FormableSystem.AdvanceAll ile GÜNLÜK TİCK'ten ilerler ve
+    ///      tamamlanınca yeni ülke yaratılır (M48.1'in üretim yolu).
+    ///   4) Oyuncu ülkesi ASLA AI tarafından yönetilmez (M11 kuralı).
+    ///   5) Aynı dünya + aynı gün → aynı karar (RNG yok, deterministik).
+    /// </summary>
+    private void RunAiFormableTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M48.1: AI ULUS KURMA DEĞERLENDİRME TESTİ");
+        GD.Print("=========================================");
+
+        bool ok = true;
+        DeterministicRNG.InitializeForNewGame(0x4D4842_31DUL);
+
+        var source = new ProceduralProvinceSource();
+        var provinces = source.LoadProvinces().ToList();
+        ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
+        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        FormableSystem.ResetForNewGame();
+        GD.Print($"[AiFormableTest] 1) İl: {provinces.Count}, kültür: {ProvinceCultureSystem.RecordCount}");
+
+        // Oyuncu: testte kurma koşulu olmayan bir ülke (FRA → BAV reddedilir,
+        // M11 kuralı gereği AI ona dokunmaz).
+        if (!HasPlayer) SetPlayerCountry("FRA");
+        string playerId = PlayerCountryId;
+
+        // Hedef: AI olan, ebe kaynak listesinde BAV bulunan bir ülke (DEU).
+        string aiId = "DEU";
+        var aiData = CountryDatabase.Get(aiId);
+        if (aiData == null)
+        {
+            GD.PrintErr("[AiFormableTest] HATA: DEU ülkesi bulunamadı");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var bavDef = FormableDataSystem.Get("BAV");
+        if (bavDef == null)
+        {
+            GD.PrintErr("[AiFormableTest] HATA: BAV tanımı yok");
+            GetTree().Quit(1);
+            return;
+        }
+
+        // CountryAI başlat (DEU AI olur, FRA oyuncu olduğu için hariç tutulur)
+        CountryAI.Initialize();
+        bool aiTracked = CountryAI.IsAiCountry(aiId);
+        bool playerExcluded = !CountryAI.IsAiCountry(playerId);
+        GD.Print($"[AiFormableTest] 2) DEU AI={aiTracked}, oyuncu FRA DIŞI={playerExcluded}");
+        if (!aiTracked || !playerExcluded) ok = false;
+
+        // ---- 3) KOŞUL YOK: AI kurma başlatmamalı ----
+        int deuCultureBav = ProvinceCultureSystem.CultureProvinceCount(aiId, bavDef.Culture);
+        aiData.PoliticalPower = 500;   // PP var ama kültür il yetersiz
+        FormableSystem.ResetForNewGame();
+        CountryAI.Initialize();        // state'ler sıfırlanır (cooldown da)
+        RunAiDecisionDays(40);         // cooldown (30) aşılacak kadar gün
+
+        bool startedWithoutProvinces = FormableSystem.IsPending(aiId);
+        GD.Print($"[AiFormableTest] 3) Kültür il={deuCultureBav}/{bavDef.RequiredProvinces} " +
+                 $"→ süreç başladı mı: {startedWithoutProvinces} (false olmalı)");
+        if (startedWithoutProvinces) ok = false;
+
+        // ---- 4) KOŞUL VAR: AI kurmayı başlatmalı ----
+        int needed = bavDef.RequiredProvinces;
+        var donor = provinces
+            .Where(p => !string.Equals(p.CountryId, aiId, StringComparison.OrdinalIgnoreCase)
+                     && !string.Equals(p.CountryId, playerId, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(p => p.CountryId, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(g => g.Count())
+            .Select(g => new { Id = g.Key, Provs = g.ToList() })
+            .FirstOrDefault();
+        if (donor == null || donor.Provs.Count < needed)
+        {
+            GD.PrintErr($"[AiFormableTest] HATA: {needed} ilinden fazlasına sahip bağışçı yok");
+            GetTree().Quit(1);
+            return;
+        }
+
+        var movedIds = donor.Provs.Select(p => p.Id).Take(needed).ToList();
+        foreach (var pid in movedIds)
+            ProvinceOwnershipSystem.SetProvinceOwner(pid, aiId);
+        ProvinceCultureSystem.ReassignCountry(movedIds, aiId);
+        foreach (var pid in movedIds)
+            ProvinceCultureSystem.SetCulture(pid, bavDef.Culture);
+
+        int bavAfter = ProvinceCultureSystem.CultureProvinceCount(aiId, bavDef.Culture);
+        aiData.PoliticalPower = 500;
+        FormableSystem.ResetForNewGame();
+        CountryAI.Initialize();        // cooldown sıfırlanır
+        RunAiDecisionDays(40);
+
+        bool startedWithProvinces = FormableSystem.IsPending(aiId);
+        GD.Print($"[AiFormableTest] 4) Kültür il={bavAfter}/{bavDef.RequiredProvinces} " +
+                 $"→ süreç başladı mı: {startedWithProvinces} (true olmalı)");
+        if (!startedWithProvinces) ok = false;
+
+        // ---- 5) DETERMİNİZM: aynı durum + aynı gün → aynı günde başlar ----
+        // Tamamlanmadan ÖLÇÜLÜR: Complete() yeni ülke yaratıp dünyayı değiştirir,
+        // ikinci koşu o zaman farklı bir dünyada çalışırdı (test kirliliği).
+        bool determinism = RunAiFormableDeterminismCheck(bavDef);
+        GD.Print($"[AiFormableTest] 5) Determinizm: {determinism}");
+        if (!determinism) ok = false;
+
+        // ---- 6) Süreç GÜNLÜK TİCK'ten ilerler ve tamamlanır ----
+        // TryStart PP'yi başlangıçta harcamaz (tamamlanınca harcanır); bu yüzden
+        // PP korunur ve süreç bozulmadan tamamlanmalı.
+        float progressBefore = FormableSystem.Progress(aiId);
+        int totalDeuProvinces = ProvinceCultureSystem.ForCountry(aiId).Count;
+        int deuCivBefore = aiData.CivFactories;
+
+        // DaysRequired gün + güvenlik marjı — AdvanceAll günlük tick'in parçası
+        // olduğundan AdvanceDaysForTest ile koşulur (gerçek üretim yolu).
+        AdvanceDaysForTest((int)Math.Ceiling(bavDef.DaysRequired) + 5);
+
+        var bavCountry = CountryDatabase.Get("BAV");
+        bool completed = bavCountry != null && !FormableSystem.IsPending(aiId);
+        int bavProvinces = ProvinceCultureSystem.ForCountry("BAV").Count;
+        int deuProvincesAfter = ProvinceCultureSystem.ForCountry(aiId).Count;
+        GD.Print($"[AiFormableTest] 6) Kuruluş tamamlandı mı: {completed} " +
+                 $"(ilerleme başlangıç={progressBefore:P0}), BAV il={bavProvinces}, " +
+                 $"DEU il {totalDeuProvinces} → {deuProvincesAfter}");
+        if (!completed) ok = false;
+        if (bavProvinces < bavDef.RequiredProvinces) ok = false;
+        if (deuProvincesAfter != totalDeuProvinces - bavProvinces) ok = false;
+
+        // Fabrikalar bölünmüş olmalı (Complete pay oranıyla böler)
+        GD.Print($"[AiFormableTest] 6b) DEU sivil fabrika {deuCivBefore} → {aiData.CivFactories}");
+        if (aiData.CivFactories > deuCivBefore) ok = false;
+
+        FormableSystem.ResetForNewGame();
+        ProvinceEconomySystem.ResetForNewGame();
+        ProvinceCultureSystem.ResetForNewGame();
+
+        GD.Print(ok ? "[AiFormableTest] SONUÇ: PASS ✓" : "[AiFormableTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M48.1 yardımcı: AI karar dilimini <paramref name="days"/> gün koşar.
+    /// RunDecisions yalnızca günlük tick içinde round-robin ile çağrılır; bu
+    /// yardımcı doğrudan AdvanceDaysForTest kullanır (aynı üretim yolu).
+    /// </summary>
+    private void RunAiDecisionDays(int days)
+    {
+        // MinDecisionInterval=5 ve MaxDecisionsPerDay=10 olduğundan 40 gün
+        // hedef ülkenin en az bir kez karar almasını garanti eder.
+        AdvanceDaysForTest(days);
+    }
+
+    /// <summary>
+    /// M48.1 determinizm kontrolü.
+    ///
+    /// Koşul, kuruluş TAMAMLANMadan bırakılır: tamamlanma yeni ülke yaratıp
+    /// dünyayı değiştirir (BAV doğar, DEU illerini kaybeder) ve ikinci koşu
+    /// artık farklı bir dünya üzerinde çalışır — bu bir regresyon değil,
+    /// testin kendi kirliliğidir. Bu yüzden determinizm "karar" düzeyinde
+    /// ölçülür:
+    ///   - Kurma koşulu sağlanır, AI'nin kaçıncı günde süreci başlattığı kaydedilir.
+    ///   - Süreç sıfırlanır + AI state'i yenilenir (world değişmeden).
+    ///   - Aynı gün sayısı yeniden koşulur; süreç aynı günde başlamalı ve
+    ///     sonraki günlerde aynı ilerlemeyi göstermeli (RNG yok).
+    /// </summary>
+    private bool RunAiFormableDeterminismCheck(FormableDataSystem.FormableDefinition bavDef)
+    {
+        const ulong seed = 0x4D4842_31DUL;
+        DeterministicRNG.InitializeForNewGame(seed);
+
+        // Uygun hale getir: DEU'ye bavarian kültüründe yeterli il + PP.
+        // Anahtar nokta: bu koşullar 4. adımda zaten sağlanmıştır ve kurma
+        // tamamlanmadığı için dünya bozulmamıştır.
+        int SetUpAndMeasureStart()
+        {
+            FormableSystem.ResetForNewGame();
+            CountryAI.Initialize();
+
+            var aiData2 = CountryDatabase.Get("DEU");
+            if (aiData2 == null) return -1;
+            aiData2.PoliticalPower = 500;
+
+            int guard = 0;
+            while (!FormableSystem.IsPending("DEU") && guard++ < 40) AdvanceDaysForTest(1);
+            return FormableSystem.IsPending("DEU") ? guard : -1;
+        }
+
+        int firstStart = SetUpAndMeasureStart();
+        if (firstStart < 0) return false;
+
+        // Başladıktan sonra birkaç gün daha — ilerleme kaydedilmeli.
+        AdvanceDaysForTest(10);
+        float progressFirst = FormableSystem.Progress("DEU");
+        int elapsedFirst = (int)FormableSystem.State("DEU")!.DaysElapsed;
+
+        // Karar düzeyi sıfırlama: süreç biter, AI tekrar değerlendirir.
+        FormableSystem.ResetForNewGame();
+        int secondStart = SetUpAndMeasureStart();
+        if (secondStart < 0) return false;
+
+        AdvanceDaysForTest(10);
+        float progressSecond = FormableSystem.Progress("DEU");
+        int elapsedSecond = (int)FormableSystem.State("DEU")!.DaysElapsed;
+
+        GD.Print($"[AiFormableTest]   determinizm: başlama günü {firstStart} == {secondStart}, " +
+                 $"10 gün sonra geçen gün {elapsedFirst} == {elapsedSecond}, " +
+                 $"ilerleme {progressFirst:P2} == {progressSecond:P2}");
+        return firstStart == secondStart && elapsedFirst == elapsedSecond &&
+               Mathf.Abs(progressFirst - progressSecond) < 0.0001f;
+    }
     /// Normal oyunda ASLA çalışmaz.
     /// </summary>
     private void RunFormableTest()

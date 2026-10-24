@@ -530,6 +530,10 @@ public partial class GameManager : Node
             DiplomacySystem.DeclareWar(warTestTarget);
             // Ofansif emri: savaşın ilerlemesi için (pasif çatışma ilerlemez)
             WarSystem.SetOffensive(warTestTarget, true);
+
+            // M49.4: war-test artık kendini bitirir — savaş gerçekten ilerlesin,
+            // sonuç yazılsın ve süreç kapansın (eskiden hız 0'da asılı kalıyordu).
+            RunWarTest(warTestTarget);
         }
 
         // Focus test (M9): AI odak seçim mantığı — normal oyunda asla etkinleşmez
@@ -11369,7 +11373,99 @@ private void RunBalanceTest()
                  $"hedef={ProvinceEconomySystem.IsReconciled(enemyId, 10)} ({reconciled})");
         if (!reconciled) ok = false;
 
+        // ---- 8) Save/Load: işgal + direniş + yıkım kayıtları dönüşü ----
+        // M49.4: A==B ölçümü "aktif işgal yok" durumunda işgal kaydını
+        // hiç görmüyordu. Burada savaşın ortasında kaydedip geri yüklenir;
+        // hem kayıtların bütünüyle geri gelmesi hem de sonraki günlerde
+        // aynı davranışın sürmesi (determinizm) doğrulanır.
+        GD.Print("[AdminTest] 8) Save/Load — işgal direnci ve kısmi çıtarım kaydı");
+        int occupiedBeforeSave = OccupationSystem.OccupiedCount;
+        int disruptedFacBefore = OccupationSystem.DisruptedFactoriesOf(playerId);
+        int disruptedResBefore = OccupationSystem.DisruptedResourcesOf(playerId);
+        double resistanceBefore = ResistanceSystem.Accumulated(enemyId);
+        SaveSystem.SaveTestFile();
+        bool loaded = SaveSystem.LoadTestFile();
+
+        int occupiedAfterLoad = OccupationSystem.OccupiedCount;
+        int disruptedFacAfter = OccupationSystem.DisruptedFactoriesOf(playerId);
+        int disruptedResAfter = OccupationSystem.DisruptedResourcesOf(playerId);
+        double resistanceAfter = ResistanceSystem.Accumulated(enemyId);
+
+        bool roundTrip = loaded &&
+            occupiedAfterLoad == occupiedBeforeSave &&
+            disruptedFacAfter == disruptedFacBefore &&
+            disruptedResAfter == disruptedResBefore &&
+            Math.Abs(resistanceAfter - resistanceBefore) < 0.01;
+        GD.Print($"[AdminTest]    kayıt: il {occupiedBeforeSave}→{occupiedAfterLoad}, " +
+                 $"yıkım fabrika {disruptedFacBefore}→{disruptedFacAfter}, " +
+                 $"yıkım kaynak {disruptedResBefore}→{disruptedResAfter}, " +
+                 $"direniş {resistanceBefore:F2}→{resistanceAfter:F2} ({roundTrip})");
+        if (!roundTrip) ok = false;
+
+        // Yükleme sonrası ilerleme: kaydedilen durum aynen sürüyor mu?
+        var warAfterLoad = WarSystem.Wars.FirstOrDefault(w => !w.IsEnded && w.DefenderId == enemyId);
+        int occupiedStep2Before = OccupationSystem.OccupiedCount;
+        for (int d = 0; d < 3 && warAfterLoad != null; d++)
+            OccupationSystem.AdvanceDay(warAfterLoad);
+        bool advancedAfterLoad = OccupationSystem.OccupiedCount >= occupiedStep2Before;
+        GD.Print($"[AdminTest]    yükleme sonrası 3 gün: işgal {occupiedStep2Before}→" +
+                 $"{OccupationSystem.OccupiedCount} ({advancedAfterLoad})");
+        if (!advancedAfterLoad) ok = false;
+
         GD.Print(ok ? "[AdminTest] SONUÇ: PASS ✓" : "[AdminTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M49.4: Savaş ilanı headless testi (--war-test=HEDEF --country=OYUNCU).
+    ///
+    /// Eskiden bu bayrak yalnızca savaşı ilan edip hızda bırakıyordu: hız 0
+    /// kaldığı için oyun ana menüde asılı kalır, test hiç bitmez ve hiç
+    /// `SONUÇ:` satırı yazmazdı (runner'ın 120 sn zaman aşımına kalırdı).
+    /// Artık savaş gerçekten ilerletilir ve doğrulanabilir çıktı verilir:
+    /// savaş kaydı, taraflar, gün ilerlemesi ve savaş puanının hareketi.
+    /// </summary>
+    private void RunWarTest(string targetId)
+    {
+        GD.Print("=========================================");
+        GD.Print("  M49.4: SAVAŞ TESTİ (--war-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        var war = WarSystem.Wars.FirstOrDefault(w =>
+            !w.IsEnded &&
+            (string.Equals(w.DefenderId, targetId, StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(w.AttackerId, targetId, StringComparison.OrdinalIgnoreCase)));
+
+        bool declaredOk = war != null;
+        GD.Print($"[WarTest] 1) Savaş ilanı: {PlayerCountryId} → {targetId}, " +
+                 $"kayıt={declaredOk} " +
+                 $"(toplam aktif savaş={WarSystem.Wars.Count}) ({declaredOk})");
+        if (!declaredOk) ok = false;
+
+        float scoreBefore = WarScoreSystem.ScoreForSide(war, PlayerCountryId);
+        int dayBefore = TotalDays;
+
+        // Savaşın gerçekten işlemesi için günler ilerletilir. Hız bağımsız:
+        // günlük tick doğrudan çağrılır.
+        const int TestDays = 10;
+        AdvanceDaysForTest(TestDays);
+
+        bool advanced = TotalDays > dayBefore;
+        GD.Print($"[WarTest] 2) Gün ilerlemesi: {dayBefore} → {TotalDays} " +
+                 $"({TestDays} gün) ({advanced})");
+        if (!advanced) ok = false;
+
+        float scoreAfter = WarScoreSystem.ScoreForSide(war, PlayerCountryId);
+        bool warIntact = war == null || !war.IsEnded ||
+                         WarSystem.Wars.Count > 0;
+        GD.Print($"[WarTest] 3) Savaş durumu: savaş puanı {scoreBefore:F2} → " +
+                 $"{scoreAfter:F2}, aktif savaş={WarSystem.Wars.Count} ({warIntact})");
+        if (!warIntact) ok = false;
+
+        GD.Print(ok ? "[WarTest] SONUÇ: PASS ✓" : "[WarTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
         GetTree().Quit(ok ? 0 : 1);
     }

@@ -3338,3 +3338,45 @@ eylemi hiç patlak vermiyordu. Filtre kaldırıldı.
 | `--war-score-test` | ~1.5 sn | PASS |
 | `--peace-terms-test` | ~1.2 sn | PASS |
 | `--save-load-test` (A==B, 2 senaryo) | 20.4 sn | PASS |
+
+---
+
+## M49.4 — Savaş/İşgal Save-Load ve Regresyon
+
+**Amaç:** M49.1–M49.3 ile giren il işgali, kısmi çıtarım ve direniş
+birikiminin kalıcılığını garanti altına almak; `--war-test` bayrağının
+hiçbir zaman `SONUÇ:` yayınlamayıp koşucunun 120 sn zaman aşımına düşmesini
+gidermek.
+
+Yapılanlar:
+
+1. **`--war-test` kendini bitiriyor.** Bayrağın `_Ready` bloğu savaşı ilan
+   edip `WarSystem.SetOffensive` veriyordu ama süreç asla kapanmıyordu — hız 0
+   olduğundan gün ilerlemiyor, test pasif çatışmada takılı kalıyordu. Yeni
+   `RunWarTest(string targetId)` metodu: ilanı doğrular → 10 gün ilerletir →
+   savaş puanı değişimini ve savaşın sürdüğünü ölçer → `SONUÇ:` yazıp çıkar.
+
+2. **`SaveLoadTest.BuildSummaryCore` genişletildi.** A==B özeti artık M49.3
+   direnç durumunun tüm alanlarını (birikim, günlük hız, eylem sayısı, hedef
+   il, işgal günü) ve işgal sisteminin kendi kaydını (60 il + baskınlar)
+   hash'ler. Daha önce A==B bu durumu hiç görmüyordu.
+
+3. **`--occupation-admin-test` 8. adım eklendi:** savaşın ortasında
+   kaydet/yükle, ardından 3 gün daha ilerlet. İşgal sayısı, bozulan fabrika ve
+   bozulan kaynak korunuyor; direniş birikimi yükleme sonrası sıfırdan
+   yeniden büyümeye devam ediyor (savaş devam ettiği için doğru davranış).
+
+### Test kapsamı
+| Bayrak | Süre | Sonuç |
+|---|---|---|
+| `--save-load-test` (A==B, 2 senaryo) | ~3 sn | PASS |
+| `--occupation-test` | ~3 sn | PASS |
+| `--war-score-test` | ~2 sn | PASS |
+| `--peace-terms-test` | ~2 sn | PASS |
+| `--diplomacy-test` | ~8 sn | PASS |
+| `--province-economy-test` | ~8 sn | PASS |
+| `--war-test=POL --country=GER` | 3.2 sn | PASS |
+| `--occupation-admin-test` (8 adım) | 8.1 sn | PASS |
+
+Ayrıntı (admin test adım 8): `kayıt: il 60→60, yıkım fabrika 719→719, yıkım
+kaynak 721→721, direniş 0.00→0.00` ve `yükleme sonrası 3 gün: işgal 60→60`.

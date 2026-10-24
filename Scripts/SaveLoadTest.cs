@@ -555,9 +555,35 @@ public static class SaveLoadTest
                 resistanceHash = resistanceHash * 31 +
                     (r.CountryId + "|" + r.OverlordId + "|" + r.Accumulated.ToString("R") +
                      "|" + r.LastDailyRate.ToString("R") + "|" + r.StrikeCount +
-                     "|" + r.LastStrikeProvinceId).GetHashCode();
+                     "|" + r.LastStrikeProvinceId + "|" + r.IsOccupied +
+                     "|" + r.OccupiedDays + "|" + r.OccupationRate.ToString("R")).GetHashCode();
         }
         sb.AppendLine($"Direniş: kayıt={resistanceCount}, hash={resistanceHash}");
+
+        // M49.1-M49.3: İl işgali özeti. Kısmi çıtarımın yıkım alanları da
+        // hash'e girer — save/load sonrası dünya toplamının korunması için.
+        var occupationSave = OccupationSystem.GetSaveData();
+        int occupiedCount = occupationSave?.Occupied?.Length ?? 0;
+        int pressureCount = occupationSave?.Pressures?.Length ?? 0;
+        int occupationHash = 0;
+        if (occupationSave?.Occupied != null)
+        {
+            foreach (var o in occupationSave.Occupied)
+                occupationHash = occupationHash * 31 +
+                    (o.ProvinceId + "|" + o.OccupierId + "|" + o.PreWarOwnerId + "|" + o.WarKey +
+                     "|" + o.Day + "|" + o.DisruptedCiv + "|" + o.DisruptedMil + "|" + o.DisruptedDock +
+                     "|" + o.DisruptedOil + "|" + o.DisruptedRubber + "|" + o.DisruptedSteel +
+                     "|" + o.DisruptedAluminum + "|" + o.DisruptedTungsten + "|" + o.DisruptedChromium +
+                     "|" + o.DisruptedPopulation).GetHashCode();
+        }
+        if (occupationSave?.Pressures != null)
+        {
+            foreach (var p in occupationSave.Pressures)
+                occupationHash = occupationHash * 31 +
+                    (p.WarKey + "|" + p.Attacker.ToString("R") + "|" + p.Defender.ToString("R") +
+                     "|" + p.Day).GetHashCode();
+        }
+        sb.AppendLine($"İşgal: il={occupiedCount}, basınç={pressureCount}, hash={occupationHash}");
         if (leaderCount > 0)
         {
             foreach (var kv in LeaderSystem.All.OrderBy(k => k.Key))

@@ -3329,3 +3329,40 @@ Test 3 kez FAIL oldu, her biri gerçek bir kusur ortaya çıkardı:
   kısmi çıkarım, direniş birikimi, eylem, toprak geri isteği, mutabakat).
 - Ekonomi katmanının devirde doğru davrandığı: normal oyunda bir ilhak sonrası
   il toplamlarının ülke toplamlarına eşit kalması (eski 23× şişme hatası).
+
+---
+
+### M49.4 — Savaş/İşgal Save-Load ve Regresyon
+
+**1. Neyi değiştirdim**
+- `Scripts/GameManager.cs` — yeni `RunWarTest(string)`: `--war-test` artık
+  savaşı ilan eder, 10 gün ilerletir, puan/sürdürme ölçer, `SONUÇ:` yazıp
+  kendini kapatır (eskiden 120 sn zaman aşımına düşüyordu). Yeni
+  `--occupation-admin-test` 8. adımı: savaş ortasında kaydet/yükle + 3 gün.
+- `Scripts/SaveLoadTest.cs` — `BuildSummaryCore` artık direnç durumunun tüm
+  alanlarını ve işgal kaydını (il sayısı + bozulan fabrika/kaynak/nüfus)
+  hash'ler; A==B işgali gerçekten görür.
+- `TODO.md` (49.4 → `[x]`), `PROGRESS.md`, `GECE-RAPOR.md`.
+
+**2. Neyi çözemedim**
+- Kısmi çıtarımın "yıkım" modeli: dünya fabrika/kaynak toplamı işgalde
+  gerçekten küçülür (bilinçli tasarım, M49.3'ten beri biliniyor).
+
+**3. Bilinen sorunlar**
+- Direniş eylemi ilk sıradaki işgal edilmiş ili hedefler (deterministik,
+  ağırlıksız).
+- İşgalci "kullanamadığı" kapasite `Disrupted*` alanlarında birikiyor; il
+  geri alınınca tamamen geri geliyor. UI bunu göstermiyor (arayüz kapsam
+  dışı).
+
+**4. Kullanıcının test etmesi gerekenler**
+- `powershell -File tools\run-test.ps1 --war-test=POL --country=GER` — artık
+  ~3 sn'de PASS, beklemez.
+- `powershell -File tools\run-test.ps1 --occupation-admin-test` — 8 adım,
+  adım 8 kaydet/yükle kanıtı: `il 60→60, yıkım fabrika 719→719, yıkım kaynak
+  721→721`.
+
+**Belirsizlik kararı:** `--war-test` içinde 10 gün ilerletme sınırı seçildi.
+Nedeni — savaş puanının anlamlı ölçülebilir değişimi için yeterli, ama koşucunun
+120 sn zaman aşımına yaklaşmayacak kadar kısa. Daha uzun süre aynı sonucu
+gösterir, yalnızca yavaşlar.

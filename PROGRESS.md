@@ -3574,3 +3574,46 @@ Zaten Savaşta" görülebilir. Bu test tarifinin kalıntısıdır: adım 26'daki
 savaşı hâlâ aktif olur. 32 adımın hepsi bu duruma rağmen (eski savaş kaydı
 bulunup kapatıldığı için) geçiyor; gerçek oyunda `ResolveRebellion` savaşı
 kapattığı için durum oluşmaz.
+
+---
+
+## M50.4 — Save/Load Entegrasyonu + Özet Hash + Regresyon
+
+**Yapılanlar:**
+- A==B özet hash'i M50.2/M50.3 alanlarını da kapsayacak şekilde genişletildi:
+  isyan sayısı, patlak geçmişi, katılan/ayrılan sayaçları, isyancı devletin
+  kimliği/doğum günü ve il listesi (`SaveLoadTest.BuildSummaryCore`).
+- A==B senaryosu gerçekten bir iç savaşı deneyimleyecek şekilde kuruldu
+  (`SetupCivilWarForTest`): oyuncu/bağımlı/ebeyi olmayan, >= 5 illi hedef ülke
+  seçilip istikrar/memnuniyet/huzursuzluk/istatistikler çöküş eşiğinin üstüne
+  çıkarılıyor, böylece isyan patlak verip isyancı taraf gerçek bir devlet
+  olarak doğuyor.
+- Headless akışta `CivilWarSystem.SetWorld` çağrılarak `IsReady` true yapıldı
+  (normal oyunda `WorldMap.SetProvinces` yapar; headless'te hiç koşmuyordu).
+- `EvaluateCivilWars` artık isyan kaydını düşürürken isyancı ülkeyi de
+  doğuruyor (`SpawnRebelCountry`) — M50.2'nin bağlantısı.
+
+**Bulunan ve düzeltilen 3 gerçek hata:**
+1. `StatisticsSystem.LoadSaveData` hayalet geçmiş listeleri: `_values`'ta
+   olmayan gösterge için de geçmiş kuruluyordu; kayıtta hiç var olmayan bu
+   listeler yükleme sonrası belirip A==B özetinde geçmiş sayısını şaşırıyordu
+   (51660 vs 51666). → Yalnızca gerçekten sahip olunan gösterge kurulur.
+2. `StatisticsSystem.SetValue` kısmi sözlük bırakıyordu: ilk yazımda tek
+   göstergeyle kayıt açılıyor, `EnsureCountry` ise "ülke var" deyip atlıyordu;
+   ülke ömür boyu eksik gösterge setiyle kalıyordu (CAN 11/17). → `SetValue`
+   önce `EnsureCountry` çağırır.
+3. `ProvinceEconomySystem.NormalizeShares` idempotent değildi: paylar
+   toplamı 1 iken bölme işlemi float değerleri 1 ULP kaydırıyordu. Sürekli
+   koşu ile yüklenmiş koşuda farklı sayıda çalıştığı için paylar ıraksıyor,
+   `DistributePopulation`'ın kal-artık eşitlik bozması bu 1 ULP'yi ±1 nüfus
+   kaymasına çeviriyor ve özet hash'i bozuyordu (RUS COL-01/COL-02). → Toplam
+   zaten 1'se normalize'a dokunulmaz; çağrı sayısından bağımsız sabit nokta.
+
+**Test sonuçları:**
+
+| Test | Süre | Sonuç |
+|---|---|---|
+| `--save-load-test` (A==B, 2 senaryo) | 24.8 sn | PASS |
+| `--civil-war-test` (32 adım) | 4.1 sn | PASS |
+| `--intervention-test` | 1.5 sn | PASS |
+| `--recognition-test` | 1.8 sn | PASS |

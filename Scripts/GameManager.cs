@@ -1243,6 +1243,16 @@ public partial class GameManager : Node
         {
             var rebellion = CivilWarSystem.Active[i];
             if (rebellion == null || string.IsNullOrEmpty(rebellion.CountryId)) continue;
+            // M50.4: isyan patlak verdiği gün isyancı taraf ayrı bir devlet
+            // olarak doğar (M50.2). Evaluate yalnızca isyanın KAYDINI düşürür;
+            // ülke doğurma ayrı bir adımdır ve burada bağlanır. Yoksa isyan
+            // hiç yürüyüp gerçek bir ülkeye dönüşemiyordu.
+            if (!rebellion.CountrySpawned)
+            {
+                var spawned = CivilWarSystem.SpawnRebelCountry(rebellion.CountryId, TotalDays);
+                if (!spawned.Ok && spawned.Reason != "isyan_yok")
+                    GD.PrintErr($"[CivilWar] İsyancı devlet doğamadı: {rebellion.CountryId} — {spawned.Reason}");
+            }
             CivilWarSystem.AdvanceRebellion(rebellion.CountryId, TotalDays);
         }
     }

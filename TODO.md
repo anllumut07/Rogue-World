@@ -777,7 +777,7 @@ gerçek bir üretici olur.
 | 50.1 | `Scripts/CivilWarSystem.cs` (yeni): çöküş puanı (stabilite + memnuniyet + huzursuzluk + savaş desteği + ekonomik bunalım), eşik aşılınca deterministik isyan patlaması; isyanın doğduğu iller kültük/coğrafyaya göre seçilir (RNG yok, sıralı hash) | Çöküş puanı formülle artar, eşik aşılınca isyan illeri doğru seçilir, deterministik, `--civil-war-test` PASS | [x] |
 | 50.2 | İsyancı taraf: yeni ülke `CountryDatabase`'ye eklenir (gerçek kişi adı yok), isyan illeri devredilir, AI devralır, merkez hükümetiyle savaş açılır (`WarSystem`) ve M48 `RecognitionSystem.OnCountryBorn` ile dünyanın tanıma süreci başlar | İsyancı ülke oluşur, illeri devredilir, savaş açılır, tanınma akışı çalışır | [x] |
 | 50.3 | Hükümetin iç savaşı bitirme yolları: isyancıyı yenip illeri geri alma, özerklik verip çözüm (M45 `AutonomySystem`), yabancı güç müdahalesi (M23 `InterventionSystem`); isyanın yayılması/yatışması | Barış/özerklik ile çözülür, müdahale çalışır, isyan yayılımı hızı formüle uyar | [x] |
-| 50.4 | Save/Load entegrasyonu + özet hash + regresyon (siyasi, savaş, M45/M48 testleri) | A==B PASS (2 senaryo), `--civil-war-test`, `--intervention-test`, `--recognition-test` PASS | [ ] |
+| 50.4 | Save/Load entegrasyonu + özet hash + regresyon (siyasi, savaş, M45/M48 testleri) | A==B PASS (2 senaryo), `--civil-war-test`, `--intervention-test`, `--recognition-test` PASS | [x] |
 
 ---
 

@@ -56,8 +56,14 @@ public static class SaveLoadTest
             // özet satırı kayıt=0/hash=0 kalır ve M47.2'den sonraki devir durumu
             // A==B karşılaştırmasına hiç girmiyordu.
             ProvinceEconomySystem.GenerateFor(provs, ScenarioSystem.ActiveId ?? "historical_1936");
+            // M50.4: iç çatışma — isyan bölgesi seçimi komşuluk grafini kullanır.
+            // Normal oyunda bunu WorldMap.SetProvinces yapar; headless akışta
+            // WorldMap hiç yüklenmediği için CivilWarSystem.IsReady false kalır ve
+            // EvaluateCivilWars hiç koşulmaz. Katman burada kurulur.
+            CivilWarSystem.SetWorld(provs);
             GD.Print($"[Test] İller + kültür + ekonomi katmanı kuruldu: {provs.Count} il, " +
-                     $"kültür={ProvinceCultureSystem.RecordCount}, ekonomi={ProvinceEconomySystem.RecordCount}");
+                     $"kültür={ProvinceCultureSystem.RecordCount}, ekonomi={ProvinceEconomySystem.RecordCount}, " +
+                     $"iç_çatışma={CivilWarSystem.IsReady}");
         }
 
         // M45.4: Save/load testine GERÇEK bir bağımlılık ekle.
@@ -67,6 +73,13 @@ public static class SaveLoadTest
         // oyuncu ekonomisine uygulanır, böylece mevcut özet satırları gereksiz
         // darbe almaz.
         SetupSubjectWorldForTest();
+
+        // M50.4: A==B senaryosuna gerçek bir çöküş zorla. M50.2'de bu satır
+        // isyan patlak vermediği için 0/0/0 olarak geçiyordu — yani iç çatışma
+        // hiç doğrulanmıyordu. Çöküş göstergeleri burada kurulur; patlak verme
+        // Faz 1'in 100 günü içinde EvaluateCivilWars tarafından doğal yoldan
+        // olur (test, sistemi Elle tetiklemez).
+        SetupCivilWarForTest();
 
         // 4) 100 gün ilerlet
         GD.Print($"[Test] Faz 1: {DaysPhase1} gün ilerletiliyor...");
@@ -201,6 +214,90 @@ public static class SaveLoadTest
         GD.Print($"[Test] M45.4: bağımlı kuruldu — {subject.Id} ilhak edildi {overlord.Id} " +
                  $"(il={subjectProvinces.Count}, fabrika c{civTaken}/m{milTaken}/t{dockTaken}, " +
                  $"overlord kültürü={overlordCulture})");
+    }
+
+    /// <summary>
+    /// M50.4: A==B senaryosunda iç çatışmayı gerçekten patlatır.
+    ///
+    /// M50.2'de bu eksikti: A==B özetindeki "İç çatışma" satırı isyan
+    /// patlamadığı için sürekli 0/0/0 geçiyordu, yani save/load iç savaşı hiç
+    /// doğrulamıyordu. Bu kurulum çöküş göstergelerini bir ülkeye uygular;
+    /// patlak verme Faz 1'in 100 günü içinde normal günlük tikten
+    /// (GameManager.EvaluateCivilWars) geçer — test isyanı Elle tetiklemez.
+    ///
+    /// Ülke seçimi deterministiktir (RNG yok): oyuncu, M45.4'un kurduğu
+    /// overlord ve bağımlı dışından, illeri en çok olan ülke seçilir. Böylece
+    /// mevcut özet satırları (İlakKayıtları/Özerklik/Direniş) etkilenmez.
+    /// </summary>
+    private static void SetupCivilWarForTest()
+    {
+        var gm = GameManager.Instance;
+        if (gm == null) return;
+
+        // Patlak vermesi için asgari il sayısı — 3 il altındaki ülkelerde
+        // çöküşün bahsedilecek bir bölgesi yok.
+        // M45.4'un kurduğu ilhak zincirinden çöküş DÖNÜYOR: bağımlı (COL) ve
+        // onu ilhak eden overlord (RUS) hariç tutulur. Yoksa RUS çöküşe
+        // sürüklenip M45.4'ün özet satırları (İlakKayıtları/Özerklik/Direniş)
+        // etkilenir.
+        var subjectIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var overlordIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var c in CountryDatabase.All())
+        {
+            if (c == null) continue;
+            if (c.IsAnnexed && !string.IsNullOrEmpty(c.OwnerId))
+            {
+                subjectIds.Add(c.Id);
+                overlordIds.Add(c.OwnerId);
+            }
+        }
+
+        var target = CountryDatabase.All()
+            .Where(c => c != null && !c.IsAnnexed &&
+                !string.Equals(c.Id, gm.PlayerCountryId, StringComparison.OrdinalIgnoreCase) &&
+                !subjectIds.Contains(c.Id) &&
+                !overlordIds.Contains(c.Id) &&
+                ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count >= 5)
+            .OrderByDescending(c => ProvinceOwnershipSystem.GetProvincesByOwner(c.Id).Count)
+            .ThenBy(c => c.Id, StringComparer.Ordinal)
+            .FirstOrDefault();
+
+        if (target == null)
+        {
+            GD.Print("[Test] M50.4: çöküş kurulumu atlandı — uygun ülke bulunamadı");
+            return;
+        }
+
+        // Çöküş göstergeleri — puanı patlak eşiğinin (55) çok üstüne çıkarır.
+        // İlk ~30 gün huzursuzluk kanalı tam ağırlıkta olduğu için puan yayılım
+        // eşiğini (70) de aşar; sonra recency sönümlenip isyan sınırlarında
+        // kalır. Yayılım + sabit kalma birlikte doğrulanır.
+        target.StabilityPercent = 15.0;
+        foreach (var g in PublicSatisfactionSystem.Groups)
+            PublicSatisfactionSystem.SetSatisfaction(target.Id, g.Id, 5.0);
+        if (PoliticalUnrestSystem.States.TryGetValue(target.Id, out var unrest))
+        {
+            unrest.ProtestCount = 3;
+            unrest.StrikeCount = 2;
+            unrest.CoupAttemptCount = 1;
+            unrest.LastProtestDay = gm.TotalDays;
+            unrest.LastStrikeDay = gm.TotalDays;
+            unrest.LastVoteOfConfidenceDay = gm.TotalDays;
+        }
+        StatisticsSystem.SetValue(target.Id, "unemployment", 24.0);
+        StatisticsSystem.SetValue(target.Id, "public_debt", 140.0);
+        StatisticsSystem.SetValue(target.Id, "gdp_growth", -4.0);
+
+        // Patlak verme Faz 1'i BEKLEMEZ: stabilite/memnuniyet/istatistik
+        // göstergeleri günlükte siyasi ve bütçe sistemleri tarafından yeniden
+        // hesaplanıp eziliyor. Bu yüzden çöküşü kurduktan hemen sonra aynı gün
+        // değerlendirilir — göstergeler henüz toparlanmadan puan eşiği geçer.
+        var outbreak = CivilWarSystem.Evaluate(target.Id, gm.TotalDays);
+        double score = CivilWarSystem.Score(target.Id, gm.TotalDays).Total;
+        GD.Print($"[Test] M50.4: çöküş kuruldu — {target.Id} ({target.Name}) " +
+                 $"(il={ProvinceOwnershipSystem.GetProvincesByOwner(target.Id).Count}, " +
+                 $"stabilite=15, memnuniyet=5, puan={score:F1}) — " +
+                 $"patlak={outbreak.Outbroke} ({outbreak.Reason}), isyan kaydı={CivilWarSystem.IsRebelling(target.Id)}");
     }
 
     private static string BuildSummaryCore()
@@ -588,23 +685,36 @@ public static class SaveLoadTest
         // M50.1: İç çatışma özeti. İsyanın illeri ve patlak geçmişi de A==B
         // karşılaştırmasına girer — isyan save/load sonrası başka bir bölgeye
         // kayarsa (yani seçim deterministik değilse) test bunu yakalar.
+        // M50.4: isyancı tarafın kimliği/adı/doğum anı (M50.2) ve yayılım
+        // sayaçları (M50.3) de girdiye bağlandı — yoksa save/load'un bunları
+        // bozması A==B'de görünmüyordu.
         var civilWarSave = CivilWarSystem.GetSaveData();
         int rebellionCount = civilWarSave?.Rebellions?.Length ?? 0;
         int outbreakCount = civilWarSave?.LastOutbreak?.Length ?? 0;
+        int joinedCount = 0;
+        int leftCount = 0;
         int civilWarHash = 0;
         if (civilWarSave?.Rebellions != null)
         {
             foreach (var r in civilWarSave.Rebellions)
+            {
+                joinedCount += r.JoinedCount;
+                leftCount += r.LeftCount;
                 civilWarHash = civilWarHash * 31 +
                     (r.CountryId + "|" + r.StartDay + "|" + r.RebelCulture + "|" +
-                     string.Join(",", r.Provinces ?? Array.Empty<string>())).GetHashCode();
+                     string.Join(",", r.Provinces ?? Array.Empty<string>()) + "|" +
+                     r.RebelCountryId + "|" + r.RebelCountryName + "|" +
+                     r.CountrySpawned + "|" + r.SpawnDay + "|" +
+                     r.JoinedCount + "|" + r.LeftCount).GetHashCode();
+            }
         }
         if (civilWarSave?.LastOutbreak != null)
         {
             foreach (var o in civilWarSave.LastOutbreak)
                 civilWarHash = civilWarHash * 31 + (o.CountryId + "|" + o.Day).GetHashCode();
         }
-        sb.AppendLine($"İç çatışma: isyan={rebellionCount}, patlak_geçmişi={outbreakCount}, hash={civilWarHash}");
+        sb.AppendLine($"İç çatışma: isyan={rebellionCount}, patlak_geçmişi={outbreakCount}, " +
+                      $"katılan={joinedCount}, ayrılan={leftCount}, hash={civilWarHash}");
         if (leaderCount > 0)
         {
             foreach (var kv in LeaderSystem.All.OrderBy(k => k.Key))

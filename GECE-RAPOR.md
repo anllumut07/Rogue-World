@@ -3503,3 +3503,53 @@ tercihi yaptım — büyük imparatorlukların gerçekten dağılabilmesi hedefi
 kültür bloklarının sınırına hapsolmak bu hedefe aykırı. Ayrıca iç savaşı
 savaş-ateşkes zincirinden bağımsız kıldım (`ClearTruce`): aynı ülkenin ikinci
 isyanı, birinci isyanın bıraktığı ateşkes yüzünden hiç savaş açamıyordu.
+
+---
+
+## M50.4 — Save/Load Entegrasyonu + Özet Hash + Regresyon
+
+### 1. Neyi değiştirdim
+- `Scripts/SaveLoadTest.cs` — A==B özet hash'i M50.2/M50.3 alanlarını da
+  kapsar: isyan sayısı, patlak geçmişi, katılan/ayrılan sayaçları, isyancı
+  devlet kimliği/doğum günü/il listesi. Ayrıca `SetupCivilWarForTest` ile A==B
+  senaryosu gerçek bir iç savaşı deneyimliyor (hedef seçimi deterministik:
+  oyuncu/bağımlı/ebeyi hariç, >= 5 il, istikrar 15, memnuniyet 5, huzursuzluk
+  sayaçları ve çöküş istatistikleri kurulup `Evaluate` çağrılıyor). Headless
+  kurulumda `CivilWarSystem.SetWorld(provs)` eklendi (`IsReady` true olmadan
+  `EvaluateCivilWars` hiç koşmuyordu).
+- `Scripts/GameManager.cs` — `EvaluateCivilWars` artık isyan kaydını düşürürken
+  isyancı ülkeyi de doğuruyor (`SpawnRebelCountry`); M50.2'nin bağlantısı.
+- `Scripts/StatisticsSystem.cs` — iki gerçek hata düzeltildi:
+  (a) `LoadSaveData` yalnızca `_values'ta` gerçekten olan gösterge için geçmiş
+  kuruyor (hayalet listeler yok); (b) `SetValue` önce `EnsureCountry`
+  çağırıyor, böylece ülke eksik gösterge setiyle kalmıyor.
+- `Scripts/ProvinceEconomySystem.cs` — `NormalizeShares` idempotent hâle
+  getirildi: paylar toplamı zaten 1 ise bölme işlemi 1 ULP kaydırmasın diye
+  normalize'a dokunulmuyor. Bu, A==B'yi bozan ±1 nüfus kaymasını kökünden
+  çözüyor.
+- `TODO.md` — M50.4 `[x]`.
+
+### 2. Neyi çözemedim
+- `--civil-war-test` stderr'inde "REBRUS zaten doğmuş" tanınma uyarıları
+  hâlâ var (zararsız, test tarifinin kalıntısı). Bu koşuda "Zaten Savaşta"
+  artefaktı görünmedi — M50.3 notundaki durum kendiliğinden geçti.
+- ObjectDB leak uyarısı (tüm testlerde var) — önceden bilinen, etkisiz.
+
+### 3. Bilinen sorunlar
+- İç savaş sonrası `WarSystem` test tarifleri arasında sızıntı yapabilir;
+  adım 26'da `ResetForNewGame` WarSystem'i sıfırlamıyor. Gerçek oyunda
+  `ResolveRebellion` savaşı kapattığı için durum oluşmuyor.
+- `İlEkonomisi` hash'i order-sensitive; il sırası deterministik olduğu için
+  sorun yok ama gelecekte sıra kaynağı değişirse kırılgan.
+
+### 4. Kullanıcının test etmesi gerekenler
+- `powershell -File tools\run-test.ps1 --save-load-test` — A==B PASS (2 senaryo),
+  ve özette yeni "İç çatışma" satırında isyancı devletin bilgilerini gör.
+- `--civil-war-test`, `--intervention-test`, `--recognition-test` PASS.
+
+**Belirsizlik kararı:** `NormalizeShares`'i "toplam 1 ise dokunma" ile
+idempotent yapmayı seçtim. Alternatif, `DistributePopulation`'ı tamamen
+paylardan bağımsız kılmaktı ama bu, harmonilama katmanının tüm tüketicilerini
+(IsReconciled, FactoryShareOf vb.) etkilerdi. Eps=1e-5 seçtim: float32
+toplam hatası bu değerin çok altında, gerçek "toplam 1 değil" durumlarıysa
+çok üstünde.

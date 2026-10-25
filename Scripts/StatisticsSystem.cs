@@ -108,12 +108,16 @@ public static class StatisticsSystem
         EnsureDefinitions();
         var def = _definitions.FirstOrDefault(d => d.Id == indicatorId);
         if (def == null) return;
+        // Ülke bu gösterge için ilk kez yazılıyorsa önce TÜM gösterge setiyle
+        // kaydını kur. Aksi hâlde SetValue tek göergeli bir sözlük bırakır ve
+        // EnsureCountry artık "bu ülke var" deyip atlar: ülke ömür boyu eksik
+        // gösterge setiyle kalır (M50.4 — A==B testinde böyle bir ülke
+        // yükleyicinin hayalet geçmiş listeleriyle çatıştı).
+        EnsureCountry(countryId);
         value = Math.Clamp(value, def.Min, def.Max);
-        if (!_values.TryGetValue(countryId, out var dict))
-        {
-            dict = new Dictionary<string, double>();
-            _values[countryId] = dict;
-        }
+        _values.TryGetValue(countryId, out var dict);
+        dict ??= new Dictionary<string, double>();
+        if (!_values.ContainsKey(countryId)) _values[countryId] = dict;
         dict[indicatorId] = value;
 
         // Günlük geçmişi kaydet (grafik için, M20.5)
@@ -218,9 +222,14 @@ public static class StatisticsSystem
                 }
                 foreach (var def in _definitions)
                 {
+                    // Yalnızca bu ülkenin GERÇEKTEN sahip olduğu gösterge için geçmiş
+                    // kurulur. Tüm tanımlar gezilirse _values'ta olmayan gösterge için
+                    // hayalet liste doğar: kayıtta hiç olmayan bu listeler yükleme
+                    // sonrası belirir ve A==B özetinde geçmiş sayısı şaşar (M50.4).
+                    if (!_values[c.CountryId].ContainsKey(def.Id)) continue;
                     hh[def.Id] = c.History != null && c.History.TryGetValue(def.Id, out var arr)
                         ? new List<double>(arr)
-                        : new List<double> { _values[c.CountryId].TryGetValue(def.Id, out var cur) ? cur : GetBase(def.Id) };
+                        : new List<double> { _values[c.CountryId][def.Id] };
                 }
             }
         }

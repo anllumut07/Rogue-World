@@ -261,13 +261,26 @@ public static class ProvinceEconomySystem
         bool facEven = facSum <= 0f;
         bool popEven = popSum <= 0f;
 
+        // A==B determinizmi (M50.4): normalize TEK SEFERLİK olmalı. Paylar
+        // toplamı halihazırda 1 ise bölme işlemi değerleri float hatasıyla
+        // 1 ULP kaydırır. Harmonilasyon sürekli koşuda ile yüklenmiş koşuda
+        // FARKLI sayıda çalıştığı için (sahip değişim olaylarının zamanlaması
+        // farklı) paylar ıraksar; DistributePopulation'ın kal-artık eşitlik
+        // bozması bu 1 ULP'yi ±1 nüfus kaymasına çevirir ve özet hash'i bozar.
+        // Toplam zaten 1'se dokunmamak normalize'ı sabit noktaya getirir:
+        // sonuç yalnızca dünya durumuna, çağrı sayısına bağlı kalmaz.
+        const float Eps = 1e-5f;
+        bool resDone = Math.Abs(resSum - 1f) <= Eps;
+        bool facDone = Math.Abs(facSum - 1f) <= Eps;
+        bool popDone = Math.Abs(popSum - 1f) <= Eps;
+
         foreach (var id in provinceIds)
         {
             if (!_weights.TryGetValue(id, out var w)) continue;
 
-            w.ResourceW = resEven ? 1f / n : w.ResourceW / resSum;
-            w.FactoryW = facEven ? 1f / n : w.FactoryW / facSum;
-            w.PopulationW = popEven ? 1f / n : w.PopulationW / popSum;
+            if (!resDone) w.ResourceW = resEven ? 1f / n : w.ResourceW / resSum;
+            if (!facDone) w.FactoryW = facEven ? 1f / n : w.FactoryW / facSum;
+            if (!popDone) w.PopulationW = popEven ? 1f / n : w.PopulationW / popSum;
         }
     }
 

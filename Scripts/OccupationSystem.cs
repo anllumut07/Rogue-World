@@ -105,7 +105,7 @@ public static class OccupationSystem
     /// <summary>occupation.json kök DTO'su (IncludeFields=true ile okunur).</summary>
     private class OccupationDataFile
     {
-        public OccupationSettings Settings;
+        public OccupationSettings Settings { get; set; }
     }
 
     // İl → işgal kaydı. Kayıt yalnızca sahibi savaş öncesi sahibinden farklıysa durur.

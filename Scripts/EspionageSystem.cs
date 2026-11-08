@@ -691,7 +691,6 @@ public static class EspionageSystem
         MissionType missionType = (MissionType)mission.MissionType;
 
         string effectSummary = "";
-        bool success = true;
 
         try
         {
@@ -710,14 +709,12 @@ public static class EspionageSystem
                     effectSummary = ApplyPropagandaEffect(spy, targetCountryId);
                     break;
                 default:
-                    success = false;
                     effectSummary = "Bilinmeyen görev türü";
                     break;
             }
         }
         catch (Exception e)
         {
-            success = false;
             effectSummary = $"Hata: {e.Message}";
             GD.PrintErr($"[EspionageSystem] Görev etki hatası: {e.Message}");
         }

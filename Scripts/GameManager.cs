@@ -161,6 +161,7 @@ public partial class GameManager : Node
         bool spyTrainingTest = false;       // M29.4: casusluk v2 — eğitim kursları testi (--spy-training-test)
         bool spyRentalTest = false;         // M29.5: casusluk v2 — kiralama havuzu testi (--spy-rental-test)
         bool counterIntelTest = false;      // M29.6: casusluk v2 — karşı istihbarat / yakalanma / değişim testi (--counter-intel-test)
+        bool espionageMissionTest = false;  // M51: casusluk görev etkileri testi (--espionage-mission-test)
         bool spaceTest = false;             // M30.1: uzay programı testi (--space-test)
         bool spaceMgmtTest = false;         // M30.2: uzay proje yönetimi testi (--space-mgmt-test)
         bool spaceRewardTest = false;       // M30.3: uzay ödülleri testi (prestij, tech bonusu, memnuniyet, askeri kullanım)
@@ -306,6 +307,8 @@ public partial class GameManager : Node
                 spyRentalTest = true;
             else if (arg == "--counter-intel-test")
                 counterIntelTest = true;
+            else if (arg == "--espionage-mission-test")
+                espionageMissionTest = true;
             else if (arg == "--space-test")
                 spaceTest = true;
             else if (arg == "--space-mgmt-test")
@@ -711,6 +714,8 @@ public partial class GameManager : Node
             RunSpyRentalTest();
         if (counterIntelTest)
             RunCounterIntelTest();
+        if (espionageMissionTest)
+            RunEspionageMissionTest();
 
         if (spaceTest)
             RunSpaceTest();
@@ -2886,7 +2891,7 @@ public partial class GameManager : Node
         DeterministicRNG.InitializeForNewGame(555123456);
         var spy = EspionageSystem.GenerateSpy("GER");
         spy.Education = 0; // eğitim bonusesu sıfırla → yakalanma şansı maksimum (deterministik test)
-        bool assigned = EspionageSystem.AssignSpyToMission(spy.Id, "FRA", 0);
+        bool assigned = EspionageSystem.AssignSpyToMission(spy.Id, "FRA", EspionageSystem.MissionType.Intelligence, 0);
         string missionTarget = EspionageSystem.GetSpyMissionTarget(spy.Id);
         GD.Print($"[CounterIntelTest] casus={spy.Id}({spy.Name}) owner={spy.OwnerCountryId} atandi={assigned} hedef={missionTarget}");
 
@@ -2925,7 +2930,7 @@ public partial class GameManager : Node
         EspionageSystem.ResetForNewGame();
         DeterministicRNG.InitializeForNewGame(555123456);
         var s2 = EspionageSystem.GenerateSpy("GER");
-        EspionageSystem.AssignSpyToMission(s2.Id, "FRA", 0);
+        EspionageSystem.AssignSpyToMission(s2.Id, "FRA", EspionageSystem.MissionType.Intelligence, 0);
         EspionageSystem.SetCounterIntelLevel("FRA", 100);
         for (int day = 1; day <= 200; day++) { EspionageSystem.DailyTick(day); if (EspionageSystem.IsSpyCaptured(s2.Id)) break; }
         var data1 = EspionageSystem.GetSaveData();
@@ -12190,6 +12195,256 @@ private void RunBalanceTest()
         var inSet = new HashSet<string>(set, StringComparer.Ordinal);
         return CivilWarSystem.NeighborIdsOf(provinceId).Count(n => inSet.Contains(n));
     }
+
+    // ===== M51: Casusluk Görev Etkileri Testi =====
+
+    /// <summary>
+    /// M51.1-M51.3: Casusluk görev etkileri testi (--espionage-mission-test).
+    /// Görev türleri (Intelligence/TechTheft/Sabotage/Propaganda), ilerleme,
+    /// counter-intel yavaşlatma, etki uygulama, Save/Load ve Reset doğrular.
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunEspionageMissionTest()
+    {
+        GD.Print("[DEBUG] RunEspionageMissionTest ÇAĞRILDI");
+        GD.Print("=========================================");
+        GD.Print("  M51: CASUSLUK GÖREV ETKİLERİ TESTİ (--espionage-mission-test)");
+        GD.Print("=========================================");
+
+        if (!HasPlayer) SetPlayerCountry("GER");
+        if (Speed == 0) SetSpeed(0);
+
+        bool ok = true;
+
+        // DiplomacySystem'i de sıfırla ve başlangıç ilişkilerini ayarla
+        DiplomacySystem.ResetForNewGame();
+        DiplomacySystem.ModifyRelation("GER", "FRA", 0); // nötr başlangıç
+
+        // 1. Deterministik tohumla casus ve hedef ülke hazırla
+        DeterministicRNG.InitializeForNewGame(777888999);
+        EspionageSystem.ResetForNewGame();
+        DeterministicRNG.InitializeForNewGame(777888999);
+
+        var player = GameManager.Instance.PlayerCountryData;
+        player.PoliticalPower = 1000;
+
+        var spy = EspionageSystem.GenerateSpy("GER");
+        spy.Education = 90; // yüksek eğitim = düşük yakalanma riski
+        spy.Loyalty = 90;
+        spy.Observation = 60;
+        spy.ColdBlood = 40;
+        GD.Print($"[EspionageMissionTest] Casus: {spy.Id} ({spy.Name}) Edu={spy.Education} Obs={spy.Observation} CB={spy.ColdBlood}");
+
+        // Hedef ülke (FRA) karşı istihbaratını ayarla
+        EspionageSystem.SetCounterIntelLevel("FRA", 30); // %30 counter-intel
+
+        // --- 2. Intelligence görevi testi ---
+        int relBeforeIntel = DiplomacySystem.GetRelation("GER", "FRA");
+        bool intelAssigned = EspionageSystem.AssignSpyToMission(spy.Id, "FRA", EspionageSystem.MissionType.Intelligence, TotalDays);
+        int intelReqDays = EspionageSystem.GetSpyMission(spy.Id)?.RequiredDays ?? 0;
+        GD.Print($"[EspionageMissionTest] Intelligence atandı: {intelAssigned}, süre={intelReqDays}gün");
+
+        // Görevi ilerlet - bitene kadar (counter-intel %30 → progressPerDay ≈ 0.85)
+        int day = 1;
+        while (EspionageSystem.IsSpyOnMission(spy.Id) && day <= 200)
+        {
+            EspionageSystem.DailyTick(day);
+            day++;
+        }
+
+        var missionAfterIntel = EspionageSystem.GetSpyMission(spy.Id);
+        bool intelCompleted = missionAfterIntel == null; // görev biterse listeden çıkar
+        string intelEffect = "";
+        if (missionAfterIntel != null && missionAfterIntel.Completed)
+        {
+            intelCompleted = true;
+            intelEffect = missionAfterIntel.EffectSummary;
+        }
+        else if (missionAfterIntel == null)
+        {
+            // Tamamlanmış, listeden çıkarıldı - log'dan etkiyi yakalayamıyoruz ama işlendi
+            intelEffect = "completed";
+        }
+        GD.Print($"[EspionageMissionTest] Intelligence tamamlandı: {intelCompleted}, etki: {intelEffect}, gün={day-1}");
+
+        // İlişki delta -1 beklenir
+        int relAfterIntel = DiplomacySystem.GetRelation("GER", "FRA");
+        bool intelRelationOk = relAfterIntel - relBeforeIntel == -1;
+        GD.Print($"[EspionageMissionTest] İlişki GER→FRA: {relBeforeIntel}→{relAfterIntel} (delta={relAfterIntel - relBeforeIntel}, beklenen -1) = {intelRelationOk}");
+
+        // --- 3. TechTheft görevi testi ---
+        DiplomacySystem.ResetForNewGame();
+        DiplomacySystem.ModifyRelation("GER", "FRA", 0); // nötr başlangıç
+        DeterministicRNG.InitializeForNewGame(777888999);
+        EspionageSystem.ResetForNewGame();
+        DeterministicRNG.InitializeForNewGame(777888999);
+        var spy2 = EspionageSystem.GenerateSpy("GER");
+        EspionageSystem.SetCounterIntelLevel("FRA", 50); // %50 counter-intel → yavaşlatma
+
+        // FRA için test amaçlı birkaç araştırılmış teknoloji ekle
+        TechnologySystem.AddResearchedTechForTest("infantry_weapons_1");
+        TechnologySystem.AddResearchedTechForTest("artillery_1");
+        TechnologySystem.AddResearchedTechForTest("light_tank_1");
+
+        int relBeforeTech = DiplomacySystem.GetRelation("GER", "FRA");
+        bool techAssigned = EspionageSystem.AssignSpyToMission(spy2.Id, "FRA", EspionageSystem.MissionType.TechTheft, TotalDays);
+        int techReqDays = EspionageSystem.GetSpyMission(spy2.Id)?.RequiredDays ?? 0;
+        GD.Print($"[EspionageMissionTest] TechTheft atandı: {techAssigned}, süre={techReqDays}gün (counter-intel=50%)");
+
+        day = 1;
+        while (EspionageSystem.IsSpyOnMission(spy2.Id) && day <= 300)
+        {
+            EspionageSystem.DailyTick(day);
+            day++;
+        }
+
+        bool techCompleted = !EspionageSystem.IsSpyOnMission(spy2.Id);
+        GD.Print($"[EspionageMissionTest] TechTheft tamamlandı: {techCompleted}, gün={day-1}");
+
+        // İlişki delta -10 beklenir
+        int relAfterTech = DiplomacySystem.GetRelation("GER", "FRA");
+        bool techRelationOk = relAfterTech - relBeforeTech == -10;
+        GD.Print($"[EspionageMissionTest] İlişki GER→FRA: {relBeforeTech}→{relAfterTech} (delta={relAfterTech - relBeforeTech}, beklenen -10) = {techRelationOk}");
+
+        // --- 4. Sabotage görevi testi ---
+        DiplomacySystem.ResetForNewGame();
+        DiplomacySystem.ModifyRelation("GER", "FRA", 0); // nötr başlangıç
+        DeterministicRNG.InitializeForNewGame(777888999);
+        EspionageSystem.ResetForNewGame();
+        DeterministicRNG.InitializeForNewGame(777888999);
+        var spy3 = EspionageSystem.GenerateSpy("GER");
+        EspionageSystem.SetCounterIntelLevel("FRA", 20);
+
+        int relBeforeSab = DiplomacySystem.GetRelation("GER", "FRA");
+        bool sabAssigned = EspionageSystem.AssignSpyToMission(spy3.Id, "FRA", EspionageSystem.MissionType.Sabotage, TotalDays);
+        int sabReqDays = EspionageSystem.GetSpyMission(spy3.Id)?.RequiredDays ?? 0;
+        GD.Print($"[EspionageMissionTest] Sabotage atandı: {sabAssigned}, süre={sabReqDays}gün");
+
+        day = 1;
+        while (EspionageSystem.IsSpyOnMission(spy3.Id) && day <= 200)
+        {
+            EspionageSystem.DailyTick(day);
+            day++;
+        }
+
+        bool sabCompleted = !EspionageSystem.IsSpyOnMission(spy3.Id);
+        GD.Print($"[EspionageMissionTest] Sabotage tamamlandı: {sabCompleted}, gün={day-1}");
+
+        // İlişki delta -20 beklenir
+        int relAfterSab = DiplomacySystem.GetRelation("GER", "FRA");
+        bool sabRelationOk = relAfterSab - relBeforeSab == -20;
+        GD.Print($"[EspionageMissionTest] İlişki GER→FRA: {relBeforeSab}→{relAfterSab} (delta={relAfterSab - relBeforeSab}, beklenen -20) = {sabRelationOk}");
+
+        // --- 5. Propaganda görevi testi ---
+        DiplomacySystem.ResetForNewGame();
+        DiplomacySystem.ModifyRelation("GER", "FRA", 0); // nötr başlangıç
+        DeterministicRNG.InitializeForNewGame(777888999);
+        EspionageSystem.ResetForNewGame();
+        DeterministicRNG.InitializeForNewGame(777888999);
+        var spy4 = EspionageSystem.GenerateSpy("GER");
+        EspionageSystem.SetCounterIntelLevel("FRA", 10);
+
+        int relBeforeProp = DiplomacySystem.GetRelation("GER", "FRA");
+        bool propAssigned = EspionageSystem.AssignSpyToMission(spy4.Id, "FRA", EspionageSystem.MissionType.Propaganda, TotalDays);
+        int propReqDays = EspionageSystem.GetSpyMission(spy4.Id)?.RequiredDays ?? 0;
+        GD.Print($"[EspionageMissionTest] Propaganda atandı: {propAssigned}, süre={propReqDays}gün");
+
+        day = 1;
+        while (EspionageSystem.IsSpyOnMission(spy4.Id) && day <= 200)
+        {
+            EspionageSystem.DailyTick(day);
+            day++;
+        }
+
+        bool propCompleted = !EspionageSystem.IsSpyOnMission(spy4.Id);
+        GD.Print($"[EspionageMissionTest] Propaganda tamamlandı: {propCompleted}, gün={day-1}");
+
+        // İlişki delta -5 beklenir
+        int relAfterProp = DiplomacySystem.GetRelation("GER", "FRA");
+        bool propRelationOk = relAfterProp - relBeforeProp == -5;
+        GD.Print($"[EspionageMissionTest] İlişki GER→FRA: {relBeforeProp}→{relAfterProp} (delta={relAfterProp - relBeforeProp}, beklenen -5) = {propRelationOk}");
+
+        // --- 6. Counter-intel yavaşlatma testi ---
+        // Yüksek counter-intel (100) vs düşük (0) → süre farkı
+        DiplomacySystem.ResetForNewGame();
+        DiplomacySystem.ModifyRelation("GER", "FRA", 0);
+        DeterministicRNG.InitializeForNewGame(777888999);
+        EspionageSystem.ResetForNewGame();
+        DeterministicRNG.InitializeForNewGame(777888999);
+        var spyLow = EspionageSystem.GenerateSpy("GER");
+        EspionageSystem.SetCounterIntelLevel("FRA", 0);
+        EspionageSystem.AssignSpyToMission(spyLow.Id, "FRA", EspionageSystem.MissionType.Intelligence, 0);
+        int daysLow = EspionageSystem.GetSpyMission(spyLow.Id)?.RequiredDays ?? 0;
+
+        DiplomacySystem.ResetForNewGame();
+        DiplomacySystem.ModifyRelation("GER", "FRA", 0);
+        DeterministicRNG.InitializeForNewGame(777888999);
+        EspionageSystem.ResetForNewGame();
+        DeterministicRNG.InitializeForNewGame(777888999);
+        var spyHigh = EspionageSystem.GenerateSpy("GER");
+        EspionageSystem.SetCounterIntelLevel("FRA", 100);
+        EspionageSystem.AssignSpyToMission(spyHigh.Id, "FRA", EspionageSystem.MissionType.Intelligence, 0);
+        int daysHigh = EspionageSystem.GetSpyMission(spyHigh.Id)?.RequiredDays ?? 0;
+
+        // %100 counter-intel → durationMult = (1 + 0) * (1 + 1.0) = 2.0 → süre 2 kat
+        bool slowdownOk = daysHigh > daysLow;
+        GD.Print($"[EspionageMissionTest] Counter-intel yavaşlatma: counterIntel=0 → {daysLow}gün, counterIntel=100 → {daysHigh}gün ({slowdownOk})");
+
+        // --- 7. Save/Load A==B testi ---
+        DiplomacySystem.ResetForNewGame();
+        DiplomacySystem.ModifyRelation("GER", "FRA", 0);
+        DeterministicRNG.InitializeForNewGame(777888999);
+        EspionageSystem.ResetForNewGame();
+        DeterministicRNG.InitializeForNewGame(777888999);
+        var spy5 = EspionageSystem.GenerateSpy("GER");
+        EspionageSystem.AssignSpyToMission(spy5.Id, "FRA", EspionageSystem.MissionType.Intelligence, 0);
+        EspionageSystem.SetCounterIntelLevel("FRA", 40);
+
+        // İlerlet ama bitirme
+        for (int d = 1; d <= 10; d++)
+            EspionageSystem.DailyTick(d);
+
+        var save1 = EspionageSystem.GetSaveData();
+        EspionageSystem.LoadSaveData(save1);
+        var save2 = EspionageSystem.GetSaveData();
+
+        bool saveLoadOk = save1.Missions.Length == save2.Missions.Length
+            && save1.Missions.Length > 0
+            && save1.Missions[0].SpyId == save2.Missions[0].SpyId
+            && save1.Missions[0].TargetCountryId == save2.Missions[0].TargetCountryId
+            && save1.Missions[0].MissionType == save2.Missions[0].MissionType
+            && save1.Missions[0].ProgressDays == save2.Missions[0].ProgressDays
+            && save1.Missions[0].RequiredDays == save2.Missions[0].RequiredDays
+            && save1.CounterIntel.Length == save2.CounterIntel.Length;
+        GD.Print($"[EspionageMissionTest] Save/Load A==B: {saveLoadOk} (görev={save2.Missions.Length}, counterIntel={save2.CounterIntel.Length})");
+
+        // --- 8. ResetForNewGame temizler ---
+        EspionageSystem.ResetForNewGame();
+        // FRA deterministik varsayılan counter-intel = 17 (ülke ID hash'inden hesaplanır)
+        int fraDefaultCI = EspionageSystem.GetCounterIntelLevel("FRA");
+        bool missionCountOk = EspionageSystem.MissionCount == 0;
+        bool capturedCountOk = EspionageSystem.CapturedCount == 0;
+        bool ciOk = fraDefaultCI == 17;
+        bool resetOk = missionCountOk && capturedCountOk && ciOk;
+        GD.Print($"[EspionageMissionTest] Reset: görev={EspionageSystem.MissionCount}({missionCountOk}), yakalanan={EspionageSystem.CapturedCount}({capturedCountOk}), FRA_CI={fraDefaultCI}({ciOk}) -> {resetOk}");
+
+        ok = intelAssigned && intelCompleted && intelRelationOk
+            && techAssigned && techCompleted && techRelationOk
+            && sabAssigned && sabCompleted && sabRelationOk
+            && propAssigned && propCompleted && propRelationOk
+            && slowdownOk
+            && saveLoadOk
+            && resetOk;
+
+        GD.Print(ok ? "[EspionageMissionTest] SONUÇ: PASS ✓" : "[EspionageMissionTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(ok ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// EspionageSystem.CounterIntelLevel wrapper - GetCounterIntelLevel için kısayol.
+    /// </summary>
+    private int CounterIntelLevel(string countryId) => EspionageSystem.GetCounterIntelLevel(countryId);
 
 
     /// <summary>

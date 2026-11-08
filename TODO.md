@@ -791,10 +791,10 @@ en net tasarım boşluğu.
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 51.1 | Görev türleri ve ilerleme: hedef ülkede casusun görev süresi, uyum puanı ve hedef counter-intel'i ile deterministik ilerleme; tamamlanan görev loglanır ve etki kuyruğuna girer | İlerleme deterministik, görev tamamlanır, etki uygulanır, `--espionage-mission-test` PASS | [ ] |
-| 51.2 | Etkilerin dünyaya yazılması: istihbarat (hedefin ordu/fabrika özeti), teknoloji hırsızlığı (`TechnologySystem` kredi), fabrika sabotajı (`EquipmentSystem`/fabrika hasarı), hükümete karşı olumsuz propaganda (`PublicSatisfactionSystem`/`PoliticalUnrestSystem`) | Her etki hedef sistemde ölçülebilir ve loglanır, olumsuz etki ilişkiyi düşürür | [ ] |
-| 51.3 | Counter-intel ve misilleme: yüksek counter-intel görev yavaşlatır/bozar; yakalanan casusun sahibi ülke karşı casusluk başlatabilir, ilişki ve yaptırım zinciri | Counter-intel yavaşlatma ölçülür, misilleme çalışır, `--espionage-mission-test` kapsar | [ ] |
-| 51.4 | Save/Load + özet hash + regresyon (mevcut casusluk testi, diplomasi, ekonomi) | A==B PASS (2 senaryo), mevcut espionage testi PASS | [ ] |
+| 51.1 | Görev türleri ve ilerleme: hedef ülkede casusun görev süresi, uyum puanı ve hedef counter-intel'i ile deterministik ilerleme; tamamlanan görev loglanır ve etki kuyruğuna girer | İlerleme deterministik, görev tamamlanır, etki uygulanır, `--espionage-mission-test` PASS | [x] |
+| 51.2 | Etkilerin dünyaya yazılması: istihbarat (hedefin ordu/fabrika özeti), teknoloji hırsızlığı (`TechnologySystem` kredi), fabrika sabotajı (`EquipmentSystem`/fabrika hasarı), hükümete karşı olumsuz propaganda (`PublicSatisfactionSystem`/`PoliticalUnrestSystem`) | Her etki hedef sistemde ölçülebilir ve loglanır, olumsuz etki ilişkiyi düşürür | [x] |
+| 51.3 | Counter-intel ve misilleme: yüksek counter-intel görev yavaşlatır/bozar; yakalanan casusun sahibi ülke karşı casusluk başlatabilir, ilişki ve yaptırım zinciri | Counter-intel yavaşlatma ölçülür, misilleme çalışır, `--espionage-mission-test` kapsar | [x] |
+| 51.4 | Save/Load + özet hash + regresyon (mevcut casusluk testi, diplomasi, ekonomi) | A==B PASS (2 senaryo), mevcut espionage testi PASS | [x] |
 
 ---
 

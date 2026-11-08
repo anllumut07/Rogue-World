@@ -283,4 +283,111 @@ public static class TechnologySystem
         _initialized = true;
         GD.Print($"TechnologySystem: state yüklendi — Researched={_researched.Count}, Active={_active.Count}, Modifiers={_modifiers.Count}");
     }
+
+    // ===== M51: EspionageSystem için gerekli API =====
+
+    /// <summary>
+    /// Belirli bir ülke için hırsızlanabilecek/araştırılabilecek teknolojileri döndürür.
+    /// Oyuncu için: henüz araştırılmamış ve önkoşulları sağlanan teknolojiler.
+    /// AI/hedef ülke için: o ülke araştırdığı teknolojiler (bilgi hırsızlığı için).
+    /// </summary>
+    public static List<string> GetResearchableTechsForCountry(string countryId)
+    {
+        EnsureLoaded();
+        var result = new List<string>();
+
+        if (countryId == GameManager.Instance?.PlayerCountryId)
+        {
+            // Oyuncu ülkesine hırsızlık: henüz araştırılmamış, önkoşulları sağlanan techler
+            foreach (var tech in _all.Values)
+            {
+                if (!_researched.Contains(tech.Id) && !_active.Exists(a => a.Tech.Id == tech.Id) && PrereqsMet(tech.Id))
+                    result.Add(tech.Id);
+            }
+        }
+        else
+        {
+            // Hedef ülke AI: araştırılmış techler (hırsızlanabilir)
+            foreach (var id in _researched)
+            {
+                result.Add(id);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Belirli bir ülkeye belirli bir teknoloji için araştırma kredisi ekler (progress günü).
+    /// Espionage tech theft için kullanılır.
+    /// </summary>
+    public static void AddResearchCredit(string countryId, string techId, int creditDays)
+    {
+        EnsureLoaded();
+        if (!_all.ContainsKey(techId))
+        {
+            GD.PrintErr($"[TechnologySystem] Bilinmeyen tech: {techId}");
+            return;
+        }
+
+        // Eğer zaten araştırılmışsa etkisiz
+        if (_researched.Contains(techId))
+        {
+            GD.Print($"[TechnologySystem] Tech zaten araştırılmış: {techId}, kredi eklenmedi");
+            return;
+        }
+
+        // Aktif araştırmada varsa progress günlerini artır
+        var active = _active.Find(a => a.Tech.Id == techId);
+        if (active != null)
+        {
+            active.ProgressDays += creditDays;
+            GD.Print($"[TechnologySystem] Aktif araştırmaya kredi eklendi: {techId} +{creditDays} gün (progress: {active.ProgressDays:F1}/{active.Tech.Cost})");
+        }
+        else
+        {
+            // Aktif değilse "kredi bankası" olarak sakla (basit implementasyon: direkt araştırılmış say)
+            // Gerçek sistemde ayrı bir kredi dictionary'si olabilirdi, şimdilik basit:
+            if (creditDays >= _all[techId].Cost)
+            {
+                CompleteResearch(new ActiveResearch { Tech = _all[techId] });
+                GD.Print($"[TechnologySystem] Kredi ile tam araştırma: {techId} (kredi={creditDays} >= maliyet={_all[techId].Cost})");
+            }
+            else
+            {
+                // Henüz bitmedi, ilerleme için _active'a ekle (ama slot sayılmasın - research credit özel durumu)
+                _active.Add(new ActiveResearch { Tech = _all[techId], ProgressDays = creditDays });
+                GD.Print($"[TechnologySystem] Kredi ile kısmi ilerleme: {techId} +{creditDays} gün");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Teknoloji adını ID'den döndürür.
+    /// </summary>
+    public static string GetTechName(string techId)
+    {
+        EnsureLoaded();
+        if (_all.TryGetValue(techId, out var tech))
+            return tech.Name;
+        return techId;
+    }
+
+    /// <summary>
+    /// Test/debug için: belirli bir ülke için "araştırılmış" teknoloji ekler.
+    /// Espionage tech theft testleri için AI ülkesinin araştırdığı techleri simüle eder.
+    /// </summary>
+    public static void AddResearchedTechForTest(string techId)
+    {
+        EnsureLoaded();
+        if (_all.ContainsKey(techId))
+        {
+            _researched.Add(techId);
+            GD.Print($"[TechnologySystem] Test için araştırılmış tech eklendi: {techId}");
+        }
+        else
+        {
+            GD.PrintErr($"[TechnologySystem] Test için bilinmeyen tech: {techId}");
+        }
+    }
 }

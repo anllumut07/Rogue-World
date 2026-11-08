@@ -594,4 +594,60 @@ public static class EquipmentSystem
         _initialized = true;
         GD.Print($"EquipmentSystem: state yüklendi — Hat={_lines.Count}, Variant={_variants.Count}, Stok={_stocks.Count}");
     }
+
+    // ===== M51: EspionageSystem için gerekli API =====
+
+    /// <summary>
+    /// Belirli bir ülke için stok özeti (espionage intelligence için).
+    /// </summary>
+    public static string GetStockpileSummary(string countryId)
+    {
+        // Bu metodun EquipmentSystem statik olduğu için, sadece oyuncu ülkesinin stoklarına erişebiliriz.
+        // Gerçek implementasyonda ülke bazlı stok ayrımı olabilirdi.
+        // Şimdilik oyuncu ülkesinin stoklarını döndürür.
+        if (_stocks.Count == 0) return "stok boş";
+        return string.Join(", ", _stocks.Select(kv => $"{kv.Key}={kv.Value}"));
+    }
+
+    /// <summary>
+    /// Rastgele bir askeri fabrika hattına hasar verir (sabotaj).
+    /// Etkinliği düşürür ve varsa çıktıyı sıfırlar.
+    /// </summary>
+    public static int DamageRandomProductionLine(string countryId)
+    {
+        // Sadece askeri fabrikaları üreten hatları hedef al
+        var militaryLines = _lines.Where(l => {
+            var type = GetEquipmentType(l.EquipmentId);
+            return type != null && !type.IsNaval && l.AssignedFactories > 0;
+        }).ToList();
+
+        if (militaryLines.Count == 0) return 0;
+
+        int index = DeterministicRNG.NextInt(0, militaryLines.Count);
+        var line = militaryLines[index];
+
+        // Etkinliği %25 düşür (min %10)
+        line.Efficiency = Math.Max(BaseEfficiency, line.Efficiency - 0.25f);
+        line.OutputAccum = 0;
+
+        GD.Print($"[EquipmentSystem] Sabotaj hasarı: {GetDisplayName(line.EquipmentId, line.VariantId)} etkinlik → %{line.Efficiency * 100:F0}");
+        return 1;
+    }
+
+    /// <summary>
+    /// Belirli bir ülkenin askeri fabrikalarına hasar verir (sabotaj).
+    /// CountryData üzerinden MilFactories'yi azaltır.
+    /// </summary>
+    public static int DamageFactory(string countryId, int damageAmount)
+    {
+        var data = CountryDatabase.Get(countryId);
+        if (data == null) return 0;
+
+        int actualDamage = Math.Min(damageAmount, data.MilFactories);
+        data.MilFactories -= actualDamage;
+        if (data.MilFactories < 0) data.MilFactories = 0;
+
+        GD.Print($"[EquipmentSystem] Fabrika hasarı: {countryId} MilFactories {data.MilFactories + actualDamage} → {data.MilFactories} (-{actualDamage})");
+        return actualDamage;
+    }
 }

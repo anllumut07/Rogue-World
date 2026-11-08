@@ -15,7 +15,8 @@ $TestFlag = if ($args.Count -gt 0) { $args[0] } else {
     exit 2
 }
 
-$GodotExe = "C:\Users\rogue\Desktop\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe"
+$RepoRoot = (Get-Item .).FullName
+$GodotExe = Join-Path $RepoRoot "Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe"
 $RepoRoot = (Get-Item .).FullName
 $LogDir   = Join-Path $RepoRoot "test-logs"
 

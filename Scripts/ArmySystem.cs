@@ -774,6 +774,23 @@ public static class ArmySystem
     public static int DeployedDivisions => _divisions.Count(d => d.IsDeployed);
     public static int TrainingDivisions => _trainingQueue.Count;
 
+    /// <summary>Belirli bir ülke için ordu sayısı.</summary>
+    public static int GetArmyCount(string countryId)
+    {
+        if (!_initialized || string.IsNullOrEmpty(countryId)) return 0;
+        // Army has CountryId property - count armies belonging to this country
+        return _armies.Count(a => a.CountryId == countryId);
+    }
+
+    /// <summary>Belirli bir ülke için toplam bölük sayısı (eğitimde olanlar da dahil).</summary>
+    public static int GetTotalDivisionCount(string countryId)
+    {
+        if (!_initialized || string.IsNullOrEmpty(countryId)) return 0;
+        // Count divisions whose army belongs to the country
+        var countryArmyIds = _armies.Where(a => a.CountryId == countryId).Select(a => a.Id).ToHashSet();
+        return _divisions.Count(d => countryArmyIds.Contains(d.ArmyId));
+    }
+
     // Oyuncu ülkesinin savaş gücü (diplomasi/AI için)
     public static float GetMilitaryStrength()
     {

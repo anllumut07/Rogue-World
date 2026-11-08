@@ -244,6 +244,26 @@ public static class DiplomacySystem
         }
     }
 
+    /// <summary>
+    /// Test/debug için tam sıfırlama — yeni oyun başlangıcında çağrılır.
+    /// Tüm ilişkileri, faksiyonları, garantileri ve gündem temizler.
+    /// </summary>
+    public static void ResetForNewGame()
+    {
+        _factions.Clear();
+        _relations.Clear();
+        _guarantees.Clear();
+        _nonAggressionPacts.Clear();
+        _militaryAccess.Clear();
+        _navalAccess.Clear();
+        _pendingActions.Clear();
+        _worldTension = 0f;
+        _startLoaded = false;
+        _startLoadLogged = false;
+        _initialized = false;
+        GD.Print("DiplomacySystem: yeni oyun için sıfırlandı.");
+    }
+
     private static void EnsureStartLoaded()
     {
         if (_startLoaded) return;

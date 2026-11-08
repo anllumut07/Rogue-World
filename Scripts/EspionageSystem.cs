@@ -64,10 +64,26 @@ public static class EspionageSystem
         public int Level = 0; // 0-100, ülkenin karşı istihbarat gücü
     }
 
+    // ===== M51: Görev türleri ve etkileri =====
+    public enum MissionType
+    {
+        None = 0,
+        Intelligence,     // İstihbarat toplama — hedef ülkenin ordu/fabrika/ekipman özeti
+        TechTheft,        // Teknoloji hırsızlığı — TechnologySystem kredisi
+        Sabotage,         // Fabrikaya sabotaj — EquipmentSystem/ArmySystem hasarı
+        Propaganda,       // Olumsuz propaganda — PublicSatisfaction/PoliticalUnrest etkisi
+    }
+
     public class MissionSave
     {
         public string SpyId = "";
         public string TargetCountryId = "";
+        public int MissionType; // enum int
+        public int ProgressDays = 0;      // gün cinsinden ilerleme
+        public int RequiredDays = 0;      // görev süresi (uyum + counter-intel'e göre değişir)
+        public int StartedDay = 0;
+        public bool Completed = false;
+        public string EffectSummary = ""; // uygulanan etki özeti
     }
 
     public class CapturedSpySave
@@ -304,9 +320,50 @@ public static class EspionageSystem
     public static IReadOnlyList<RentalSpy> RentalPool => _rentalPool;
     public static int TotalHiredPP => _totalHiredPP;
 
-    // ===== M29.6: Karşı istihbarat / görev / yakalanma durumu =====
-    // _missions: casus -> hedef ülke (aktif görev). Bir casus aynı anda tek görevde olabilir.
-    private static readonly Dictionary<string, string> _missions = new(StringComparer.OrdinalIgnoreCase);
+    // ===== M51: Görev tanımları =====
+    private static readonly MissionDef[] _missionDefs = new[]
+    {
+        new MissionDef
+        {
+            Type = MissionType.Intelligence,
+            Name = "Intelligence Gathering",
+            BaseDurationDays = 30,
+            Description = "Gather intelligence on target's military, industry and equipment."
+        },
+        new MissionDef
+        {
+            Type = MissionType.TechTheft,
+            Name = "Technology Theft",
+            BaseDurationDays = 60,
+            Description = "Steal technology research progress from target."
+        },
+        new MissionDef
+        {
+            Type = MissionType.Sabotage,
+            Name = "Factory Sabotage",
+            BaseDurationDays = 45,
+            Description = "Damage target's military factories and production lines."
+        },
+        new MissionDef
+        {
+            Type = MissionType.Propaganda,
+            Name = "Negative Propaganda",
+            BaseDurationDays = 30,
+            Description = "Spread disinformation to destabilize target's government."
+        },
+    };
+
+    public class MissionDef
+    {
+        public MissionType Type;
+        public string Name;
+        public int BaseDurationDays;
+        public string Description;
+    }
+
+    // ===== M29.6 / M51: Karşı istihbarat / görev / yakalanma durumu =====
+    // _missions: casus -> görev detayı (aktif görev). Bir casus aynı anda tek görevde olabilir.
+    private static readonly Dictionary<string, MissionSave> _missions = new(StringComparer.OrdinalIgnoreCase);
     // _captured: bir ülke tarafından tutulan yakalanan casuslar.
     private static readonly List<CapturedSpy> _captured = new();
     // _counterIntel: ülke -> karşı istihbarat seviyesi (0-100).
@@ -348,23 +405,77 @@ public static class EspionageSystem
         _counterIntel[countryId] = Mathf.Clamp(level, 0, 100);
     }
 
-    /// <summary>Bir casusu bir ülkeye görev yapmaya atar (casus zaten görevde değilse).</summary>
-    public static bool AssignSpyToMission(string spyId, string targetCountryId, int currentDay)
+    /// <summary>Bir casusu bir ülkeye belirli bir türde görev yapmaya atar (casus zaten görevde değilse).</summary>
+    public static bool AssignSpyToMission(string spyId, string targetCountryId, MissionType missionType, int currentDay)
     {
         if (string.IsNullOrEmpty(spyId) || string.IsNullOrEmpty(targetCountryId)) return false;
+        if (missionType == MissionType.None) return false;
         var spy = _spies.FirstOrDefault(s => s.Id == spyId);
         if (spy == null) return false;
         if (_missions.ContainsKey(spyId)) return false; // zaten görevde
 
-        _missions[spyId] = targetCountryId;
-        GD.Print($"[EspionageSystem] Casus görev atandı: {spyId} ({spy.Name}) → {targetCountryId} (gün {currentDay})");
+        var def = GetMissionDef(missionType);
+        if (def == null) return false;
+
+        // Görev süresi: taban × (1 + (100 - yatkınlık)/100) × (1 + karşı istihbarat/100)
+        int affinity = GetAffinityForSpy(spyId, targetCountryId);
+        double counterIntel = GetCounterIntelLevel(targetCountryId) / 100.0;
+        double durationMult = (1.0 + (100.0 - affinity) / 100.0) * (1.0 + counterIntel);
+        int requiredDays = Mathf.Max(1, (int)Math.Round(def.BaseDurationDays * durationMult));
+
+        var mission = new MissionSave
+        {
+            SpyId = spyId,
+            TargetCountryId = targetCountryId,
+            MissionType = (int)missionType,
+            ProgressDays = 0,
+            RequiredDays = requiredDays,
+            StartedDay = currentDay,
+            Completed = false,
+            EffectSummary = ""
+        };
+
+        _missions[spyId] = mission;
+        GD.Print($"[EspionageSystem] Casus görev atandı: {spyId} ({spy.Name}) → {targetCountryId} [{def.Name}] süre={requiredDays}gün (yatkınlık={affinity}%, karşıİstihbarat={GetCounterIntelLevel(targetCountryId)}) (gün {currentDay})");
         return true;
+    }
+
+    /// <summary>Görev tanımını döner.</summary>
+    public static MissionDef GetMissionDef(MissionType type)
+    {
+        if (type == MissionType.None) return null;
+        int idx = (int)type - 1;
+        if (idx < 0 || idx >= _missionDefs.Length) return null;
+        return _missionDefs[idx];
     }
 
     /// <summary>Casusun şu anki görev hedefi (görevde değilse null).</summary>
     public static string GetSpyMissionTarget(string spyId)
     {
-        return _missions.TryGetValue(spyId, out var target) ? target : null;
+        return _missions.TryGetValue(spyId, out var mission) ? mission.TargetCountryId : null;
+    }
+
+    /// <summary>Casusun şu anki görev türü (görevde değilse None).</summary>
+    public static MissionType GetSpyMissionType(string spyId)
+    {
+        return _missions.TryGetValue(spyId, out var mission) ? (MissionType)mission.MissionType : MissionType.None;
+    }
+
+    /// <summary>Casusun görev ilerlemesi (0-100).</summary>
+    public static int GetSpyMissionProgress(string spyId)
+    {
+        if (_missions.TryGetValue(spyId, out var mission))
+        {
+            if (mission.RequiredDays <= 0) return 0;
+            return Mathf.Clamp((int)Math.Round(mission.ProgressDays * 100.0 / mission.RequiredDays), 0, 100);
+        }
+        return 0;
+    }
+
+    /// <summary>Casusun görev detayını döner (görevde değilse null).</summary>
+    public static MissionSave GetSpyMission(string spyId)
+    {
+        return _missions.TryGetValue(spyId, out var mission) ? mission : null;
     }
 
     public static bool IsSpyOnMission(string spyId) => _missions.ContainsKey(spyId);
@@ -399,7 +510,8 @@ public static class EspionageSystem
         foreach (var kv in _missions.ToArray())
         {
             string spyId = kv.Key;
-            string targetCountry = kv.Value;
+            var mission = kv.Value;
+            string targetCountry = mission.TargetCountryId;
             var spy = _spies.FirstOrDefault(s => s.Id == spyId);
             if (spy == null) continue;
 
@@ -414,7 +526,8 @@ public static class EspionageSystem
         foreach (var spyId in capturedToday)
         {
             var spy = _spies.FirstOrDefault(s => s.Id == spyId);
-            string targetCountry = _missions[spyId];
+            var mission = _missions[spyId];
+            string targetCountry = mission.TargetCountryId;
             _missions.Remove(spyId);
 
             _captured.Add(new CapturedSpy
@@ -495,6 +608,8 @@ public static class EspionageSystem
             _daysRemaining--;
             if (_daysRemaining > 0)
             {
+                // Kurs sırasında da görevler ilerler ve yakalanma kontrolü yapılır.
+                AdvanceMissions(currentDay);
                 CheckCaptures(currentDay);
                 return;
             }
@@ -524,8 +639,206 @@ public static class EspionageSystem
         // M29.5: kiralama havuzu yenileme kontrolü (her gün ticks'te değerlendirilir, aralık bazlı gerçekleşir).
         RefreshRentalPoolIfNeeded(currentDay);
 
+        // M51: Görev ilerlemesi — her gün +1 gün, tamamlandığında etki uygula.
+        AdvanceMissions(currentDay);
+
         // M29.6: görevdeki casusların yakalanma kontrolü (deterministik, her gün).
         CheckCaptures(currentDay);
+    }
+
+    /// <summary>M51: Aktif görevleri bir gün ilerletir, tamamlananları çözümler.</summary>
+    private static void AdvanceMissions(int currentDay)
+    {
+        if (_missions.Count == 0) return;
+
+        var completedMissions = new List<string>();
+
+        foreach (var kv in _missions.ToArray())
+        {
+            string spyId = kv.Key;
+            var mission = kv.Value;
+            var spy = _spies.FirstOrDefault(s => s.Id == spyId);
+            if (spy == null) continue;
+
+            // Counter-intel yavaşlatma etkisi: yüksek karşı istihbarat ilerlemeyi yavaşlatır.
+            // Karşı istihbarat 100 ise %50 yavaşlama, 0 ise yavaşlama yok.
+            double counterIntel = GetCounterIntelLevel(mission.TargetCountryId) / 100.0;
+            double progressPerDay = 1.0 * (1.0 - counterIntel * 0.5); // 1.0 -> 0.5 arası
+
+            mission.ProgressDays += (int)Math.Ceiling(progressPerDay);
+
+            // Görev tamamlandı mı?
+            if (mission.ProgressDays >= mission.RequiredDays)
+            {
+                mission.Completed = true;
+                completedMissions.Add(spyId);
+            }
+        }
+
+        foreach (var spyId in completedMissions)
+        {
+            CompleteMission(spyId, currentDay);
+        }
+    }
+
+    /// <summary>M51: Görevi tamamlar ve etkiyi uygular.</summary>
+    private static void CompleteMission(string spyId, int currentDay)
+    {
+        if (!_missions.TryGetValue(spyId, out var mission)) return;
+
+        var spy = _spies.FirstOrDefault(s => s.Id == spyId);
+        string targetCountryId = mission.TargetCountryId;
+        MissionType missionType = (MissionType)mission.MissionType;
+
+        string effectSummary = "";
+        bool success = true;
+
+        try
+        {
+            switch (missionType)
+            {
+                case MissionType.Intelligence:
+                    effectSummary = ApplyIntelligenceEffect(spy, targetCountryId);
+                    break;
+                case MissionType.TechTheft:
+                    effectSummary = ApplyTechTheftEffect(spy, targetCountryId);
+                    break;
+                case MissionType.Sabotage:
+                    effectSummary = ApplySabotageEffect(spy, targetCountryId);
+                    break;
+                case MissionType.Propaganda:
+                    effectSummary = ApplyPropagandaEffect(spy, targetCountryId);
+                    break;
+                default:
+                    success = false;
+                    effectSummary = "Bilinmeyen görev türü";
+                    break;
+            }
+        }
+        catch (Exception e)
+        {
+            success = false;
+            effectSummary = $"Hata: {e.Message}";
+            GD.PrintErr($"[EspionageSystem] Görev etki hatası: {e.Message}");
+        }
+
+        mission.EffectSummary = effectSummary;
+        mission.Completed = true;
+
+        GD.Print($"[EspionageSystem] GÖREV TAMAMLANDI: {spyId} ({spy?.Name ?? "?"}) → {targetCountryId} [{missionType}] — {effectSummary} (gün {currentDay})");
+
+        // Görevi listeden kaldır (casus artık müsait)
+        _missions.Remove(spyId);
+    }
+
+    /// <summary>M51.2: İstihbarat toplama — hedef ülkenin ordu/fabrika/ekipman özeti.</summary>
+    private static string ApplyIntelligenceEffect(Spy spy, string targetCountryId)
+    {
+        var targetData = CountryDatabase.Get(targetCountryId);
+        if (targetData == null) return "Hedef ülke verisi bulunamadı";
+
+        int armyCount = ArmySystem.GetArmyCount(targetCountryId);
+        int totalDivisions = ArmySystem.GetTotalDivisionCount(targetCountryId);
+        int civFactories = targetData.CivFactories;
+        int milFactories = targetData.MilFactories;
+        int dockyards = targetData.Dockyards;
+
+        // Casusun Observation yeteneği detay seviyesini etkiler
+        int detailLevel = spy.Observation / 20 + 1; // 1-5
+
+        string summary = $"İstihbarat: {targetCountryId} — Ordular: {armyCount}, Tümenler: {totalDivisions}, Sivil: {civFactories}, Askeri: {milFactories}, Tersane: {dockyards}";
+        if (detailLevel >= 3)
+        {
+            summary += $", MP: {targetData.ManpowerPool:N0}, PP: {targetData.PoliticalPower:F0}";
+        }
+        if (detailLevel >= 5)
+        {
+            var stocks = EquipmentSystem.GetStockpileSummary(targetCountryId);
+            summary += $", Stok: {stocks}";
+        }
+
+        // İlişki etkisi: istihbarat toplama küçük bir olumsuzluk yaratır (riskli)
+        DiplomacySystem.ModifyRelation(spy.OwnerCountryId, targetCountryId, -1);
+
+        return summary;
+    }
+
+    /// <summary>M51.2: Teknoloji hırsızlığı — TechnologySystem kredisi ver.</summary>
+    private static string ApplyTechTheftEffect(Spy spy, string targetCountryId)
+    {
+        var targetData = CountryDatabase.Get(targetCountryId);
+        if (targetData == null) return "Hedef ülke verisi bulunamadı";
+
+        // Hedefin araştırdığı/araştırabileceği bir teknoloji seç
+        var availableTechs = TechnologySystem.GetResearchableTechsForCountry(targetCountryId);
+        if (availableTechs.Count == 0)
+        {
+            return "Hedefte hırsızlanacak teknoloji yok";
+        }
+
+        // Casusun Education yeteneği başarı şansını ve kalitesini etkiler
+        int techIndex = DeterministicRNG.NextInt(0, availableTechs.Count);
+        string techId = availableTechs[techIndex];
+
+        // Hırsızlanan teknoloji için kredi ver (owner country'ye)
+        int creditAmount = 50 + spy.Education / 2; // 50-100 arası
+        TechnologySystem.AddResearchCredit(spy.OwnerCountryId, techId, creditAmount);
+
+        string techName = TechnologySystem.GetTechName(techId);
+        string summary = $"Teknoloji hırsızlığı: {techName} ({techId}) — {creditAmount} kredi kazandırıldı";
+
+        // İlişki etkisi: büyük olumsuzluk
+        DiplomacySystem.ModifyRelation(spy.OwnerCountryId, targetCountryId, -10);
+
+        return summary;
+    }
+
+    /// <summary>M51.2: Fabrikaya sabotaj — EquipmentSystem/ArmySystem hasarı.</summary>
+    private static string ApplySabotageEffect(Spy spy, string targetCountryId)
+    {
+        var targetData = CountryDatabase.Get(targetCountryId);
+        if (targetData == null) return "Hedef ülke verisi bulunamadı";
+
+        // Hedefin askeri fabrikalarından birine hasar ver
+        int factoryDamage = 1 + spy.ColdBlood / 25; // 1-4 fabrika hasarı
+        int actualDamage = EquipmentSystem.DamageFactory(targetCountryId, factoryDamage);
+
+        // Üretim hatlarına da etki (varsa)
+        int lineDamage = EquipmentSystem.DamageRandomProductionLine(targetCountryId);
+
+        string summary = $"Sabotaj: {targetCountryId} — Fabrika hasarı: {actualDamage}, Hat hasarı: {lineDamage}";
+
+        // İlişki etkisi: çok ciddi olumsuzluk
+        DiplomacySystem.ModifyRelation(spy.OwnerCountryId, targetCountryId, -20);
+
+        return summary;
+    }
+
+    /// <summary>M51.2: Olumsuz propaganda — PublicSatisfaction/PoliticalUnrest etkisi.</summary>
+    private static string ApplyPropagandaEffect(Spy spy, string targetCountryId)
+    {
+        var targetData = CountryDatabase.Get(targetCountryId);
+        if (targetData == null) return "Hedef ülke verisi bulunamadı";
+
+        // Casusun Charisma/Observation yeteneği etki gücünü etkiler
+        double effectStrength = 0.5 + (spy.Observation / 100.0) * 1.5; // 0.5 - 2.0
+
+        // Stabilite ve savaş desteğini düşür
+        double stabilityLoss = 2.0 * effectStrength;
+        double warSupportLoss = 1.5 * effectStrength;
+
+        targetData.StabilityPercent = Math.Max(0, targetData.StabilityPercent - stabilityLoss);
+        targetData.WarSupportPercent = Math.Max(0, targetData.WarSupportPercent - warSupportLoss);
+
+        // PoliticalUnrestSystem'e de etki ekle (protesto şansını artır)
+        PoliticalUnrestSystem.AddPropagandaPressure(targetCountryId, (int)(effectStrength * 10));
+
+        string summary = $"Propaganda: {targetCountryId} — Stabilite -{stabilityLoss:F1}%, Savaş Desteği -{warSupportLoss:F1}%";
+
+        // İlişki etkisi: orta olumsuzluk
+        DiplomacySystem.ModifyRelation(spy.OwnerCountryId, targetCountryId, -5);
+
+        return summary;
     }
 
     private static void ApplyTrainingStatChange(Spy spy, TrainingCourseType type)
@@ -750,7 +1063,7 @@ public static class EspionageSystem
                 TotalHiredPP = _totalHiredPP,
             },
             CounterIntel = _counterIntel.Select(kv => new CounterIntelEntry { CountryId = kv.Key, Level = kv.Value }).ToArray(),
-            Missions = _missions.Select(kv => new MissionSave { SpyId = kv.Key, TargetCountryId = kv.Value }).ToArray(),
+            Missions = _missions.Select(kv => new MissionSave { SpyId = kv.Key, TargetCountryId = kv.Value.TargetCountryId, MissionType = kv.Value.MissionType, ProgressDays = kv.Value.ProgressDays, RequiredDays = kv.Value.RequiredDays, StartedDay = kv.Value.StartedDay, Completed = kv.Value.Completed, EffectSummary = kv.Value.EffectSummary }).ToArray(),
             Captured = _captured.Select(c => new CapturedSpySave
             {
                 SpyId = c.SpyId, SpyName = c.SpyName, OwnerCountryId = c.OwnerCountryId,
@@ -823,7 +1136,7 @@ public static class EspionageSystem
         {
             _missions.Clear();
             foreach (var m in data.Missions)
-                _missions[m.SpyId] = m.TargetCountryId;
+                _missions[m.SpyId] = m;
         }
 
         if (data?.Captured != null)

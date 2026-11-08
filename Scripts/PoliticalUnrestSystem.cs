@@ -381,4 +381,21 @@ public static class PoliticalUnrestSystem
         }
         GD.Print($"[PoliticalUnrest] {_states.Count} ülke halk-refahı durumu yüklendi.");
     }
+
+    // ===== M51: EspionageSystem için gerekli API =====
+
+    /// <summary>
+    /// Propaganda baskısı ekler (espionage propaganda etkisi için).
+    /// Halk memnuniyetini ve protesto olasılığını artırır.
+    /// </summary>
+    public static void AddPropagandaPressure(string countryId, int pressureAmount)
+    {
+        var state = EnsureState(countryId);
+        if (state == null) return;
+
+        // Propaganda baskısını protesto sayacı gibi işle - ProtestCount artır
+        // Bu, DailyTick'te protesto olasılığını dolaylı olarak artıracaktır
+        state.ProtestCount += Math.Max(0, pressureAmount / 5); // Her 5 basınç = 1 protesto sayacı
+        GD.Print($"[PoliticalUnrest] Propaganda baskısı: {countryId} ProtestCount +{pressureAmount / 5} (toplam={state.ProtestCount})");
+    }
 }

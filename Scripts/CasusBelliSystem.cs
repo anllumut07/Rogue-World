@@ -622,6 +622,26 @@ public static class CasusBelliSystem
         // 3) Savunucu itibar +2 (müttefik sempati)
         ModifyLegitimacy(defenderId, 2f);
 
+        // M52.3: Tanınma durumu savaş gerilimini etkiler
+        float attackerRecognitionRatio = GetRecognitionRatio(attackerId);
+        float defenderRecognitionRatio = GetRecognitionRatio(defenderId);
+
+        // Tanınmamış saldırgan -> daha yüksek tension (yasadışı savaş algısı)
+        if (RecognitionSystem.WasBorn(attackerId) && attackerRecognitionRatio < 0.5f)
+        {
+            float extraTension = (1f - attackerRecognitionRatio) * 10f; // max +10 tension
+            DiplomacySystem.IncreaseTension(extraTension);
+            GD.Print($"[CasusBelli] TANINMAMIŞ SALDIRGAN tension cezası: {attackerId} ({attackerRecognitionRatio:P0} tanınır) → +{extraTension:F1} tension");
+        }
+
+        // Tanınmış savunucu -> tension azaltma (meşru savnuma)
+        if (RecognitionSystem.WasBorn(defenderId) && defenderRecognitionRatio >= 0.5f)
+        {
+            float tensionReduction = defenderRecognitionRatio * 5f; // max -5 tension
+            DiplomacySystem.IncreaseTension(-tensionReduction);
+            GD.Print($"[CasusBelli] TANINAN SAVUNUCU tension indirimi: {defenderId} ({defenderRecognitionRatio:P0} tanınır) → {tensionReduction:F1} tension");
+        }
+
         // 4) Otomatik gerekçeler: Savunucu (defense_retaliation)
         GrantImmediateJustification(defenderId, attackerId, "defense_retaliation");
 
@@ -664,6 +684,15 @@ public static class CasusBelliSystem
                 GD.Print($"[CasusBelli] İFŞA EDİLMİŞ FABRIKE GEREKÇE İLE SAVAŞ: Demokrasiler {attackerId} ile ilişkileri -20, Tension +15 ek");
             }
         }
+    }
+
+    /// <summary>M52.3: Bir ülkenin tanınma oranı (0-1). Oyun içinde doğmamışsa 1.0 döner.</summary>
+    private static float GetRecognitionRatio(string countryId)
+    {
+        if (!RecognitionSystem.WasBorn(countryId)) return 1f;
+        int recognizerCount = RecognitionSystem.RecognizerCount(countryId);
+        int establishedCount = RecognitionSystem.EstablishedCountForOrg(countryId);
+        return establishedCount > 0 ? (float)recognizerCount / establishedCount : 0f;
     }
 
     /// <summary>Savaş bittiğinde ateşkes (truce) başlat.</summary>

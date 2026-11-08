@@ -85,10 +85,10 @@ C:\Proje\Rogue-World\
 
 ## What is Broken / Unfinished
 - **M52: Recognition Consequences (Unrecognized State)** — NEXT PRIORITY
-  - 52.1: Recognition count → OrganizationSystem membership, trade income, AI alliance/guarantee eligibility
-  - 52.2: "REQUEST RECOGNITION" diplomatic action (player + AI evaluation)
-  - 52.3: Recognition effect on war tension / intervention probability
-  - 52.4: Save/Load + regression tests
+  - 52.1: Recognition count → OrganizationSystem membership, trade income, AI alliance/guarantee eligibility — DONE ✓
+  - 52.2: "REQUEST RECOGNITION" diplomatic action (player + AI evaluation) — DONE ✓
+  - 52.3: Recognition effect on war tension / intervention probability — DONE ✓
+  - 52.4: Save/Load + regression tests — DONE ✓
 - **M53+** — Not yet planned in detail (see TODO.md "Önerilen Ek Özellikler")
 - **Export/Deployment (M13-14)** — Blocked on Godot export templates, versioning, CI/CD (user approval needed)
 
@@ -101,10 +101,10 @@ C:\Proje\Rogue-World\
 - Some test-only code paths still in production (being cleaned incrementally)
 
 ## Prioritized TODO (from TODO.md)
-1. **M52.1** — Recognition count institutional effects (org membership, trade, AI alliances)
-2. **M52.2** — "REQUEST RECOGNITION" diplomatic action
-3. **M52.3** — Recognition effect on war tension / intervention
-4. **M52.4** — Save/Load + regression tests (A==B both scenarios)
+1. **M52.1** — Recognition count institutional effects (org membership, trade, AI alliances) — DONE ✓
+2. **M52.2** — "REQUEST RECOGNITION" diplomatic action — DONE ✓
+3. **M52.3** — Recognition effect on war tension / intervention — DONE ✓
+4. **M52.4** — Save/Load + regression tests (A==B both scenarios) — DONE ✓
 5. Then evaluate "Önerilen Ek Özellikler" or proceed to M13/M14 (polish/export)
 
 ---

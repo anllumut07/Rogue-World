@@ -1087,6 +1087,115 @@ public static class CivilWarSystem
     }
 
     /// <summary>
+    /// M52.3: AI için iç savaş müdahalesi olasılığı değerlendirmesi.
+    /// Tanınma oranı, ideoloji, komşuluk, güç dengesi, dünya gerilimi dikkate alınır.
+    /// Döner: (müdahale_edilmeli_mi, taraf, müdahale_id)
+    /// </summary>
+    public static (bool ShouldIntervene, string Side, string InterventionId) EvaluateAIIntervention(string countryId, long currentDay)
+    {
+        var rebellion = RebellionOf(countryId);
+        if (rebellion == null) return (false, "", "");
+
+        // İsyancı devlet yoksa müdahale edilemez
+        if (string.IsNullOrEmpty(rebellion.RebelCountryId))
+            return (false, "", "");
+
+        var rebel = CountryDatabase.Get(rebellion.RebelCountryId);
+        var government = CountryDatabase.Get(countryId);
+        if (government == null || rebel == null || government.IsAnnexed || rebel.IsAnnexed)
+            return (false, "", "");
+
+        // Zaten müdahale yapılmış mı kontrol et (basit: son 90 gün içinde)
+        var recentInterventions = InterventionSystem.InterventionHistory
+            .Where(h => h.CountryId == (rebellion.RebelCountryId) || h.CountryId == countryId)
+            .Where(h => currentDay - h.Day < 90)
+            .ToList();
+        if (recentInterventions.Count > 0) return (false, "", "");
+
+        // Dünyadaki AI ülkeleri için müdahale olasılığı
+        float bestScore = 0f;
+        string bestIntervenor = "";
+        string bestSide = "";
+        string bestInterventionId = "";
+        float bestRebelRecog = 0f, bestGovRecog = 0f;
+
+        foreach (var potentialIntervenor in CountryDatabase.All())
+        {
+            if (potentialIntervenor == null || potentialIntervenor.IsAnnexed) continue;
+            if (potentialIntervenor.Id == countryId || potentialIntervenor.Id == rebellion.RebelCountryId) continue;
+            if (!CountryAI.IsAiCountry(potentialIntervenor.Id)) continue; // Sadece AI
+
+            // M52.3: Tanınma oranı - tanınmamış isyancı ülkesine müdahale daha az olası
+            float rebelRecognitionRatio = GetRecognitionRatio(rebellion.RebelCountryId);
+            float govRecognitionRatio = GetRecognitionRatio(countryId);
+
+            double score = 0.0;
+
+            // 1. İdeoloji yakınlığı (isyancı taraf için)
+            if (string.Equals(potentialIntervenor.Ideology, rebel.Ideology, StringComparison.OrdinalIgnoreCase))
+                score += 0.3;
+
+            // 2. İdeoloji yakınlığı (hükümet taraf için)
+            if (string.Equals(potentialIntervenor.Ideology, government.Ideology, StringComparison.OrdinalIgnoreCase))
+                score += 0.2;
+
+            // 3. Komşuluk
+            if (NeighborSystem.IsReady &&
+                (NeighborSystem.AreNeighbors(potentialIntervenor.Id, countryId) ||
+                 NeighborSystem.AreNeighbors(potentialIntervenor.Id, rebellion.RebelCountryId)))
+                score += 0.2;
+
+            // 4. Güç (müdahale edebilecek kadar güçlü mü)
+            double intervenorStrength = potentialIntervenor.StartingDivisions + potentialIntervenor.CivFactories * 0.5;
+            if (intervenorStrength > 10) score += 0.15;
+
+            // 5. Dünya gerilimi - yüksek tension müdahaleyi teşvik eder
+            score += DiplomacySystem.WorldTension / 100.0 * 0.15;
+
+            // 6. Tanınma etkisi: tanınan tarafa müdahale +, tanınmamış tarafa müdahale -
+            // Hükümet tanınmışsa destek olasılığı artar
+            if (govRecognitionRatio >= 0.5f) score += govRecognitionRatio * 0.1;
+            // İsyancı tanınmamışsa onlara müdahale cezası
+            if (rebelRecognitionRatio < 0.3f) score -= 0.2;
+
+            // 7. İlişki
+            int relGov = DiplomacySystem.GetRelation(potentialIntervenor.Id, countryId);
+            int relReb = DiplomacySystem.GetRelation(potentialIntervenor.Id, rebellion.RebelCountryId);
+            score += Math.Max(relGov, relReb) / 100.0 * 0.1;
+
+            if (score > bestScore)
+            {
+                bestScore = (float)score;
+                bestIntervenor = potentialIntervenor.Id;
+                bestRebelRecog = rebelRecognitionRatio;
+                bestGovRecog = govRecognitionRatio;
+                // Hangi taraf? İlişki ve ideolojiye göre karar ver
+                bool preferRebels = string.Equals(potentialIntervenor.Ideology, rebel.Ideology, StringComparison.OrdinalIgnoreCase) && relReb > relGov;
+                bestSide = preferRebels ? "rebels" : "government";
+                bestInterventionId = preferRebels ? "international_aid" : "emergency_aid";
+            }
+        }
+
+        // Eşik: 0.4 üzeri müdahale eder
+        if (bestScore >= 0.4f && !string.IsNullOrEmpty(bestIntervenor))
+        {
+            GD.Print($"[CivilWar] AI MÜDAHALE KARARI: {bestIntervenor} → {countryId} ({bestSide}) skor={bestScore:F2} müdahale={bestInterventionId} (rebel_recog={bestRebelRecog:P0}, gov_recog={bestGovRecog:P0})");
+            return (true, bestSide, bestInterventionId);
+        }
+
+        return (false, "", "");
+    }
+
+    /// <summary>M52.3: Yardımcı - tanınma oranı.</summary>
+    private static float GetRecognitionRatio(string countryId)
+    {
+        if (!RecognitionSystem.WasBorn(countryId)) return 1f;
+        int recognizerCount = RecognitionSystem.RecognizerCount(countryId);
+        int establishedCount = RecognitionSystem.EstablishedCountForOrg(countryId);
+        return establishedCount > 0 ? (float)recognizerCount / establishedCount : 0f;
+    }
+
+    /// <summary>
     /// M50.3: Yabancı bir gücün iç savaşın bir tarafına müdahalesi.
     ///
     /// Müdahale M23 `InterventionSystem` üzerinden uygulanır (PP, bakanlık

@@ -715,6 +715,26 @@ public static class SaveLoadTest
         }
         sb.AppendLine($"İç çatışma: isyan={rebellionCount}, patlak_geçmişi={outbreakCount}, " +
                       $"katılan={joinedCount}, ayrılan={leftCount}, hash={civilWarHash}");
+
+        // M52.4: Tanınma sistemi özeti (save/load A==B karşılaştırmasına girer)
+        // Doğulanmamış yeni doğan ülkeler, tanıyan ülke sayısı ve ikililer A==B test edilir.
+        var recognitionSave = RecognitionSystem.GetSaveData();
+        int birthCount = recognitionSave?.Births?.Length ?? 0;
+        int recognitionCount = recognitionSave?.Recognitions?.Length ?? 0;
+        int recognitionHash = 0;
+        if (recognitionSave?.Births != null)
+        {
+            foreach (var b in recognitionSave.Births)
+                recognitionHash = recognitionHash * 31 +
+                    (b.CountryId + "|" + b.ParentId + "|" + b.BirthDay + "|" + b.Reason).GetHashCode();
+        }
+        if (recognitionSave?.Recognitions != null)
+        {
+            foreach (var r in recognitionSave.Recognitions)
+                recognitionHash = recognitionHash * 31 + r.GetHashCode();
+        }
+        sb.AppendLine($"Tanınma: doğan={birthCount}, tanınma={recognitionCount}, hash={recognitionHash}");
+
         if (leaderCount > 0)
         {
             foreach (var kv in LeaderSystem.All.OrderBy(k => k.Key))

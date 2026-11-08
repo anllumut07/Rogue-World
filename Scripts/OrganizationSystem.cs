@@ -130,10 +130,45 @@ public static class OrganizationSystem
         }
     }
 
-    /// <summary>Ülkeyi örgüte üye yapar (zaten üyedeyse no-op).</summary>
+    /// <summary>
+    /// M52.1: Bir ülkenin örgüt üyeliği için uygun olup olmadığını kontrol eder.
+    /// Tanınma sayısı eşiği: kurulu ülkelerin %30'u ülkeyi tanımalı.
+    /// Başlangıç verisindeki (Doğuştan önce var olan) ülkeler her zaman uygundur.
+    /// </summary>
+    public static bool IsEligibleForMembership(string orgId, string countryId)
+    {
+        if (string.IsNullOrEmpty(orgId) || string.IsNullOrEmpty(countryId) || !_orgs.ContainsKey(orgId))
+            return false;
+
+        // Oyun içinde doğan ülke değilse (doğuştan önce var olan) her zaman uygundur
+        if (!RecognitionSystem.WasBorn(countryId))
+            return true;
+
+        int recognizerCount = RecognitionSystem.RecognizerCount(countryId);
+        int establishedCount = RecognitionSystem.EstablishedCountForOrg(countryId);
+
+        // Kurulu ülkelerin %30'u tanımalı
+        double threshold = establishedCount > 0 ? (double)recognizerCount / establishedCount : 0.0;
+        bool eligible = threshold >= 0.30;
+
+        GD.Print($"[OrganizationSystem] Üyelik uygunluk kontrolü: {countryId} -> {orgId} " +
+                 $"tanıyan={recognizerCount}/{establishedCount} ({threshold:P0}) → {eligible}");
+        return eligible;
+    }
+
+    /// <summary>Ülkeyi örgüte üye yapar (zaten üyedeyse no-op).
+    /// M52.1: Oyun içinde doğan ülkeler için tanınma eşiği kontrolü yapar.</summary>
     public static bool AddMember(string orgId, string countryId)
     {
         if (string.IsNullOrEmpty(orgId) || string.IsNullOrEmpty(countryId) || !_orgs.ContainsKey(orgId)) return false;
+
+        // M52.1: Üyelik uygunluk kontrolü (doğuştan önce var olan ülkeler için atlanır)
+        if (!IsEligibleForMembership(orgId, countryId))
+        {
+            GD.Print($"[OrganizationSystem] {countryId} -> {orgId} üyeliği REDDEDİLDİ: tanınma eşiği karşılanmadı.");
+            return false;
+        }
+
         if (!_members.TryGetValue(orgId, out var set))
         {
             set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

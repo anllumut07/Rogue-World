@@ -420,9 +420,12 @@ public static class EconomySystem
         // M37.3: Uluslararası örgüt tek pazar ticaret çarpanı (ör. AB üyesi %15).
         float tradeMult = OrganizationSystem.GetTradeMultiplier(Player?.Id);
 
+        // M52.1: Tanınmamış ülkeler için ticaret geliri tanınma oranına göre ölçeklenir
+        float recognitionMult = GetRecognitionTradeMultiplier(Player?.Id);
+
         // Aktif anlaşmaların ithalatını uygula
         foreach (var deal in _tradeDeals)
-            _stockpiles[deal.Resource] = _stockpiles.GetValueOrDefault(deal.Resource) + (int)(deal.AmountPerDay * tradeMult);
+            _stockpiles[deal.Resource] = _stockpiles.GetValueOrDefault(deal.Resource) + (int)(deal.AmountPerDay * tradeMult * recognitionMult);
     }
 
     // Kaynak için en iyi ihracatçı: oyuncu değil, bu kaynağı en çok üreten ülke.
@@ -468,6 +471,27 @@ public static class EconomySystem
     public static IReadOnlyList<TradeDeal> TradeDeals => _tradeDeals;
 
     // ===== M43.2: Denizaltı baskını API'si (ConvoyRaidSystem için) =====
+
+    /// <summary>
+    /// M52.1: Bir ülke için ticaret çarpanı (tanınma oranına göre).
+    /// Oyun içinde doğan ülke için: tanıyan / kurulu ülke sayısı (min 0.1, max 1.0).
+    /// Doğuştan önce var olan ülkeler için her zaman 1.0.
+    /// </summary>
+    public static float GetRecognitionTradeMultiplier(string countryId)
+    {
+        if (string.IsNullOrEmpty(countryId)) return 1f;
+
+        // Oyun içinde doğan ülke değilse tam çarpan
+        if (!RecognitionSystem.WasBorn(countryId)) return 1f;
+
+        int recognizerCount = RecognitionSystem.RecognizerCount(countryId);
+        int establishedCount = RecognitionSystem.EstablishedCountForOrg(countryId);
+
+        if (establishedCount == 0) return 0.1f;
+
+        float ratio = (float)recognizerCount / establishedCount;
+        return Math.Clamp(ratio, 0.1f, 1f);
+    }
 
     /// <summary>Konvoyları batır (denizaltı blandığı çağrılır). Sayı negatif olamaz.</summary>
     public static int LoseConvoys(int amount)

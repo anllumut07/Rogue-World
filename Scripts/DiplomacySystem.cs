@@ -57,7 +57,8 @@ public static class DiplomacySystem
             JoinFaction,
             CreateFaction,
             LeaveFaction,
-            PeaceConference
+            PeaceConference,
+            RequestRecognition // M52.2: tanınma talebi
         }
 
         public Type ActionType { get; set; }
@@ -483,6 +484,14 @@ public static class DiplomacySystem
         if (!CanDoDiplomacy(targetId, out var target)) return false;
         if (HasGuarantee(GM.PlayerCountryId, targetId)) return false;
 
+        // M52.1: Tanınmamış ülkelere garanti verilemez (garantör tanınmamışsa)
+        if (RecognitionSystem.WasBorn(GM.PlayerCountryId) &&
+            !RecognitionSystem.IsFullyRecognized(GM.PlayerCountryId))
+        {
+            GD.Print($"[Diplomacy] Garanti REDDEDİLDİ: {GM.PlayerCountryId} tam tanınmadı — garanti veremez");
+            return false;
+        }
+
         double cost = BaseGuaranteeCost * (1 + Math.Max(0, -GetRelation(GM.PlayerCountryId, targetId)) / 100f);
         if (Player.PoliticalPower < cost) return false;
 
@@ -505,6 +514,14 @@ public static class DiplomacySystem
             return false;
         if (guarantorId == targetId) return false;
         if (HasGuarantee(guarantorId, targetId)) return false;
+
+        // M52.1: Tanınmamış garantör garanti veremez
+        if (RecognitionSystem.WasBorn(guarantorId) &&
+            !RecognitionSystem.IsFullyRecognized(guarantorId))
+        {
+            GD.Print($"[Diplomacy] Garanti REDDEDİLDİ: {guarantorId} tam tanınmadı — garanti veremez");
+            return false;
+        }
 
         double cost = BaseGuaranteeCost * (1 + Math.Max(0, -GetRelation(guarantorId, targetId)) / 100f);
         if (guarantor.PoliticalPower < cost) return false;
@@ -549,6 +566,14 @@ public static class DiplomacySystem
         if (GetFactionOf(countryId) != null) return false;
         var country = CountryDatabase.Get(countryId);
         if (country == null || country.IsAnnexed) return false;
+
+        // M52.1: Tanınmamış ülke faksiyona katılamaz
+        if (RecognitionSystem.WasBorn(countryId) &&
+            !RecognitionSystem.IsFullyRecognized(countryId))
+        {
+            GD.Print($"[Diplomacy] Faksiyon katılımı REDDEDİLDİ: {countryId} tam tanınmadı — faksiyona katılamaz");
+            return false;
+        }
 
         double cost = BaseFactionCost;
         if (country.PoliticalPower < cost) return false;
@@ -616,6 +641,53 @@ public static class DiplomacySystem
         ModifyRelation(GM.PlayerCountryId, targetId, +5);
         GD.Print($"[Diplomacy] Deniz erişimi: {GM.PlayerCountryId} → {targetId} (maliyet {cost:F0} PP)");
         return true;
+    }
+
+    // M52.2: "REQUEST RECOGNITION" — tanınmamış bir ülkeyi tanıma isteği
+    // Oyuncu veya AI tarafından çağrılabilir. PP maliyeti vardır.
+    // Hedef ülke tanıyorsa ilişki +5, tanımazsa ilişki -5 ve tension +2.
+    public static bool RequestRecognition(string targetId)
+    {
+        if (!CanDoDiplomacy(targetId, out var target)) return false;
+
+        // Hedef zaten tanınıyorsa (doğuştan önceki ülkeler her zaman tanınır)
+        if (!RecognitionSystem.WasBorn(targetId))
+        {
+            GD.Print($"[Diplomacy] {targetId} zaten tanınıyor (oyun içinde doğmamış) — istek gerekmez");
+            return false;
+        }
+
+        // Oyuncu ülkesinin hedefi tanıyorsa zaten
+        if (RecognitionSystem.IsRecognized(GM.PlayerCountryId, targetId))
+        {
+            GD.Print($"[Diplomacy] {GM.PlayerCountryId} zaten {targetId}'yi tanıyor");
+            return false;
+        }
+
+        const int ppCost = 25;
+        if (Player.PoliticalPower < ppCost) return false;
+
+        Player.PoliticalPower -= ppCost;
+
+        // AI değerlendirmesi: ilişki + ideoloji + komşuluk + güç dengesi
+        bool accepted = AIEvaluateRequestRecognition(GM.PlayerCountryId, targetId);
+
+        if (accepted)
+        {
+            RecognitionSystem.RecognizePublic(GM.PlayerCountryId, targetId, GM.TotalDays, "diplomatik_istek");
+            ModifyRelation(GM.PlayerCountryId, targetId, +10);
+            ModifyRelation(targetId, GM.PlayerCountryId, +10);
+            GD.Print($"[Diplomacy] TANINMA KABUL EDİLDİ: {GM.PlayerCountryId} → {targetId} (maliyet {ppCost} PP, ilişki +10)");
+        }
+        else
+        {
+            ModifyRelation(GM.PlayerCountryId, targetId, -5);
+            ModifyRelation(targetId, GM.PlayerCountryId, -5);
+            DiplomacySystem.IncreaseTension(2f);
+            GD.Print($"[Diplomacy] TANINMA REDDEDİLDİ: {GM.PlayerCountryId} → {targetId} (maliyet {ppCost} PP, ilişki -5, tension +2)");
+        }
+
+        return accepted;
     }
 
     // Savaş ilanı (WarSystem.DeclareWar ile entegre - burası ekstra: garantili ülkelere çağrı)
@@ -693,6 +765,14 @@ public static class DiplomacySystem
         if (!_factions.TryGetValue(factionId, out var faction)) return false;
         if (GetFactionOf(GM.PlayerCountryId) != null) return false;
         if (Player.PoliticalPower < BaseFactionCost) return false;
+
+        // M52.1: Tanınmamış ülke faksiyona katılamaz
+        if (RecognitionSystem.WasBorn(GM.PlayerCountryId) &&
+            !RecognitionSystem.IsFullyRecognized(GM.PlayerCountryId))
+        {
+            GD.Print($"[Diplomacy] Faksiyon katılımı REDDEDİLDİ: {GM.PlayerCountryId} tam tanınmadı — faksiyona katılamaz");
+            return false;
+        }
 
         // Liderin onayı: görüş +50 gerekir
         int opinion = GetOpinion(faction.LeaderId, GM.PlayerCountryId);
@@ -1336,6 +1416,61 @@ public static class DiplomacySystem
     {
         _worldTension = Math.Clamp(_worldTension + amount, 0, 100);
         GD.Print($"[Diplomacy] World Tension: %{_worldTension:F1} (değişim: {amount:+#;-#;0})");
+    }
+
+    // M52.2: AI tanınma isteği değerlendirmesi
+    // İlişki, ideoloji, komşuluk, güç dengesi, dünya gerilimi.
+    public static bool AIEvaluateRequestRecognition(string requesterId, string targetId)
+    {
+        var requester = CountryDatabase.Get(requesterId);
+        var target = CountryDatabase.Get(targetId);
+        if (requester == null || target == null || requester.IsAnnexed || target.IsAnnexed)
+            return false;
+
+        double score = 0.0;
+
+        // 1. İlişki (en önemli faktör): +100 -> +1.0, -100 -> -1.0
+        int relation = GetRelation(targetId, requesterId); // hedefin isteyene bakışı
+        score += relation / 100.0 * 0.4;
+
+        // 2. İdeoloji aynıysa bonus
+        if (string.Equals(requester.Ideology, target.Ideology, StringComparison.OrdinalIgnoreCase))
+            score += 0.2;
+
+        // 3. Komşuluk bonusu
+        if (NeighborSystem.IsReady && NeighborSystem.AreNeighbors(requesterId, targetId))
+            score += 0.15;
+
+        // 4. Güç dengesi: istekçi güçlüse kabul olasılığı artar
+        double requesterStrength = requester.StartingDivisions + requester.CivFactories * 0.5;
+        double targetStrength = target.StartingDivisions + target.CivFactories * 0.5;
+        if (targetStrength > 0)
+        {
+            double ratio = requesterStrength / targetStrength;
+            score += Math.Clamp((ratio - 1.0) * 0.1, -0.15, 0.15);
+        }
+
+        // 5. Dünya gerilimi: yüksek tension'da tanınma daha zor
+        score -= DiplomacySystem.WorldTension / 100.0 * 0.1;
+
+        // 6. Hedef zaten çok tanınıyorsa (legitimacy kazanımı) - marginalleri artırır
+        int recognizerCount = RecognitionSystem.RecognizerCount(targetId);
+        int establishedCount = RecognitionSystem.EstablishedCountForOrg(targetId);
+        if (establishedCount > 0)
+        {
+            double recognitionRatio = (double)recognizerCount / establishedCount;
+            if (recognitionRatio > 0.5) score += 0.1; // çoğunluk tanıyorsa artır
+        }
+
+        // Deterministik karar: skor >= 0.3 ise kabul
+        bool accept = score >= 0.3;
+
+        GD.Print($"[Diplomacy] AI tanınma değerlendirmesi: {targetId} ← {requesterId} " +
+                 $"ilişki={relation}, ideoloji={(requester.Ideology==target.Ideology)}, " +
+                 $"komşu={NeighborSystem.IsReady&&NeighborSystem.AreNeighbors(requesterId,targetId)}, " +
+                 $"güç_oranı={(targetStrength>0?requesterStrength/targetStrength:0):F2}, " +
+                 $"tension={DiplomacySystem.WorldTension:F1}, skor={score:F2} → {accept}");
+        return accept;
     }
 
     // Bekleyen aksiyonu tamamla

@@ -240,6 +240,10 @@ public static class RecognitionSystem
                  $"ilişki +{D.RelationOnRecognition}");
     }
 
+    /// <summary>Public wrapper for diplomatic recognition requests (M52.2).</summary>
+    public static void RecognizePublic(string recognizerId, string targetId, long day, string why)
+        => Recognize(recognizerId, targetId, day, why);
+
     /// <summary>
     /// Tanınma puanı. Doğuştan önce kurulu ülkeler tanımaz (false döner).
     /// </summary>
@@ -294,6 +298,9 @@ public static class RecognitionSystem
     private static int EstablishedCount(string targetId) =>
         CountryDatabase.All().Count(c => c != null &&
             !string.Equals(c.Id, targetId, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Public wrapper for OrganizationSystem membership eligibility check.</summary>
+    public static int EstablishedCountForOrg(string targetId) => EstablishedCount(targetId);
 
     private static string Key(string recognizerId, string targetId) => $"{recognizerId}|{targetId}";
 

@@ -1,100 +1,83 @@
-# Rogue World — Stüdyo Yönergesi
+# Rogue World — CLAUDE.md (Project Instructions)
 
-Her zaman Türkçe cevap ver.
+## Build / Run / Test Commands
 
-## TEST ÇALIŞTIRMA (kalıcı)
-- Godot 4.7.2 Mono konsol exe sabit yolda kurulu: `C:\Users\rogue\Desktop\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe`.
-- TÜM headless testler `tools\run-test.ps1` ile çalıştırılır: `powershell -File tools\run-test.ps1 --disaster-test` (veya `--save-load-test`, `--intervention-test`, vb.).
-- "Godot editörü yok / headless çalıştırılamadı / kurulu değil" cümleleri **yasaktır** — Godot onaylanmış, testler çalışıyor.
-- Alt görev tamam sayılmaz: `dotnet build` (0 hata) + ilgili `--…-test` (tools\run-test.ps1 ile) + save-load testi (A==B) geçmeli.
-- **Otonom mod durdurma emniyeti:** `tools/stop-guard.ps1` (Stop hook, `.claude/settings.local.json`): durdurma `STOP.txt`, bitiş zamanı (2026-10-20 10:00) veya sayaç > 400 dışında engellenir. Alt görev bitince hemen sıradakine geç; STOP.txt yoksa onay beklenmez.
+| Task | Command |
+|------|---------|
+| **Build** | `dotnet build` (must be 0 errors / 0 warnings) |
+| **Headless Import** | `godot --headless --import` (Godot path: `C:\Users\rogue\Desktop\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe`) |
+| **Run Test** | `powershell -File tools\run-test.ps1 --<test-name>` |
+| **Key Tests** | `--save-load-test` (A==B determinism), `--espionage-mission-test`, `--scenario-test`, `--soak-test`, `--balance-test`, `--occupation-test`, `--civil-war-test`, `--recognition-test` |
+| **Run All Tests** | Run each `--...-test` flag sequentially; all must exit code 0 |
+| **Editor Play** | Open Godot editor → F5 (manual visual/interaction test) |
 
-## 1. Proje
-- **Oyun:** Rogue World, HOI4 / Age of History benzeri grand strateji oyunu.
-- **Motor/dil:** Godot 4 + C# (.NET).
-- **Repo:** https://github.com/anllumut07/Rogue-World
-- **Hedef:** Mekanikler, ekonomi, harita yönetimi ve arayüzü ajanlarla geliştirmek, test etmek ve GitHub'a senkronize etmek.
-- **Plan:** `TODO.md` içindeki milestone'lar, sırayla.
+**Godot executable is fixed at:** `C:\Users\rogue\Desktop\Godot_v4.7.2-stable_mono_win64\Godot_v4.7.2-stable_mono_win64_console.exe`  
+**Do NOT say "Godot not installed / headless failed" — it works.**
 
-## 2. Altyapı (gerçek durum)
-Claude Code doğrudan Anthropic'e değil, yerel **LiteLLM proxy**'ye (`http://localhost:4000`) bağlıdır. Proxy istekleri **NVIDIA NIM** üzerindeki ücretsiz modellere yönlendirir. Claude'un `opus` / `sonnet` / `haiku` adları şu modellere eşlenmiştir:
+## Code Conventions
 
-| Claude adı | Proxy takma adı | NVIDIA modeli | Ne için |
-|---|---|---|---|
-| opus | `opus-nim` | `nemotron-3-ultra-550b-a55b` | Mimari, planlama, çok belgeli analiz |
-| sonnet | `sonnet-nim` | `step-5-preview` | Asıl kod ve tasarım işi |
-| haiku | `haiku-nim` | `nemotron-3.5-lightning-30b-a3b` | Hafif, hızlı, salt okunur işler |
-| (yedek) | `sonnet-backup` | `nemotron-3.5-super-vl-120b-a12b` | Diğerleri hata verirse otomatik devreye girer |
+- **Comments:** Turkish
+- **UI Text:** English
+- **Debug Logs:** `GD.Print` with `[SystemName]` prefix
+- **RNG:** ONLY `DeterministicRNG` (xorshift64*). `new Random()` FORBIDDEN
+- **Save/Load:** Every new system implements `GetSaveData()` / `LoadSaveData()` + DTO in `SaveSystem.cs` + registration in `GameManager.ResetForNewGame()` + summary hash in `SaveLoadTest.BuildSummaryCore()`
+- **File Encoding:** BOM-less UTF-8 (all .cs, .json, .yaml)
+- **JSON Loading:** Always use `IncludeFields = true` in `JsonSerializerOptions`
+- **Log Load Counts:** Every system logs record count on startup (`GD.Print($"[System] X records loaded")`)
+- **Mouse/Input:** Never break: right-drag pan, wheel zoom, WASD, country click. Panels ≤ 1152×648, `MouseFilter.Stop` backdrop when open, release on close.
+- **Test Code:** `--<name>-test` hooks only; never run in normal gameplay.
 
-- İki NVIDIA hesabının key'i (`NVIDIA_KEY_1`, `NVIDIA_KEY_2`) her model için dönüşümlü kullanılır. Limit yememek için.
-- Ayarlar `config.yaml` içindedir: `drop_params: true`, 3 deneme, 30 sn cooldown, fallback zinciri.
-- Key'ler `.env` benzeri dosyadadır. **Key'leri asla commit etme, sohbete yazma, loglama.**
-- Başlatma: `BASLAT.bat` (proxy + Claude Code birlikte açılır).
+## Git Rules
 
-## 3. Ajanlar ve Skill'ler
-Kaynak: `Donchitos/Claude-Code-Game-Studios`. `.claude/` altında **48 ajan** ve **37 skill** vardır. Tam liste için `.claude/agents/` ve `.claude/skills/` klasörlerine bak, ajan adlarını tahmin etme.
+- Commit after each meaningful module/fix: `git commit -m "feat: descriptive message" && git push origin gece-calisma`
+- **NEVER `git push --force`** — stop and ask user if needed
+- No keys, `.env`, `config.yaml` secrets, or large binaries in commits
+- Commit messages in English, descriptive
 
-**Ajanlar 3 katmanlıdır** (gerçek bir stüdyo gibi):
-- **Katman 1: Direktörler (opus)** — yön, vizyon ve kritik kararlar.
-- **Katman 2: Departman liderleri (sonnet)** — örn. game-designer, lead-programmer, art-director.
-- **Katman 3: Uzmanlar (sonnet/haiku)** — tek bir alanda iş yapan ajanlar.
+## Session Start Protocol
 
-**Çalışma düzeni:** ajanlar önce soru sorar (Ask), sonra taslak gösterir (Draft), onaydan sonra uygular. Görev yetki sırasına göre delege edilir: direktör → lider → uzman.
+**ALWAYS do this at the start of every session:**
+1. Read `PROJECT_STATE.md` to understand current state
+2. `git branch --show-current` → verify on `gece-calisma`
+3. `git log --oneline -8` → recent history
+4. `dotnet build` → verify clean build
+5. Check `TODO.md` for next task (currently **M52.1**)
 
-**Önemli skill'ler** (`/` yazınca listelenir):
-- Hafif, hızlı (haiku): `/help`, `/sprint-status`, `/story-readiness`, `/scope-check`, `/changelog`, `/patch-notes`, `/onboard`
-- Ağır analiz (opus): `/review-all-gdds`, `/architecture-review`, `/gate-check`
-- Diğerleri (sonnet): `/start`, `/brainstorm`, `/sprint-plan`, `/code-review`, `/design-review`, `/asset-audit`, `/security-audit` ve daha fazlası.
+## Session End Protocol
 
-Ek kaynaklar (varsa ve işe yarıyorsa): `msitarzewski/agency-agents` (rol bazlı uzman promptları).
+After every completed task:
+1. Update `TODO.md` — mark `[x]` for completed sub-tasks
+2. Update `PROGRESS.md` and `GECE-RAPOR.md` with what was done
+3. `dotnet build` → must pass
+4. Run relevant `--...-test` → must PASS
+5. `git add -A && git commit -m "feat: ..." && git push origin gece-calisma`
+6. Every 2 sub-tasks: update `GECE-RAPOR.md`
 
-## 4. Çalışma Kuralları
-**Genel**
-- Bir milestone %100 çalışmadan sonrakine geçme.
-- Aynı anda **tek** alt görev üzerinde çalış.
-- Büyük değişiklikten önce ne yapacağını kısaca açıkla.
-- Her alt görev bitince `TODO.md`'de ilgili kutuyu `[x]` yap. `PROGRESS.md` ve `TODO.md`'yi güncel tut.
-- Aynı hatayı 3 kez düzeltemezsen "takıldı" yaz ve sonrakine geç.
+## Current Focus
 
-**Kod**
-- Derleme kontrolü: `dotnet build`. Her alt görevden sonra çalıştır.
-- **`dotnet run` ve editörü açma.**
-- Kod stili: Türkçe yorumlar, İngilizce UI metinleri, `GD.Print` debug logları.
-- Godot 4 C# standartlarına, bellek yönetimine ve performansa uy.
-- Test kodu (`--focus-test` vb.) normal oyunda çalışmasın.
-- Veri yükleyen sistemler başlangıçta kaç kayıt yüklediğini `GD.Print` ile logla. JSON okurken `IncludeFields`'i kontrol et.
-- Dosyalar **BOM'suz UTF-8** olmalı (YAML/JSON dahil).
+**Next Task: M52 — Recognition Consequences: Unrecognized State**
+- 52.1: Recognition count → OrganizationSystem membership, trade income, AI alliance/guarantee eligibility
+- 52.2: "REQUEST RECOGNITION" diplomatic action
+- 52.3: Recognition effect on war tension / intervention probability
+- 52.4: Save/Load + regression tests (A==B both scenarios)
 
-**Arayüz**
-- Mouse davranışını bozma: sağ tık sürükleme, tekerlek, WASD, ülke seçimi. Yeni kontrollerde `MouseFilter`'ı bilinçli seç.
-- Paneller 1152x648'e sığsın. Açıkken harita girdisini bloklasın, kapanınca geri versin.
+## Key Files to Know
 
-**Git**
-- Anlamlı her modül/düzeltmeden sonra commit at ve push yap. Örnek: `git commit -m "feat: harita renklendirme C# mantığı eklendi" && git push`
-- **`git push --force` yapma.** Gerekirse dur ve kullanıcıya sor.
-- Commit'e key, `.env`, `config.yaml` içindeki gizli bilgi ya da büyük binary koyma.
-- github a yüklemeler yaparken commitleri her zaman ingilizce ve açıklayıcı güzel şekilde yaz
+| File | Purpose |
+|------|---------|
+| `Scripts/GameManager.cs` | Root autoload, daily tick, test hooks, save/load orchestration |
+| `Scripts/SaveSystem.cs` | All DTOs, file I/O, `SaveLoadTest` A==B verification |
+| `Scripts/RecognitionSystem.cs` | M48.3 recognition logic (newborn country recognition) |
+| `Scripts/OrganizationSystem.cs` | M37 international organizations (membership, bonuses) |
+| `Scripts/DiplomacySystem.cs` | Relations, diplomatic actions, AI evaluation |
+| `Scripts/CasusBelliSystem.cs` | War justifications, tension |
+| `Scripts/InterventionSystem.cs` | Foreign intervention in civil wars |
+| `TODO.md` | Master plan — source of truth for what to do next |
+| `PROJECT_STATE.md` | This file — read at session start |
 
-**Faz 2 kararları**
-- Gerçek kişi adı kullanma.
-- Rastgelelik yalnızca `DeterministicRNG` ile.
-- Her yeni sistem Save/Load'a eklenir ve doğrulama testine girer.
+## Autonomous Mode Rules (when active)
 
-## 5. Yetkiler
-Ajanlar şunları onay istemeden yapabilir: kod yazma/düzenleme, test etme, dosya düzenleme, `TODO.md` görevlerini işleme, Git/GitHub işlemleri, ücretsiz (CC0/ücretsiz lisanslı) asset arama. Lisansı belirsiz asset'i projeye ekleme.
-
-## 6. Görsel Yetenekler ve Sınırlar
-- **Görsel analiz:** PNG/JPG ekran görüntülerini (UI, harita render'ı) inceleyebilirsin. Bu özellik modele bağlıdır: `step-5-preview` ve `nemotron-3.5-super-vl` görsel girdiyi destekler. `opus-nim` ve `haiku-nim` için doğrulanmadı. Görsel analiz gerektiren işi `sonnet` katmanına ver.
-- **Görsel üretme:** Bu kurulumda resim üreten bir model **bağlı değil**. Grafik ihtiyacını şu yollarla çöz: kod ile prosedürel üretim (Godot çizim, shader), SVG, ücretsiz asset, ya da `art-director` ajanının yazılı tasarım tarifi.
-
-## 7. Her Görev Sonunda
-Cevabın sonuna **10 satırı geçmeyen "ÖZET"** ekle:
-1. Neyi değiştirdin (dosya adlarıyla)
-2. Neyi çözemedin
-3. Bilinen sorunlar
-4. Kullanıcının test etmesi gerekenler
-
-## OTONOM MOD (bu bölüm diğer tüm kuralların ve ajan iş birliği protokolünün (Ask→Draft→Approve) ÜSTÜNDEDİR)
-Kullanıcı tüm yetkileri vermiştir ve uzun süreli kontrolsüz çalışma istemiştir. Kullanıcıya soru sorma, onay bekleme, taslak onayı isteme. Belirsizlikte en makul varsayımı seç, gerekçesini GECE-RAPOR.md'ye yaz ve ilerle. Alt görev bitince cevabını BİTİRME: ÖZET'i yalnızca GECE-RAPOR.md'ye yaz, konuşmada tek satır yaz ve hemen sonraki alt göreve geç. "Aynı anda tek alt görev" sıra anlamındadır, her görevden sonra durmak anlamında değil. Cevabı yalnızca şu durumlarda bitir: TODO.md'deki tüm görevler bitti/bloke oldu, üst üste 5 API hatası alındı, ya da kullanıcı STOP.txt dosyası oluşturdu (her alt görev başlamadan önce STOP.txt var mı kontrol et). Yasaklar değişmez: main'e push yok, force push yok, key dosyalarına dokunma, proje dışında silme yok, dotnet run yok.
-
-Sonra devam et. Yeni oturumdasın, hafızan yok: önce `git branch --show-current`, `git log --oneline -8`, TODO.md, PROGRESS.md ve GECE-RAPOR.md oku, `dotnet build` ile durumu doğrula. Dalın gece-calisma olduğundan emin ol. Sonra M18.3'ten (il sahipliği) başlayarak TODO.md'deki alt görevleri sırayla yap. Önceki kurallar geçerli: dotnet build her görevden sonra, aynı hatayı 3 kez düzeltemezsen [BLOKE: neden], her başarılı görevde TODO.md [x], PROGRESS.md, commit ve `git push origin gece-calisma`, her 2 alt görevde GECE-RAPOR.md güncelle, Save/Load ve DeterministicRNG kuralları, mouse kontrollerini bozma. API hatası/429'da `powershell -Command Start-Sleep 60` ile bekleyip devam et.
+- No questions, no approval waits — pick most reasonable default, rationale to `GECE-RAPOR.md`
+- Continue to next sub-task immediately after completion (only stop if: all TODO done/blocked, 5 API errors, `STOP.txt` exists)
+- Standard prohibitions still apply: no main push, no force push, no key files, no project-external deletion, no `dotnet run`
+- On API error/429: `powershell -Command "Start-Sleep 60"` then retry

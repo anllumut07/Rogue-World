@@ -19,6 +19,7 @@ mono_crash.*.json
 bin/
 obj/
 *.user
+
 # Session management logs (Claude Code) — not project deliverables
 production/
 
@@ -33,3 +34,25 @@ DURUM-RAPORU.md
 
 # Headless test scratch outputs — never commit
 *_out*.txt
+
+# Ruflo local secrets and runtime data
+.env
+.env.local
+.env.*.local
+.claude-flow/
+.swarm/
+.mcp.json
+
+# Local Godot installation (large binary) — never commit
+Godot_v4.7.2-stable_mono_win64/
+
+# Local scripts and config
+setup.bat
+start-claude.bat
+list-models.bat
+test-models.bat
+models.txt
+litellm_config.yaml
+
+# UID files (Godot metadata)
+*.uid

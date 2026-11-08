@@ -81,3 +81,10 @@ After every completed task:
 - Continue to next sub-task immediately after completion (only stop if: all TODO done/blocked, 5 API errors, `STOP.txt` exists)
 - Standard prohibitions still apply: no main push, no force push, no key files, no project-external deletion, no `dotnet run`
 - On API error/429: `powershell -Command "Start-Sleep 60"` then retry
+
+## Ruflo Integration Rules
+
+- **Before any task:** `npx ruflo@latest memory search --query "<task keywords>"` to retrieve relevant knowledge.
+- **Multi-step work:** `npx ruflo@latest task create` for each step, `npx ruflo@latest agent spawn -t coder|tester|reviewer` to delegate. Prefer Ruflo agents over native Task tool.
+- **After task passes build + tests:** `npx ruflo@latest memory store --namespace patterns` with what worked, then update `PROJECT_STATE.md`.
+- **Never** run `init --force`, clean, or anything that deletes `.claude/` without asking user first.

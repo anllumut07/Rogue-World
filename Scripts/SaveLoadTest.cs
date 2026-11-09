@@ -735,6 +735,29 @@ public static class SaveLoadTest
         }
         sb.AppendLine($"Tanınma: doğan={birthCount}, tanınma={recognitionCount}, hash={recognitionHash}");
 
+        // M53: Danışman ekibi özeti (save/load A==B karşılaştırmasına girer)
+        var advisorSave = AdvisorSystem.GetSaveData();
+        int activeAdvisors = advisorSave?.ActiveAdvisors?.Length ?? 0;
+        int cooldowns = advisorSave?.Cooldowns?.Length ?? 0;
+        int historyCount = advisorSave?.History?.Length ?? 0;
+        int advisorHash = 0;
+        if (advisorSave?.ActiveAdvisors != null)
+        {
+            foreach (var a in advisorSave.ActiveAdvisors)
+                advisorHash = advisorHash * 31 + (a.Type + "|" + a.ProfileId + "|" + a.HiredDay + "|" + a.AdviceCount + "|" + a.LastAdviceDay).GetHashCode();
+        }
+        if (advisorSave?.Cooldowns != null)
+        {
+            foreach (var c in advisorSave.Cooldowns)
+                advisorHash = advisorHash * 31 + (c.Type + "|" + c.DaysRemaining).GetHashCode();
+        }
+        if (advisorSave?.History != null)
+        {
+            foreach (var h in advisorSave.History)
+                advisorHash = advisorHash * 31 + (h.Type + "|" + h.AdvisorId + "|" + h.Confidence + "|" + h.GeneratedDay + "|" + h.IsUrgent).GetHashCode();
+        }
+        sb.AppendLine($"Danışmanlar: aktif={activeAdvisors}, cooldown={cooldowns}, geçmiş={historyCount}, hash={advisorHash}");
+
         if (leaderCount > 0)
         {
             foreach (var kv in LeaderSystem.All.OrderBy(k => k.Key))

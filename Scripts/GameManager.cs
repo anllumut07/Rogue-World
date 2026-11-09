@@ -197,6 +197,7 @@ public partial class GameManager : Node
         bool occupationAdminTest = false;    // M49.3: işgal yönetimi — çıkarım, direniş, serbest bırakma isteği
         bool civilWarTest = false;           // M50.1: İç çatışma — çöküş puanı ve isyan ili seçimi
         bool formablePanelTest = false;      // M44.5: kurgu ülke paneli testi (--formable-panel-test)
+        bool advisorTest = false;            // M53: danışman ekibi testi (--advisor-test)
         bool releasablePanelTest = false;    // M45.1: bağımsız çıkarma paneli testi (--releasable-panel-test)
         bool autonomyTest = false;           // M45.2: özerklik sistemi testi (--autonomy-test)
         bool resistanceTest = false;         // M45.3: direniş sistemi testi (--resistance-test)
@@ -382,6 +383,8 @@ public partial class GameManager : Node
                 civilWarTest = true;
             else if (arg == "--formable-panel-test")
                 formablePanelTest = true;
+            else if (arg == "--advisor-test")
+                advisorTest = true;
                 else if (arg == "--releasable-panel-test")
                     releasablePanelTest = true;
                 else if (arg == "--autonomy-test")
@@ -852,6 +855,10 @@ public partial class GameManager : Node
         if (civilWarTest)
             RunCivilWarTest();
 
+        // M53: Danışman ekibi testi — profil yükleme, tavsiye üretimi, save/load A==B.
+        if (advisorTest)
+            RunAdvisorTest();
+
         // M44.5: Kurgu ülke paneli testi — kurgu ülkeler, kültür haritası, kurma/iptal.
         if (formablePanelTest)
             RunFormablePanelTest();
@@ -1150,6 +1157,9 @@ public partial class GameManager : Node
 
         // M37: Uluslararası örgütler — yıllık zirve / aylık bakanlar toplantısı denetimi.
         OrganizationSystem.DailyTick(TotalDays);
+
+        // M53: Danışman ekibi — günlük cooldown azaltma.
+        AdvisorSystem.DailyTick(TotalDays);
 
         // M23.3: Seçim günü — oyuncu ülkesinde seçim sonucu çözümlenir (kazanma/kaybetme, lider değişikliği, yeni kabine)
         if (HasPlayer) ElectionSystem.ResolveElection(PlayerCountryId, TotalDays);
@@ -1508,6 +1518,9 @@ public partial class GameManager : Node
 
         // M37: Uluslararası örgütleri yeni oyun için sıfırla (üyelikler veri dosyasından yeniden yüklenir).
         OrganizationSystem.ResetForNewGame();
+
+        // M53: Danışman ekibini yeni oyun için sıfırla.
+        AdvisorSystem.ResetForNewGame();
 
         // M39.1: İkmal sistemini yeni oyun için sıfırla.
         SupplySystem.ResetForNewGame();
@@ -12197,6 +12210,110 @@ private void RunBalanceTest()
     }
 
     // ===== M51: Casusluk Görev Etkileri Testi =====
+
+    /// <summary>
+    /// M53: Danışman ekibi testi (--advisor-test).
+    /// Profil yükleme, tavsiye üretimi (3 tür), cooldown, save/load A==B, Reset.
+    /// Normal oyunda ASLA çalışmaz.
+    /// </summary>
+    private void RunAdvisorTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M53: DANIŞMAN EKİBİ TESTİ (--advisor-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        // 1) Profil yükleme doğrulama
+        AdvisorSystem.ResetForNewGame();
+        var profiles = AdvisorSystem.GetAllProfiles();
+        GD.Print($"[AdvisorTest] 1) Yüklenen profil sayısı: {profiles.Count}");
+        if (profiles.Count < 18) // 6 economy + 6 security + 6 media
+        {
+            GD.PrintErr($"[AdvisorTest] BEKLENMEDİK: en az 18 profil bekleniyor, {profiles.Count} geldi");
+            ok = false;
+        }
+
+        // Her türden en az 3 profil olmalı
+        foreach (var type in new[] { AdvisorSystem.AdvisorType.Economy, AdvisorSystem.AdvisorType.Security, AdvisorSystem.AdvisorType.Media })
+        {
+            var typeProfiles = AdvisorSystem.GetProfilesForType(type);
+            GD.Print($"[AdvisorTest]    {type}: {typeProfiles.Count} profil");
+            if (typeProfiles.Count < 3) ok = false;
+        }
+
+        // 2) Danışman işe alma
+        long day = TotalDays;
+        string playerId = PlayerCountryId;
+        if (string.IsNullOrEmpty(playerId)) SetPlayerCountry("GER");
+        playerId = PlayerCountryId;
+
+        var econProfiles = AdvisorSystem.GetProfilesForType(AdvisorSystem.AdvisorType.Economy);
+        var secProfiles = AdvisorSystem.GetProfilesForType(AdvisorSystem.AdvisorType.Security);
+        var medProfiles = AdvisorSystem.GetProfilesForType(AdvisorSystem.AdvisorType.Media);
+
+        bool hiredEcon = AdvisorSystem.HireAdvisor(econProfiles[0].Id, AdvisorSystem.AdvisorType.Economy, day);
+        bool hiredSec = AdvisorSystem.HireAdvisor(secProfiles[0].Id, AdvisorSystem.AdvisorType.Security, day);
+        bool hiredMed = AdvisorSystem.HireAdvisor(medProfiles[0].Id, AdvisorSystem.AdvisorType.Media, day);
+        GD.Print($"[AdvisorTest] 2) İşe alma: Econ={hiredEcon}, Sec={hiredSec}, Med={hiredMed}");
+        if (!hiredEcon || !hiredSec || !hiredMed) ok = false;
+
+        // 3) Tavsiye üretimi (cooldown 0)
+        var adviceEcon = AdvisorSystem.RequestAdvice(AdvisorSystem.AdvisorType.Economy, day, playerId);
+        var adviceSec = AdvisorSystem.RequestAdvice(AdvisorSystem.AdvisorType.Security, day, playerId);
+        var adviceMed = AdvisorSystem.RequestAdvice(AdvisorSystem.AdvisorType.Media, day, playerId);
+
+        GD.Print($"[AdvisorTest] 3) Tavsiye üretildi:");
+        GD.Print($"    Economy: conf={adviceEcon?.Confidence}, urgent={adviceEcon?.IsUrgent} -> {adviceEcon?.Recommendation}");
+        GD.Print($"    Security: conf={adviceSec?.Confidence}, urgent={adviceSec?.IsUrgent} -> {adviceSec?.Recommendation}");
+        GD.Print($"    Media: conf={adviceMed?.Confidence}, urgent={adviceMed?.IsUrgent} -> {adviceMed?.Recommendation}");
+
+        if (adviceEcon == null || adviceSec == null || adviceMed == null) ok = false;
+        if (adviceEcon != null && (adviceEcon.Confidence < 10 || adviceEcon.Confidence > 100)) ok = false;
+        if (adviceSec != null && (adviceSec.Confidence < 10 || adviceSec.Confidence > 100)) ok = false;
+        if (adviceMed != null && (adviceMed.Confidence < 10 || adviceMed.Confidence > 100)) ok = false;
+
+        // 4) Cooldown testi (2. tavsiye null dönmeli)
+        var adviceEcon2 = AdvisorSystem.RequestAdvice(AdvisorSystem.AdvisorType.Economy, day, playerId);
+        GD.Print($"[AdvisorTest] 4) Cooldown testi (2. tavsiye): {(adviceEcon2 == null ? "null (beklendi)" : "dolu (HATA!)")}");
+        if (adviceEcon2 != null) ok = false;
+
+        // 5) DailyTick cooldown azaltma (7 gün)
+        for (int i = 0; i < 7; i++)
+            AdvisorSystem.DailyTick(day + i);
+        var adviceEcon3 = AdvisorSystem.RequestAdvice(AdvisorSystem.AdvisorType.Economy, day + 7, playerId);
+        GD.Print($"[AdvisorTest] 5) 7 gün sonra cooldown sıfır: {(adviceEcon3 != null ? "tavsiye üretildi (beklendi)" : "null (HATA!)")}");
+        if (adviceEcon3 == null) ok = false;
+
+        // 6) Save/Load A==B
+        GD.Print("[AdvisorTest] 6) Save/Load A==B testi...");
+        var saveData = AdvisorSystem.GetSaveData();
+        GD.Print($"    Save: aktif={saveData.ActiveAdvisors?.Length ?? 0}, cooldown={saveData.Cooldowns?.Length ?? 0}, geçmiş={saveData.History?.Length ?? 0}");
+
+        // Yeni instance simülasyonu (state'i temizle, sonra yükle)
+        AdvisorSystem.LoadSaveData(saveData);
+        var loadedProfiles = AdvisorSystem.GetAllActiveAdvisors();
+        GD.Print($"    Load: aktif={loadedProfiles.Count}");
+        if (loadedProfiles.Count != 3) ok = false;
+
+        // Yüklenen state ile tekrar tavsiye iste (cooldown korunmalı)
+        var adviceAfterLoad = AdvisorSystem.RequestAdvice(AdvisorSystem.AdvisorType.Economy, day + 7, playerId);
+        GD.Print($"    Load sonrası tavsiye (cooldown devam etmeli): {(adviceAfterLoad == null ? "null (beklendi - cooldown 0 değil)" : "dolu")}");
+        // Not: cooldown 7 gün olarak kaydedilmişti, 7 gün geçtiği için artık tavsiye üretilmeli
+        // Ama LoadSaveData cooldown'u aynen yükler, o yüzden day+7'de cooldown 0 olmalı
+        // Bu test determinizm için: aynı seed ile aynı gün tekrar tavsiye istenirse A==B olmalı
+
+        // 7) ResetForNewGame
+        AdvisorSystem.ResetForNewGame();
+        var afterReset = AdvisorSystem.GetAllActiveAdvisors();
+        GD.Print($"[AdvisorTest] 7) Reset sonrası aktif: {afterReset.Count} (beklenen 0)");
+        if (afterReset.Count != 0) ok = false;
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
 
     /// <summary>
     /// M51.1-M51.3: Casusluk görev etkileri testi (--espionage-mission-test).

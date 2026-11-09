@@ -279,6 +279,14 @@ public partial class GameHud : CanvasLayer
                 OrganizationPanel.OpenUnder(this);
             });
 
+        // ADVISORS (M53): danışman ekibi — işe alma, tavsiye, geçmiş
+        AddSection("ADVISORS", "Advisors — hire economy/security/media advisors, request advice, view history",
+            () =>
+            {
+                GD.Print("[GameHud] ADVISORS butonu basıldı — AdvisorPanel.OpenUnder çağrılıyor");
+                AdvisorPanel.OpenUnder(this);
+            });
+
         // ELECTION (M23.1): seçim takvimi + oy tahmini paneli
         AddSection("ELECTION", "Elections — calendar and vote prediction",
             () =>

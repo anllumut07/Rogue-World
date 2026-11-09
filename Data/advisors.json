@@ -1,0 +1,186 @@
+{
+  "Advisors": [
+    {
+      "Id": "advisor_econ_01",
+      "Name": "Elena Vasquez",
+      "Type": "Economy",
+      "CultureGroup": "western",
+      "Loyalty": 80,
+      "Popularity": 65,
+      "Trait": "technocrat",
+      "ExpertiseTags": ["tax", "budget", "trade", "debt"]
+    },
+    {
+      "Id": "advisor_econ_02",
+      "Name": "Hans Weber",
+      "Type": "Economy",
+      "CultureGroup": "western",
+      "Loyalty": 75,
+      "Popularity": 55,
+      "Trait": "reformer",
+      "ExpertiseTags": ["industry", "infrastructure", "employment", "innovation"]
+    },
+    {
+      "Id": "advisor_econ_03",
+      "Name": "Chen Wei",
+      "Type": "Economy",
+      "CultureGroup": "eastern",
+      "Loyalty": 85,
+      "Popularity": 70,
+      "Trait": "technocrat",
+      "ExpertiseTags": ["manufacturing", "export", "currency", "planning"]
+    },
+    {
+      "Id": "advisor_econ_04",
+      "Name": "Amara Diallo",
+      "Type": "Economy",
+      "CultureGroup": "african",
+      "Loyalty": 70,
+      "Popularity": 75,
+      "Trait": "populist",
+      "ExpertiseTags": ["development", "resources", "agrarian", "youth_employment"]
+    },
+    {
+      "Id": "advisor_econ_05",
+      "Name": "Rafael Santos",
+      "Type": "Economy",
+      "CultureGroup": "latin",
+      "Loyalty": 65,
+      "Popularity": 80,
+      "Trait": "populist",
+      "ExpertiseTags": ["social_spending", "inflation_control", "trade_unions", "subsidies"]
+    },
+    {
+      "Id": "advisor_econ_06",
+      "Name": "Mikhail Volkov",
+      "Type": "Economy",
+      "CultureGroup": "eastern",
+      "Loyalty": 90,
+      "Popularity": 50,
+      "Trait": "hawk",
+      "ExpertiseTags": ["military_industry", "strategic_reserves", "sanctions_evasion", "autarky"]
+    },
+
+    {
+      "Id": "advisor_sec_01",
+      "Name": "General Klaus Fischer",
+      "Type": "Security",
+      "CultureGroup": "western",
+      "Loyalty": 85,
+      "Popularity": 60,
+      "Trait": "hawk",
+      "ExpertiseTags": ["land_warfare", "armor", "logistics", "mobilization"]
+    },
+    {
+      "Id": "advisor_sec_02",
+      "Name": "Admiral Sarah Mitchell",
+      "Type": "Security",
+      "CultureGroup": "western",
+      "Loyalty": 80,
+      "Popularity": 70,
+      "Trait": "technocrat",
+      "ExpertiseTags": ["naval_strategy", "carrier_groups", "submarine_warfare", "sea_control"]
+    },
+    {
+      "Id": "advisor_sec_03",
+      "Name": "Air Marshal James Chen",
+      "Type": "Security",
+      "CultureGroup": "western",
+      "Loyalty": 75,
+      "Popularity": 65,
+      "Trait": "technocrat",
+      "ExpertiseTags": ["air_superiority", "strategic_bombing", "missile_defense", "drone_warfare"]
+    },
+    {
+      "Id": "advisor_sec_04",
+      "Name": "General Ivan Petrov",
+      "Type": "Security",
+      "CultureGroup": "eastern",
+      "Loyalty": 90,
+      "Popularity": 55,
+      "Trait": "hawk",
+      "ExpertiseTags": ["deep_battle", "artillery", "asymmetric_warfare", "nuclear_doctrine"]
+    },
+    {
+      "Id": "advisor_sec_05",
+      "Name": "General Hassan Al-Rashid",
+      "Type": "Security",
+      "CultureGroup": "middle_eastern",
+      "Loyalty": 85,
+      "Popularity": 70,
+      "Trait": "hawk",
+      "ExpertiseTags": ["desert_warfare", "insurgency", "border_security", "proxy_forces"]
+    },
+    {
+      "Id": "advisor_sec_06",
+      "Name": "General Kwame Osei",
+      "Type": "Security",
+      "CultureGroup": "african",
+      "Loyalty": 75,
+      "Popularity": 75,
+      "Trait": "diplomat",
+      "ExpertiseTags": ["peacekeeping", "regional_security", "military_cooperation", "training"]
+    },
+
+    {
+      "Id": "advisor_media_01",
+      "Name": "Sophia Andersen",
+      "Type": "Media",
+      "CultureGroup": "western",
+      "Loyalty": 70,
+      "Popularity": 85,
+      "Trait": "diplomat",
+      "ExpertiseTags": ["public_speaking", "crisis_communication", "international_media", "soft_power"]
+    },
+    {
+      "Id": "advisor_media_02",
+      "Name": "Marco Rossi",
+      "Type": "Media",
+      "CultureGroup": "western",
+      "Loyalty": 75,
+      "Popularity": 80,
+      "Trait": "populist",
+      "ExpertiseTags": ["social_media", "rally_organization", "populist_messaging", "youth_outreach"]
+    },
+    {
+      "Id": "advisor_media_03",
+      "Name": "Yuki Tanaka",
+      "Type": "Media",
+      "CultureGroup": "eastern",
+      "Loyalty": 85,
+      "Popularity": 70,
+      "Trait": "technocrat",
+      "ExpertiseTags": ["information_control", "state_media", "cyber_narrative", "censorship"]
+    },
+    {
+      "Id": "advisor_media_04",
+      "Name": "Fatima Al-Zahra",
+      "Type": "Media",
+      "CultureGroup": "middle_eastern",
+      "Loyalty": 80,
+      "Popularity": 75,
+      "Trait": "diplomat",
+      "ExpertiseTags": ["religious_messaging", "tribal_outreach", "regional_media", "pilgrimage_diplomacy"]
+    },
+    {
+      "Id": "advisor_media_05",
+      "Name": "Kwesi Mensah",
+      "Type": "Media",
+      "CultureGroup": "african",
+      "Loyalty": 70,
+      "Popularity": 80,
+      "Trait": "populist",
+      "ExpertiseTags": ["radio", "grassroots", "pan_african_narrative", "diaspora_engagement"]
+    },
+    {
+      "Id": "advisor_media_06",
+      "Name": "Isabela Morales",
+      "Type": "Media",
+      "CultureGroup": "latin",
+      "Loyalty": 75,
+      "Popularity": 85,
+      "Trait": "reformer",
+      "ExpertiseTags": ["investigative_journalism", "transparency", "anti_corruption", "civic_education"]
+    }
+  ]
+}

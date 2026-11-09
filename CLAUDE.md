@@ -34,6 +34,17 @@
 - No keys, `.env`, `config.yaml` secrets, or large binaries in commits
 - Commit messages in English, descriptive
 
+## PUSH RULE (Mandatory)
+
+After EVERY completed milestone or stage, when build is 0 errors/0 warnings and all required tests pass:
+- Update `PROJECT_STATE.md`
+- `git add -A`
+- Commit with a clear message
+- `git push` to the current branch (`gece-calisma`)
+- Never force-push, never push to main directly, never push if a test is failing
+- If push fails, tell the user the error
+- Also store the lesson in Ruflo memory (`--namespace patterns`)
+
 ## Session Start Protocol
 
 **ALWAYS do this at the start of every session:**

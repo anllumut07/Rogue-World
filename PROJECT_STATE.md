@@ -82,14 +82,11 @@ C:\Proje\Rogue-World\
 - **M49:** War Changes Map (OccupationSystem: frontline progression, temporary ownership, war score integration, peace conference respects occupation, save/load)
 - **M50:** Civil War & State Collapse (collapse score, deterministic rebellion, rebel country spawns with war+recognition, resolution paths: crush/autonomy/intervention, spread/calming, save/load)
 - **M51:** Espionage Mission Effects (4 mission types: Intelligence/TechTheft/Sabotage/Propaganda with effects, counter-intel slowdown, diplomatic consequences, save/load A==B, test `--espionage-mission-test` PASS)
+- **M52:** Recognition Consequences (Unrecognized State) — Recognition count gates org membership/trade/alliances; REQUEST RECOGNITION diplomatic action; war tension/intervention scaling; Save/Load A==B both scenarios — ALL DONE ✓
+- **M53:** Advisor System — 18 advisor profiles (6 Economy/Security/Media), hire/fire per type, deterministic advice (confidence 10-100, rationale), 7-day cooldown, AdvisorPanel UI (active/müsait/history), HUD ADVISORS button, Save/Load A==B both scenarios — DONE ✓
 
 ## What is Broken / Unfinished
-- **M52: Recognition Consequences (Unrecognized State)** — NEXT PRIORITY
-  - 52.1: Recognition count → OrganizationSystem membership, trade income, AI alliance/guarantee eligibility — DONE ✓
-  - 52.2: "REQUEST RECOGNITION" diplomatic action (player + AI evaluation) — DONE ✓
-  - 52.3: Recognition effect on war tension / intervention probability — DONE ✓
-  - 52.4: Save/Load + regression tests — DONE ✓
-- **M53+** — Not yet planned in detail (see TODO.md "Önerilen Ek Özellikler")
+- **M54+** — Not yet planned in detail (see TODO.md "Önerilen Ek Özellikler")
 - **Export/Deployment (M13-14)** — Blocked on Godot export templates, versioning, CI/CD (user approval needed)
 
 ## Known Issues / Technical Debt
@@ -101,14 +98,12 @@ C:\Proje\Rogue-World\
 - Some test-only code paths still in production (being cleaned incrementally)
 
 ## Prioritized TODO (from TODO.md)
-1. **M52.1** — Recognition count institutional effects (org membership, trade, AI alliances) — DONE ✓
-2. **M52.2** — "REQUEST RECOGNITION" diplomatic action — DONE ✓
-3. **M52.3** — Recognition effect on war tension / intervention — DONE ✓
-4. **M52.4** — Save/Load + regression tests (A==B both scenarios) — DONE ✓
-5. Then evaluate "Önerilen Ek Özellikler" or proceed to M13/M14 (polish/export)
+1. **M52.1-52.4** — Recognition consequences (org membership, trade, AI alliances, REQUEST RECOGNITION action, war tension/intervention, save/load A==B) — ALL DONE ✓
+2. **M53.1-53.5** — Advisor System (18 profiles, hire/fire, deterministic advice, 7-day cooldown, AdvisorPanel UI, HUD button, save/load A==B both scenarios) — ALL DONE ✓
+3. Then evaluate "Önerilen Ek Özellikler" or proceed to M13/M14 (polish/export)
 
 ---
 
 **Current Branch:** `gece-calisma`  
-**Last Commit:** `3a9d3bc` — "feat: M51 - espionage mission effects implemented"  
-**Last Test Run:** `--espionage-mission-test` → PASS ✓ (all 4 mission types, counter-intel slowdown, save/load A==B, ResetForNewGame)
+**Last Commit:** `e74e5c3` — "feat: M52.3+M52.4 — Recognition war tension effects, civil war intervention scaling, save/load A==B verified both scenarios"  
+**Last Test Run:** `--advisor-test` → PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B

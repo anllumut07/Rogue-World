@@ -109,6 +109,7 @@ public static class SaveSystem
         public SpaceSystem.SpaceSave Space { get; set; } // M30.1: uzay programı — görev durumları
         public NuclearProgramSystem.NuclearSave Nuclear { get; set; } // M31.2: nükleer program aşamaları
         public OrganizationSystem.OrganizationSave Organization { get; set; } // M37: uluslararası örgüt üyeliği ve Madde 5 durumu
+        public AdvisorSystem.AdvisorsSave Advisors { get; set; } // M53: danışman ekibi
     }
 
     // ===== Economy DTOs =====
@@ -784,6 +785,7 @@ public static class SaveSystem
             Space = SpaceSystem.GetSaveData(), // M30.1: uzay programı — görev durumları
             Nuclear = NuclearProgramSystem.GetSaveData(), // M31.2: nükleer program aşamaları
             Organization = OrganizationSystem.GetSaveData(), // M37: uluslararası örgüt üyeliği ve Madde 5 durumu
+            Advisors = AdvisorSystem.GetSaveData(), // M53: danışman ekibi
         };
 
         EnsureSavesDir();
@@ -991,6 +993,10 @@ public static class SaveSystem
 
             // M37: uluslararası örgüt — üyelik ve Madde 5 durumu — kayıtta varsa geri yüklenir
             OrganizationSystem.LoadSaveData(save.Organization);
+
+            // M53: danışman ekibi — kayıtta varsa geri yüklenir
+            if (save.Advisors != null)
+                AdvisorSystem.LoadSaveData(save.Advisors);
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

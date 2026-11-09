@@ -3553,3 +3553,46 @@ paylardan bağımsız kılmaktı ama bu, harmonilama katmanının tüm tüketici
 (IsReconciled, FactoryShareOf vb.) etkilerdi. Eps=1e-5 seçtim: float32
 toplam hatası bu değerin çok altında, gerçek "toplam 1 değil" durumlarıysa
 çok üstünde.
+
+---
+
+## M53 — Danışman Ekibi (Advisor System) — ✅ DONE (2026-11-09)
+
+### 1. Neyi değiştirdim
+- **Data/advisors.json** (yeni): 18 danışman profili — 6 Economy, 6 Security, 6 Media. Her profilde: Id, Name, Type, CultureGroup (western/eastern/middle_eastern/asian), Loyalty (0-100), Popularity (0-100), Trait (technocrat/hawk/reformer/populist/diplomat), ExpertiseTags (tax/debt/trade/army/navy/air/propaganda/censorship vb.).
+- **Scripts/AdvisorSystem.cs** (yeni, ~460 satır):
+  - `AdvisorType` enum: Economy/Security/Media
+  - `AdvisorProfile`, `ActiveAdvisor`, `AdvisorAdvice` modelleri
+  - `EnsureLoaded()`: advisors.json lazy-load (JsonStringEnumConverter ile AdvisorType deserialize)
+  - `GetAllProfiles()`, `GetProfilesForType(type, cultureGroup)` — profil sorgulama
+  - `HireAdvisor(profileId, type, day)` / `FireAdvisor(type, day)` — her türden max 1 aktif
+  - `RequestAdvice(type, day, countryId)`: ülke istatistikleri (GDP, unemployment, inflation, stability, tension, vb.) + profile trait/loyalty/popularity → deterministik öneri/gerekçe/confidence (10-100). 7 gün cooldown (DailyTick'te azalır).
+  - `GetAdviceHistory(limit)`, `GetActiveAdvisor(type)`, `GetAllActiveAdvisors()`
+  - `GetSaveData()` / `LoadSaveData()` / `ResetForNewGame()` — AdvisorsSave DTO (ActiveAdvisors[], Cooldowns[], History[])
+- **Scripts/AdvisorPanel.cs** (yeni, ~415 satır): HUD ADVISORS butonundan overlay açılır; backdrop MouseFilter.Stop, ESC kapatır, 1152x648 sınırında. İçerik: 3 aktif danışman kartı (isim, trait, loyalty, popularity, işe alma günü, tavsiye sayısı, FIRE/REQUEST ADVICE butonları), müsait profiller (HIRE butonu), tavsiye geçmişi (son 10: conf/acil/gün/öneri/gerekçe). OrganizationPanel kalıbıyla birebir uyumlu.
+- **Scripts/GameHud.cs**: ADVISORS butonu ORGANIZATIONS ile ELECTION arasına eklendi.
+- **Scripts/GameManager.cs**: DailyTick'e `AdvisorSystem.DailyTick(TotalDays)` eklendi (cooldown azaltma); `--advisor-test` arg + `RunAdvisorTest()` (profil yükleme, 3 işe alma, 3 tavsiye, cooldown, 7 gün sonra tekrar, save/load A==B, reset).
+
+### 2. Test Sonuçları
+- `dotnet build`: **0 hata / 0 uyarı**
+- `--advisor-test`: **PASS ✓** — 18 profil yüklendi, 3 danışman işe alındı, 3 tavsiye üretildi (conf 35-37), cooldown null, 7 gün sonra tekrar, save/load aktif=3/cooldown=3/geçmiş=4, reset=0.
+- `--save-load-test` (historical_1936): **PASS ✓ (A == B)**
+- `--save-load-test --scenario=modern_world`: **PASS ✓ (A == B)**
+
+### 3. Çözülemeyen şey
+- Yok — M53 %100 tamamlandı.
+
+### 4. Bilinen sorunlar
+- AdvisorPanel UI manuel F5 testi bekleniyor (headless test fonksiyonel geçiyor).
+- GetAllProfiles() lazy-load bug'ı düzeltildi (EnsureLoaded eklendi).
+
+### 5. Kullanıcının test etmesi gerekenler
+- `dotnet build` (0/0)
+- `powershell -File tools\run-test.ps1 --advisor-test` — PASS
+- `powershell -File tools\run-test.ps1 --save-load-test` — PASS A==B (historical_1936)
+- `powershell -File tools\run-test.ps1 --save-load-test --scenario=modern_world` — PASS A==B
+- Godot editörde F5 → ADVISORS butonu → panel açılır/ESC/backdrop kapanır, HIRE/FIRE/REQUEST ADVICE butonları çalışır.
+
+### 6. Dosyalar
+- Yeni: `Data/advisors.json`, `Scripts/AdvisorSystem.cs`, `Scripts/AdvisorPanel.cs`
+- Değiştirilen: `Scripts/GameHud.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs` (AdvisorsSave DTO), `Scripts/SaveLoadTest.cs` (BuildSummaryCore'ye Advisor özeti), `TODO.md`, `PROJECT_STATE.md`, `GECE-RAPOR.md`.

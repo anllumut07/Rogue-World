@@ -812,3 +812,21 @@ bir kuruma dönüşmeli.
 | 52.2 | Oyuncu eylemi: "TANINMA TALEP ET" diplomatik eylemi (`DiplomacyPanel`) — büyük güçleri tek tek ikna etme; kabul ilişkiyi artırır, ret prestiji/prestij kaybı yaratır; AI talebi prestij + ilişki + ideoloji + komşulukla değerlendirir | Kabul/ret deterministik ve loglanır, kabul tanınma sayısını artırır, `--recognition-request-test` PASS | [ ] |
 | 52.3 | Tanınmanın savaş kararlarına etkisi: tanınmayan devlete saldıran için dünya gerginliği bedeli düşük, tanınmış devlete saldıranın garantilere ve müdahaleye yol açma ihtimali yüksek (`CasusBelliSystem` + `InterventionSystem`) | Gerginlik bedeli tanınmayla azalır, müdahale olasılığı tanımayla artar | [ ] |
 | 52.4 | Save/Load + özet hash + regresyon (tanınma, diplomasi, örgüt, müdahale testleri) | A==B PASS (2 senaryo), `--recognition-test`, `--diplomacy-test`, `--intervention-test` PASS | [ ] |
+
+---
+
+## M53 — Danışman Ekibi (Advisor System)
+
+**Hedef:** Oyuncuya 3 tür danışman (Ekonomi, Güvenlik, Medya) sunulur. Her danışman ülke istatistiklerine göre deterministik tavsiye üretir (öneri + gerekçe + güven skoru 0-100). Haftada 1 tavsiye cooldown (7 gün). UI paneli HUD ADVISORS butonundan açılır. Save/Load A==B determinizm.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 53.1 | `Data/advisors.json`: 18 danışman profili (6 Economy, 6 Security, 6 Media) — isim, kültür grubu, sadakat, popülerlik, trait (technocrat/hawk/reformer/populist/diplomat), uzmanlık etiketleri | JSON yüklenir, 18 profil, her türden en az 3 | [x] Tamamlandı: Data/advisors.json (18 profil: 6E/6S/6M, 4 kültür grubu, trait/uzmanlık etiketleri) + AdvisorSystem.LoadProfiles 18 kayıt logu |
+| 53.2 | `Scripts/AdvisorSystem.cs`: Profil yükleme, işe alma/çıkarma (her türden max 1), tavsiye üretimi (ülke göstergeleri + trait + sadakat/popülerlik → öneri/gerekçe/confidence), 7 gün cooldown, geçmiş (son 200), Save/Load (AdvisorsSave DTO), ResetForNewGame | 3 danışman işe alınır, tavsiye üretilir (conf 10-100), cooldown çalışır, save/load round-trip, `--advisor-test` PASS | [x] Tamamlandı: AdvisorSystem.cs (~460 satır), 3 AdvisorType, ActiveAdvisor/AdvisorAdvice state, DeterministicRNG, GenerateEconomy/Security/MediaAdvice, DailyTick cooldown azaltma, GetSaveData/LoadSaveData, ResetForNewGame. --advisor-test PASS ✓ (18 profil, 3 işe alma, 3 tavsiye conf 35-37, cooldown null, 7 gün sonra tekrar, save/load aktif=3/cooldown=3/geçmiş=4, reset 0). Build 0/0. |
+| 53.3 | `Scripts/AdvisorPanel.cs`: HUD ADVISORS butonundan overlay, backdrop MouseFilter.Stop, ESC kapatır; 3 aktif danışman kartı (isim, trait, loyalty, popularity, işe alma günü, tavsiye sayısı, FIRE/REQUEST ADVICE butonları), müsait profiller (HIRE butonu), tavsiye geçmişi (son 10, conf/acil/gün/öneri/gerekçe) | Panel 1152x648'e sığar, fare girdisi bloke edilir, butonlar çalışır, ESC/backdrop kapatır, refresh doğru | [x] Tamamlandı: AdvisorPanel.cs (~415 satır), OrganizationPanel kalıbı, CenterContainer+PanelContainer+ScrollContainer, 3 kart türü (aktif/müsait/geçmiş), UITheme animasyonları. --advisor-test fonksiyonel PASS, manuel F5 UI doğrulaması gerekli. |
+| 53.4 | HUD entegrasyonu: `GameHud.cs` ADVISORS butonu (ORGANIZATIONS ile ELECTION arasına), `GameManager.DailyTick` AdvisorSystem.DailyTick çağrısı | Buton panel açar, günlük tick cooldown azaltır, derleme 0 hata/uyarı | [x] Tamamlandı: GameHud.cs ADVISORS butonu eklendi (GameHud.cs:380-395), GameManager.cs DailyTick'e AdvisorSystem.DailyTick(TotalDays) eklendi (satır 1162). |
+| 53.5 | Save/Load + özet hash + regresyon (`--save-load-test` iki senaryo A==B, `--advisor-test` fonksiyonel) | A==B PASS (historical_1936 + modern_world), `--advisor-test` PASS | [x] Tamamlandı: --save-load-test A==B PASS (historical_1936 + modern_world), --advisor-test PASS ✓. Tüm testler yeşil. |
+
+---
+
+## Notlar

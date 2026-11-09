@@ -23,6 +23,7 @@ public static class DecisionSystem
         public string Name = "?";
         public string Description = "";
         public string Country = "ALL";           // "ALL" veya ülke kodu (GER, USA, SOV...)
+        public string Category = "General";      // Economy, Military, Political, Diplomatic, Technology, General
         public int CostPP = 0;
         public int CostDays = 0;                 // tamamlanma süresi (gün)
         public int CooldownDays = 0;             // tekrar kullanılabilme süresi

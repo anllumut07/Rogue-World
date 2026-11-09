@@ -287,6 +287,14 @@ public partial class GameHud : CanvasLayer
                 AdvisorPanel.OpenUnder(this);
             });
 
+        // DECISIONS (M10.2): kararlar paneli — kategori sekmeli, arama, filtreleme
+        AddSection("DECISIONS", "Decisions — categorized decisions with search and filters (HOI4-style)",
+            () =>
+            {
+                GD.Print("[GameHud] DECISIONS butonu basıldı — DecisionPanel.OpenUnder çağrılıyor");
+                DecisionPanel.OpenUnder(this);
+            });
+
         // ELECTION (M23.1): seçim takvimi + oy tahmini paneli
         AddSection("ELECTION", "Elections — calendar and vote prediction",
             () =>

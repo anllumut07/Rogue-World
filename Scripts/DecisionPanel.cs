@@ -1,96 +1,62 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
-/// Kararlar paneli (M10.2): kullanılabilir kararları listeler, aktif kararları
-/// progress bar ile gösterir, başlat/iptal butonları. HUD DECISIONS butonundan açılır.
-/// 1152x648'de sığar (900x500). Backdrop Stop ile harita girişi engellenir.
+/// HOI4-style Decisions Panel (M10.2): category tabs, search filter, cost/requirements tooltip.
+/// HUD DECISIONS butonundan açılır; 1152x648 sınırında; backdrop MouseFilter.Stop.
 /// </summary>
 public partial class DecisionPanel : Control
 {
-    private const string ScenePath = "res://Scenes/decision_panel.tscn";
-
     public static bool IsOpen { get; private set; }
 
-    // UI
-    private Label _titleLabel;
-    private VBoxContainer _availableContainer;
-    private VBoxContainer _activeContainer;
-    private Label _noDecisionsLabel;
+    // UI components
     private ColorRect _backdrop;
     private PanelContainer _panel;
+    private VBoxContainer _rootVBox;
+
+    // Category tabs
+    private HBoxContainer _tabBar;
+    private List<Button> _tabButtons = new();
+    private string _activeCategory = "All";
+
+    // Search
+    private LineEdit _searchBox;
+    private Label _resultsCountLabel;
+
+    // Available decisions container
+    private ScrollContainer _availableScroll;
+    private VBoxContainer _availableContainer;
+    private Label _noDecisionsLabel;
+
+    // Active decisions container
+    private ScrollContainer _activeScroll;
+    private VBoxContainer _activeContainer;
+
+    // Categories in order
+    private static readonly string[] Categories = { "All", "Economy", "Military", "Political", "Diplomatic", "Technology", "General" };
 
     public static void OpenUnder(Node parent)
     {
-        if (IsOpen)
-        {
-            GD.Print("[DecisionPanel] OpenUnder: zaten açık, tekrar açılmıyor");
-            return;
-        }
+        if (IsOpen) return;
 
-        GD.Print($"[DecisionPanel] OpenUnder çağrıldı — parent={parent?.GetType().Name ?? "null"}");
-
-        DecisionPanel panel = null;
-
-        // 1) Sahne dosyası projede var mı? (ResourceLoader.Exists)
-        if (ResourceLoader.Exists(ScenePath))
-        {
-            var scene = GD.Load<PackedScene>(ScenePath);
-            if (scene != null)
-            {
-                try
-                {
-                    panel = scene.Instantiate<DecisionPanel>();
-                    GD.Print($"[DecisionPanel] Sahne yüklendi ve instantiate edildi: {ScenePath}");
-                }
-                catch (Exception e)
-                {
-                    GD.PrintErr($"[DecisionPanel] Sahne instantiate hatası ({ScenePath}): {e.Message} — KODDAN oluşturuluyor");
-                }
-            }
-            else
-            {
-                // GD.Load null dönerse sebep genelde .tscn parse hatasıdır —
-                // Godot kendi konsoluna ayrıntıyı yazar, biz de yolumuzu söyleriz.
-                GD.PrintErr($"[DecisionPanel] GD.Load null döndürdü: {ScenePath} — dosya bozuk/parse edilemiyor olabilir. KODDAN oluşturuluyor.");
-            }
-        }
-        else
-        {
-            GD.PrintErr($"[DecisionPanel] Sahne YOK: {ScenePath} (ResourceLoader.Exists=false) — KODDAN oluşturuluyor.");
-        }
-
-        // 2) Yedek yol: sahneye bağımlı değil — koddan yeni panel oluştur.
-        //    _Ready içindeki SetAnchorsPreset(FullRect) kökü tam ekran yapar.
-        panel ??= new DecisionPanel();
-
+        GD.Print("[DecisionPanel] OpenUnder — parent=" + (parent?.GetType().Name ?? "null"));
+        var panel = new DecisionPanel();
         ModalHost.AddUnder(parent, panel);
-        GD.Print($"[DecisionPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
     }
 
     public override void _Ready()
     {
-        // Güvence: kök Control FullRect olsun. Sahne anchor'ları eksik/bozuk olsa
-        // veya panel KODDAN yaratılsa bile backdrop tam ekran olur (0x0 kalmasın).
-        SetAnchorsPreset(Control.LayoutPreset.FullRect);
-
-        ProcessMode = ProcessModeEnum.Always; // pause edilse bile çalışsın
+        ProcessMode = ProcessModeEnum.Always;
         UITheme.ApplyTheme(this);
-
         BuildUi();
         ConnectSignals();
         RefreshAll();
-
-        // === TEŞHİS LOGU (istemci isteği): panel açılış durumunu yaz ===
-        GD.Print($"[DecisionPanel] _Ready: root Visible={Visible}, Pos={Position}, Size={Size}, ZIndex={ZIndex}, MouseFilter={MouseFilter}, parent={GetParent()?.GetType().Name ?? "null"}");
-        GD.Print($"[DecisionPanel] _Ready: backdrop Visible={_backdrop.Visible}, Pos={_backdrop.Position}, Size={_backdrop.Size}, MouseFilter={_backdrop.MouseFilter}");
-        GD.Print($"[DecisionPanel] _Ready: panel Visible={_panel.Visible}, Pos={_panel.Position}, Size={_panel.Size}");
-
         IsOpen = true;
+
         UITheme.FadeIn(_backdrop, 0.1f);
         UITheme.PopIn(_panel, 0.15f);
-
         GD.Print("DecisionPanel: hazır");
     }
 
@@ -112,12 +78,8 @@ public partial class DecisionPanel : Control
 
     private void BuildUi()
     {
-        // Backdrop: Stop — harita girişi engellenir
-        _backdrop = new ColorRect
-        {
-            Color = new Color(0f, 0f, 0f, 0.75f),
-            MouseFilter = Control.MouseFilterEnum.Stop
-        };
+        // Backdrop: full screen, blocks map input
+        _backdrop = new ColorRect { Color = new Color(0, 0, 0, 0.75f), MouseFilter = Control.MouseFilterEnum.Stop };
         _backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(_backdrop);
 
@@ -125,8 +87,7 @@ public partial class DecisionPanel : Control
         center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _backdrop.AddChild(center);
 
-        // Panel boyutu: 1152x648 dahil
-        _panel = new PanelContainer { CustomMinimumSize = new Vector2(900, 500) };
+        _panel = new PanelContainer { CustomMinimumSize = new Vector2(1000, 560) };
         center.AddChild(_panel);
 
         var margin = new MarginContainer();
@@ -136,18 +97,18 @@ public partial class DecisionPanel : Control
         margin.AddThemeConstantOverride("margin_bottom", 16);
         _panel.AddChild(margin);
 
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 12);
-        margin.AddChild(vbox);
+        _rootVBox = new VBoxContainer();
+        _rootVBox.AddThemeConstantOverride("separation", 12);
+        margin.AddChild(_rootVBox);
 
         // --- Header ---
         var headerRow = new HBoxContainer();
         headerRow.AddThemeConstantOverride("separation", 16);
-        vbox.AddChild(headerRow);
+        _rootVBox.AddChild(headerRow);
 
-        _titleLabel = new Label { Text = "DECISIONS" };
-        _titleLabel.AddThemeFontSizeOverride("font_size", 26);
-        headerRow.AddChild(_titleLabel);
+        var title = new Label { Text = "DECISIONS" };
+        title.AddThemeFontSizeOverride("font_size", 28);
+        headerRow.AddChild(title);
 
         headerRow.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
 
@@ -156,52 +117,112 @@ public partial class DecisionPanel : Control
         UITheme.AddHoverScale(closeBtn);
         headerRow.AddChild(closeBtn);
 
-        vbox.AddChild(new HSeparator());
+        _rootVBox.AddChild(new HSeparator());
 
-        // --- İki sütun: Kullanılabilir | Aktif ---
+        // --- Category Tabs ---
+        _tabBar = new HBoxContainer();
+        _tabBar.AddThemeConstantOverride("separation", 4);
+        _rootVBox.AddChild(_tabBar);
+
+        foreach (var cat in Categories)
+        {
+            var tabBtn = new Button
+            {
+                Text = cat,
+                FocusMode = Control.FocusModeEnum.None,
+                CustomMinimumSize = new Vector2(110, 32)
+            };
+            tabBtn.AddThemeFontSizeOverride("font_size", 13);
+            var catCopy = cat;
+            tabBtn.Pressed += () => OnCategoryTabPressed(catCopy);
+            UITheme.AddHoverScale(tabBtn);
+            _tabBar.AddChild(tabBtn);
+            _tabButtons.Add(tabBtn);
+        }
+        UpdateTabVisuals();
+
+        // --- Search row ---
+        var searchRow = new HBoxContainer();
+        searchRow.AddThemeConstantOverride("separation", 12);
+        _rootVBox.AddChild(searchRow);
+
+        var searchLabel = new Label { Text = "Search:", CustomMinimumSize = new Vector2(60, 0) };
+        searchLabel.AddThemeFontSizeOverride("font_size", 14);
+        searchRow.AddChild(searchLabel);
+
+        _searchBox = new LineEdit
+        {
+            PlaceholderText = "Type to filter decisions...",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(0, 30)
+        };
+        _searchBox.TextChanged += OnSearchTextChanged;
+        searchRow.AddChild(_searchBox);
+
+        _resultsCountLabel = new Label { Text = "", CustomMinimumSize = new Vector2(140, 0) };
+        _resultsCountLabel.AddThemeFontSizeOverride("font_size", 13);
+        _resultsCountLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        _resultsCountLabel.HorizontalAlignment = HorizontalAlignment.Right;
+        searchRow.AddChild(_resultsCountLabel);
+
+        _rootVBox.AddChild(new HSeparator());
+
+        // --- Two columns: Available | Active ---
         var columns = new HBoxContainer();
+        columns.AddThemeConstantOverride("separation", 24);
         columns.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
         columns.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        columns.AddThemeConstantOverride("separation", 24);
-        vbox.AddChild(columns);
+        _rootVBox.AddChild(columns);
 
-        // SOL: Kullanılabilir kararlar
+        // LEFT: Available decisions
         var leftCol = new VBoxContainer();
-        leftCol.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         leftCol.AddThemeConstantOverride("separation", 8);
+        leftCol.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         columns.AddChild(leftCol);
 
-        var leftHeader = new Label { Text = "AVAILABLE DECISIONS" };
-        leftHeader.AddThemeFontSizeOverride("font_size", 16);
-        leftHeader.AddThemeColorOverride("font_color", UITheme.Gold);
+        var leftHeader = new HBoxContainer();
+        leftHeader.AddThemeConstantOverride("separation", 8);
         leftCol.AddChild(leftHeader);
 
-        var leftScroll = new ScrollContainer();
-        leftScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        leftScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        leftCol.AddChild(leftScroll);
+        var leftTitle = new Label { Text = "AVAILABLE DECISIONS" };
+        leftTitle.AddThemeFontSizeOverride("font_size", 16);
+        leftTitle.AddThemeColorOverride("font_color", UITheme.Gold);
+        leftHeader.AddChild(leftTitle);
+
+        leftHeader.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+
+        var clearFilterBtn = new Button { Text = "CLEAR FILTER", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(110, 28) };
+        clearFilterBtn.AddThemeFontSizeOverride("font_size", 11);
+        clearFilterBtn.Pressed += () => { _searchBox.Text = ""; _activeCategory = "All"; UpdateTabVisuals(); RefreshAvailable(); };
+        UITheme.AddHoverScale(clearFilterBtn);
+        leftHeader.AddChild(clearFilterBtn);
+
+        _availableScroll = new ScrollContainer();
+        _availableScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _availableScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        leftCol.AddChild(_availableScroll);
 
         _availableContainer = new VBoxContainer();
-        _availableContainer.AddThemeConstantOverride("separation", 8);
+        _availableContainer.AddThemeConstantOverride("separation", 6);
         _availableContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        leftScroll.AddChild(_availableContainer);
+        _availableScroll.AddChild(_availableContainer);
 
         _noDecisionsLabel = new Label
         {
-            Text = "No decisions available.\nRequirements not met or on cooldown.",
+            Text = "No decisions available.\nRequirements not met, on cooldown, or filtered out.",
             HorizontalAlignment = HorizontalAlignment.Center
         };
-        _noDecisionsLabel.AddThemeFontSizeOverride("font_size", 15);
+        _noDecisionsLabel.AddThemeFontSizeOverride("font_size", 14);
         _noDecisionsLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
         _noDecisionsLabel.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
         _noDecisionsLabel.Visible = false;
         _availableContainer.AddChild(_noDecisionsLabel);
 
-        // SAĞ: Aktif kararlar (yürütülüyor)
+        // RIGHT: Active decisions
         var rightCol = new VBoxContainer();
-        rightCol.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        rightCol.CustomMinimumSize = new Vector2(300, 0);
         rightCol.AddThemeConstantOverride("separation", 8);
+        rightCol.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        rightCol.CustomMinimumSize = new Vector2(320, 0);
         columns.AddChild(rightCol);
 
         var rightHeader = new Label { Text = "ACTIVE DECISIONS" };
@@ -209,15 +230,15 @@ public partial class DecisionPanel : Control
         rightHeader.AddThemeColorOverride("font_color", Colors.Orange);
         rightCol.AddChild(rightHeader);
 
-        var rightScroll = new ScrollContainer();
-        rightScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        rightScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        rightCol.AddChild(rightScroll);
+        _activeScroll = new ScrollContainer();
+        _activeScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _activeScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        rightCol.AddChild(_activeScroll);
 
         _activeContainer = new VBoxContainer();
         _activeContainer.AddThemeConstantOverride("separation", 8);
         _activeContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        rightScroll.AddChild(_activeContainer);
+        _activeScroll.AddChild(_activeContainer);
     }
 
     private void ConnectSignals()
@@ -226,10 +247,7 @@ public partial class DecisionPanel : Control
             GameManager.Instance.PlayerCountryDataChanged += OnDataChanged;
     }
 
-    private void OnDataChanged()
-    {
-        RefreshAll();
-    }
+    private void OnDataChanged() => RefreshAll();
 
     private void RefreshAll()
     {
@@ -237,9 +255,52 @@ public partial class DecisionPanel : Control
         RefreshActive();
     }
 
+    private void OnCategoryTabPressed(string category)
+    {
+        _activeCategory = category;
+        UpdateTabVisuals();
+        RefreshAvailable();
+    }
+
+    private void OnSearchTextChanged(string text)
+    {
+        RefreshAvailable();
+    }
+
+    private void UpdateTabVisuals()
+    {
+        for (int i = 0; i < Categories.Length && i < _tabButtons.Count; i++)
+        {
+            var btn = _tabButtons[i];
+            bool active = Categories[i] == _activeCategory;
+            if (active)
+            {
+                btn.AddThemeColorOverride("font_color", Colors.White);
+                btn.AddThemeStyleboxOverride("normal", MakeTabStyle(new Color("#2A2A4A"), new Color("#4A4A8A")));
+            }
+            else
+            {
+                btn.AddThemeColorOverride("font_color", UITheme.TextMuted);
+                btn.AddThemeStyleboxOverride("normal", MakeTabStyle(new Color("#1A1A2E"), new Color("#3A3A5A")));
+            }
+        }
+    }
+
+    private StyleBoxFlat MakeTabStyle(Color bg, Color border)
+    {
+        var b = new StyleBoxFlat { BgColor = bg, BorderColor = border };
+        b.SetBorderWidthAll(1);
+        b.SetCornerRadiusAll(4);
+        b.ContentMarginLeft = 12;
+        b.ContentMarginRight = 12;
+        b.ContentMarginTop = 4;
+        b.ContentMarginBottom = 4;
+        return b;
+    }
+
     private void RefreshAvailable()
     {
-        // Eski butonları temizle (noDecisionsLabel hariç)
+        // Clear old buttons (keep _noDecisionsLabel)
         foreach (var child in _availableContainer.GetChildren())
         {
             if (child == _noDecisionsLabel) continue;
@@ -249,7 +310,28 @@ public partial class DecisionPanel : Control
 
         var decisions = DecisionSystem.GetAvailableDecisions();
 
-        if (decisions.Count == 0)
+        // Filter by category
+        if (_activeCategory != "All")
+        {
+            decisions = decisions.Where(d => string.Equals(d.Category, _activeCategory, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        // Filter by search text
+        string search = _searchBox?.Text?.Trim().ToLower() ?? "";
+        if (!string.IsNullOrEmpty(search))
+        {
+            decisions = decisions.Where(d =>
+                d.Name.ToLower().Contains(search) ||
+                d.Description.ToLower().Contains(search) ||
+                d.Category.ToLower().Contains(search)
+            ).ToList();
+        }
+
+        int totalCount = DecisionSystem.GetAvailableDecisions().Count;
+        int filteredCount = decisions.Count;
+        _resultsCountLabel.Text = $"Showing {filteredCount} / {totalCount}";
+
+        if (filteredCount == 0)
         {
             _noDecisionsLabel.Visible = true;
             return;
@@ -268,7 +350,7 @@ public partial class DecisionPanel : Control
     {
         var btn = new Button
         {
-            CustomMinimumSize = new Vector2(0, 60),
+            CustomMinimumSize = new Vector2(0, 68),
             FocusMode = Control.FocusModeEnum.None,
             TooltipText = BuildTooltip(d)
         };
@@ -277,9 +359,18 @@ public partial class DecisionPanel : Control
         hbox.AddThemeConstantOverride("separation", 12);
         btn.AddChild(hbox);
 
-        // Sol: isim + maliyet/gün
+        // Category badge
+        var catBadge = new Label { Text = $"[{d.Category}]", CustomMinimumSize = new Vector2(100, 0) };
+        catBadge.AddThemeFontSizeOverride("font_size", 11);
+        catBadge.AddThemeColorOverride("font_color", GetCategoryColor(d.Category));
+        catBadge.HorizontalAlignment = HorizontalAlignment.Center;
+        catBadge.VerticalAlignment = VerticalAlignment.Center;
+        hbox.AddChild(catBadge);
+
+        // Left: name + details
         var left = new VBoxContainer();
         left.AddThemeConstantOverride("separation", 2);
+        left.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         hbox.AddChild(left);
 
         var nameLabel = new Label { Text = d.Name };
@@ -300,19 +391,52 @@ public partial class DecisionPanel : Control
 
         hbox.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
 
-        // Sağ: START butonu
+        // Right: START button
         var startBtn = new Button
         {
             Text = "START",
             FocusMode = Control.FocusModeEnum.None,
             CustomMinimumSize = new Vector2(80, 36)
         };
+        startBtn.AddThemeFontSizeOverride("font_size", 12);
         startBtn.Pressed += () => OnStartDecision(d.Id);
         UITheme.AddHoverScale(startBtn);
         hbox.AddChild(startBtn);
 
+        // Category-based subtle background
+        btn.AddThemeStyleboxOverride("normal", MakeDecisionBox(d.Category));
         UITheme.AddHoverScale(btn, 1.02f);
         return btn;
+    }
+
+    private Color GetCategoryColor(string category)
+    {
+        return category switch
+        {
+            "Economy" => new Color("#4CAF50"),      // Green
+            "Military" => new Color("#F44336"),     // Red
+            "Political" => new Color("#9C27B0"),    // Purple
+            "Diplomatic" => new Color("#2196F3"),   // Blue
+            "Technology" => new Color("#FF9800"),   // Orange
+            _ => new Color("#757575")               // Grey
+        };
+    }
+
+    private StyleBoxFlat MakeDecisionBox(string category)
+    {
+        Color accent = GetCategoryColor(category);
+        var b = new StyleBoxFlat
+        {
+            BgColor = new Color("#1E1E2E"),
+            BorderColor = new Color(accent.R * 0.3f, accent.G * 0.3f, accent.B * 0.3f, 1f)
+        };
+        b.SetBorderWidthAll(1);
+        b.SetCornerRadiusAll(6);
+        b.ContentMarginLeft = 12;
+        b.ContentMarginRight = 12;
+        b.ContentMarginTop = 8;
+        b.ContentMarginBottom = 8;
+        return b;
     }
 
     private void RefreshActive()
@@ -356,6 +480,14 @@ public partial class DecisionPanel : Control
         header.AddThemeConstantOverride("separation", 8);
         container.AddChild(header);
 
+        // Category badge
+        var catBadge = new Label { Text = $"[{info.Decision.Category}]", CustomMinimumSize = new Vector2(100, 0) };
+        catBadge.AddThemeFontSizeOverride("font_size", 11);
+        catBadge.AddThemeColorOverride("font_color", GetCategoryColor(info.Decision.Category));
+        catBadge.HorizontalAlignment = HorizontalAlignment.Center;
+        catBadge.VerticalAlignment = VerticalAlignment.Center;
+        header.AddChild(catBadge);
+
         var nameLabel = new Label { Text = info.Decision.Name };
         nameLabel.AddThemeFontSizeOverride("font_size", 14);
         nameLabel.AddThemeColorOverride("font_color", UITheme.TextMain);
@@ -385,11 +517,11 @@ public partial class DecisionPanel : Control
 
         var progressLabel = new Label
         {
-            Text = $"Day {info.DaysElapsed} / {info.TotalDays}"
+            Text = $"Day {info.DaysElapsed} / {info.TotalDays}",
+            HorizontalAlignment = HorizontalAlignment.Center
         };
         progressLabel.AddThemeFontSizeOverride("font_size", 12);
         progressLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        progressLabel.HorizontalAlignment = HorizontalAlignment.Center;
         container.AddChild(progressLabel);
 
         return container;
@@ -436,18 +568,23 @@ public partial class DecisionPanel : Control
         var lines = new List<string>();
         lines.Add(d.Description);
         lines.Add("");
+        lines.Add($"Category: {d.Category}");
+        lines.Add("");
         lines.Add("Cost:");
         if (d.CostPP > 0) lines.Add($"  {d.CostPP} Political Power");
         if (d.CostDays > 0) lines.Add($"  {d.CostDays} days to complete");
         if (d.CooldownDays > 0) lines.Add($"  Cooldown: {d.CooldownDays} days");
 
         var c = d.Condition;
-        if (c.MinStability > 0 || c.MaxStability < 100 ||
+        bool hasReq = c.MinStability > 0 || c.MaxStability < 100 ||
             c.MinWarSupport > 0 || c.MaxWarSupport < 100 ||
             c.MinPP > 0 || c.MaxWorldTension < 100 ||
             !string.IsNullOrEmpty(c.RequiredFocus) ||
+            !string.IsNullOrEmpty(c.RequiredNotFocus) ||
             !string.IsNullOrEmpty(c.RequiredIdeology) ||
-            c.IsAtWar)
+            c.IsAtWar;
+
+        if (hasReq)
         {
             lines.Add("");
             lines.Add("Requirements:");

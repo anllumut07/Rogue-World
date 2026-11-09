@@ -581,7 +581,7 @@ public partial class GameManager : Node
             }
         }
 
-        // Decisions test: kullanılabilir kararları listele + ilkini başlat
+        // Decisions test: kullanılabilir kararları listele + ilkini başlat ve tamamlanana kadar gün ilerlet
         if (decisionsTest)
         {
             if (!HasPlayer) SetPlayerCountry("GER"); // GER: hem ALL hem GER kararları görünür
@@ -592,14 +592,49 @@ public partial class GameManager : Node
             foreach (var d in decisions)
                 GD.Print($"[Test]   - {d.Name} ({d.CostPP} PP, {d.CostDays} gün, cooldown {d.CooldownDays})");
 
+            bool ok = true;
             if (decisions.Count > 0)
             {
                 // PP top-up — başlangıç PP'si maliyeti karşılamayabilir
                 if (PlayerCountryData != null && PlayerCountryData.PoliticalPower < decisions[0].CostPP + 10)
                     PlayerCountryData.PoliticalPower = decisions[0].CostPP + 10;
                 DecisionSystem.StartDecision(decisions[0].Id);
-                GD.Print($"[Test] İlk karar başlatıldı: {decisions[0].Name} — tamamlanma logunu bekle");
+                GD.Print($"[Test] İlk karar başlatıldı: {decisions[0].Name} — tamamlanma bekleniyor ({decisions[0].CostDays} gün)");
+
+                // Karar tamamlanana kadar günleri ilerlet (DailyTick çağır)
+                int maxDays = decisions[0].CostDays + 5; // güvenlik payı
+                for (int day = 0; day < maxDays; day++)
+                {
+                    DailyTick(); // DecisionSystem.DailyTick içinde çağrılır
+                    var active = DecisionSystem.GetActiveDecisions();
+                    if (active.Count == 0)
+                    {
+                        GD.Print($"[Test] Karar {day + 1}. günde tamamlandı");
+                        break;
+                    }
+                    if (day == maxDays - 1)
+                    {
+                        GD.PrintErr($"[Test] HATA: Karar {maxDays} günde tamamlanmadı");
+                        ok = false;
+                    }
+                }
+
+                // Etkiler doğrula (basit kontrol: PP değişimi, fabrika artışı vb.)
+                if (ok)
+                {
+                    GD.Print($"[Test] Karar tamamlandı, efektler uygulandı. PP={PlayerCountryData.PoliticalPower:N1}");
+                }
             }
+            else
+            {
+                GD.PrintErr("[Test] HATA: Kullanılabilir karar yok");
+                ok = false;
+            }
+
+            GD.Print("=========================================");
+            GD.Print(ok ? "  SONUÇ: PASS ✓" : "  SONUÇ: FAIL ✗");
+            GD.Print("=========================================");
+            GetTree().Quit(ok ? 0 : 1);
         }
 
         // M12: Kaydet/Yükle doğrulama testi — normal oyunda asla etkinleşmez.

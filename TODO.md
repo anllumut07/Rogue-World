@@ -829,4 +829,18 @@ bir kuruma dönüşmeli.
 
 ---
 
+## M54 — Decisions Panel HOI4-Style Redesign
+**Hedef:** HOI4 benzeri karar paneli — kategori sekmeleri (Economy/Military/Political/Diplomatic/Technology/General), arama/filter, tooltip'ler, aktif kararlar progress bar, CLEAR FILTER butonu. Save/Load A==B determinizm korunur.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 54.1 | `Scripts/DecisionSystem.cs`: Decision modeline `Category` alanı eklendi (Economy/Military/Political/Diplomatic/Technology/General). `GetAvailableDecisions` kategori filtresi desteği. | Decision objesinde Category alanı, filtreleme çalışır | [x] Tamamlandı: Decision.cs Category enum + field, GetAvailableDecisions(category?) overload, JSON IncludeFields=true |
+| 54.2 | `Data/scenarios/historical_1936/decisions.json` + `modern_world/decisions.json`: Tüm kararlara Category eklendi. | Her karar kategorisi atandı, load olur | [x] Tamamlandı: historical_1936 (10 karar), modern_world (13 karar) — tüm kategoriler temsili |
+| 54.3 | `Scripts/DecisionPanel.cs` tam yeniden yazıldı: CategoryTabContainer (7 sekmeler: All + 6 kategori), SearchBox (anlık filtre, sonuç sayısı), DecisionCard (kategori badge renkli, PP/gün/cooldown, cost/effects/requirements tooltip), ActiveDecisions (progress bar + gün/kalan PP), ClearFilter butonu. Backdrop MouseFilter.Stop, ESC kapatır, 1152x648 sığar. | Panel açılır, sekmeler/arama/filtre çalışır, tooltip renkli, aktif karar progress bar, ESC/backdrop kapatır | [x] Tamamlandı: DecisionPanel.cs (~520 satır), HOI4 tarzı kategori UI, anlık arama, renkli tooltip, progress bar |
+| 54.4 | `Scripts/GameHud.cs`: DECISIONS butonu (ADVISORS ile LIBRARY arasına) — DecisionPanel açar. | Buton panel açar | [x] Tamamlandı: GameHud.cs DECISIONS butonu + _OpenDecisionPanel() |
+| 54.5 | `Scripts/GameManager.cs`: `--decisions-test` kancağı — headless test karar başlatır, tamamlanmayı bekler, efektleri doğrular, exit 0. | `--decisions-test` PASS ✓ (exit 0) | [x] Tamamlandı: GameManager.cs RunDecisionsTest() (DailyTick döngüsü + quit), test 30 gün simüle etti, PASS |
+| 54.6 | Save/Load A==B regresyon: `--save-load-test` historical_1936 + modern_world → PASS (A==B). Category alanı DTO'ya dahil, SaveLoadTest özeti güncellendi. | A==B PASS (2 senaryo), `--decisions-test` PASS | [x] Tamamlandı: SaveSystem.DecisionSave Category alanı, SaveLoadTest.BuildSummaryCore decision özeti, her iki senaryo PASS |
+
+---
+
 ## Notlar

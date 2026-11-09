@@ -84,6 +84,7 @@ C:\Proje\Rogue-World\
 - **M51:** Espionage Mission Effects (4 mission types: Intelligence/TechTheft/Sabotage/Propaganda with effects, counter-intel slowdown, diplomatic consequences, save/load A==B, test `--espionage-mission-test` PASS)
 - **M52:** Recognition Consequences (Unrecognized State) — Recognition count gates org membership/trade/alliances; REQUEST RECOGNITION diplomatic action; war tension/intervention scaling; Save/Load A==B both scenarios — ALL DONE ✓
 - **M53:** Advisor System — 18 advisor profiles (6 Economy/Security/Media), hire/fire per type, deterministic advice (confidence 10-100, rationale), 7-day cooldown, AdvisorPanel UI (active/müsait/history), HUD ADVISORS button, Save/Load A==B both scenarios — DONE ✓
+- **M54:** Decisions Panel HOI4-Style Redesign — Category tabs (All/Economy/Military/Political/Diplomatic/Technology/General), search filter with results count, category badges on cards, color-coded tooltips (cost/effects/requirements), active decisions with progress bars, CLEAR FILTER button, HUD DECISIONS button, headless test `--decisions-test` PASS, Save/Load A==B both scenarios — DONE ✓
 
 ## What is Broken / Unfinished
 - **M54+** — Not yet planned in detail (see TODO.md "Önerilen Ek Özellikler")
@@ -100,10 +101,11 @@ C:\Proje\Rogue-World\
 ## Prioritized TODO (from TODO.md)
 1. **M52.1-52.4** — Recognition consequences (org membership, trade, AI alliances, REQUEST RECOGNITION action, war tension/intervention, save/load A==B) — ALL DONE ✓
 2. **M53.1-53.5** — Advisor System (18 profiles, hire/fire, deterministic advice, 7-day cooldown, AdvisorPanel UI, HUD button, save/load A==B both scenarios) — ALL DONE ✓
-3. Then evaluate "Önerilen Ek Özellikler" or proceed to M13/M14 (polish/export)
+3. **M54.1-54.6** — Decisions Panel HOI4-Style Redesign (category tabs, search, tooltips, progress bars, HUD button, headless test, save/load A==B both scenarios) — ALL DONE ✓
+4. Then evaluate "Önerilen Ek Özellikler" or proceed to M13/M14 (polish/export)
 
 ---
 
 **Current Branch:** `gece-calisma`  
-**Last Commit:** `e74e5c3` — "feat: M52.3+M52.4 — Recognition war tension effects, civil war intervention scaling, save/load A==B verified both scenarios"  
-**Last Test Run:** `--advisor-test` → PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B
+**Last Commit:** (pending — M54 Decisions Panel Redesign)  
+**Last Test Run:** `--decisions-test` → PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B

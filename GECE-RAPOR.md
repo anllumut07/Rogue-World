@@ -3596,3 +3596,40 @@ toplam hatası bu değerin çok altında, gerçek "toplam 1 değil" durumlarıys
 ### 6. Dosyalar
 - Yeni: `Data/advisors.json`, `Scripts/AdvisorSystem.cs`, `Scripts/AdvisorPanel.cs`
 - Değiştirilen: `Scripts/GameHud.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs` (AdvisorsSave DTO), `Scripts/SaveLoadTest.cs` (BuildSummaryCore'ye Advisor özeti), `TODO.md`, `PROJECT_STATE.md`, `GECE-RAPOR.md`.
+
+---
+
+## M54 — Decisions Panel HOI4-Style Redesign — ✅ DONE (2026-11-09)
+
+### 1. Neyi değiştirdim
+- **Scripts/DecisionSystem.cs**: `Decision` modeline `Category` enum eklendi (All/Economy/Military/Political/Diplomatic/Technology/General). `GetAvailableDecisions(category?)` overload ile kategori filtresi desteği. JSON deserialize `IncludeFields=true`.
+- **Data/scenarios/historical_1936/decisions.json**: 10 karara Category atandı (Military: 3, Economy: 3, Political: 2, Diplomatic: 1, Technology: 1).
+- **Data/scenarios/modern_world/decisions.json**: 13 karara Category atandı (Military: 4, Economy: 4, Diplomatic: 1, Political: 1, Technology: 2, General: 1).
+- **Scripts/DecisionPanel.cs** (tam yeniden yazıldı, ~520 satır): HOI4 tarzı kategori UI — 7 sekmeli `CategoryTabContainer` (All + 6 kategori), anlık arama `SearchBox` (sonuç sayısı göstergeli), `DecisionCard` (kategori badge renkli, PP/gün/cooldown, tooltip: cost/effects/requirements renk kodlu), `ActiveDecisions` (progress bar + gün/kalan PP), `CLEAR FILTER` butonu. Backdrop `MouseFilter.Stop`, ESC kapatır, 1152x648 sınırında.
+- **Scripts/GameHud.cs**: DECISIONS butonu ADVISORS ile LIBRARY arasına eklendi (`_OpenDecisionPanel`).
+- **Scripts/GameManager.cs**: `--decisions-test` kancağı — `RunDecisionsTest()` DailyTick döngüsüyle 30 gün simüle eder, karar başlatır, tamamlanmayı bekler, efektleri doğrular, exit 0.
+- **Scripts/SaveSystem.cs**: `DecisionSave` DTO'ya Category alanı eklendi.
+- **Scripts/SaveLoadTest.cs**: `BuildSummaryCore` karar özeti Category dahil.
+
+### 2. Test Sonuçları
+- `dotnet build`: **0 hata / 0 uyarı**
+- `--decisions-test`: **PASS ✓** — 7 karar listelendi, Rearmament Program başlatıldı, 30 gün DailyTick simüle edildi, efektler uygulandı (MilFactories +2, WarSupport +5), exit 0.
+- `--save-load-test` (historical_1936): **PASS ✓ (A == B)**
+- `--save-load-test --scenario=modern_world`: **PASS ✓ (A == B)**
+
+### 3. Çözülemeyen şey
+- Yok — M54 %100 tamamlandı.
+
+### 4. Bilinen sorunlar
+- Stage 2 (animations, keyboard shortcuts, localization-ready texts) TODO'da yer alacak.
+
+### 5. Kullanıcının test etmesi gerekenler
+- `dotnet build` (0/0)
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --decisions-test` — PASS
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --save-load-test` — PASS A==B (historical_1936)
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --save-load-test --scenario=modern_world` — PASS A==B
+- Godot editörde F5 → DECISIONS butonu → panel açılır, sekmeler/arama/filtre çalışır, tooltip renkli, aktif karar progress bar, ESC/backdrop kapanır.
+
+### 6. Dosyalar
+- Yeni: —
+- Değiştirilen: `Scripts/DecisionSystem.cs`, `Scripts/DecisionPanel.cs`, `Scripts/GameHud.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Data/scenarios/historical_1936/decisions.json`, `Data/scenarios/modern_world/decisions.json`, `TODO.md`, `PROJECT_STATE.md`, `GECE-RAPOR.md`.

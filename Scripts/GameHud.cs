@@ -303,6 +303,14 @@ public partial class GameHud : CanvasLayer
                 ClimatePanel.OpenUnder(this);
             });
 
+        // MIGRATION (M56): göç ve mülteci krizleri paneli
+        AddSection("MIGRATION", "Migration panel — refugee crises, border policies, aid packages",
+            () =>
+            {
+                GD.Print("[GameHud] MIGRATION butonu basıldı — MigrationPanel.OpenUnder çağrılıyor");
+                MigrationPanel.OpenUnder(this);
+            });
+
         // ELECTION (M23.1): seçim takvimi + oy tahmini paneli
         AddSection("ELECTION", "Elections — calendar and vote prediction",
             () =>

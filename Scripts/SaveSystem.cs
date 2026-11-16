@@ -111,6 +111,7 @@ public static class SaveSystem
         public OrganizationSystem.OrganizationSave Organization { get; set; } // M37: uluslararası örgüt üyeliği ve Madde 5 durumu
         public AdvisorSystem.AdvisorsSave Advisors { get; set; } // M53: danışman ekibi
         public ClimateSystem.ClimateSave Climate { get; set; } // M55: iklim, çevre ve enerji geçişi
+        public MigrationSystem.MigrationSave Migration { get; set; } // M56: göç ve mülteci krizleri
     }
 
     // ===== Economy DTOs =====
@@ -788,6 +789,7 @@ public static class SaveSystem
             Organization = OrganizationSystem.GetSaveData(), // M37: uluslararası örgüt üyeliği ve Madde 5 durumu
             Advisors = AdvisorSystem.GetSaveData(), // M53: danışman ekibi
             Climate = ClimateSystem.GetSaveData(), // M55: iklim, çevre ve enerji geçişi
+            Migration = MigrationSystem.GetSaveData(), // M56: göç ve mülteci krizleri
         };
 
         EnsureSavesDir();
@@ -1003,6 +1005,10 @@ public static class SaveSystem
             // M55: iklim sistemi — kayıtta varsa geri yüklenir
             if (save.Climate != null)
                 ClimateSystem.LoadSaveData(save.Climate);
+
+            // M56: göç ve mülteci krizleri — kayıtta varsa geri yüklenir
+            if (save.Migration != null)
+                MigrationSystem.LoadSaveData(save.Migration);
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

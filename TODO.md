@@ -857,4 +857,18 @@ bir kuruma dönüşmeli.
 
 ---
 
+### 📋 Milestone 56: Göç ve Mülteci Krizleri
+**Hedef:** Savaş, sivil savaş ve iklim zararından mülteci akışları — varış ülkelerinde istikrar/ekonomi/ideoloji etkisi, oyuncu sınır politikası ve yardım paketleri, Save/Load A==B determinizm.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 56.1 | `Data/migration.json`: küresel ayarlar, 4 sınır politikası (Açık/Kontrollü/Kısıtlı/Kapalı), 4 kriz türü (savaş, sivil savaş, iklim, azınlık), 3 yardım paketi | JSON yüklenir, kayıt sayısı loglanır (`IncludeFields=true`) | [x] |
+| 56.2 | `Scripts/MigrationSystem.cs`: savaş/sivil savaş/iklim mültecileri üretimi (DailyTick/WarSystem/CivilWarSystem/ClimateSystem kancaları), komşu/ekonomi/ilişki/istikrar ağırlıklı dağıtım, sınır politikası çarpanı, asimilasyon/dönüş, yardım paketi etkileri, AI kararları (baskıya göre politika değiştirme), Save/Load | Mülteci akışları üretilir/dağıtılır, politika/yardım çalışır, `--migration-test` PASS | [x] |
+| 56.3 | `Scripts/MigrationPanel.cs`: HUD MIGRATION butonu — 4 sekme (Genel Özet, Krizler, Akışlar, Politikalar), arama/filtre, tooltip, kategori rozetleri, panel 1152x648'e sığar, `MouseFilter.Stop` backdrop, ESC kapatır | Panel açılır, sekmeler/arama/filtre/tooltip çalışır, ESC/backdrop kapatır | [x] |
+| 56.4 | Entegrasyon: `GameManager._Ready` → `MigrationSystem.LoadData()`, `DailyTick` → `MigrationSystem.DailyTick()`, `ResetForNewGame` → `MigrationSystem.ResetForNewGame()`. WarSystem/CivilWarSystem/ClimateSystem/StatisticsSystem/DiplomacySystem/OrganizationSystem kancaları. | Derleme 0/0, sistemler birbirini bozmaz | [x] |
+| 56.5 | Save/Load: `SaveFile.Migration` DTO + `GetSaveData/LoadSaveData/ResetForNewGame` + `SaveLoadTest.BuildSummaryCore` özeti (toplam mülteci, akış sayısı, kriz sayısı hash). | `--save-load-test` A==B PASS (historical_1936 + modern_world) | [x] |
+| 56.6 | Headless test: `--migration-test` — 2 yıl simülasyon, savaş/sivil savaş/iklim mültecileri, politika/yardım değişimi, save/load/reset doğrulama, exit 0. | `--migration-test` PASS ✓ (exit 0) | [x] |
+
+---
+
 ## Notlar

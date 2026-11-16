@@ -86,6 +86,7 @@ C:\Proje\Rogue-World\
 - **M53:** Advisor System — 18 advisor profiles (6 Economy/Security/Media), hire/fire per type, deterministic advice (confidence 10-100, rationale), 7-day cooldown, AdvisorPanel UI (active/müsait/history), HUD ADVISORS button, Save/Load A==B both scenarios — DONE ✓
 - **M54:** Decisions Panel HOI4-Style Redesign — Category tabs (All/Economy/Military/Political/Diplomatic/Technology/General), search filter with results count, category badges on cards, color-coded tooltips (cost/effects/requirements), active decisions with progress bars, CLEAR FILTER button, HUD DECISIONS button, headless test `--decisions-test` PASS, Save/Load A==B both scenarios — DONE ✓
 - **M55:** Climate, Environment & Energy Transition — Global CO2/warming, 23 country emission profiles, 9 policies (carbon tax, renewables, coal phaseout, etc.), 3 agreements (Paris, Glasgow, Kigali), tipping points (permafrost, ice sheets, Amazon, methane), COP meetings, AI policy decisions, StatisticsSystem integration (health/GDP/environment/energy impacts), Save/Load A==B both scenarios — **DONE ✓** (ClimatePanel UI 55.3 complete: 5 tabs, HUD CLIMATE button, DecisionPanel-style UI; **M55.3 fix**: Global tab warming trend chart implemented with real historical data from ClimateSystem, deterministic Godot drawing, saved/loaded and hashed in SaveLoadTest)
+- **M56:** Migration & Refugee Crises — Global settings, 4 border policies (Open/Controlled/Restricted/Closed), 4 crisis types (War, Civil War, Climate, Persecution), 3 aid packages, weighted refugee distribution (neighbors/economy/relations/stability/border policy), assimilation/return mechanics, AI border policy decisions, HUD MIGRATION button with 4-tab panel (Overview/Crises/Flows/Policies), WarSystem/CivilWarSystem/ClimateSystem hooks for refugee generation, StatisticsSystem/DiplomacySystem/OrganizationSystem integration (stability/GDP/ideology/reputation effects), Save/Load A==B both scenarios — **DONE ✓** (`--migration-test` PASS, `--save-load-test` both scenarios PASS)
 
 ## What is Broken / Unfinished
 - **Export/Deployment (M13-14)** — Blocked on Godot export templates, versioning, CI/CD (user approval needed)
@@ -103,10 +104,11 @@ C:\Proje\Rogue-World\
 2. **M53.1-53.5** — Advisor System (18 profiles, hire/fire, deterministic advice, 7-day cooldown, AdvisorPanel UI, HUD button, save/load A==B both scenarios) — ALL DONE ✓
 3. **M54.1-54.6** — Decisions Panel HOI4-Style Redesign (category tabs, search, tooltips, progress bars, HUD button, headless test, save/load A==B both scenarios) — ALL DONE ✓
 4. **M55.1-55.6** — Climate System (data, logic, integration, save/load, test, **UI panel**) — **ALL DONE ✓**
-5. Then evaluate "Önerilen Ek Özellikler" or proceed to M13/M14 (polish/export)
+5. **M56.1-56.6** — Migration & Refugee Crises (data, logic, panel, integration, save/load, test) — **ALL DONE ✓**
+6. Then evaluate "Önerilen Ek Özellikler" or proceed to M13/M14 (polish/export)
 
 ---
 
 **Current Branch:** `gece-calisma`  
-**Last Commit:** (pending — M55 Climate System core)  
-**Last Test Run:** `--climate-test` → PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, `--decisions-test` → PASS ✓, `--advisor-test` → PASS ✓, `--espionage-mission-test` → PASS ✓, `--organization-test` → PASS ✓, `--recognition-test` → PASS ✓, `--intervention-test` → PASS ✓, `--civil-war-test` → PASS ✓ (all regression tests PASS)
+**Last Commit:** (pending — M56 Migration System)  
+**Last Test Run:** `--migration-test` → PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, `--climate-test` → PASS ✓, `--decisions-test` → PASS ✓, `--advisor-test` → PASS ✓, `--espionage-mission-test` → PASS ✓, `--recognition-test` → PASS ✓, `--intervention-test` → PASS ✓, `--civil-war-test` → PASS ✓, `--occupation-test` → PASS ✓, `--soak-test` (1 year) → PASS ✓ (all regression tests PASS)

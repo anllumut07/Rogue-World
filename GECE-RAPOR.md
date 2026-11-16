@@ -1,5 +1,30 @@
 ﻿# GECE-RAPOR — 2026-11-15 (gece-calisma dalı)
 
+## M56 — ✅ DONE (Migration & Refugee Crises)
+- `Data/migration.json`: GlobalSettings, 4 BorderPolicies (open/controlled/restricted/closed), 4 CrisisTypes (war/civil_war/climate/persecution), 3 AidPackages (basic_aid/integration_aid/repatriation_aid)
+- `Scripts/MigrationSystem.cs` (~920 lines): Core logic
+  - Refugee generation: `GenerateWarRefugees`, `GenerateCivilWarRefugees`, `GenerateClimateRefugees` (hooks from WarSystem, CivilWarSystem, ClimateSystem)
+  - Weighted distribution to destination countries (neighbors + GDP per capita + stability + relations + border policy multiplier)
+  - Internal counter `_dayCounter` for annual processing (independent of GameManager.TotalDays)
+  - Asylum processing: pending/granted/rejected tracking
+  - Asimilaton (5%/year) + return (2%/year) + daily indicator effects (stability, GDP, unemployment)
+  - Border policies with PP cost, diplomacy bonus/penalty, acceptance multiplier, cooldown (1 year)
+  - Aid packages with PP/budget cost, stability/GDP/assimilation/return bonuses, 3-year duration
+  - Migration flows tracking (source→dest, annual flow, pressure decay)
+  - AI decisions: border policy changes based on refugee pressure
+  - Full Save/Load with internal day counter, A==B verified
+  - ResetForNewGame clears all state
+- `Scripts/MigrationPanel.cs` (4-tab UI: Overview, Crises, Flows, Policies): DecisionPanel-style UI with search/filter, tooltips, category badges, HUD MIGRATION button
+- `Scripts/GameManager.cs`: Integration (LoadData, DailyTick, ResetForNewGame, --migration-test hook)
+- `Scripts/GameHud.cs`: MIGRATION button added
+- `Scripts/SaveSystem.cs`: MigrationSave DTO field added
+- `Scripts/SaveLoadTest.cs`: Migration data added to BuildSummaryCore hash
+- All tests pass:
+  - `--migration-test` ✓ (2 years sim, 3 refugee sources, policy/aid changes, save/load/reset)
+  - `--save-load-test` modern_world + historical_1936 A==B ✓
+  - `--climate-test` ✓, `--decisions-test` ✓, `--advisor-test` ✓, `--espionage-mission-test` ✓, `--recognition-test` ✓, `--intervention-test` ✓, `--civil-war-test` ✓, `--occupation-test` ✓, `--soak-test` (1 year) ✓
+- Files changed: Data/migration.json, MigrationSystem.cs, MigrationPanel.cs, GameManager.cs, GameHud.cs, SaveSystem.cs, SaveLoadTest.cs, TODO.md, PROJECT_STATE.md, GECE-RAPOR.md
+
 ## M55.3 — ✅ DONE (ClimatePanel UI)
 - `Scripts/ClimatePanel.cs`: 5 tabs (Global, Emissions, Policies, Agreements, Tipping Points) — 650+ lines
   - Global: Key metrics (CO₂, warming, emissions, tipping points), **warming trend chart with real historical data** (deterministic Godot drawing, CO₂ + warming lines, grid, legend, year labels), tipping point summary

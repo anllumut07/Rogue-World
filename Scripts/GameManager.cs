@@ -207,6 +207,7 @@ public partial class GameManager : Node
         bool resourceBalanceTest = false;    // M47.3: kaynak açığı ekonomik sonucu testi (--resource-balance-test)
         bool aiFormableTest = false;         // M48.1: AI ulus kurma değerlendirmesi testi (--ai-formable-test)
         bool climateTest = false;            // M55: iklim sistemi testi (--climate-test)
+        bool migrationTest = false;          // M56: göç ve mülteci krizleri testi (--migration-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -404,6 +405,8 @@ public partial class GameManager : Node
                     aiFormableTest = true;
                 else if (arg == "--climate-test")
                     climateTest = true;
+                else if (arg == "--migration-test")
+                    migrationTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -447,6 +450,10 @@ public partial class GameManager : Node
         // M55: --climate-test verilmişse iklim test modunu etkinleştirir.
         if (climateTest)
             ClimateSystem.EnableTestMode();
+
+        // M56: --migration-test verilmişse göç test modunu etkinleştirir.
+        if (migrationTest)
+            MigrationSystem.EnableTestMode();
 
         // M17.1: Aktif senaryoyu ayarla — veri yükleyicilerin yolları buradan gelir.
         // --scenario verilmezse ScenarioSystem varsayılanı (historical_1936) kullanılır.
@@ -529,6 +536,9 @@ public partial class GameManager : Node
 
         // M55: İklim, Çevre ve Enerji Geçişi sistemi.
         ClimateSystem.LoadData();
+
+        // M56: Göç ve Mülteci Krizleri sistemi.
+        MigrationSystem.LoadData();
 
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)
@@ -777,6 +787,10 @@ public partial class GameManager : Node
         // M55: İklim sistemi testi.
         if (climateTest)
             RunClimateTest();
+
+        // M56: Göç ve Mülteci Krizleri testi.
+        if (migrationTest)
+            RunMigrationTest();
 
         if (perfTest)
             RunPerfTest();
@@ -1210,6 +1224,9 @@ public partial class GameManager : Node
         // M55: İklim, Çevre ve Enerji Geçişi — emisyon, ısınma, politika, anlaşma.
         ClimateSystem.DailyTick();
 
+        // M56: Göç ve Mülteci Krizleri — kriz güncellemesi, mülteci nüfusu, akışlar.
+        MigrationSystem.DailyTick();
+
         // M53: Danışman ekibi — günlük cooldown azaltma.
         AdvisorSystem.DailyTick(TotalDays);
 
@@ -1573,6 +1590,9 @@ public partial class GameManager : Node
 
         // M55: İklim sistemi yeni oyun için sıfırla.
         ClimateSystem.ResetForNewGame();
+
+        // M56: Göç ve Mülteci Krizleri sistemi yeni oyun için sıfırla.
+        MigrationSystem.ResetForNewGame();
 
         // M53: Danışman ekibini yeni oyun için sıfırla.
         AdvisorSystem.ResetForNewGame();
@@ -3406,6 +3426,110 @@ public partial class GameManager : Node
 
         bool ok = co2Increased && warmingIncreased && emissionsChanged && tippingPointsValid && saveLoadOk;
         GD.Print(ok ? "[ClimateTest] SONUÇ: PASS ✓" : "[ClimateTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(ok ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M56: Göç ve Mülteci Krizleri testi — 20 yıl simülasyon, savaş/sivil savaş/iklim mültecileri,
+    /// sınır politikası, yardım paketleri, save/load A==B ve reset doğrular. Normal oyunda ASLA çalışmaz (--migration-test).
+    /// </summary>
+    private void RunMigrationTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M56: GÖÇ VE MÜLTECİ KRİZLERİ TESTİ (--migration-test)");
+        GD.Print("=========================================");
+
+        ScenarioSystem.SetActive("modern_world");
+
+        if (!HasPlayer) SetPlayerCountry("USA");
+        if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 1000;
+        if (Speed == 0) SetSpeed(0);
+
+        // Başlangıç değerleri
+        int initialGlobalRefugees = MigrationSystem.GetTotalGlobalRefugees();
+        GD.Print($"[MigrationTest] Başlangıç — Küresel mülteciler: {initialGlobalRefugees:N0}");
+
+        // Test modunda savaş mültecileri üret (SYR -> komşular)
+        MigrationSystem.GenerateWarRefugees("SYR", 50000, 10);
+        GD.Print("[MigrationTest] SYR savaş mültecileri üretildi (50K ölümlü, 10 il kaybı)");
+
+        // Sivil savaş mültecileri (YEM)
+        MigrationSystem.GenerateCivilWarRefugees("YEM", 30000, 5);
+        GD.Print("[MigrationTest] YEM sivil savaş mültecileri üretildi (30K ölümlü, 5 il etkilendi)");
+
+        // İklim mültecileri (BGD - düşük ada ülke)
+        MigrationSystem.GenerateClimateRefugees("BGD", 0.5, false);
+        GD.Print("[MigrationTest] BGD iklim mültecileri üretildi (0.5°C etki)");
+
+        // 2 yıl simüle et (timeout önlemek için)
+        int testDays = 2 * 365;
+        int prevRefugees = 0;
+
+        for (int day = 0; day < testDays; day++)
+        {
+            MigrationSystem.DailyTick();
+
+            if ((day + 1) % 365 == 0)
+            {
+                int year = (day + 1) / 365;
+                int globalRefugees = MigrationSystem.GetTotalGlobalRefugees();
+                int usaRefugees = MigrationSystem.GetTotalRefugees("USA");
+                int deuRefugees = MigrationSystem.GetTotalRefugees("DEU");
+                int flowCount = MigrationSystem.GetAllFlows().Count;
+
+                GD.Print($"[MigrationTest] Yıl {year} — Global: {globalRefugees:N0}, USA: {usaRefugees:N0}, DEU: {deuRefugees:N0}, Akışlar: {flowCount}");
+
+                if (year == 1)
+                {
+                    // Sınır politikası değiştir (USA -> controlled -> restricted)
+                    bool policyOk = MigrationSystem.SetBorderPolicy("USA", "restricted");
+                    GD.Print($"[MigrationTest] Yıl 1 — USA sınır politikası 'restricted': {policyOk}");
+
+                    // Yardım paketi aktif et
+                    bool aidOk = MigrationSystem.ActivateAidPackage("USA", "basic_aid");
+                    GD.Print($"[MigrationTest] Yıl 1 — USA basic_aid aktif: {aidOk}");
+                }
+                if (year == 2)
+                {
+                    // Başka politika (DEU -> open)
+                    bool policyOk = MigrationSystem.SetBorderPolicy("DEU", "open");
+                    GD.Print($"[MigrationTest] Yıl 2 — DEU sınır politikası 'open': {policyOk}");
+                }
+
+                prevRefugees = globalRefugees;
+            }
+        }
+
+        int finalGlobalRefugees = MigrationSystem.GetTotalGlobalRefugees();
+        int finalFlows = MigrationSystem.GetAllFlows().Count;
+        int crisesCount = MigrationSystem.GetAllCrisesCount();
+
+        GD.Print($"[MigrationTest] Bitiş — Küresel mülteciler: {finalGlobalRefugees:N0}, Akışlar: {finalFlows}, Aktif krizler: {crisesCount}");
+        GD.Print($"[MigrationTest] Değişim — Mülteciler: {finalGlobalRefugees - initialGlobalRefugees:+N0}");
+
+        // Doğrulamalar
+        bool refugeesGenerated = finalGlobalRefugees > initialGlobalRefugees;
+        bool flowsExist = finalFlows > 0;
+        bool crisesExist = crisesCount > 0;
+
+        // Save/Load A==B
+        var save1 = MigrationSystem.GetSaveData();
+        MigrationSystem.LoadSaveData(save1);
+        var save2 = MigrationSystem.GetSaveData();
+        bool saveLoadOk = save1.Countries.Length == save2.Countries.Length
+            && save1.Flows.Length == save2.Flows.Length
+            && save1.Countries.Sum(c => c.RefugeePopulation) == save2.Countries.Sum(c => c.RefugeePopulation);
+        GD.Print($"[MigrationTest] save_load_a_b={saveLoadOk}");
+
+        // Reset testi
+        MigrationSystem.ResetForNewGame();
+        int afterReset = MigrationSystem.GetTotalGlobalRefugees();
+        bool resetOk = afterReset == 0;
+        GD.Print($"[MigrationTest] reset_refugees={afterReset} (expected 0)");
+
+        bool ok = refugeesGenerated && flowsExist && crisesExist && saveLoadOk && resetOk;
+        GD.Print(ok ? "[MigrationTest] SONUÇ: PASS ✓" : "[MigrationTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");
     }

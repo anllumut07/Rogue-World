@@ -1,0 +1,132 @@
+{
+  "GlobalSettings": {
+    "BaseRefugeePerCasualty": 0.3,
+    "BaseRefugeePerProvinceLost": 5000,
+    "ClimateRefugeePerWarmingDegree": 100000,
+    "ClimateRefugeePerTippingPoint": 500000,
+    "MaxRefugeesPerCountry": 5000000,
+    "AssimilationRatePerYear": 0.05,
+    "ReturnRatePerYear": 0.02
+  },
+  "BorderPolicies": [
+    {
+      "Id": "open",
+      "Name": "Open Borders",
+      "Description": "Refugees enter freely. High humanitarian reputation, but stability and economy impacted.",
+      "Category": "Humanitarian",
+      "RefugeeAcceptanceMultiplier": 1.5,
+      "StabilityImpact": -0.5,
+      "GdpGrowthImpact": -0.3,
+      "IdeologyShiftLiberal": 0.2,
+      "IdeologyShiftConservative": -0.1,
+      "DiplomacyBonus": 5,
+      "CostPP": 0,
+      "MinWarming": 0.0
+    },
+    {
+      "Id": "controlled",
+      "Name": "Controlled Entry",
+      "Description": "Screened entry with quotas. Balanced approach. Moderate stability cost.",
+      "Category": "Balanced",
+      "RefugeeAcceptanceMultiplier": 1.0,
+      "StabilityImpact": -0.2,
+      "GdpGrowthImpact": -0.1,
+      "IdeologyShiftLiberal": 0.05,
+      "IdeologyShiftConservative": 0.0,
+      "DiplomacyBonus": 2,
+      "CostPP": 25,
+      "MinWarming": 0.0
+    },
+    {
+      "Id": "restricted",
+      "Name": "Restricted Entry",
+      "Description": "Strict limits, only vulnerable cases. Low refugee intake, stability preserved.",
+      "Category": "Security",
+      "RefugeeAcceptanceMultiplier": 0.3,
+      "StabilityImpact": 0.1,
+      "GdpGrowthImpact": 0.05,
+      "IdeologyShiftLiberal": -0.1,
+      "IdeologyShiftConservative": 0.15,
+      "DiplomacyBonus": -3,
+      "CostPP": 50,
+      "MinWarming": 0.0
+    },
+    {
+      "Id": "closed",
+      "Name": "Closed Borders",
+      "Description": "No refugees accepted. Maximum stability, severe diplomatic and humanitarian cost.",
+      "Category": "Isolationist",
+      "RefugeeAcceptanceMultiplier": 0.0,
+      "StabilityImpact": 0.3,
+      "GdpGrowthImpact": 0.1,
+      "IdeologyShiftLiberal": -0.3,
+      "IdeologyShiftConservative": 0.3,
+      "DiplomacyBonus": -10,
+      "CostPP": 100,
+      "MinWarming": 1.5
+    }
+  ],
+  "CrisisTypes": [
+    {
+      "Id": "war",
+      "Name": "War Refugees",
+      "Description": "Civilians fleeing active combat zones",
+      "BaseFlowPerCasualty": 0.4,
+      "DurationYears": 3
+    },
+    {
+      "Id": "civil_war",
+      "Name": "Civil War Displacement",
+      "Description": "Internal displacement from internal conflict",
+      "BaseFlowPerCasualty": 0.5,
+      "DurationYears": 5
+    },
+    {
+      "Id": "climate",
+      "Name": "Climate Displacement",
+      "Description": "Displacement from rising seas, drought, extreme weather",
+      "BaseFlowPerWarmingDegree": 200000,
+      "DurationYears": 10
+    },
+    {
+      "Id": "persecution",
+      "Name": "Persecution & Ethnic Cleansing",
+      "Description": "Targeted displacement of minority groups",
+      "BaseFlowPerEvent": 50000,
+      "DurationYears": 7
+    }
+  ],
+  "AidPackages": [
+    {
+      "Id": "basic_aid",
+      "Name": "Basic Humanitarian Aid",
+      "Description": "Food, shelter, medical supplies for refugees",
+      "CostPP": 50,
+      "CostBudgetPercent": 0.5,
+      "RefugeesSupported": 100000,
+      "StabilityBonus": 0.1,
+      "ReputationBonus": 3
+    },
+    {
+      "Id": "integration_program",
+      "Name": "Integration Program",
+      "Description": "Language, job training, housing for long-term integration",
+      "CostPP": 100,
+      "CostBudgetPercent": 1.0,
+      "RefugeesSupported": 50000,
+      "AssimilationBoost": 0.1,
+      "GdpGrowthBonus": 0.05,
+      "ReputationBonus": 5
+    },
+    {
+      "Id": "repatriation_support",
+      "Name": "Voluntary Repatriation Support",
+      "Description": "Assist safe return to origin country when conditions improve",
+      "CostPP": 30,
+      "CostBudgetPercent": 0.3,
+      "RefugeesSupported": 20000,
+      "ReturnRateBoost": 0.05,
+      "ReputationBonus": 2
+    }
+  ]
+}

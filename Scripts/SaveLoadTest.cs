@@ -798,6 +798,44 @@ public static class SaveLoadTest
         }
         sb.AppendLine($"İklim: CO2={climateSave?.GlobalCO2:F1}ppm, ısınma={climateSave?.GlobalWarming:F2}°C, ülke={climateCountries}, politika={activePolicies}, anlaşma={signedAgreements}, TP={triggeredTP}, geçmiş={climateHistoryCount}, hash={climateHash}");
 
+        // M56: Göç ve Mülteci Krizleri özeti
+        var migrationSave = MigrationSystem.GetSaveData();
+        int migrationCountries = migrationSave?.Countries?.Length ?? 0;
+        int totalRefugees = migrationSave?.Countries?.Sum(c => c.RefugeePopulation) ?? 0;
+        int totalFlows = migrationSave?.Flows?.Length ?? 0;
+        int totalCrises = migrationSave?.Countries?.Sum(c => c.ActiveCrises?.Length ?? 0) ?? 0;
+        int migrationHash = 0;
+        if (migrationSave != null)
+        {
+            if (migrationSave.Countries != null)
+            {
+                foreach (var c in migrationSave.Countries)
+                {
+                    migrationHash = migrationHash * 31 + c.CountryId.GetHashCode();
+                    migrationHash = migrationHash * 31 + c.RefugeePopulation;
+                    migrationHash = migrationHash * 31 + c.BorderPolicyId.GetHashCode();
+                    if (c.ActiveCrises != null)
+                    {
+                        foreach (var cr in c.ActiveCrises)
+                        {
+                            migrationHash = migrationHash * 31 + cr.TypeId.GetHashCode();
+                            migrationHash = migrationHash * 31 + cr.RefugeeCount;
+                        }
+                    }
+                }
+            }
+            if (migrationSave.Flows != null)
+            {
+                foreach (var f in migrationSave.Flows)
+                {
+                    migrationHash = migrationHash * 31 + f.SourceCountryId.GetHashCode();
+                    migrationHash = migrationHash * 31 + f.DestinationCountryId.GetHashCode();
+                    migrationHash = migrationHash * 31 + f.AnnualFlow;
+                }
+            }
+        }
+        sb.AppendLine($"Göç: ülke={migrationCountries}, mülteciler={totalRefugees:N0}, akış={totalFlows}, kriz={totalCrises}, hash={migrationHash}");
+
         if (leaderCount > 0)
         {
             foreach (var kv in LeaderSystem.All.OrderBy(k => k.Key))

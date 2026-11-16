@@ -110,5 +110,5 @@ C:\Proje\Rogue-World\
 ---
 
 **Current Branch:** `gece-calisma`  
-**Last Commit:** (pending — M56 Migration System)  
-**Last Test Run:** `--migration-test` → PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, `--climate-test` → PASS ✓, `--decisions-test` → PASS ✓, `--advisor-test` → PASS ✓, `--espionage-mission-test` → PASS ✓, `--recognition-test` → PASS ✓, `--intervention-test` → PASS ✓, `--civil-war-test` → PASS ✓, `--occupation-test` → PASS ✓, `--soak-test` (1 year) → PASS ✓ (all regression tests PASS)
+**Last Commit:** M52 Recognition Consequences — REQUEST RECOGNITION diplomatic action added to DiplomacyPanel UI; all M52 sub-tasks complete with save/load A==B verified on both scenarios  
+**Last Test Run:** `--recognition-test` → PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, `--diplomacy-test` → PASS ✓, `--intervention-test` → PASS ✓, `--occupation-test` → PASS ✓, `--civil-war-test` → PASS ✓, `--espionage-mission-test` → PASS ✓, `--advisor-test` → PASS ✓, `--decisions-test` → PASS ✓, `--climate-test` → PASS ✓, `--migration-test` → PASS ✓, `--soak-test` → PASS ✓ (all regression tests PASS)

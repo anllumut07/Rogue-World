@@ -1,4 +1,12 @@
-﻿# GECE-RAPOR — 2026-11-15 (gece-calisma dalı)
+﻿# GECE-RAPOR — 2026-11-16 (gece-calisma dalı)
+
+## M52 — ✅ DONE (Recognition Consequences: Unrecognized State)
+- **M52.1**: OrganizationSystem membership gating — `OrganizationSystem.IsEligibleForMembership` requires ≥30% recognition from established countries for in-game born nations
+- **M52.2**: REQUEST RECOGNITION diplomatic action — Added to `DiplomacySystem.RequestRecognition` (backend) + `DiplomacyPanel` UI button; AI evaluation in `DiplomacySystem.AIEvaluateRequestRecognition` (relation, ideology, neighbor, strength, world tension, recognition ratio); PP cost 25; accepted: +10 relation both ways; rejected: -5 relation both ways, +2 World Tension
+- **M52.3**: War tension / intervention scaling — `CasusBelliSystem.NotifyWarDeclared` adjusts tension based on recognition: unrecognized attacker → +0 to +10 tension (illegitimate war); recognized defender → -0 to -5 tension (legitimate defense); affects Article 5 / guarantee triggers and intervention probability
+- **M52.4**: Save/Load A==B verified — `SaveLoadTest.BuildSummaryCore` includes recognition hash; both `historical_1936` and `modern_world` scenarios pass A==B
+- Tests pass: `--recognition-test` ✓, `--save-load-test` (both scenarios) ✓, `--diplomacy-test` ✓, `--intervention-test` ✓, `--occupation-test` ✓, `--civil-war-test` ✓, `--soak-test` ✓
+- Files changed: `DiplomacyPanel.cs` (REQUEST RECOGNITION button), `TODO.md`, `PROJECT_STATE.md`, `GECE-RAPOR.md`
 
 ## M56 — ✅ DONE (Migration & Refugee Crises)
 - `Data/migration.json`: GlobalSettings, 4 BorderPolicies (open/controlled/restricted/closed), 4 CrisisTypes (war/civil_war/climate/persecution), 3 AidPackages (basic_aid/integration_aid/repatriation_aid)

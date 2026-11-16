@@ -501,6 +501,44 @@ public partial class DiplomacyPanel : Control
                 _actionsBox.AddChild(buildBtn);
             }
 
+            // M52.2: REQUEST RECOGNITION — tanınmamış ülke için diplomatik eylem
+            if (!atWar && RecognitionSystem.WasBorn(targetId) && !RecognitionSystem.IsRecognized(playerId, targetId))
+            {
+                var recTitle = new Label { Text = "RECOGNITION" };
+                recTitle.AddThemeFontSizeOverride("font_size", 14);
+                recTitle.AddThemeColorOverride("font_color", UITheme.Gold);
+                _actionsBox.AddChild(recTitle);
+
+                int recognizerCount = RecognitionSystem.RecognizerCount(targetId);
+                int establishedCount = RecognitionSystem.EstablishedCountForOrg(targetId);
+                double ratio = establishedCount > 0 ? (double)recognizerCount / establishedCount : 0.0;
+
+                var recInfo = new Label
+                {
+                    Text = $"  Recognized by: {recognizerCount}/{establishedCount} ({ratio:P0}) — REQUEST RECOGNITION (25 PP)"
+                };
+                recInfo.AddThemeFontSizeOverride("font_size", 12);
+                recInfo.AddThemeColorOverride("font_color", UITheme.TextMuted);
+                _actionsBox.AddChild(recInfo);
+
+                var recBtn = new Button
+                {
+                    Text = "REQUEST RECOGNITION (25 PP)",
+                    FocusMode = Control.FocusModeEnum.None,
+                    CustomMinimumSize = new Vector2(220, 30),
+                    Disabled = GameManager.Instance.PlayerCountryData.PoliticalPower < 25
+                };
+                recBtn.TooltipText = $"Ask {target.Name} to recognize your country. Accepted: +10 relation both ways. Rejected: -5 relation both ways, +2 World Tension.";
+                recBtn.Pressed += () =>
+                {
+                    if (DiplomacySystem.RequestRecognition(targetId)) RefreshAll();
+                };
+                UITheme.AddHoverScale(recBtn);
+                _actionsBox.AddChild(recBtn);
+
+                _actionsBox.AddChild(new HSeparator());
+            }
+
             // Savaş ilanı — buton yalnız tüm koşullar sağlanınca aktif; tooltip eksikleri listeler
             int warCost = WarSystem.CalculateWarGoalCost(targetId);
             var warBtn = new Button

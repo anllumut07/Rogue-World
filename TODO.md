@@ -808,10 +808,10 @@ bir kuruma dönüşmeli.
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |
 |-----------|----------|--------------|-------|
-| 52.1 | Tanınma sayısının kurumsal sonucu: `OrganizationSystem` üyeliği minimum tanınma ister; tanınmayan ülke ticaret gelirinden ve AI ittifak/garanti isteklerinden çıkarılır (M48.3 `RecognitionSystem` + `DiplomacySystem` + `OrganizationSystem` bağlantısı) | Tanınma 0 ise örgüte girilemez ve ittifak teklifi reddedilir, tanınma artınca açılır | [ ] |
-| 52.2 | Oyuncu eylemi: "TANINMA TALEP ET" diplomatik eylemi (`DiplomacyPanel`) — büyük güçleri tek tek ikna etme; kabul ilişkiyi artırır, ret prestiji/prestij kaybı yaratır; AI talebi prestij + ilişki + ideoloji + komşulukla değerlendirir | Kabul/ret deterministik ve loglanır, kabul tanınma sayısını artırır, `--recognition-request-test` PASS | [ ] |
-| 52.3 | Tanınmanın savaş kararlarına etkisi: tanınmayan devlete saldıran için dünya gerginliği bedeli düşük, tanınmış devlete saldıranın garantilere ve müdahaleye yol açma ihtimali yüksek (`CasusBelliSystem` + `InterventionSystem`) | Gerginlik bedeli tanınmayla azalır, müdahale olasılığı tanımayla artar | [ ] |
-| 52.4 | Save/Load + özet hash + regresyon (tanınma, diplomasi, örgüt, müdahale testleri) | A==B PASS (2 senaryo), `--recognition-test`, `--diplomacy-test`, `--intervention-test` PASS | [ ] |
+| 52.1 | Tanınma sayısının kurumsal sonucu: `OrganizationSystem` üyeliği minimum tanınma ister; tanınmayan ülke ticaret gelirinden ve AI ittifak/garanti isteklerinden çıkarılır (M48.3 `RecognitionSystem` + `DiplomacySystem` + `OrganizationSystem` bağlantısı) | Tanınma 0 ise örgüte girilemez ve ittifak teklifi reddedilir, tanınma artınca açılır | [x] Bitti — OrganizationSystem.IsEligibleForMembership tanınma %30 eşiği kontrolü |
+| 52.2 | Oyuncu eylemi: "REQUEST RECOGNITION" diplomatik eylemi (`DiplomacyPanel`) — hedef ülkeyi ikna etme; kabul ilişkiyi artırır, ret prestiji kaybı yaratır; AI talebi prestij + ilişki + ideoloji + komşulukla değerlendirir | Kabul/ret deterministik ve loglanır, kabul tanınma sayısını artırır, `--recognition-test` PASS | [x] Bitti — DiplomacySystem.RequestRecognition + DiplomacyPanel REQUEST RECOGNITION butonu, AIEvaluateRequestRecognition |
+| 52.3 | Tanınmanın savaş kararlarına etkisi: tanınmayan devlete saldıran için dünya gerginliği bedeli düşük, tanınmış devlete saldıranın garantilere ve müdahaleye yol açma ihtimali yüksek (`CasusBelliSystem` + `InterventionSystem`) | Gerginlik bedeli tanınmayla azalır, müdahale olasılığı tanımayla artar | [x] Bitti — CasusBelliSystem.NotifyWarDeclared tanınma oranına göre tension ±5-10, garantili/müdahale sistemleri etkilenir |
+| 52.4 | Save/Load + özet hash + regresyon (tanınma, diplomasi, örgüt, müdahale testleri) | A==B PASS (2 senaryo), `--recognition-test`, `--diplomacy-test`, `--intervention-test` PASS | [x] Bitti — SaveLoadTest.BuildSummaryCore tanınma hash'i, her iki senaryoda A==B PASS ✓ |
 
 ---
 

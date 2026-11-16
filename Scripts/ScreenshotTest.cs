@@ -15,6 +15,7 @@ public static class ScreenshotTest
         Statistics,        // istatistik + bütçe paneli (M20)
         Election,          // seçim/parlamento paneli (M23)
         Organizations,     // uluslararası örgütler paneli (M37)
+        DecisionPanel,     // kararlar paneli (M54)
     }
 
     public static bool Enabled { get; private set; } = false;
@@ -64,6 +65,7 @@ public static class ScreenshotTest
             "statistics" or "budget" or "butce" or "istatistik" => ShotTarget.Statistics,
             "election" or "parliament" or "secim" => ShotTarget.Election,
             "organizations" or "org" or "orgutler" => ShotTarget.Organizations,
+            "decision" or "decisionpanel" or "decisions" or "karar" => ShotTarget.DecisionPanel,
             _ => ShotTarget.Map,
         };
     }

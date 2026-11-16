@@ -96,8 +96,27 @@ C:\Proje\Rogue-World\
 - Real FPS unmeasurable headless; editor manual check needed
 - War balance (losses/progress speed) not tuned
 - Sound files (music, UI clicks) missing — user must add CC0/licensed assets
-- Decisions panel UI needs redesign (HOI4-style category view)
 - Some test-only code paths still in production (being cleaned incrementally)
+
+## Completed in Stage 1 (UI Foundation + DecisionPanel)
+- **GameTheme** (Scripts/UI/GameTheme.cs): Central dark theme with gold accent, status colors (green/yellow/red), consistent fonts, StyleBoxes for panels/buttons/tabs/inputs/scrollbars/progress bars/tooltips
+- **Reusable UI Components** (Scripts/UI/):
+  - GamePanel: Window frame with title bar, close button, ESC to close, optional drag, modal backdrop
+  - TabBar: Category tabs with hover/selected states
+  - SearchBox: Search input with placeholder, clear button, result count
+  - Chip/Badge: Category/status chips with variants (primary/success/warning/danger/info/special)
+  - StatBar: Progress bar with label, value, percentage, color-by-value
+  - ListRow: List item with icon, title, subtitle, right text, hover highlight
+  - TooltipBuilder: Rich tooltips with title, description, costs, requirements, effects
+  - EmptyState: Standard empty state messages with icon, title, message, optional action
+- **DecisionPanel rebuilt** using ONLY these components:
+  - Left column: Category tabs (TabBar) + Search (SearchBox) + Available decisions (ListRow with Chip badges)
+  - Right column: Active decisions with progress bars (StatBar)
+  - Rich tooltips via TooltipBuilder
+  - Empty states via EmptyState
+  - All existing behavior preserved (category filter, search, start/cancel, daily refresh)
+- **Test hook added**: `--ui-screenshot=<panel>` (works in editor; headless needs game state)
+- **Quality gate**: Build 0 errors/0 warnings ✓, `--decisions-test` PASS ✓, `--save-load-test` both scenarios A==B ✓
 
 ## Prioritized TODO (from TODO.md)
 1. **M52.1-52.4** — Recognition consequences (org membership, trade, AI alliances, REQUEST RECOGNITION action, war tension/intervention, save/load A==B) — ALL DONE ✓
@@ -110,5 +129,5 @@ C:\Proje\Rogue-World\
 ---
 
 **Current Branch:** `gece-calisma`  
-**Last Commit:** M52 Recognition Consequences — REQUEST RECOGNITION diplomatic action added to DiplomacyPanel UI; all M52 sub-tasks complete with save/load A==B verified on both scenarios  
-**Last Test Run:** `--recognition-test` → PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, `--diplomacy-test` → PASS ✓, `--intervention-test` → PASS ✓, `--occupation-test` → PASS ✓, `--civil-war-test` → PASS ✓, `--espionage-mission-test` → PASS ✓, `--advisor-test` → PASS ✓, `--decisions-test` → PASS ✓, `--climate-test` → PASS ✓, `--migration-test` → PASS ✓, `--soak-test` → PASS ✓ (all regression tests PASS)
+**Last Commit:** Stage 1 UI Upgrade — GameTheme + reusable UI components (GamePanel, TabBar, SearchBox, Chip, StatBar, ListRow, TooltipBuilder, EmptyState) + DecisionPanel rebuilt as reference implementation  
+**Last Test Run:** `--decisions-test` → PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, all regression tests PASS

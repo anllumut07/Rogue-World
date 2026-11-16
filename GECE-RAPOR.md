@@ -1,5 +1,35 @@
 ﻿# GECE-RAPOR — 2026-11-16 (gece-calisma dalı)
 
+## Stage 1 UI Upgrade — ✅ DONE (UI Foundation + DecisionPanel Reference Implementation)
+- **GameTheme** (`Scripts/UI/GameTheme.cs`): Central dark theme (HOI4/AoH inspired)
+  - Palette: Dark base `#0B1018`, gold accent `#C9A227`, status colors (green `#4CAF50`, yellow `#FFC107`, red `#F44336`, blue `#2196F3`, purple `#9C27B0`, orange `#FF9800`)
+  - Fonts: Consistent sizes (11-28px), spacing constants, corner radius, border widths
+  - StyleBoxes: Panel, button (normal/hover/pressed/disabled/focus), toolbar, tab, input, scrollbar, progress bar, separator, popup, tooltip
+  - Animations: FadeIn/FadeOut, PopIn/PopOut, HoverScale
+- **Reusable UI Components** (`Scripts/UI/`):
+  - `GamePanel.cs`: Window frame with title bar, close button, ESC to close, optional drag, modal backdrop with MouseFilter.Stop
+  - `TabBar.cs`: Category tabs with hover/selected states, signals
+  - `SearchBox.cs`: Search input with placeholder, clear button, result count label
+  - `Chip.cs`: Badge/chip with variants (Default/Primary/Success/Warning/Danger/Info/Special), removable option
+  - `StatBar.cs`: Progress bar with label, value display, percentage, color-by-value (red→yellow→green)
+  - `ListRow.cs`: List item with icon slot, title, subtitle, right text, hover highlight
+  - `TooltipBuilder.cs`: Rich tooltip data structure + text/panel builder (title, description, costs, requirements, effects)
+  - `EmptyState.cs`: Standard empty state with icon, title, message, optional action button
+- **DecisionPanel rebuilt** using ONLY these components (reference implementation):
+  - Left: Category tabs (TabBar) + Search (SearchBox) + Available decisions (ListRow + Chip badges)
+  - Right: Active decisions with progress bars (StatBar)
+  - Rich tooltips (TooltipBuilder) with costs/requirements/effects color-coded
+  - Empty states (EmptyState) for no results / no active decisions
+  - All existing behavior preserved: category filter, search, START/CANCEL, daily refresh on data change
+- **Test hook**: `--ui-screenshot=<panel>` (e.g. `--screenshot-test=decisionpanel --resolution=1152x648`) — works in editor; headless requires game state
+- **Quality gate**: Build 0 errors/0 warnings ✓, `--decisions-test` PASS ✓, `--save-load-test` both scenarios A==B ✓
+- **Files created**: `Scripts/UI/GameTheme.cs`, `GamePanel.cs`, `TabBar.cs`, `SearchBox.cs`, `Chip.cs`, `StatBar.cs`, `ListRow.cs`, `TooltipBuilder.cs`, `EmptyState.cs`
+- **Files modified**: `DecisionPanel.cs`, `ScreenshotTest.cs`, `Game.cs`
+
+---
+
+## M52 — ✅ DONE (Recognition Consequences: Unrecognized State)
+
 ## M52 — ✅ DONE (Recognition Consequences: Unrecognized State)
 - **M52.1**: OrganizationSystem membership gating — `OrganizationSystem.IsEligibleForMembership` requires ≥30% recognition from established countries for in-game born nations
 - **M52.2**: REQUEST RECOGNITION diplomatic action — Added to `DiplomacySystem.RequestRecognition` (backend) + `DiplomacyPanel` UI button; AI evaluation in `DiplomacySystem.AIEvaluateRequestRecognition` (relation, ideology, neighbor, strength, world tension, recognition ratio); PP cost 25; accepted: +10 relation both ways; rejected: -5 relation both ways, +2 World Tension

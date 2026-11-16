@@ -4,38 +4,38 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// HOI4-style Decisions Panel (M10.2): category tabs, search filter, cost/requirements tooltip.
-/// HUD DECISIONS butonundan açılır; 1152x648 sınırında; backdrop MouseFilter.Stop.
+/// HOI4-style Decisions Panel (M54 - Stage 1 UI Upgrade):
+/// Built with reusable UI components from Scripts/UI/
+/// - Category tabs via TabBar
+/// - Search filter via SearchBox with result count
+/// - Decision cards via ListRow
+/// - Category badges via Chip
+/// - Progress bars via StatBar
+/// - Rich tooltips via TooltipBuilder
+/// - Empty states via EmptyState
+/// - Panel frame via GamePanel
 /// </summary>
-public partial class DecisionPanel : Control
+public partial class DecisionPanel : GamePanel
 {
     public static bool IsOpen { get; private set; }
 
-    // UI components
-    private ColorRect _backdrop;
-    private PanelContainer _panel;
-    private VBoxContainer _rootVBox;
-
-    // Category tabs
-    private HBoxContainer _tabBar;
-    private List<Button> _tabButtons = new();
-    private string _activeCategory = "All";
-
-    // Search
-    private LineEdit _searchBox;
-    private Label _resultsCountLabel;
-
-    // Available decisions container
-    private ScrollContainer _availableScroll;
+    // === UI Components (using reusable components) ===
+    private TabBar _tabBar;
+    private SearchBox _searchBox;
     private VBoxContainer _availableContainer;
-    private Label _noDecisionsLabel;
+    private ScrollContainer _availableScroll;
+    private EmptyState _availableEmptyState;
 
-    // Active decisions container
-    private ScrollContainer _activeScroll;
     private VBoxContainer _activeContainer;
+    private ScrollContainer _activeScroll;
+    private EmptyState _activeEmptyState;
 
-    // Categories in order
-    private static readonly string[] Categories = { "All", "Economy", "Military", "Political", "Diplomatic", "Technology", "General" };
+    // Categories in order (matching DecisionSystem)
+    private static readonly string[] CategoryIds = { "All", "Economy", "Military", "Political", "Diplomatic", "Technology", "General" };
+    private static readonly string[] CategoryLabels = { "ALL", "ECONOMY", "MILITARY", "POLITICAL", "DIPLOMATIC", "TECHNOLOGY", "GENERAL" };
+
+    private string _activeCategory = "All";
+    private string _searchText = "";
 
     public static void OpenUnder(Node parent)
     {
@@ -43,21 +43,30 @@ public partial class DecisionPanel : Control
 
         GD.Print("[DecisionPanel] OpenUnder — parent=" + (parent?.GetType().Name ?? "null"));
         var panel = new DecisionPanel();
-        ModalHost.AddUnder(parent, panel);
+        // Add to parent (which should be a Node in the scene tree)
+        parent.AddChild(panel);
     }
 
     public override void _Ready()
     {
+        // Configure GamePanel properties
+        Title = "DECISIONS";
+        MinSize = new Vector2(1000, 560);
+        MaxSize = new Vector2(1400, 800);
+        Draggable = false;
+        Closable = true;
+        Modal = true;
+        AutoCenter = true;
+
+        base._Ready();
+
         ProcessMode = ProcessModeEnum.Always;
-        UITheme.ApplyTheme(this);
         BuildUi();
         ConnectSignals();
         RefreshAll();
         IsOpen = true;
 
-        UITheme.FadeIn(_backdrop, 0.1f);
-        UITheme.PopIn(_panel, 0.15f);
-        GD.Print("DecisionPanel: hazır");
+        GD.Print("DecisionPanel: hazır (Stage 1 UI)");
     }
 
     public override void _ExitTree()
@@ -78,156 +87,116 @@ public partial class DecisionPanel : Control
 
     private void BuildUi()
     {
-        // Backdrop: full screen, blocks map input
-        _backdrop = new ColorRect { Color = new Color(0, 0, 0, 0.75f), MouseFilter = Control.MouseFilterEnum.Stop };
-        _backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        AddChild(_backdrop);
+        // Content goes into GamePanel's ContentContainer
+        var content = ContentContainer;
+        content.AddThemeConstantOverride("separation", GameTheme.SpaceM);
 
-        var center = new CenterContainer();
-        center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.AddChild(center);
-
-        _panel = new PanelContainer { CustomMinimumSize = new Vector2(1000, 560) };
-        center.AddChild(_panel);
-
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 20);
-        margin.AddThemeConstantOverride("margin_right", 20);
-        margin.AddThemeConstantOverride("margin_top", 16);
-        margin.AddThemeConstantOverride("margin_bottom", 16);
-        _panel.AddChild(margin);
-
-        _rootVBox = new VBoxContainer();
-        _rootVBox.AddThemeConstantOverride("separation", 12);
-        margin.AddChild(_rootVBox);
-
-        // --- Header ---
-        var headerRow = new HBoxContainer();
-        headerRow.AddThemeConstantOverride("separation", 16);
-        _rootVBox.AddChild(headerRow);
-
-        var title = new Label { Text = "DECISIONS" };
-        title.AddThemeFontSizeOverride("font_size", 28);
-        headerRow.AddChild(title);
-
-        headerRow.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
-
-        var closeBtn = new Button { Text = "CLOSE", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(100, 36) };
-        closeBtn.Pressed += Close;
-        UITheme.AddHoverScale(closeBtn);
-        headerRow.AddChild(closeBtn);
-
-        _rootVBox.AddChild(new HSeparator());
-
-        // --- Category Tabs ---
-        _tabBar = new HBoxContainer();
-        _tabBar.AddThemeConstantOverride("separation", 4);
-        _rootVBox.AddChild(_tabBar);
-
-        foreach (var cat in Categories)
+        // === Category Tabs (using TabBar component) ===
+        _tabBar = new TabBar
         {
-            var tabBtn = new Button
-            {
-                Text = cat,
-                FocusMode = Control.FocusModeEnum.None,
-                CustomMinimumSize = new Vector2(110, 32)
-            };
-            tabBtn.AddThemeFontSizeOverride("font_size", 13);
-            var catCopy = cat;
-            tabBtn.Pressed += () => OnCategoryTabPressed(catCopy);
-            UITheme.AddHoverScale(tabBtn);
-            _tabBar.AddChild(tabBtn);
-            _tabButtons.Add(tabBtn);
-        }
-        UpdateTabVisuals();
+            TabIds = CategoryIds,
+            TabLabels = CategoryLabels,
+            SelectedIndex = 0,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _tabBar.TabChanged += OnCategoryTabChanged;
+        content.AddChild(_tabBar);
 
-        // --- Search row ---
-        var searchRow = new HBoxContainer();
-        searchRow.AddThemeConstantOverride("separation", 12);
-        _rootVBox.AddChild(searchRow);
-
-        var searchLabel = new Label { Text = "Search:", CustomMinimumSize = new Vector2(60, 0) };
-        searchLabel.AddThemeFontSizeOverride("font_size", 14);
-        searchRow.AddChild(searchLabel);
-
-        _searchBox = new LineEdit
+        // === Search Box (using SearchBox component) ===
+        _searchBox = new SearchBox
         {
             PlaceholderText = "Type to filter decisions...",
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(0, 30)
+            ShowResultCount = true,
+            ShowClearButton = true,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
         _searchBox.TextChanged += OnSearchTextChanged;
-        searchRow.AddChild(_searchBox);
+        _searchBox.SearchSubmitted += OnSearchSubmitted;
+        _searchBox.Cleared += OnSearchCleared;
+        content.AddChild(_searchBox);
 
-        _resultsCountLabel = new Label { Text = "", CustomMinimumSize = new Vector2(140, 0) };
-        _resultsCountLabel.AddThemeFontSizeOverride("font_size", 13);
-        _resultsCountLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        _resultsCountLabel.HorizontalAlignment = HorizontalAlignment.Right;
-        searchRow.AddChild(_resultsCountLabel);
+        // Separator
+        var separator = new HSeparator();
+        separator.AddThemeStyleboxOverride("separator", GameTheme.SeparatorStyle(GameTheme.BorderMedium, 1));
+        content.AddChild(separator);
 
-        _rootVBox.AddChild(new HSeparator());
-
-        // --- Two columns: Available | Active ---
+        // === Two columns: Available | Active ===
         var columns = new HBoxContainer();
-        columns.AddThemeConstantOverride("separation", 24);
+        columns.AddThemeConstantOverride("separation", GameTheme.SpaceXL);
         columns.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
         columns.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _rootVBox.AddChild(columns);
+        content.AddChild(columns);
 
         // LEFT: Available decisions
-        var leftCol = new VBoxContainer();
-        leftCol.AddThemeConstantOverride("separation", 8);
-        leftCol.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        var leftCol = BuildAvailableColumn();
         columns.AddChild(leftCol);
 
+        // RIGHT: Active decisions
+        var rightCol = BuildActiveColumn();
+        columns.AddChild(rightCol);
+    }
+
+    private VBoxContainer BuildAvailableColumn()
+    {
+        var leftCol = new VBoxContainer();
+        leftCol.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        leftCol.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        leftCol.CustomMinimumSize = new Vector2(500, 0);
+
+        // Header row
         var leftHeader = new HBoxContainer();
-        leftHeader.AddThemeConstantOverride("separation", 8);
+        leftHeader.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         leftCol.AddChild(leftHeader);
 
         var leftTitle = new Label { Text = "AVAILABLE DECISIONS" };
-        leftTitle.AddThemeFontSizeOverride("font_size", 16);
-        leftTitle.AddThemeColorOverride("font_color", UITheme.Gold);
+        leftTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        leftTitle.AddThemeColorOverride("font_color", GameTheme.Gold);
         leftHeader.AddChild(leftTitle);
 
         leftHeader.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
 
-        var clearFilterBtn = new Button { Text = "CLEAR FILTER", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(110, 28) };
-        clearFilterBtn.AddThemeFontSizeOverride("font_size", 11);
-        clearFilterBtn.Pressed += () => { _searchBox.Text = ""; _activeCategory = "All"; UpdateTabVisuals(); RefreshAvailable(); };
-        UITheme.AddHoverScale(clearFilterBtn);
+        // Clear filter button (handled by SearchBox's clear button, but we also clear category)
+        var clearFilterBtn = new Button
+        {
+            Text = "CLEAR ALL",
+            FocusMode = Control.FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(100, 28)
+        };
+        clearFilterBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        clearFilterBtn.Pressed += OnClearAllFilters;
+        GameTheme.StyleButton(clearFilterBtn);
         leftHeader.AddChild(clearFilterBtn);
 
+        // Scroll container for available decisions
         _availableScroll = new ScrollContainer();
         _availableScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
         _availableScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         leftCol.AddChild(_availableScroll);
 
         _availableContainer = new VBoxContainer();
-        _availableContainer.AddThemeConstantOverride("separation", 6);
+        _availableContainer.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         _availableContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _availableScroll.AddChild(_availableContainer);
 
-        _noDecisionsLabel = new Label
-        {
-            Text = "No decisions available.\nRequirements not met, on cooldown, or filtered out.",
-            HorizontalAlignment = HorizontalAlignment.Center
-        };
-        _noDecisionsLabel.AddThemeFontSizeOverride("font_size", 14);
-        _noDecisionsLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        _noDecisionsLabel.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        _noDecisionsLabel.Visible = false;
-        _availableContainer.AddChild(_noDecisionsLabel);
+        // Empty state
+        _availableEmptyState = EmptyState.CreateNoDecisions();
+        _availableEmptyState.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _availableEmptyState.Visible = false;
+        _availableContainer.AddChild(_availableEmptyState);
 
-        // RIGHT: Active decisions
+        return leftCol;
+    }
+
+    private VBoxContainer BuildActiveColumn()
+    {
         var rightCol = new VBoxContainer();
-        rightCol.AddThemeConstantOverride("separation", 8);
+        rightCol.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         rightCol.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         rightCol.CustomMinimumSize = new Vector2(320, 0);
-        columns.AddChild(rightCol);
 
         var rightHeader = new Label { Text = "ACTIVE DECISIONS" };
-        rightHeader.AddThemeFontSizeOverride("font_size", 16);
-        rightHeader.AddThemeColorOverride("font_color", Colors.Orange);
+        rightHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        rightHeader.AddThemeColorOverride("font_color", GameTheme.Orange);
         rightCol.AddChild(rightHeader);
 
         _activeScroll = new ScrollContainer();
@@ -236,9 +205,17 @@ public partial class DecisionPanel : Control
         rightCol.AddChild(_activeScroll);
 
         _activeContainer = new VBoxContainer();
-        _activeContainer.AddThemeConstantOverride("separation", 8);
+        _activeContainer.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         _activeContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _activeScroll.AddChild(_activeContainer);
+
+        // Empty state
+        _activeEmptyState = EmptyState.CreateNoActiveDecisions();
+        _activeEmptyState.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _activeEmptyState.Visible = false;
+        _activeContainer.AddChild(_activeEmptyState);
+
+        return rightCol;
     }
 
     private void ConnectSignals()
@@ -249,61 +226,51 @@ public partial class DecisionPanel : Control
 
     private void OnDataChanged() => RefreshAll();
 
+    private void OnCategoryTabChanged(string tabId, int tabIndex)
+    {
+        _activeCategory = tabId;
+        RefreshAvailable();
+    }
+
+    private void OnSearchTextChanged(string text)
+    {
+        _searchText = text.Trim().ToLower();
+        RefreshAvailable();
+    }
+
+    private void OnSearchSubmitted(string text)
+    {
+        // Optional: could trigger something on enter
+    }
+
+    private void OnSearchCleared()
+    {
+        _searchText = "";
+        RefreshAvailable();
+    }
+
+    private void OnClearAllFilters()
+    {
+        _activeCategory = "All";
+        _searchText = "";
+        _tabBar.SelectedIndex = 0;
+        _tabBar.UpdateVisuals();
+        _searchBox.Clear();
+        RefreshAvailable();
+    }
+
     private void RefreshAll()
     {
         RefreshAvailable();
         RefreshActive();
     }
 
-    private void OnCategoryTabPressed(string category)
-    {
-        _activeCategory = category;
-        UpdateTabVisuals();
-        RefreshAvailable();
-    }
-
-    private void OnSearchTextChanged(string text)
-    {
-        RefreshAvailable();
-    }
-
-    private void UpdateTabVisuals()
-    {
-        for (int i = 0; i < Categories.Length && i < _tabButtons.Count; i++)
-        {
-            var btn = _tabButtons[i];
-            bool active = Categories[i] == _activeCategory;
-            if (active)
-            {
-                btn.AddThemeColorOverride("font_color", Colors.White);
-                btn.AddThemeStyleboxOverride("normal", MakeTabStyle(new Color("#2A2A4A"), new Color("#4A4A8A")));
-            }
-            else
-            {
-                btn.AddThemeColorOverride("font_color", UITheme.TextMuted);
-                btn.AddThemeStyleboxOverride("normal", MakeTabStyle(new Color("#1A1A2E"), new Color("#3A3A5A")));
-            }
-        }
-    }
-
-    private StyleBoxFlat MakeTabStyle(Color bg, Color border)
-    {
-        var b = new StyleBoxFlat { BgColor = bg, BorderColor = border };
-        b.SetBorderWidthAll(1);
-        b.SetCornerRadiusAll(4);
-        b.ContentMarginLeft = 12;
-        b.ContentMarginRight = 12;
-        b.ContentMarginTop = 4;
-        b.ContentMarginBottom = 4;
-        return b;
-    }
-
     private void RefreshAvailable()
     {
-        // Clear old buttons (keep _noDecisionsLabel)
+        // Clear old items (keep empty state)
         foreach (var child in _availableContainer.GetChildren())
         {
-            if (child == _noDecisionsLabel) continue;
+            if (child == _availableEmptyState) continue;
             _availableContainer.RemoveChild(child);
             child.QueueFree();
         }
@@ -317,132 +284,105 @@ public partial class DecisionPanel : Control
         }
 
         // Filter by search text
-        string search = _searchBox?.Text?.Trim().ToLower() ?? "";
-        if (!string.IsNullOrEmpty(search))
+        if (!string.IsNullOrEmpty(_searchText))
         {
             decisions = decisions.Where(d =>
-                d.Name.ToLower().Contains(search) ||
-                d.Description.ToLower().Contains(search) ||
-                d.Category.ToLower().Contains(search)
+                d.Name.ToLower().Contains(_searchText) ||
+                d.Description.ToLower().Contains(_searchText) ||
+                d.Category.ToLower().Contains(_searchText)
             ).ToList();
         }
 
         int totalCount = DecisionSystem.GetAvailableDecisions().Count;
         int filteredCount = decisions.Count;
-        _resultsCountLabel.Text = $"Showing {filteredCount} / {totalCount}";
+
+        // Update search box result count
+        _searchBox.UpdateResultCount(filteredCount, totalCount);
 
         if (filteredCount == 0)
         {
-            _noDecisionsLabel.Visible = true;
+            _availableEmptyState.Visible = true;
+            if (!string.IsNullOrEmpty(_searchText))
+            {
+                _availableEmptyState.SetContent(
+                    "No Results Found",
+                    $"No decisions match \"{_searchText}\". Try a different search term or clear filters.",
+                    "🔍"
+                );
+            }
+            else if (_activeCategory != "All")
+            {
+                _availableEmptyState.SetContent(
+                    $"No {_activeCategory} Decisions",
+                    "No available decisions in this category. Check other categories or requirements.",
+                    "📋"
+                );
+            }
+            else
+            {
+                _availableEmptyState.SetContent(
+                    "No Decisions Available",
+                    "Requirements not met, on cooldown, or filtered out.",
+                    "📋"
+                );
+            }
             return;
         }
 
-        _noDecisionsLabel.Visible = false;
+        _availableEmptyState.Visible = false;
 
         foreach (var d in decisions)
         {
-            var btn = CreateDecisionButton(d);
-            _availableContainer.AddChild(btn);
+            var row = CreateDecisionRow(d);
+            _availableContainer.AddChild(row);
         }
     }
 
-    private Button CreateDecisionButton(DecisionSystem.Decision d)
+    private Control CreateDecisionRow(DecisionSystem.Decision d)
     {
-        var btn = new Button
+        Color categoryColor = GameTheme.GetCategoryColor(d.Category);
+
+        // Create ListRow
+        var row = new ListRow
         {
-            CustomMinimumSize = new Vector2(0, 68),
-            FocusMode = Control.FocusModeEnum.None,
-            TooltipText = BuildTooltip(d)
+            Title = d.Name,
+            Subtitle = $"[{d.Category}]  {FormatCost(d)}  |  {FormatDays(d.CostDays)}",
+            RightText = "START →",
+            AccentColor = categoryColor,
+            RowHeight = 72,
+            Selectable = true
         };
 
-        var hbox = new HBoxContainer();
-        hbox.AddThemeConstantOverride("separation", 12);
-        btn.AddChild(hbox);
-
-        // Category badge
-        var catBadge = new Label { Text = $"[{d.Category}]", CustomMinimumSize = new Vector2(100, 0) };
-        catBadge.AddThemeFontSizeOverride("font_size", 11);
-        catBadge.AddThemeColorOverride("font_color", GetCategoryColor(d.Category));
-        catBadge.HorizontalAlignment = HorizontalAlignment.Center;
-        catBadge.VerticalAlignment = VerticalAlignment.Center;
-        hbox.AddChild(catBadge);
-
-        // Left: name + details
-        var left = new VBoxContainer();
-        left.AddThemeConstantOverride("separation", 2);
-        left.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        hbox.AddChild(left);
-
-        var nameLabel = new Label { Text = d.Name };
-        nameLabel.AddThemeFontSizeOverride("font_size", 15);
-        nameLabel.HorizontalAlignment = HorizontalAlignment.Left;
-        left.AddChild(nameLabel);
-
-        var details = new Label();
-        var parts = new List<string>();
-        if (d.CostPP > 0) parts.Add($"{d.CostPP} PP");
-        if (d.CostDays > 0) parts.Add($"{d.CostDays} days");
-        if (d.CooldownDays > 0) parts.Add($"Cooldown: {d.CooldownDays} days");
-        details.Text = string.Join("  |  ", parts);
-        details.AddThemeFontSizeOverride("font_size", 12);
-        details.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        details.HorizontalAlignment = HorizontalAlignment.Left;
-        left.AddChild(details);
-
-        hbox.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
-
-        // Right: START button
-        var startBtn = new Button
+        // Add category badge using Chip component
+        var catChip = Chip.CreateCategory(d.Category, categoryColor);
+        catChip.FontSize = GameTheme.FontSizeTiny;
+        // Add chip to the row's main container
+        var mainContainer = row.GetChild(0) as HBoxContainer;
+        if (mainContainer != null)
         {
-            Text = "START",
-            FocusMode = Control.FocusModeEnum.None,
-            CustomMinimumSize = new Vector2(80, 36)
-        };
-        startBtn.AddThemeFontSizeOverride("font_size", 12);
-        startBtn.Pressed += () => OnStartDecision(d.Id);
-        UITheme.AddHoverScale(startBtn);
-        hbox.AddChild(startBtn);
+            // Insert chip after icon (index 1)
+            mainContainer.MoveChild(catChip, 1);
+        }
 
-        // Category-based subtle background
-        btn.AddThemeStyleboxOverride("normal", MakeDecisionBox(d.Category));
-        UITheme.AddHoverScale(btn, 1.02f);
-        return btn;
-    }
+        // Rich tooltip using TooltipBuilder
+        var tooltipData = TooltipBuilder.FromDecision(d);
+        row.TooltipText = TooltipBuilder.BuildText(tooltipData);
 
-    private Color GetCategoryColor(string category)
-    {
-        return category switch
-        {
-            "Economy" => new Color("#4CAF50"),      // Green
-            "Military" => new Color("#F44336"),     // Red
-            "Political" => new Color("#9C27B0"),    // Purple
-            "Diplomatic" => new Color("#2196F3"),   // Blue
-            "Technology" => new Color("#FF9800"),   // Orange
-            _ => new Color("#757575")               // Grey
-        };
-    }
+        // Connect press
+        row.RowPressed += () => OnStartDecision(d.Id);
 
-    private StyleBoxFlat MakeDecisionBox(string category)
-    {
-        Color accent = GetCategoryColor(category);
-        var b = new StyleBoxFlat
-        {
-            BgColor = new Color("#1E1E2E"),
-            BorderColor = new Color(accent.R * 0.3f, accent.G * 0.3f, accent.B * 0.3f, 1f)
-        };
-        b.SetBorderWidthAll(1);
-        b.SetCornerRadiusAll(6);
-        b.ContentMarginLeft = 12;
-        b.ContentMarginRight = 12;
-        b.ContentMarginTop = 8;
-        b.ContentMarginBottom = 8;
-        return b;
+        // Hover scale
+        GameTheme.AddHoverScale(row, 1.02f);
+
+        return row;
     }
 
     private void RefreshActive()
     {
+        // Clear old items (keep empty state)
         foreach (var child in _activeContainer.GetChildren())
         {
+            if (child == _activeEmptyState) continue;
             _activeContainer.RemoveChild(child);
             child.QueueFree();
         }
@@ -451,17 +391,11 @@ public partial class DecisionPanel : Control
 
         if (active.Count == 0)
         {
-            var noneLabel = new Label
-            {
-                Text = "No active decisions",
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-            noneLabel.AddThemeFontSizeOverride("font_size", 14);
-            noneLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            noneLabel.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-            _activeContainer.AddChild(noneLabel);
+            _activeEmptyState.Visible = true;
             return;
         }
+
+        _activeEmptyState.Visible = false;
 
         foreach (var info in active)
         {
@@ -472,71 +406,76 @@ public partial class DecisionPanel : Control
 
     private Control CreateActiveItem(DecisionSystem.ActiveDecisionInfo info)
     {
-        var container = new VBoxContainer();
-        container.AddThemeConstantOverride("separation", 4);
-        container.AddThemeStyleboxOverride("normal", MakeBox(new Color("#1A1A2E"), new Color("#3A3A5A")));
+        Color categoryColor = GameTheme.GetCategoryColor(info.Decision.Category);
 
+        // Container with card style
+        var container = new VBoxContainer();
+        container.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
+        container.AddThemeStyleboxOverride("normal", GameTheme.CardBox(categoryColor));
+
+        // Header row with category badge and cancel button
         var header = new HBoxContainer();
-        header.AddThemeConstantOverride("separation", 8);
+        header.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         container.AddChild(header);
 
-        // Category badge
-        var catBadge = new Label { Text = $"[{info.Decision.Category}]", CustomMinimumSize = new Vector2(100, 0) };
-        catBadge.AddThemeFontSizeOverride("font_size", 11);
-        catBadge.AddThemeColorOverride("font_color", GetCategoryColor(info.Decision.Category));
-        catBadge.HorizontalAlignment = HorizontalAlignment.Center;
-        catBadge.VerticalAlignment = VerticalAlignment.Center;
-        header.AddChild(catBadge);
+        // Category chip
+        var catChip = Chip.CreateCategory(info.Decision.Category, categoryColor);
+        catChip.FontSize = GameTheme.FontSizeTiny;
+        header.AddChild(catChip);
 
+        // Name
         var nameLabel = new Label { Text = info.Decision.Name };
-        nameLabel.AddThemeFontSizeOverride("font_size", 14);
-        nameLabel.AddThemeColorOverride("font_color", UITheme.TextMain);
+        nameLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        nameLabel.AddThemeColorOverride("font_color", GameTheme.TextPrimary);
         nameLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         header.AddChild(nameLabel);
 
+        // Cancel button
         var cancelBtn = new Button
         {
             Text = "CANCEL",
             FocusMode = Control.FocusModeEnum.None,
-            CustomMinimumSize = new Vector2(70, 28)
+            CustomMinimumSize = new Vector2(70, 26)
         };
-        cancelBtn.AddThemeFontSizeOverride("font_size", 11);
+        cancelBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
         cancelBtn.Pressed += () => OnCancelDecision(info.Decision.Id);
-        UITheme.AddHoverScale(cancelBtn, 1.05f);
+        GameTheme.StyleButton(cancelBtn, false, 1.05f);
         header.AddChild(cancelBtn);
 
-        // Progress bar
-        var bar = new ProgressBar
+        // Progress bar (using StatBar)
+        var progressBar = new StatBar
         {
-            MinValue = 0, MaxValue = 100,
+            LabelText = "",
             Value = info.Progress * 100f,
-            CustomMinimumSize = new Vector2(0, 16)
+            MinValue = 0,
+            MaxValue = 100,
+            ShowValue = true,
+            ShowPercent = true,
+            ColorSource = GameTheme.ColorSource.Custom,
+            CustomFillColor = GameTheme.Orange,
+            BarHeight = 14,
+            LabelWidth = 0,
+            ValueWidth = 100,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        bar.AddThemeColorOverride("fill_color", Colors.Orange);
-        container.AddChild(bar);
+        container.AddChild(progressBar);
 
+        // Progress label
         var progressLabel = new Label
         {
             Text = $"Day {info.DaysElapsed} / {info.TotalDays}",
             HorizontalAlignment = HorizontalAlignment.Center
         };
-        progressLabel.AddThemeFontSizeOverride("font_size", 12);
-        progressLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        progressLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        progressLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         container.AddChild(progressLabel);
 
-        return container;
-    }
+        // Tooltip
+        var tooltipData = TooltipBuilder.FromDecision(info.Decision);
+        tooltipData.Footer = $"Progress: {info.Progress * 100:F0}% ({info.DaysElapsed}/{info.TotalDays} days)";
+        container.TooltipText = TooltipBuilder.BuildText(tooltipData);
 
-    private static StyleBoxFlat MakeBox(Color bg, Color border)
-    {
-        var b = new StyleBoxFlat { BgColor = bg, BorderColor = border };
-        b.SetBorderWidthAll(1);
-        b.SetCornerRadiusAll(4);
-        b.ContentMarginLeft = 8;
-        b.ContentMarginRight = 8;
-        b.ContentMarginTop = 6;
-        b.ContentMarginBottom = 6;
-        return b;
+        return container;
     }
 
     private void OnStartDecision(string decisionId)
@@ -553,79 +492,27 @@ public partial class DecisionPanel : Control
         RefreshAll();
     }
 
-    private void Close()
+    public override void Close()
     {
         GD.Print("DecisionPanel: kapatılıyor");
         if (GameManager.IsAvailable)
             GameManager.Instance.PlayerCountryDataChanged -= OnDataChanged;
 
-        UITheme.FadeOut(_backdrop, 0.08f);
-        UITheme.PopOut(_panel, 0.1f, () => QueueFree());
+        base.Close();
     }
 
-    private static string BuildTooltip(DecisionSystem.Decision d)
+    // === Formatting helpers ===
+
+    private string FormatCost(DecisionSystem.Decision d)
     {
-        var lines = new List<string>();
-        lines.Add(d.Description);
-        lines.Add("");
-        lines.Add($"Category: {d.Category}");
-        lines.Add("");
-        lines.Add("Cost:");
-        if (d.CostPP > 0) lines.Add($"  {d.CostPP} Political Power");
-        if (d.CostDays > 0) lines.Add($"  {d.CostDays} days to complete");
-        if (d.CooldownDays > 0) lines.Add($"  Cooldown: {d.CooldownDays} days");
-
-        var c = d.Condition;
-        bool hasReq = c.MinStability > 0 || c.MaxStability < 100 ||
-            c.MinWarSupport > 0 || c.MaxWarSupport < 100 ||
-            c.MinPP > 0 || c.MaxWorldTension < 100 ||
-            !string.IsNullOrEmpty(c.RequiredFocus) ||
-            !string.IsNullOrEmpty(c.RequiredNotFocus) ||
-            !string.IsNullOrEmpty(c.RequiredIdeology) ||
-            c.IsAtWar;
-
-        if (hasReq)
-        {
-            lines.Add("");
-            lines.Add("Requirements:");
-            if (c.MinStability > 0) lines.Add($"  Stability ≥ {c.MinStability}%");
-            if (c.MaxStability < 100) lines.Add($"  Stability ≤ {c.MaxStability}%");
-            if (c.MinWarSupport > 0) lines.Add($"  War Support ≥ {c.MinWarSupport}%");
-            if (c.MinPP > 0) lines.Add($"  PP ≥ {c.MinPP}");
-            if (c.MaxWorldTension < 100) lines.Add($"  World Tension ≤ {c.MaxWorldTension}%");
-            if (!string.IsNullOrEmpty(c.RequiredFocus)) lines.Add($"  Focus completed: {c.RequiredFocus}");
-            if (!string.IsNullOrEmpty(c.RequiredNotFocus)) lines.Add($"  Focus NOT completed: {c.RequiredNotFocus}");
-            if (!string.IsNullOrEmpty(c.RequiredIdeology)) lines.Add($"  Ideology: {c.RequiredIdeology}");
-            if (c.IsAtWar) lines.Add("  Must be at war");
-        }
-
-        var e = d.Effects;
-        lines.Add("");
-        lines.Add("Effects:");
-        if (e.PoliticalPower != 0) lines.Add($"  PP: {e.PoliticalPower:+#;-#}");
-        if (e.Stability != 0) lines.Add($"  Stability: {e.Stability:+#;-#}%");
-        if (e.WarSupport != 0) lines.Add($"  War Support: {e.WarSupport:+#;-#}%");
-        if (e.CivFactories != 0) lines.Add($"  Civilian Factories: {e.CivFactories:+#;-#}");
-        if (e.MilFactories != 0) lines.Add($"  Military Factories: {e.MilFactories:+#;-#}");
-        if (e.Dockyards != 0) lines.Add($"  Dockyards: {e.Dockyards:+#;-#}");
-        if (e.ResearchSlots != 0) lines.Add($"  Research Slots: {e.ResearchSlots:+#;-#}");
-        if (e.Manpower != 0) lines.Add($"  Manpower: {FormatSigned(e.Manpower)}");
-        if (e.Oil != 0) lines.Add($"  Oil: {e.Oil:+#;-#}");
-        if (e.Rubber != 0) lines.Add($"  Rubber: {e.Rubber:+#;-#}");
-        if (e.Steel != 0) lines.Add($"  Steel: {e.Steel:+#;-#}");
-        if (e.Aluminum != 0) lines.Add($"  Aluminum: {e.Aluminum:+#;-#}");
-        if (e.Tungsten != 0) lines.Add($"  Tungsten: {e.Tungsten:+#;-#}");
-        if (e.Chromium != 0) lines.Add($"  Chromium: {e.Chromium:+#;-#}");
-        if (e.WorldTension != 0) lines.Add($"  World Tension: {e.WorldTension:+#;-#}%");
-
-        return string.Join("\n", lines);
+        var parts = new List<string>();
+        if (d.CostPP > 0) parts.Add($"{d.CostPP} PP");
+        return parts.Count > 0 ? string.Join(" + ", parts) : "Free";
     }
 
-    private static string FormatSigned(long value)
+    private string FormatDays(int days)
     {
-        string sign = value >= 0 ? "+" : "-";
-        long abs = Math.Abs(value);
-        if (abs >= 1000) return $"{sign}{abs / 1000}k";
-        return $"{sign}{abs}";
+        if (days <= 0) return "Instant";
+        return $"{days} days";
     }
 }

@@ -274,6 +274,9 @@ public partial class Game : Control
             case ScreenshotTest.ShotTarget.Organizations:
                 OrganizationPanel.OpenUnder(this);
                 break;
+            case ScreenshotTest.ShotTarget.DecisionPanel:
+                DecisionPanel.OpenUnder(this);
+                break;
         }
 
         int frame = 0;

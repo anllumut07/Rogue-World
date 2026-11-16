@@ -110,6 +110,7 @@ public static class SaveSystem
         public NuclearProgramSystem.NuclearSave Nuclear { get; set; } // M31.2: nükleer program aşamaları
         public OrganizationSystem.OrganizationSave Organization { get; set; } // M37: uluslararası örgüt üyeliği ve Madde 5 durumu
         public AdvisorSystem.AdvisorsSave Advisors { get; set; } // M53: danışman ekibi
+        public ClimateSystem.ClimateSave Climate { get; set; } // M55: iklim, çevre ve enerji geçişi
     }
 
     // ===== Economy DTOs =====
@@ -786,6 +787,7 @@ public static class SaveSystem
             Nuclear = NuclearProgramSystem.GetSaveData(), // M31.2: nükleer program aşamaları
             Organization = OrganizationSystem.GetSaveData(), // M37: uluslararası örgüt üyeliği ve Madde 5 durumu
             Advisors = AdvisorSystem.GetSaveData(), // M53: danışman ekibi
+            Climate = ClimateSystem.GetSaveData(), // M55: iklim, çevre ve enerji geçişi
         };
 
         EnsureSavesDir();
@@ -997,6 +999,10 @@ public static class SaveSystem
             // M53: danışman ekibi — kayıtta varsa geri yüklenir
             if (save.Advisors != null)
                 AdvisorSystem.LoadSaveData(save.Advisors);
+
+            // M55: iklim sistemi — kayıtta varsa geri yüklenir
+            if (save.Climate != null)
+                ClimateSystem.LoadSaveData(save.Climate);
 
             // 5) Sinyaller: harita sahipliği, UI, tarih
             var gm = GameManager.Instance;

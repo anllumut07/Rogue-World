@@ -758,6 +758,35 @@ public static class SaveLoadTest
         }
         sb.AppendLine($"Danışmanlar: aktif={activeAdvisors}, cooldown={cooldowns}, geçmiş={historyCount}, hash={advisorHash}");
 
+        // M55: İklim sistemi özeti (save/load A==B karşılaştırmasına girer)
+        var climateSave = ClimateSystem.GetSaveData();
+        int climateCountries = climateSave?.Countries?.Length ?? 0;
+        int activePolicies = climateSave?.Countries?.Sum(c => c.ActivePolicies?.Count ?? 0) ?? 0;
+        int signedAgreements = climateSave?.Countries?.Sum(c => c.SignedAgreements?.Count ?? 0) ?? 0;
+        int triggeredTP = climateSave?.TippingPoints?.Count(tp => tp.Triggered) ?? 0;
+        int climateHash = 0;
+        if (climateSave != null)
+        {
+            climateHash = (int)(climateSave.GlobalCO2 * 1000) ^ (int)(climateSave.GlobalWarming * 1000) ^
+                          (int)(climateSave.CumulativeEmissionsGt * 100) ^ climateSave.YearCounter;
+            if (climateSave.TippingPoints != null)
+            {
+                foreach (var tp in climateSave.TippingPoints)
+                    if (tp.Triggered) climateHash ^= tp.Id.GetHashCode();
+            }
+            if (climateSave.Countries != null)
+            {
+                foreach (var c in climateSave.Countries)
+                {
+                    foreach (var p in c.ActivePolicies ?? Enumerable.Empty<string>())
+                        climateHash = climateHash * 31 + p.GetHashCode();
+                    foreach (var a in c.SignedAgreements ?? Enumerable.Empty<string>())
+                        climateHash = climateHash * 31 + a.GetHashCode();
+                }
+            }
+        }
+        sb.AppendLine($"İklim: CO2={climateSave?.GlobalCO2:F1}ppm, ısınma={climateSave?.GlobalWarming:F2}°C, ülke={climateCountries}, politika={activePolicies}, anlaşma={signedAgreements}, TP={triggeredTP}, hash={climateHash}");
+
         if (leaderCount > 0)
         {
             foreach (var kv in LeaderSystem.All.OrderBy(k => k.Key))

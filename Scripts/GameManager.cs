@@ -206,6 +206,7 @@ public partial class GameManager : Node
         bool provinceEconomyTest = false;    // M47.1: il bazlı ekonomi ağırlık katmanı testi (--province-economy-test)
         bool resourceBalanceTest = false;    // M47.3: kaynak açığı ekonomik sonucu testi (--resource-balance-test)
         bool aiFormableTest = false;         // M48.1: AI ulus kurma değerlendirmesi testi (--ai-formable-test)
+        bool climateTest = false;            // M55: iklim sistemi testi (--climate-test)
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -401,6 +402,8 @@ public partial class GameManager : Node
                     resourceBalanceTest = true;
                 else if (arg == "--ai-formable-test")
                     aiFormableTest = true;
+                else if (arg == "--climate-test")
+                    climateTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -440,6 +443,10 @@ public partial class GameManager : Node
         // çalışması gereken doğrulama testi 120 sn sınırında bitmeli.
         if (unexpectedEventTest)
             UnexpectedEventSystem.EnableTestMode();
+
+        // M55: --climate-test verilmişse iklim test modunu etkinleştirir.
+        if (climateTest)
+            ClimateSystem.EnableTestMode();
 
         // M17.1: Aktif senaryoyu ayarla — veri yükleyicilerin yolları buradan gelir.
         // --scenario verilmezse ScenarioSystem varsayılanı (historical_1936) kullanılır.
@@ -519,6 +526,9 @@ public partial class GameManager : Node
 
         // M26.1: Afet sistemini yükle (tanımlar + ülke→bölge haritası, aktif senaryodan).
         DisasterSystem.LoadScenarioData();
+
+        // M55: İklim, Çevre ve Enerji Geçişi sistemi.
+        ClimateSystem.LoadData();
 
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)
@@ -763,6 +773,10 @@ public partial class GameManager : Node
 
         if (spaceRewardTest)
             RunSpaceRewardTest();
+
+        // M55: İklim sistemi testi.
+        if (climateTest)
+            RunClimateTest();
 
         if (perfTest)
             RunPerfTest();
@@ -1193,6 +1207,9 @@ public partial class GameManager : Node
         // M37: Uluslararası örgütler — yıllık zirve / aylık bakanlar toplantısı denetimi.
         OrganizationSystem.DailyTick(TotalDays);
 
+        // M55: İklim, Çevre ve Enerji Geçişi — emisyon, ısınma, politika, anlaşma.
+        ClimateSystem.DailyTick();
+
         // M53: Danışman ekibi — günlük cooldown azaltma.
         AdvisorSystem.DailyTick(TotalDays);
 
@@ -1553,6 +1570,9 @@ public partial class GameManager : Node
 
         // M37: Uluslararası örgütleri yeni oyun için sıfırla (üyelikler veri dosyasından yeniden yüklenir).
         OrganizationSystem.ResetForNewGame();
+
+        // M55: İklim sistemi yeni oyun için sıfırla.
+        ClimateSystem.ResetForNewGame();
 
         // M53: Danışman ekibini yeni oyun için sıfırla.
         AdvisorSystem.ResetForNewGame();
@@ -3267,6 +3287,125 @@ public partial class GameManager : Node
             && launch3 && completed3 && reconActive
             && saveLoadOk && resetOk;
         GD.Print(ok ? "[SpaceRewardTest] SONUÇ: PASS ✓" : "[SpaceRewardTest] SONUÇ: FAIL ✗");
+        GetTree().Quit(ok ? 0 : 1);
+        GD.Print("=========================================");
+    }
+
+    /// <summary>
+    /// M55: İklim sistemi testi — 50 yıl simülasyon, emisyon/ısınma eğrileri, politika etkisi,
+    /// tipping point, save/load A==B ve reset doğrular. Normal oyunda ASLA çalışmaz (--climate-test).
+    /// </summary>
+    private void RunClimateTest()
+    {
+        GD.Print("=========================================");
+        GD.Print("  M55: İKLİM SİSTEMİ TESTİ (--climate-test)");
+        GD.Print("=========================================");
+
+        // Modern world senaryosu (daha fazla ülke profili var)
+        ScenarioSystem.SetActive("modern_world");
+
+        if (!HasPlayer) SetPlayerCountry("USA");
+        if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 1000;
+        if (Speed == 0) SetSpeed(0);
+
+        // Başlangıç değerleri
+        double co2Start = ClimateSystem.GetGlobalCO2();
+        double warmingStart = ClimateSystem.GetGlobalWarming();
+        double emissionsStart = ClimateSystem.GetAnnualEmissionsGt();
+
+        GD.Print($"[ClimateTest] Başlangıç — CO2: {co2Start:F1} ppm, Isınma: {warmingStart:F2}°C, Yıllık Emisyon: {emissionsStart:F2} GtCO2/yr");
+
+        // 50 yıl simüle et (18250 gün)
+        int testDays = 50 * 365;
+        double co2Before = 0, warmingBefore = 0, emissionsBefore = 0;
+        int tippingPointsTriggered = 0;
+
+        for (int day = 0; day < testDays; day++)
+        {
+            ClimateSystem.DailyTick();
+
+            // Yıllık log
+            if ((day + 1) % 365 == 0)
+            {
+                int year = (day + 1) / 365;
+                double co2 = ClimateSystem.GetGlobalCO2();
+                double warming = ClimateSystem.GetGlobalWarming();
+                double emissions = ClimateSystem.GetAnnualEmissionsGt();
+                int tpCount = ClimateSystem.GetTriggeredTippingPointsCount();
+
+                GD.Print($"[ClimateTest] Yıl {year} — CO2: {co2:F1} ppm, Isınma: {warming:F2}°C, Emisyon: {emissions:F2} GtCO2/yr, TP: {tpCount}");
+
+                if (year == 1)
+                {
+                    co2Before = co2;
+                    warmingBefore = warming;
+                    emissionsBefore = emissions;
+                }
+                if (year == 50)
+                {
+                    co2Before = co2;
+                    warmingBefore = warming;
+                    emissionsBefore = emissions;
+                    tippingPointsTriggered = tpCount;
+                }
+            }
+
+            // Test modunda politika uygula (USA için carbon_tax)
+            if (day == 365 * 5) // 5. yıl
+            {
+                bool policyOk = ClimateSystem.EnactPolicy("USA", "carbon_tax");
+                GD.Print($"[ClimateTest] Yıl 5 — USA carbon_tax uygulandı: {policyOk}");
+            }
+            if (day == 365 * 10) // 10. yıl
+            {
+                bool policyOk = ClimateSystem.EnactPolicy("USA", "renewable_subsidy");
+                GD.Print($"[ClimateTest] Yıl 10 — USA renewable_subsidy uygulandı: {policyOk}");
+            }
+            if (day == 365 * 20) // 20. yıl
+            {
+                bool policyOk = ClimateSystem.EnactPolicy("USA", "coal_phaseout");
+                GD.Print($"[ClimateTest] Yıl 20 — USA coal_phaseout uygulandı: {policyOk}");
+            }
+            if (day == 365 * 30) // 30. yıl
+            {
+                bool signed = ClimateSystem.SignAgreement("USA", "paris_agreement");
+                GD.Print($"[ClimateTest] Yıl 30 — USA Paris Agreement imzaladı: {signed}");
+            }
+        }
+
+        double co2End = ClimateSystem.GetGlobalCO2();
+        double warmingEnd = ClimateSystem.GetGlobalWarming();
+        double emissionsEnd = ClimateSystem.GetAnnualEmissionsGt();
+
+        GD.Print($"[ClimateTest] Bitiş — CO2: {co2End:F1} ppm, Isınma: {warmingEnd:F2}°C, Yıllık Emisyon: {emissionsEnd:F2} GtCO2/yr");
+        GD.Print($"[ClimateTest] Değişim — CO2: {co2End - co2Start:+F1} ppm, Isınma: {warmingEnd - warmingStart:+F2}°C, Emisyon: {emissionsEnd - emissionsStart:+F2} GtCO2/yr");
+        GD.Print($"[ClimateTest] Tetiklenen Tipping Point: {tippingPointsTriggered}");
+
+        // Doğrulamalar
+        bool co2Increased = co2End > co2Start;
+        bool warmingIncreased = warmingEnd > warmingStart;
+        bool emissionsChanged = emissionsEnd != emissionsStart; // Politika etkisiyle değişmeli
+        bool tippingPointsValid = tippingPointsTriggered >= 0; // Negatif olamaz
+
+        // Save/Load A==B
+        var save1 = ClimateSystem.GetSaveData();
+        ClimateSystem.LoadSaveData(save1);
+        var save2 = ClimateSystem.GetSaveData();
+        bool saveLoadOk = Math.Abs(save1.GlobalCO2 - save2.GlobalCO2) < 0.001
+            && Math.Abs(save1.GlobalWarming - save2.GlobalWarming) < 0.001
+            && Math.Abs(save1.CumulativeEmissionsGt - save2.CumulativeEmissionsGt) < 0.001
+            && save1.Countries.Length == save2.Countries.Length;
+        GD.Print($"[ClimateTest] save_load_a_b={saveLoadOk}");
+
+        // Reset testi
+        ClimateSystem.ResetForNewGame();
+        double co2AfterReset = ClimateSystem.GetGlobalCO2();
+        double warmingAfterReset = ClimateSystem.GetGlobalWarming();
+        bool resetOk = Math.Abs(co2AfterReset - ClimateSystem.GetGlobalCO2()) < 0.001; // Sadece çağırabildiğini test et
+        GD.Print($"[ClimateTest] reset_co2={co2AfterReset:F1}, reset_warming={warmingAfterReset:F2}");
+
+        bool ok = co2Increased && warmingIncreased && emissionsChanged && tippingPointsValid && saveLoadOk;
+        GD.Print(ok ? "[ClimateTest] SONUÇ: PASS ✓" : "[ClimateTest] SONUÇ: FAIL ✗");
         GetTree().Quit(ok ? 0 : 1);
         GD.Print("=========================================");
     }

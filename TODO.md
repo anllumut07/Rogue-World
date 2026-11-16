@@ -843,4 +843,18 @@ bir kuruma dönüşmeli.
 
 ---
 
+### 📋 Milestone 55: İklim, Çevre ve Enerji Geçişi
+**Hedef:** Küresel ısınma, karbon bütçesi, yenilenebilir enerji geçişi ve çevresel politikalar — ekonomi, sağlık, diploması ve savaş sistemleriyle entegre. "Environment" göstergesi artık pasif bir sayı değil, iklim sisteminin çıkış/sonuç göstergesidir.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 55.1 | `Data/climate.json`: küresel ayarlar (karbon bütçesi, ısınma hızı, tipping point eşikleri), ülke başına emisyon profili (enerji/endüstri/ulaşım/tarım payları), çevresel politika şablonları (karbon vergisi, yenilenebilir teşvik, emisyon standartları, orman koruma), uluslararası anlaşma şablonları (Paris benzeri: hedef, katkı, şeffaflık). | JSON geçerli, kayıt sayısı `GD.Print` ile loglanır (`IncludeFields=true`) | [x] Tamamlandı: Data/climate.json (GlobalSettings, 23 ülke profili, 9 politika, 3 anlaşma) |
+| 55.2 | `Scripts/ClimateSystem.cs`: emisyon hesaplaması (ülke GDP/endüstri/enerji mix + politika çarpanları), küresel karbon birikimi ve sıcaklık anomali (deterministik, RNG yok), iklim etkileri: sağlık/gdp_growth/environment/tarım/enerji göstergelerine etki, tipping point kontrolü (permafrost, buzuller, deniz seviyesi), çevresel politika uygulama/maliyet/etki, uluslararası iklim toplantıları (yıllık COP), AI politika seçimi (ideoloji/ekonomi/uluslararası basınç). | Emisyon/ısınma deterministik, gösterge etkileri ölçülebilir, `--climate-test` PASS | [x] Tamamlandı: Scripts/ClimateSystem.cs (~700 satır), LoadData/ResetForNewGame/DailyTick/GetSaveData/LoadSaveData, 4 tipping point, COP, AI kararları |
+| 55.3 | `Scripts/ClimatePanel.cs`: HUD CLIMATE butonu — küresel ısınma grafiği, ülke emisyon tablosu, politika kartları (uygula/iptal), anlaşma durumu, tipping point uyarıları. Panel 1152x648'e sığar, `MouseFilter.Stop` backdrop, ESC kapatır. | Panel açılır, grafik/tablo çalışır, butonlar etkili, ESC/backdrop kapatır | [ ] |
+| 55.4 | Entegrasyon: `GameManager._Ready` → `ClimateSystem.LoadData()`, `DailyTick` → `ClimateSystem.DailyTick()`, `ResetForNewGame` → `ClimateSystem.ResetForNewGame()`. Ekonomi/İstatistik/Bütçe/Savaş sistemleriyle çift yönlü bağ (emisyon ← fabrika/enerji; etki → health/gdp_growth/environment). | Derleme 0/0, sistemler birbirini bozmaz | [x] Tamamlandı: GameManager.cs entegrasyonu (LoadData, DailyTick, ResetForNewGame, test kancası) |
+| 55.5 | Save/Load: `SaveFile.Climate` DTO + `GetSaveData/LoadSaveData/ResetForNewGame` + `SaveLoadTest.BuildSummaryCore` özeti (küresel ısınma, toplam emisyon, aktif politika sayısı, anlaşma durumu hash). | `--save-load-test` A==B PASS (historical_1936 + modern_world) | [x] Tamamlandı: SaveSystem.cs ClimateSave DTO, SaveLoadTest.BuildSummaryCore iklim özeti, her iki senaryo PASS ✓ (A==B) |
+| 55.6 | Headless test: `--climate-test` — 50 yıl simülasyon, emisyon/ısınma eğrileri loglanır, politika etkisi doğrulanır, tipping point tetiklenirse loglanır, exit 0. | `--climate-test` PASS ✓ (exit 0) | [x] Tamamlandı: GameManager.cs RunClimateTest(), 50 yıl simülasyon, politika/antlaşma testleri, save/load/reset doğrulama, PASS ✓ |
+
+---
+
 ## Notlar

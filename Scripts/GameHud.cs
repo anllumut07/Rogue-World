@@ -295,6 +295,14 @@ public partial class GameHud : CanvasLayer
                 DecisionPanel.OpenUnder(this);
             });
 
+        // CLIMATE (M55.3): iklim, çevre ve enerji geçişi paneli
+        AddSection("CLIMATE", "Climate panel — global warming, emissions, policies and agreements",
+            () =>
+            {
+                GD.Print("[GameHud] CLIMATE butonu basıldı — ClimatePanel.OpenUnder çağrılıyor");
+                ClimatePanel.OpenUnder(this);
+            });
+
         // ELECTION (M23.1): seçim takvimi + oy tahmini paneli
         AddSection("ELECTION", "Elections — calendar and vote prediction",
             () =>

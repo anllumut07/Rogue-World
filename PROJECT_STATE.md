@@ -85,10 +85,9 @@ C:\Proje\Rogue-World\
 - **M52:** Recognition Consequences (Unrecognized State) — Recognition count gates org membership/trade/alliances; REQUEST RECOGNITION diplomatic action; war tension/intervention scaling; Save/Load A==B both scenarios — ALL DONE ✓
 - **M53:** Advisor System — 18 advisor profiles (6 Economy/Security/Media), hire/fire per type, deterministic advice (confidence 10-100, rationale), 7-day cooldown, AdvisorPanel UI (active/müsait/history), HUD ADVISORS button, Save/Load A==B both scenarios — DONE ✓
 - **M54:** Decisions Panel HOI4-Style Redesign — Category tabs (All/Economy/Military/Political/Diplomatic/Technology/General), search filter with results count, category badges on cards, color-coded tooltips (cost/effects/requirements), active decisions with progress bars, CLEAR FILTER button, HUD DECISIONS button, headless test `--decisions-test` PASS, Save/Load A==B both scenarios — DONE ✓
-- **M55:** Climate, Environment & Energy Transition — Global CO2/warming, 23 country emission profiles, 9 policies (carbon tax, renewables, coal phaseout, etc.), 3 agreements (Paris, Glasgow, Kigali), tipping points (permafrost, ice sheets, Amazon, methane), COP meetings, AI policy decisions, StatisticsSystem integration (health/GDP/environment/energy impacts), Save/Load A==B both scenarios — CORE DONE ✓ (UI panel 55.3 pending)
+- **M55:** Climate, Environment & Energy Transition — Global CO2/warming, 23 country emission profiles, 9 policies (carbon tax, renewables, coal phaseout, etc.), 3 agreements (Paris, Glasgow, Kigali), tipping points (permafrost, ice sheets, Amazon, methane), COP meetings, AI policy decisions, StatisticsSystem integration (health/GDP/environment/energy impacts), Save/Load A==B both scenarios — **DONE ✓** (ClimatePanel UI 55.3 complete: 5 tabs, HUD CLIMATE button, DecisionPanel-style UI)
 
 ## What is Broken / Unfinished
-- **M55.3** — ClimatePanel UI (HUD CLIMATE button, warming chart, emissions table, policy cards, agreement status) — PENDING
 - **Export/Deployment (M13-14)** — Blocked on Godot export templates, versioning, CI/CD (user approval needed)
 
 ## Known Issues / Technical Debt
@@ -103,11 +102,11 @@ C:\Proje\Rogue-World\
 1. **M52.1-52.4** — Recognition consequences (org membership, trade, AI alliances, REQUEST RECOGNITION action, war tension/intervention, save/load A==B) — ALL DONE ✓
 2. **M53.1-53.5** — Advisor System (18 profiles, hire/fire, deterministic advice, 7-day cooldown, AdvisorPanel UI, HUD button, save/load A==B both scenarios) — ALL DONE ✓
 3. **M54.1-54.6** — Decisions Panel HOI4-Style Redesign (category tabs, search, tooltips, progress bars, HUD button, headless test, save/load A==B both scenarios) — ALL DONE ✓
-4. **M55.1-55.6** — Climate System core (data, logic, integration, save/load, test) — DONE ✓ | **M55.3** — ClimatePanel UI — PENDING
+4. **M55.1-55.6** — Climate System (data, logic, integration, save/load, test, **UI panel**) — **ALL DONE ✓**
 5. Then evaluate "Önerilen Ek Özellikler" or proceed to M13/M14 (polish/export)
 
 ---
 
 **Current Branch:** `gece-calisma`  
 **Last Commit:** (pending — M55 Climate System core)  
-**Last Test Run:** `--climate-test` → PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, `--decisions-test` → PASS ✓, `--advisor-test` → PASS ✓
+**Last Test Run:** `--climate-test` → PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, `--decisions-test` → PASS ✓, `--advisor-test` → PASS ✓, `--espionage-mission-test` → PASS ✓, `--organization-test` → PASS ✓, `--recognition-test` → PASS ✓, `--intervention-test` → PASS ✓, `--civil-war-test` → PASS ✓

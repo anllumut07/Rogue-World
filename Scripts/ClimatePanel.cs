@@ -290,17 +290,17 @@ public partial class ClimatePanel : Control
 
         _contentContainer.AddChild(new HSeparator());
 
-        // Warming chart placeholder (simple text-based for now)
-        var chartLabel = new Label
-        {
-            Text = "[Warming Trend Chart]\n\nA line chart showing CO₂ ppm and temperature anomaly over time would appear here.\nRequires Chart/Graph library integration for full visualization.\n\nCurrent: " + warming.ToString("F2") + "°C warming | " + co2.ToString("F1") + " ppm CO₂",
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        chartLabel.AddThemeFontSizeOverride("font_size", 14);
-        chartLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        chartLabel.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        _contentContainer.AddChild(chartLabel);
+        // Warming trend chart (real chart using Godot drawing)
+        var chartTitle = new Label { Text = "WARMING TREND (Historical)" };
+        chartTitle.AddThemeFontSizeOverride("font_size", 16);
+        chartTitle.AddThemeColorOverride("font_color", UITheme.Gold);
+        _contentContainer.AddChild(chartTitle);
+
+        var chartControl = new WarmingChartControl();
+        chartControl.CustomMinimumSize = new Vector2(0, 280);
+        chartControl.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        chartControl.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _contentContainer.AddChild(chartControl);
 
         _contentContainer.AddChild(new HSeparator());
 
@@ -983,5 +983,142 @@ public partial class ClimatePanel : Control
         GD.Print("ClimatePanel: kapatılıyor");
         UITheme.FadeOut(_backdrop, 0.08f);
         UITheme.PopOut(_panel, 0.1f, () => QueueFree());
+    }
+}
+
+/// <summary>
+/// Custom control for drawing the warming trend chart (CO₂ and temperature anomaly over time).
+/// Uses deterministic data from ClimateSystem.GetHistory().
+/// </summary>
+public partial class WarmingChartControl : Control
+{
+    public override void _Draw()
+    {
+        var history = ClimateSystem.GetHistory();
+        if (history == null || history.Count < 2)
+        {
+            // No history yet - draw placeholder message
+            DrawString(GetThemeFont("font", "Label"), new Vector2(Size.X / 2 - 100, Size.Y / 2),
+                "No historical data yet. Chart appears after first year.", HorizontalAlignment.Center, -1, 14,
+                UITheme.TextMuted);
+            return;
+        }
+
+        DrawChart(history);
+    }
+
+    private void DrawChart(List<ClimateSystem.YearlyClimateSnapshot> history)
+    {
+        // Chart area with margins
+        float marginLeft = 70;
+        float marginRight = 20;
+        float marginTop = 30;
+        float marginBottom = 50;
+        float chartWidth = Size.X - marginLeft - marginRight;
+        float chartHeight = Size.Y - marginTop - marginBottom;
+
+        if (chartWidth <= 0 || chartHeight <= 0) return;
+
+        // Find min/max for CO2 and Warming
+        double minCO2 = history.Min(h => h.CO2);
+        double maxCO2 = history.Max(h => h.CO2);
+        double minWarming = history.Min(h => h.Warming);
+        double maxWarming = history.Max(h => h.Warming);
+
+        // Add small padding
+        double co2Range = maxCO2 - minCO2;
+        double warmingRange = maxWarming - minWarming;
+        if (co2Range < 1) { minCO2 -= 0.5; maxCO2 += 0.5; co2Range = maxCO2 - minCO2; }
+        if (warmingRange < 0.1) { minWarming -= 0.05; maxWarming += 0.05; warmingRange = maxWarming - minWarming; }
+
+        // Colors
+        Color co2Color = new Color("#FF6B6B");      // Red for CO2
+        Color warmingColor = new Color("#4ECDC4");  // Teal for warming
+        Color gridColor = new Color("#3A3A5A");
+        Color axisColor = new Color("#5A5A7A");
+        Color textColor = UITheme.TextMuted;
+
+        // Draw background
+        DrawRect(new Rect2(marginLeft, marginTop, chartWidth, chartHeight), new Color("#1A1A2E"), false);
+        DrawRect(new Rect2(marginLeft, marginTop, chartWidth, chartHeight), new Color("#3A3A5A"), true); // Border
+
+        // Draw grid lines and labels (Y-axis for CO2 on left, Warming on right)
+        int gridLines = 5;
+        for (int i = 0; i <= gridLines; i++)
+        {
+            float y = marginTop + (i / (float)gridLines) * chartHeight;
+            // Horizontal grid line
+            DrawLine(new Vector2(marginLeft, y), new Vector2(marginLeft + chartWidth, y), gridColor, 1);
+
+            // CO2 labels (left)
+            double co2Val = maxCO2 - (i / (float)gridLines) * co2Range;
+            DrawString(GetThemeFont("font", "Label"), new Vector2(5, y + 5), $"{co2Val:F0} ppm", HorizontalAlignment.Right, -1, 11, textColor);
+
+            // Warming labels (right)
+            double warmVal = maxWarming - (i / (float)gridLines) * warmingRange;
+            DrawString(GetThemeFont("font", "Label"), new Vector2(Size.X - 60, y + 5), $"+{warmVal:F2}°C", HorizontalAlignment.Left, -1, 11, textColor);
+        }
+
+        // Draw X-axis labels (years)
+        int yearCount = history.Count;
+        int labelStep = Math.Max(1, yearCount / 8); // Show ~8 year labels
+        for (int i = 0; i < yearCount; i += labelStep)
+        {
+            float x = marginLeft + (i / (float)(yearCount - 1)) * chartWidth;
+            int year = history[i].Year;
+            DrawString(GetThemeFont("font", "Label"), new Vector2(x - 15, Size.Y - 20), $"Y{year}", HorizontalAlignment.Center, -1, 11, textColor);
+        }
+
+        // Draw CO2 line (left Y-axis)
+        DrawDataLine(history, marginLeft, marginTop, chartWidth, chartHeight,
+            h => h.CO2, minCO2, maxCO2, co2Color, "CO₂");
+
+        // Draw Warming line (right Y-axis)
+        DrawDataLine(history, marginLeft, marginTop, chartWidth, chartHeight,
+            h => h.Warming, minWarming, maxWarming, warmingColor, "Warming");
+
+        // Draw legend
+        float legendX = marginLeft + 10;
+        float legendY = marginTop + 10;
+        DrawRect(new Rect2(legendX, legendY, 15, 15), co2Color);
+        DrawString(GetThemeFont("font", "Label"), new Vector2(legendX + 20, legendY + 12), "CO₂ (ppm)", HorizontalAlignment.Left, -1, 12, co2Color);
+        DrawRect(new Rect2(legendX + 100, legendY, 15, 15), warmingColor);
+        DrawString(GetThemeFont("font", "Label"), new Vector2(legendX + 120, legendY + 12), "Warming (°C)", HorizontalAlignment.Left, -1, 12, warmingColor);
+
+        // Current values at the end
+        var last = history[^1];
+        string currentInfo = $"Current: {last.CO2:F1} ppm CO₂ | +{last.Warming:F2}°C warming";
+        DrawString(GetThemeFont("font", "Label"), new Vector2(Size.X - 5, Size.Y - 30), currentInfo, HorizontalAlignment.Right, -1, 12, UITheme.Gold);
+    }
+
+    private void DrawDataLine(List<ClimateSystem.YearlyClimateSnapshot> history, float marginLeft, float marginTop,
+        float chartWidth, float chartHeight, Func<ClimateSystem.YearlyClimateSnapshot, double> valueSelector,
+        double minVal, double maxVal, Color lineColor, string label)
+    {
+        if (history.Count < 2) return;
+
+        double range = maxVal - minVal;
+        if (range <= 0) return;
+
+        Vector2 prevPoint = Vector2.Zero;
+        bool first = true;
+
+        for (int i = 0; i < history.Count; i++)
+        {
+            double val = valueSelector(history[i]);
+            float x = marginLeft + (i / (float)(history.Count - 1)) * chartWidth;
+            float y = marginTop + chartHeight - (float)((val - minVal) / range) * chartHeight;
+
+            if (first)
+            {
+                prevPoint = new Vector2(x, y);
+                first = false;
+            }
+            else
+            {
+                DrawLine(prevPoint, new Vector2(x, y), lineColor, 2);
+                prevPoint = new Vector2(x, y);
+            }
+        }
     }
 }

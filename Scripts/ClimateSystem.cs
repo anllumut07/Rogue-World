@@ -88,6 +88,16 @@ public static class ClimateSystem
         public double ComplianceBonus { get; set; }
     }
 
+    // Yıllık iklim anlık görüntüsü (grafik geçmişi için)
+    public class YearlyClimateSnapshot
+    {
+        public int Year { get; set; }
+        public double CO2 { get; set; }
+        public double Warming { get; set; }
+        public double AnnualEmissionsGt { get; set; }
+        public double CumulativeEmissionsGt { get; set; }
+    }
+
     // ===== Çalışma durumu =====
     private static GlobalSettings _settings;
     private static readonly Dictionary<string, CountryEmissionProfile> _profiles = new();
@@ -102,6 +112,10 @@ public static class ClimateSystem
     private static double _annualEmissionsGt = 0.0; // GtCO2/year current
     private static int _yearCounter = 0;
     private static int _nextCopYear = 0;
+
+    // Geçmiş veriler (yıllık anlık görüntüler) - grafikler için
+    private static readonly List<YearlyClimateSnapshot> _history = new();
+    private const int MaxHistoryYears = 200; // Maksimum 200 yıl geçmişi tut
 
     // Ülke bazlı durum
     private static readonly Dictionary<string, CountryClimateState> _countryStates = new();
@@ -620,6 +634,9 @@ public static class ClimateSystem
         if (_yearCounter % 365 == 1)
         {
             CalculateGlobalEmissions();
+
+            // Yıllık geçmiş kaydı (yılın başında bir anlık görüntü al)
+            RecordYearlySnapshot();
         }
         else
         {
@@ -646,6 +663,26 @@ public static class ClimateSystem
         CheckCopMeeting();
     }
 
+    private static void RecordYearlySnapshot()
+    {
+        int currentYear = _yearCounter / 365;
+        var snapshot = new YearlyClimateSnapshot
+        {
+            Year = currentYear,
+            CO2 = _globalCO2,
+            Warming = _globalWarming,
+            AnnualEmissionsGt = _annualEmissionsGt,
+            CumulativeEmissionsGt = _cumulativeEmissionsGt
+        };
+        _history.Add(snapshot);
+
+        // Maksimum geçmiş boyutunu sınırla
+        if (_history.Count > MaxHistoryYears)
+        {
+            _history.RemoveAt(0);
+        }
+    }
+
     // ===== Test Modu =====
     public static void EnableTestMode()
     {
@@ -663,6 +700,12 @@ public static class ClimateSystem
     public static List<Agreement> GetAllAgreements() => _agreements;
     public static CountryClimateState GetCountryState(string countryId) => GetState(countryId);
 
+    // Geçmiş verisi (grafikler için)
+    public static List<YearlyClimateSnapshot> GetHistory()
+    {
+        return new List<YearlyClimateSnapshot>(_history);
+    }
+
     // ===== Save/Load =====
     public class ClimateSave
     {
@@ -674,6 +717,7 @@ public static class ClimateSystem
         public int NextCopYear { get; set; }
         public List<TippingPointSave> TippingPoints { get; set; } = new();
         public CountryClimateSave[] Countries { get; set; }
+        public List<YearlyClimateSnapshot> History { get; set; } = new(); // M55.3 fix: warming chart history
     }
 
     public class TippingPointSave
@@ -723,7 +767,8 @@ public static class ClimateSystem
                 AdaptationLevel = kv.Value.AdaptationLevel,
                 PolicyCooldown = kv.Value.PolicyCooldown,
                 LastEmissionsMt = kv.Value.LastEmissionsMt
-            }).ToArray()
+            }).ToArray(),
+            History = new List<YearlyClimateSnapshot>(_history) // M55.3 fix: warming chart history
         };
     }
 
@@ -770,6 +815,13 @@ public static class ClimateSystem
             }
         }
 
-        GD.Print($"[ClimateSystem] Loaded: CO2={_globalCO2:F1}ppm, Warming={_globalWarming:F2}°C, Countries={_countryStates.Count}");
+        // M55.3 fix: warming chart history
+        _history.Clear();
+        if (save.History != null)
+        {
+            _history.AddRange(save.History);
+        }
+
+        GD.Print($"[ClimateSystem] Loaded: CO2={_globalCO2:F1}ppm, Warming={_globalWarming:F2}°C, Countries={_countryStates.Count}, History={_history.Count} years");
     }
 }

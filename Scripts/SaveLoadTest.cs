@@ -764,6 +764,7 @@ public static class SaveLoadTest
         int activePolicies = climateSave?.Countries?.Sum(c => c.ActivePolicies?.Count ?? 0) ?? 0;
         int signedAgreements = climateSave?.Countries?.Sum(c => c.SignedAgreements?.Count ?? 0) ?? 0;
         int triggeredTP = climateSave?.TippingPoints?.Count(tp => tp.Triggered) ?? 0;
+        int climateHistoryCount = climateSave?.History?.Count ?? 0;
         int climateHash = 0;
         if (climateSave != null)
         {
@@ -784,8 +785,18 @@ public static class SaveLoadTest
                         climateHash = climateHash * 31 + a.GetHashCode();
                 }
             }
+            // M55.3 fix: warming chart history hash
+            if (climateSave.History != null)
+            {
+                foreach (var h in climateSave.History)
+                {
+                    climateHash = climateHash * 31 + h.Year.GetHashCode();
+                    climateHash = climateHash * 31 + (int)(h.CO2 * 1000);
+                    climateHash = climateHash * 31 + (int)(h.Warming * 1000);
+                }
+            }
         }
-        sb.AppendLine($"İklim: CO2={climateSave?.GlobalCO2:F1}ppm, ısınma={climateSave?.GlobalWarming:F2}°C, ülke={climateCountries}, politika={activePolicies}, anlaşma={signedAgreements}, TP={triggeredTP}, hash={climateHash}");
+        sb.AppendLine($"İklim: CO2={climateSave?.GlobalCO2:F1}ppm, ısınma={climateSave?.GlobalWarming:F2}°C, ülke={climateCountries}, politika={activePolicies}, anlaşma={signedAgreements}, TP={triggeredTP}, geçmiş={climateHistoryCount}, hash={climateHash}");
 
         if (leaderCount > 0)
         {

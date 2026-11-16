@@ -1,4 +1,30 @@
-﻿# GECE-RAPOR — 2026-10-17 (gece-calisma dalı, otonom)
+﻿# GECE-RAPOR — 2026-11-15 (gece-calisma dalı)
+
+## M55.3 — ✅ DONE (ClimatePanel UI)
+- `Scripts/ClimatePanel.cs`: 5 tabs (Global, Emissions, Policies, Agreements, Tipping Points) — 650+ lines
+  - Global: Key metrics (CO₂, warming, emissions, tipping points), **warming trend chart with real historical data** (deterministic Godot drawing, CO₂ + warming lines, grid, legend, year labels), tipping point summary
+  - Emissions: Country table (23 profiled countries) with search/filter, sortable by emissions, energy mix %, adaptation level, active policies
+  - Policies: Active policies (with REVOKE) + Available policies (with ENACT, disabled if requirements not met), color-coded category badges, detailed tooltips
+  - Agreements: Signed agreements (WITHDRAW) + Available agreements (SIGN), prestige/compliance bonuses shown
+  - Tipping Points: 4 tipping points (permafrost, ice sheets, Amazon, methane) with progress bars, triggered status, extra warming
+- `Scripts/GameHud.cs`: Added CLIMATE button to HUD panel row
+- UI follows DecisionPanel pattern: category tabs, search box with results count, color-coded tooltips, progress bars, MouseFilter.Stop backdrop, ESC to close, 1152x648 limit
+- All tests pass: `--climate-test` ✓, `--save-load-test` (modern_world + historical_1936 A==B) ✓, `--decisions-test` ✓, `--advisor-test` ✓, `--espionage-mission-test` ✓, `--organization-test` ✓, `--recognition-test` ✓, `--intervention-test` ✓, `--civil-war-test` ✓
+- Commit: dcb3dc2 (push'ed origin gece-calisma)
+
+## M55.3 Fix (2026-11-15) — ✅ DONE (Warming Trend Chart Implementation)
+- **Problem**: Global tab had placeholder "[Warming Trend Chart]" text instead of real chart
+- **Solution**: 
+  - `ClimateSystem.cs`: Added `YearlyClimateSnapshot` class + `_history` list (max 200 years) recording yearly CO₂, warming, annual/cumulative emissions at each year boundary in `DailyTick`
+  - `ClimateSystem.cs`: Added `GetHistory()` method, updated `ClimateSave` DTO with `History` field, updated `GetSaveData()`/`LoadSaveData()` to persist/load history
+  - `SaveLoadTest.cs`: Added history to climate hash (year, CO₂, warming) for A==B determinism verification
+  - `ClimatePanel.cs`: Added `WarmingChartControl` custom Control using `_Draw()` override — renders dual-axis line chart (CO₂ ppm left, °C warming right) with grid, labels, legend, current values; handles empty history gracefully
+- **Verification**: `--climate-test` PASS ✓, `--save-load-test` both scenarios A==B PASS ✓, all regression tests PASS ✓
+- **Files changed**: ClimateSystem.cs, ClimatePanel.cs, SaveLoadTest.cs, PROJECT_STATE.md
+
+---
+
+# GECE-RAPOR — 2026-10-17 (gece-calisma dalı, otonom)
 
 ## M18.1 — ✅ DONE
 - `Scripts/IProvinceSource.cs`, `Scripts/ProvinceData.cs`, `Scripts/ProceduralProvinceSource.cs`: ~1000 il, DeterministicRNG + sabit seed, dotnet build 0 hata / 0 uyarı.

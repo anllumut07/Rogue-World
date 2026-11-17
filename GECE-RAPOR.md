@@ -1,5 +1,31 @@
 ﻿# GECE-RAPOR — 2026-11-16 (gece-calisma dalı)
 
+## Stage 2 UI Migration — DiplomacyPanel ✅ DONE (2026-11-16)
+
+### Manual Checklist — DiplomacyPanel
+- [x] Panel opens via HUD DIPLOMACY button, ESC closes
+- [x] Backdrop blocks map clicks (MouseFilter.Stop)
+- [x] Window frame via GamePanel (title, close button, modal)
+- [x] World Tension bar (StatBar) with color-coded levels (<25 green, <50 yellow, <75 orange, ≥75 red)
+- [x] Target country selector (OptionButton) + relation/opinion/faction/guarantee/access badges
+- [x] Category tabs (TabBar): FACTIONS / ACTIONS / GUARANTEES / RELATIONS
+- [x] FACTIONS tab: Faction cards with name, leader, members, join/leave/create buttons
+- [x] ACTIONS tab: War justification checklist, BUILD CASE buttons, REQUEST RECOGNITION (M52.2), DECLARE WAR, peace options, guarantees, military/naval access, improve relations
+- [x] GUARANTEES tab: Given guarantees (with REVOKE), Received guarantees
+- [x] RELATIONS tab: SearchBox filter, ListRow with flag, name, relation/opinion, WAR badge, click → sets target + switches to ACTIONS
+- [x] Rich tooltips (TooltipBuilder) on all cards/buttons/rows
+- [x] EmptyState messages for each tab when no data
+- [x] Layout readable at 1280x720 and 1920x1080, no overlapping/cut-off text
+- [x] Colors only from GameTheme
+- [x] Build: 0 errors/0 warnings ✓
+- [x] Tests: --save-load-test (modern_world + historical_1936) PASS A==B, --decisions-test PASS, --espionage-mission-test PASS, --recognition-test PASS, --migration-test PASS, --occupation-test PASS, --civil-war-test PASS, --scenario-test PASS
+
+### Files Changed
+- `Scripts/DiplomacyPanel.cs` — Complete rewrite using GameTheme + reusable components
+- `Scripts/UI/StatBar.cs` — Made UpdateBarColor() public
+
+---
+
 ## Stage 1 UI Upgrade — ✅ DONE (UI Foundation + DecisionPanel Reference Implementation)
 - **GameTheme** (`Scripts/UI/GameTheme.cs`): Central dark theme (HOI4/AoH inspired)
   - Palette: Dark base `#0B1018`, gold accent `#C9A227`, status colors (green `#4CAF50`, yellow `#FFC107`, red `#F44336`, blue `#2196F3`, purple `#9C27B0`, orange `#FF9800`)

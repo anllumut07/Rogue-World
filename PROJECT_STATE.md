@@ -118,6 +118,20 @@ C:\Proje\Rogue-World\
 - **Test hook added**: `--ui-screenshot=<panel>` (works in editor; headless needs game state)
 - **Quality gate**: Build 0 errors/0 warnings ✓, `--decisions-test` PASS ✓, `--save-load-test` both scenarios A==B ✓
 
+## Completed in Stage 2 (Panel Migration)
+### 1. DiplomacyPanel ✓ (2026-11-16)
+- Migrated to GameTheme + reusable UI components
+- Categories: Factions, Actions, Guarantees, Relations as tabs (TabBar)
+- Target country selector + relation info in header
+- World Tension bar using StatBar with color-coded tension levels
+- Search filter for Relations tab (SearchBox)
+- Country rows using ListRow with FlagBox icons
+- Rich tooltips via TooltipBuilder for all interactive elements
+- Empty states via EmptyState for each tab
+- All existing behavior preserved (REQUEST RECOGNITION, war justification, guarantees, declare war, military/naval access, improve relations)
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` (modern_world + historical_1936) PASS A==B, `--decisions-test` PASS, `--espionage-mission-test` PASS, `--recognition-test` PASS, `--migration-test` PASS, `--occupation-test` PASS, `--civil-war-test` PASS, `--scenario-test` PASS
+
 ## Prioritized TODO (from TODO.md)
 1. **M52.1-52.4** — Recognition consequences (org membership, trade, AI alliances, REQUEST RECOGNITION action, war tension/intervention, save/load A==B) — ALL DONE ✓
 2. **M53.1-53.5** — Advisor System (18 profiles, hire/fire, deterministic advice, 7-day cooldown, AdvisorPanel UI, HUD button, save/load A==B both scenarios) — ALL DONE ✓

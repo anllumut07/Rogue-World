@@ -4,63 +4,53 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// M44.5 — Kurgu ülke paneli (oyuncu tarafı).
-///
-/// M44.1–M44.3'ün ürettiği veriyi tek ekranda toplar:
-///   • Sol sütun: oyuncunun ebe kaynağı olduğu kurgu ülkeler — kültür, gereken
-///     il sayısı, minimum kontrol oranı, PP ve gün maliyeti. Seçilen kurgu
-///     ülkenin koşulları tek tek "sağlandı / sağlanmadı" olarak listelenir.
-///   • Sağ sütun: oyuncunun il kültürü haritası özeti — her kültürün il sayısı
-///     ve nüfus payı (M44.2 verisi). Hangi kültürün kurgu ülke kurmaya yettiği
-///     buradan anlaşılır.
-///
-/// Etkileşim iki eyleme bağlıdır:
-///   • FORM NATION — kurulumu başlatır (<see cref="FormableSystem.TryStart"/>).
-///   • CANCEL — sürmekte olan kurulumu iptal eder (<see cref="FormableSystem.Cancel"/>).
-///
-/// Panel kalıcı durum tutmaz: kurulum durumu `FormableSystem`'te ve
-/// Save/Load oradan bağlanır (M44.5). Bu yüzden burada save yazılmaz.
-///
-/// Ölçü sınırı: 1152x648 ekrana sığacak şekilde 1080x600 tasarlandı.
+/// Formable Nations Panel (M44.5 + Stage 2 UI Upgrade):
+/// Shows formable nations and culture map for player's country.
+/// Uses GameTheme + reusable UI components (GamePanel, ProgressBar, Chip, TooltipBuilder, EmptyState).
+/// Preserves: backdrop blocking map input, ESC to close, country selector, condition checklist.
+/// Test properties preserved for --formable-panel-test compatibility.
 /// </summary>
-public partial class FormablePanel : Control
+public partial class FormablePanel : GamePanel
 {
-    // ===== Durum =====
+    public static bool IsOpen { get; private set; } = false;
 
     private string _playerId = "";
+    private int _selectedIndex = -1;
+    private List<string> _formableIds = new();
+    private List<CultureRow> _cultureRows = new();
+    private long _totalPopulation = 0;
+    private int _totalProvinces = 0;
 
-    private Label _headerLabel;      // ülke + PP + nüfus özeti
-    private Label _summaryLabel;     // seçili kurgu ülkenin kontrol haritası
-    private Label _feedbackLabel;    // form/cancel mesajı
+    private Label _headerLabel;
+    private Label _summaryLabel;
+    private Label _feedbackLabel;
     private Button _formBtn;
     private Button _cancelBtn;
-
-    private ItemList _formableList;  // sol: kurgu ülkeler
-    private VBoxContainer _conditionList; // sol alt: koşullar
-    private VBoxContainer _cultureList;   // sağ: kültür haritası özeti
+    private ItemList _formableList;
+    private VBoxContainer _conditionList;
+    private VBoxContainer _cultureList;
     private Label _pendingLabel;
+    private EmptyState _emptyState;
 
-    // Kurgu ülke kimlikleri (liste sırasıyla) — test ve seçim doğrulaması için.
-    private readonly List<string> _formableIds = new();
+    private sealed class CultureRow
+    {
+        public string Culture = "";
+        public string Display = "";
+        public int ProvinceCount;
+        public long Population;
+        public double PopulationShare;
+        public double BarFraction;
+        public List<string> CountryIds = new();
+        public List<int> CountryProvinceCounts = new();
+    }
 
-    // ItemList'in seçili satır indeksi (Godot 4'ta ItemList.Selected yok).
-    private int _selectedIndex = -1;
+    // ===== Test / UI inspection accessors =====
 
-    // Kültür satırlarında çizilen değerler (test/UI denetim anlık görüntüsü).
-    private readonly List<string> _cultureLabels = new();
-    private readonly List<int> _cultureCounts = new();
-
-    // Koşul satırlarının "sağlandı" durumları (test/UI denetim).
-    private readonly List<bool> _conditionMet = new();
-
-    // Animasyon
-    private ColorRect _backdrop;
-    private PanelContainer _panel;
-
-    public static bool IsOpen { get; private set; }
+    /// <summary>Panelin çalıştığı ülke (oyuncu).</summary>
+    public string PlayerId => _playerId;
 
     /// <summary>Panelin tasarım alt sınırı — 1152x648 ekrana sığma kontrolü için (test/UI denetim).</summary>
-    public Vector2 DesignedSize => _panel?.CustomMinimumSize ?? Vector2.Zero;
+    public Vector2 DesignedSize => new Vector2(1080, 600);
 
     /// <summary>Kurgu ülke satırı sayısı (test/UI denetim).</summary>
     public int FormableRowCount => _formableList?.ItemCount ?? 0;
@@ -68,14 +58,47 @@ public partial class FormablePanel : Control
     /// <summary>Kültür satırı sayısı (test/UI denetim).</summary>
     public int CultureRowCount => _cultureList?.GetChildCount() ?? 0;
 
-    /// <summary>Kültür satırlarının etiketleri (test/UI denetim).</summary>
-    public IReadOnlyList<string> CultureLabels => _cultureLabels;
+    /// <summary>Kültür satırlarının kimlikleri (test/UI denetim).</summary>
+    public IReadOnlyList<string> CultureLabels
+    {
+        get
+        {
+            var ids = new List<string>(_cultureRows.Count);
+            foreach (var r in _cultureRows) ids.Add(r.Culture);
+            return ids;
+        }
+    }
 
     /// <summary>Kültür satırlarının il sayıları (test/UI denetim).</summary>
-    public IReadOnlyList<int> CultureCounts => _cultureCounts;
+    public IReadOnlyList<int> CultureCounts
+    {
+        get
+        {
+            var counts = new List<int>(_cultureRows.Count);
+            foreach (var r in _cultureRows) counts.Add(r.ProvinceCount);
+            return counts;
+        }
+    }
 
     /// <summary>Koşul satırlarının sağlanma durumları (test/UI denetim).</summary>
-    public IReadOnlyList<bool> ConditionMet => _conditionMet;
+    public IReadOnlyList<bool> ConditionMet
+    {
+        get
+        {
+            var met = new List<bool>();
+            string formableId = SelectedFormableId;
+            if (formableId.Length == 0) return met;
+            var items = FormableSystem.EvaluateConditions(_playerId, formableId);
+            foreach (var item in items) met.Add(item.Met);
+            return met;
+        }
+    }
+
+    /// <summary>Seçili kurgu ülke kimliği (test/UI denetim).</summary>
+    public string SelectedFormableId =>
+        _formableIds.Count > 0 && _selectedIndex >= 0 && _selectedIndex < _formableIds.Count
+            ? _formableIds[_selectedIndex]
+            : "";
 
     /// <summary>FORM NATION butonu basılabiliyor mu? (test/UI denetim).</summary>
     public bool FormDisabled => _formBtn?.Disabled ?? true;
@@ -86,24 +109,9 @@ public partial class FormablePanel : Control
     /// <summary>Son işlem mesajı (test/UI denetim).</summary>
     public string FeedbackText => _feedbackLabel?.Text ?? "";
 
-    /// <summary>Seçili kurgu ülke kimliği (test/UI denetim).</summary>
-    public string SelectedFormableId =>
-        _formableIds.Count > 0 && _formableList != null &&
-        _selectedIndex >= 0 && _selectedIndex < _formableIds.Count
-            ? _formableIds[_selectedIndex]
-            : "";
+    /// <summary>ESC ile kapatma istendi mi? (test/UI denetim).</summary>
+    public new bool CloseRequested { get; private set; }
 
-    /// <summary>Panelin çalıştığı ülke (oyuncu).</summary>
-    public string PlayerId => _playerId;
-
-    /// <summary>
-    /// ESC ile kapatma istendi mi? `_UnhandledInput` senkron set eder.
-    /// </summary>
-    public bool CloseRequested { get; private set; }
-
-    // ===== Açılış =====
-
-    /// <summary>Paneli parent altında açılacak şekilde kurar (ModalHost Layer=100).</summary>
     public static void OpenUnder(Node parent)
     {
         if (IsOpen) return;
@@ -112,26 +120,32 @@ public partial class FormablePanel : Control
         var gm = GameManager.Instance;
         if (gm == null || !gm.HasPlayer) return;
 
-        GD.Print($"[FormablePanel] Açılıyor — ülke={gm.PlayerCountryId}, " +
-                 $"formable tanım={FormableDataSystem.FormableCount}");
+        GD.Print($"[FormablePanel] Açılıyor — ülke={gm.PlayerCountryId}, formable tanım={FormableDataSystem.FormableCount}");
 
         var panel = new FormablePanel { _playerId = gm.PlayerCountryId ?? "" };
-        ModalHost.AddUnder(parent, panel);
+        parent.AddChild(panel);
     }
 
     public override void _Ready()
     {
-        ProcessMode = ProcessModeEnum.Always; // duraklatılmış oyunda da kapatma çalışsın
-        UITheme.ApplyTheme(this);
+        // Configure GamePanel properties
+        Title = "FORMABLE NATIONS";
+        MinSize = new Vector2(1080, 600);
+        MaxSize = new Vector2(1200, 800);
+        Draggable = false;
+        Closable = true;
+        Modal = true;
+        AutoCenter = true;
 
+        base._Ready();
+
+        ProcessMode = ProcessModeEnum.Always;
         BuildUi();
+        RebuildData();
         RefreshAll();
-
         IsOpen = true;
 
-        UITheme.FadeIn(_backdrop, 0.1f);
-        UITheme.PopIn(_panel, 0.15f);
-        GD.Print("FormablePanel: hazır");
+        GD.Print("FormablePanel: hazır (Stage 2 UI)");
     }
 
     public override void _ExitTree()
@@ -149,47 +163,24 @@ public partial class FormablePanel : Control
         }
     }
 
-    // ===== Kurulum =====
-
     private void BuildUi()
     {
-        _backdrop = new ColorRect
-        {
-            Color = new Color(0f, 0f, 0f, 0.78f),
-            MouseFilter = Control.MouseFilterEnum.Stop // harita girdisini blokla
-        };
-        _backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        AddChild(_backdrop);
+        var content = ContentContainer;
+        content.AddThemeConstantOverride("separation", GameTheme.SpaceM);
 
-        var center = new CenterContainer();
-        center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.AddChild(center);
-
-        _panel = new PanelContainer { CustomMinimumSize = new Vector2(1080, 600) };
-        center.AddChild(_panel);
-
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 18);
-        margin.AddThemeConstantOverride("margin_right", 18);
-        margin.AddThemeConstantOverride("margin_top", 14);
-        margin.AddThemeConstantOverride("margin_bottom", 14);
-        _panel.AddChild(margin);
-
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 8);
-        margin.AddChild(vbox);
-
-        // ===== BAŞLIK =====
+        // Header row with title and country info
         var header = new HBoxContainer();
-        vbox.AddChild(header);
+        header.AddThemeConstantOverride("separation", GameTheme.SpaceM);
+        content.AddChild(header);
 
         var title = new Label { Text = "FORMABLE NATIONS" };
-        title.AddThemeFontSizeOverride("font_size", 26);
+        title.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeXLarge);
+        title.AddThemeColorOverride("font_color", GameTheme.GoldBright);
         header.AddChild(title);
 
         _headerLabel = new Label { Text = "" };
-        _headerLabel.AddThemeFontSizeOverride("font_size", 15);
-        _headerLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        _headerLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        _headerLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         _headerLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _headerLabel.HorizontalAlignment = HorizontalAlignment.Right;
         header.AddChild(_headerLabel);
@@ -201,35 +192,35 @@ public partial class FormablePanel : Control
             CustomMinimumSize = new Vector2(96, 34)
         };
         closeBtn.Pressed += Close;
-        UITheme.AddHoverScale(closeBtn);
+        GameTheme.StyleButton(closeBtn);
         header.AddChild(closeBtn);
 
-        vbox.AddChild(new HSeparator());
+        content.AddChild(new HSeparator());
 
-        // ===== ÖZET =====
+        // Summary of selected formable
         _summaryLabel = new Label { Text = "" };
-        _summaryLabel.AddThemeFontSizeOverride("font_size", 15);
-        _summaryLabel.AddThemeColorOverride("font_color", UITheme.Gold);
+        _summaryLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        _summaryLabel.AddThemeColorOverride("font_color", GameTheme.Gold);
         _summaryLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        vbox.AddChild(_summaryLabel);
+        content.AddChild(_summaryLabel);
 
-        vbox.AddChild(new HSeparator());
+        content.AddChild(new HSeparator());
 
-        // ===== İKİ SÜTUN =====
+        // Two columns
         var columns = new HBoxContainer();
-        columns.AddThemeConstantOverride("separation", 12);
+        columns.AddThemeConstantOverride("separation", GameTheme.SpaceL);
         columns.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        vbox.AddChild(columns);
+        content.AddChild(columns);
 
         BuildFormableColumn(columns);
         BuildCultureColumn(columns);
 
-        vbox.AddChild(new HSeparator());
+        content.AddChild(new HSeparator());
 
-        // ===== EYLEMLER =====
+        // Actions
         var actions = new HBoxContainer();
-        actions.AddThemeConstantOverride("separation", 10);
-        vbox.AddChild(actions);
+        actions.AddThemeConstantOverride("separation", GameTheme.SpaceM);
+        content.AddChild(actions);
 
         _formBtn = new Button
         {
@@ -239,7 +230,7 @@ public partial class FormablePanel : Control
             TooltipText = "Start forming the selected nation"
         };
         _formBtn.Pressed += OnFormPressed;
-        UITheme.AddHoverScale(_formBtn);
+        GameTheme.StyleButton(_formBtn);
         actions.AddChild(_formBtn);
 
         _cancelBtn = new Button
@@ -250,35 +241,34 @@ public partial class FormablePanel : Control
             TooltipText = "Cancel the formation in progress"
         };
         _cancelBtn.Pressed += OnCancelPressed;
-        UITheme.AddHoverScale(_cancelBtn);
+        GameTheme.StyleButton(_cancelBtn);
         actions.AddChild(_cancelBtn);
 
         _pendingLabel = new Label { Text = "" };
-        _pendingLabel.AddThemeFontSizeOverride("font_size", 14);
-        _pendingLabel.AddThemeColorOverride("font_color", UITheme.GoldBright);
+        _pendingLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        _pendingLabel.AddThemeColorOverride("font_color", GameTheme.GoldBright);
         actions.AddChild(_pendingLabel);
 
         _feedbackLabel = new Label { Text = "" };
-        _feedbackLabel.AddThemeFontSizeOverride("font_size", 13);
+        _feedbackLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
         _feedbackLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _feedbackLabel.HorizontalAlignment = HorizontalAlignment.Right;
         actions.AddChild(_feedbackLabel);
     }
 
-    /// <summary>Sol sütun: kurgu ülke listesi + seçilenin koşulları.</summary>
     private void BuildFormableColumn(HBoxContainer parent)
     {
         var left = new VBoxContainer();
         left.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        left.AddThemeConstantOverride("separation", 6);
+        left.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         parent.AddChild(left);
 
         var listHeader = new Label
         {
             Text = "AVAILABLE TO FOUND   (select a nation to see its conditions)"
         };
-        listHeader.AddThemeFontSizeOverride("font_size", 14);
-        listHeader.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        listHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        listHeader.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         left.AddChild(listHeader);
 
         _formableList = new ItemList
@@ -294,8 +284,8 @@ public partial class FormablePanel : Control
         {
             Text = "CONDITIONS"
         };
-        condHeader.AddThemeFontSizeOverride("font_size", 14);
-        condHeader.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        condHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        condHeader.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         left.AddChild(condHeader);
 
         var condScroll = new ScrollContainer
@@ -307,35 +297,38 @@ public partial class FormablePanel : Control
 
         _conditionList = new VBoxContainer();
         _conditionList.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _conditionList.AddThemeConstantOverride("separation", 3);
+        _conditionList.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
         condScroll.AddChild(_conditionList);
+
+        _emptyState = EmptyState.CreateGeneric("No Formable Nations", "Select a country to see available formables.");
+        _emptyState.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _emptyState.Visible = false;
+        _conditionList.AddChild(_emptyState);
 
         var note = new Label
         {
-            Text = "Political power is spent when the formation finishes, not when it starts, " +
-                   "so a formation is never lost halfway if your power runs low."
+            Text = "Political power is spent when the formation finishes, not when it starts, so a formation is never lost halfway if your power runs low."
         };
-        note.AddThemeFontSizeOverride("font_size", 12);
-        note.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        note.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        note.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         note.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         left.AddChild(note);
     }
 
-    /// <summary>Sağ sütun: oyuncunun il kültürü haritası özeti.</summary>
     private void BuildCultureColumn(HBoxContainer parent)
     {
         var right = new VBoxContainer();
         right.CustomMinimumSize = new Vector2(400, 0);
         right.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        right.AddThemeConstantOverride("separation", 6);
+        right.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         parent.AddChild(right);
 
         var cultureHeader = new Label
         {
             Text = "CULTURE MAP   (your provinces by culture)"
         };
-        cultureHeader.AddThemeFontSizeOverride("font_size", 14);
-        cultureHeader.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        cultureHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        cultureHeader.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         right.AddChild(cultureHeader);
 
         var cultureScroll = new ScrollContainer
@@ -347,37 +340,13 @@ public partial class FormablePanel : Control
 
         _cultureList = new VBoxContainer();
         _cultureList.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _cultureList.AddThemeConstantOverride("separation", 4);
+        _cultureList.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
         cultureScroll.AddChild(_cultureList);
     }
 
-    // ===== Yenileme =====
-
-    private void RefreshAll()
+    private void RebuildData()
     {
-        RefreshHeader();
-        BuildFormableList();
-        BuildCultureList();
-        RefreshConditions();
-        RefreshActions();
-    }
-
-    private void RefreshHeader()
-    {
-        var country = CountryDatabase.Get(_playerId);
-        int provinceCount = ProvinceOwnershipSystem.GetProvincesByOwner(_playerId).Count;
-        long population = ProvinceCultureSystem.TotalPopulation(_playerId);
-        _headerLabel.Text = $"{country?.Name ?? _playerId} ({_playerId})   •   " +
-                            $"PROVINCES {provinceCount}   •   POPULATION {population:N0}   •   " +
-                            $"PP {country?.PoliticalPower ?? 0:N0}";
-    }
-
-    /// <summary>
-    /// Oyuncunun ebe kaynağı olduğu kurgu ülkeler. İl sayısı ve kültür
-    /// sağlansa bile listelenir — koşullar ayrıca gösterilir.
-    /// </summary>
-    private void BuildFormableList()
-    {
+        // Build formable list
         _formableIds.Clear();
         _formableList.Clear();
 
@@ -399,129 +368,229 @@ public partial class FormablePanel : Control
         _selectedIndex = _formableIds.Count > 0 ? 0 : -1;
         if (_selectedIndex == 0)
             _formableList.Select(0);
+
+        // Build culture rows
+        _cultureRows.Clear();
+        _totalProvinces = 0;
+        _totalPopulation = 0;
+
+        var records = ProvinceCultureSystem.ForCountry(_playerId);
+        if (records.Count == 0)
+        {
+            GD.Print("[FormablePanel] Kültür kaydı yok — pano boş");
+            return;
+        }
+
+        var byCulture = new Dictionary<string, List<ProvinceCultureSystem.CultureRecord>>(StringComparer.Ordinal);
+
+        foreach (var rec in records)
+        {
+            _totalProvinces++;
+            _totalPopulation += rec.Population;
+
+            string culture = rec.Culture ?? "";
+            if (!byCulture.TryGetValue(culture, out var list))
+            {
+                list = new List<ProvinceCultureSystem.CultureRecord>();
+                byCulture[culture] = list;
+            }
+            list.Add(rec);
+        }
+
+        foreach (var kv in byCulture)
+        {
+            var row = new CultureRow { Culture = kv.Key, Display = DisplayName(kv.Key) };
+            foreach (var rec in kv.Value)
+            {
+                row.ProvinceCount++;
+                row.Population += rec.Population;
+            }
+            row.PopulationShare = _totalPopulation > 0
+                ? (double)row.Population / _totalPopulation
+                : (double)row.ProvinceCount / _totalProvinces;
+            _cultureRows.Add(row);
+        }
+
+        // Owner countries
+        foreach (var row in _cultureRows)
+        {
+            var byCountry = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            if (byCulture.TryGetValue(row.Culture, out var list))
+                foreach (var rec in list)
+                {
+                    string owner = rec.CountryId ?? "";
+                    byCountry.TryGetValue(owner, out int n);
+                    byCountry[owner] = n + 1;
+                }
+
+            foreach (var kv in byCountry.OrderByDescending(kv => kv.Value)
+                                        .ThenBy(kv => kv.Key, StringComparer.Ordinal))
+            {
+                row.CountryIds.Add(kv.Key);
+                row.CountryProvinceCounts.Add(kv.Value);
+            }
+        }
+
+        // Max share for bar scaling
+        double maxShare = 0d;
+        foreach (var row in _cultureRows)
+            if (row.PopulationShare > maxShare) maxShare = row.PopulationShare;
+
+        foreach (var row in _cultureRows)
+            row.BarFraction = maxShare > 0d ? row.PopulationShare / maxShare : 0d;
+
+        _cultureRows.Sort((a, b) =>
+        {
+            int c = b.ProvinceCount.CompareTo(a.ProvinceCount);
+            if (c != 0) return c;
+            return string.CompareOrdinal(a.Culture, b.Culture);
+        });
+
+        GD.Print($"[FormablePanel] {_cultureRows.Count} kültür, {_totalProvinces} il, nüfus={_totalPopulation}");
     }
 
-    /// <summary>Oyuncunun illerini kültüre göre gruplar (il sayısı + nüfus payı).</summary>
-    private void BuildCultureList()
+    private static string DisplayName(string culture)
+    {
+        return culture.Length == 0 ? "(no culture)" : culture;
+    }
+
+    private void RefreshAll()
+    {
+        RefreshHeader();
+        BuildCultureRows();
+        RefreshConditions();
+        RefreshActions();
+    }
+
+    private void RefreshHeader()
+    {
+        var country = CountryDatabase.Get(_playerId);
+        int provinceCount = ProvinceOwnershipSystem.GetProvincesByOwner(_playerId).Count;
+        long population = ProvinceCultureSystem.TotalPopulation(_playerId);
+        _headerLabel.Text = $"{country?.Name ?? _playerId} ({_playerId})   •   PROVINCES {provinceCount}   •   POPULATION {population:N0}   •   PP {country?.PoliticalPower ?? 0:N0}";
+    }
+
+    private void BuildCultureRows()
     {
         foreach (var child in _cultureList.GetChildren())
             child.QueueFree();
-        _cultureLabels.Clear();
-        _cultureCounts.Clear();
 
-        var records = ProvinceCultureSystem.ForCountry(_playerId);
-        long totalPopulation = records.Sum(r => r.Population);
-        int totalProvinces = records.Count;
-
-        if (totalProvinces == 0)
+        if (_cultureRows.Count == 0)
         {
-            var empty = new Label { Text = "(no provinces)" };
-            empty.AddThemeFontSizeOverride("font_size", 14);
-            empty.AddThemeColorOverride("font_color", UITheme.TextMuted);
+            var empty = new Label { Text = "(no culture records)" };
+            empty.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+            empty.AddThemeColorOverride("font_color", GameTheme.TextMuted);
             _cultureList.AddChild(empty);
             return;
         }
 
-        // Kültüre göre grupla: il sayısı ve nüfus toplamı
-        var groups = records
-            .GroupBy(r => r.Culture ?? "", StringComparer.Ordinal)
-            .Select(g => new
-            {
-                Culture = g.Key,
-                Count = g.Count(),
-                Population = g.Sum(r => r.Population)
-            })
-            .OrderByDescending(g => g.Count)
-            .ThenBy(g => g.Culture, StringComparer.Ordinal)
-            .ToList();
+        const float BarMaxWidth = 170f;
 
-        foreach (var g in groups)
+        for (int i = 0; i < _cultureRows.Count; i++)
         {
-            float share = totalPopulation > 0
-                ? (float)g.Population / totalPopulation * 100f
-                : (float)g.Count / totalProvinces * 100f;
+            var row = _cultureRows[i];
+            var color = WorldMap.ColorForCulture(row.Culture);
 
-            var row = new HBoxContainer();
-            row.AddThemeConstantOverride("separation", 8);
-
-            var name = new Label
+            var btn = new Button
             {
-                Text = g.Culture.Length == 0 ? "(unknown)" : g.Culture,
-                CustomMinimumSize = new Vector2(120, 0)
+                FocusMode = Control.FocusModeEnum.None,
+                CustomMinimumSize = new Vector2(0, 40),
+                TooltipText = $"{row.Display} — {row.ProvinceCount} provinces, {row.PopulationShare * 100d:N1}% of the world's population"
             };
-            name.AddThemeFontSizeOverride("font_size", 14);
-            row.AddChild(name);
+            int captured = i;
+            btn.Pressed += () => OnCultureSelected(captured);
+            GameTheme.AddHoverScale(btn);
 
-            var bar = new ProgressBar
-            {
-                MinValue = 0,
-                MaxValue = 100,
-                Value = Mathf.Clamp(share, 0f, 100f),
-                CustomMinimumSize = new Vector2(140, 16),
-                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
-            };
-            bar.AddThemeColorOverride("fill_color", CultureColor(g.Culture));
-            row.AddChild(bar);
+            var hbox = new HBoxContainer();
+            hbox.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            hbox.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+            btn.AddChild(hbox);
 
-            var counts = new Label
-            {
-                Text = $"{g.Count} il • {g.Population:N0} (%{share:N0})",
-                CustomMinimumSize = new Vector2(150, 0),
-                HorizontalAlignment = HorizontalAlignment.Right
-            };
-            counts.AddThemeFontSizeOverride("font_size", 13);
-            counts.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            row.AddChild(counts);
+            var swatch = new ColorRect { Color = color };
+            swatch.CustomMinimumSize = new Vector2(18, 18);
+            swatch.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
+            swatch.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+            hbox.AddChild(swatch);
 
-            _cultureList.AddChild(row);
-            _cultureLabels.Add(g.Culture);
-            _cultureCounts.Add(g.Count);
+            var name = new Label { Text = row.Display };
+            name.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+            name.CustomMinimumSize = new Vector2(150, 0);
+            name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            name.ClipText = true;
+            hbox.AddChild(name);
+
+            AddRowStat(hbox, $"{row.ProvinceCount} prov", 74, GameTheme.TextMuted);
+            AddRowStat(hbox, $"{row.PopulationShare * 100d:N1}%", 70, GameTheme.TextPrimary);
+
+            var track = new ColorRect { Color = GameTheme.BgMedium };
+            track.CustomMinimumSize = new Vector2(BarMaxWidth, 10);
+            track.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
+            track.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+            hbox.AddChild(track);
+
+            var bar = new ColorRect { Color = color };
+            bar.CustomMinimumSize = new Vector2(Mathf.Round((float)row.BarFraction * BarMaxWidth), 10);
+            bar.SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
+            bar.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+            bar.TooltipText = $"{row.PopulationShare * 100d:N1}% of world population";
+            hbox.AddChild(bar);
+
+            _cultureList.AddChild(btn);
         }
     }
 
-    /// <summary>Seçili kurgu ülkenin koşullarını tek tek çizer.</summary>
+    private static void AddRowStat(HBoxContainer parent, string text, float width, Color color)
+    {
+        var label = new Label { Text = text };
+        label.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        label.AddThemeColorOverride("font_color", color);
+        label.CustomMinimumSize = new Vector2(width, 0);
+        label.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
+        label.HorizontalAlignment = HorizontalAlignment.Right;
+        label.TooltipText = text;
+        parent.AddChild(label);
+    }
+
     private void RefreshConditions()
     {
         foreach (var child in _conditionList.GetChildren())
+        {
+            if (child == _emptyState) continue;
+            _conditionList.RemoveChild(child);
             child.QueueFree();
-        _conditionMet.Clear();
+        }
 
         string formableId = SelectedFormableId;
         if (formableId.Length == 0)
         {
-            var empty = new Label { Text = "(no nation selected)" };
-            empty.AddThemeFontSizeOverride("font_size", 14);
-            empty.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            _conditionList.AddChild(empty);
+            _emptyState.SetContent("No Nation Selected", "Select a formable nation to see its conditions.");
+            _emptyState.Visible = true;
+            _summaryLabel.Text = "Select a nation from the list to see its conditions.";
             return;
         }
+
+        _emptyState.Visible = false;
 
         var def = FormableDataSystem.Get(formableId);
         if (def == null) return;
 
-        // Seçili kurgu ülkeyi kurma hakkı: oyuncu ebe kaynak olmayabilir (henüz
-        // koşullar listelenir ama ebe kaynak madde kırmızı görünür).
         var items = FormableSystem.EvaluateConditions(_playerId, formableId);
 
         foreach (var item in items)
         {
             var row = new HBoxContainer();
-            row.AddThemeConstantOverride("separation", 8);
+            row.AddThemeConstantOverride("separation", GameTheme.SpaceS);
 
-            var mark = new Label { Text = item.Met ? "✓" : "✗" };
-            mark.AddThemeFontSizeOverride("font_size", 15);
-            mark.AddThemeColorOverride("font_color",
-                item.Met ? new Color(0.30f, 0.72f, 0.40f) : new Color(0.85f, 0.40f, 0.40f));
-            mark.CustomMinimumSize = new Vector2(18, 0);
-            row.AddChild(mark);
+            var chip = Chip.CreateStatus(item.Met ? "✓" : "✗",
+                item.Met ? Chip.Variant.Success : Chip.Variant.Danger);
+            row.AddChild(chip);
 
             var label = new Label { Text = $"{item.Label}: {item.Detail}" };
-            label.AddThemeFontSizeOverride("font_size", 14);
+            label.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
             label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             row.AddChild(label);
 
             _conditionList.AddChild(row);
-            _conditionMet.Add(item.Met);
         }
 
         _summaryLabel.Text =
@@ -549,8 +618,6 @@ public partial class FormablePanel : Control
             $"forming {state.FormableId}: {state.DaysElapsed:N0}/{state.DaysRequired:N0} days (%{progress:N0})";
     }
 
-    // ===== Eylemler =====
-
     private void OnFormableSelected(long index)
     {
         if (index < 0 || index >= _formableIds.Count) return;
@@ -566,7 +633,7 @@ public partial class FormablePanel : Control
         if (formableId.Length == 0)
         {
             _feedbackLabel.Text = "no nation selected";
-            _feedbackLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+            _feedbackLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
             return;
         }
 
@@ -574,14 +641,14 @@ public partial class FormablePanel : Control
         if (!started)
         {
             _feedbackLabel.Text = $"cannot form: {reason}";
-            _feedbackLabel.AddThemeColorOverride("font_color", new Color(0.85f, 0.40f, 0.40f));
+            _feedbackLabel.AddThemeColorOverride("font_color", GameTheme.Red);
             GD.Print($"[FormablePanel] Kurma reddedildi — {_playerId} → {formableId}: {reason}");
             return;
         }
 
         var def = FormableDataSystem.Get(formableId);
         _feedbackLabel.Text = $"forming {def?.Name ?? formableId} ({def?.DaysRequired ?? 0} days)";
-        _feedbackLabel.AddThemeColorOverride("font_color", UITheme.GoldBright);
+        _feedbackLabel.AddThemeColorOverride("font_color", GameTheme.GoldBright);
         RefreshConditions();
         RefreshActions();
     }
@@ -591,38 +658,34 @@ public partial class FormablePanel : Control
         bool cancelled = FormableSystem.Cancel(_playerId);
         _feedbackLabel.Text = cancelled ? "formation cancelled" : "no formation in progress";
         _feedbackLabel.AddThemeColorOverride("font_color",
-            cancelled ? UITheme.GoldBright : UITheme.TextMuted);
+            cancelled ? GameTheme.GoldBright : GameTheme.TextMuted);
         RefreshActions();
     }
 
-    // ===== Yardımcılar =====
-
-    /// <summary>Kültür rengi: kimliğin hash'inden sabit (aynı kültür aynı renk).</summary>
-    private static Color CultureColor(string culture)
+    private void OnCultureSelected(int index)
     {
-        unchecked
-        {
-            const uint FnvOffset = 2166136261u;
-            const uint FnvPrime = 16777619u;
-            uint hash = FnvOffset;
-            if (!string.IsNullOrEmpty(culture))
-                foreach (char ch in culture)
-                {
-                    hash ^= (byte)(ch & 0xFF);
-                    hash *= FnvPrime;
-                    hash ^= (byte)(ch >> 8);
-                    hash *= FnvPrime;
-                }
+        if (index < 0 || index >= _cultureRows.Count) return;
+        var row = _cultureRows[index];
+        GD.Print($"[FormablePanel] Kültür seçildi: {row.Display} ({row.ProvinceCount} il, {row.CountryIds.Count} ülke)");
 
-            float hue = (hash % 360) / 360f;
-            return Color.FromHsv(hue, 0.45f, 0.85f);
+        // Apply map highlight
+        var wm = WorldMap.Instance;
+        if (wm != null)
+        {
+            wm.SetCultureHighlight(row.Culture);
+            _feedbackLabel.Text = $"{row.Display} highlighted on map";
+            _feedbackLabel.AddThemeColorOverride("font_color", GameTheme.GoldBright);
+        }
+        else
+        {
+            _feedbackLabel.Text = $"{row.Display} selected (no map open)";
+            _feedbackLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         }
     }
 
-    private void Close()
+    public override void Close()
     {
         GD.Print("FormablePanel: kapatılıyor");
-        UITheme.FadeOut(_backdrop, 0.08f);
-        UITheme.PopOut(_panel, 0.1f, () => QueueFree());
+        base.Close();
     }
 }

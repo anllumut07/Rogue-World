@@ -191,6 +191,95 @@ C:\Proje\Rogue-World\
 - **Build**: 0 errors/0 warnings ✓
 - **Tests**: `--save-load-test` both scenarios PASS A==B, all regression tests PASS
 
+### 7. CabinetPanel ✓ (2026-11-16)
+- Migrated to GamePanel base + GameTheme colors
+- Uses Chip for minister status badges (Economy/Security/Media types)
+- GameTheme.ProgressBarStyles() for loyalty/progress bars
+- Preserves test accessors for headless test compatibility
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B
+
+### 8. ElectionPanel ✓ (2026-11-16)
+- Migrated to GamePanel base + GameTheme colors
+- Uses OptionButton for country selector
+- GameTheme.ProgressBarStyles() for party support bars
+- Chip for election status badges
+- Preserves test accessors
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B
+
+### 9. FormablePanel ✓ (2026-11-16)
+- Migrated to GamePanel base + GameTheme colors
+- Uses Chip for condition checklist (Success/Danger variants)
+- Preserves FormableSystem.EvaluateConditions() output exactly
+- Preserves test accessors
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B
+
+### 10. ReleasablePanel ✓ (2026-11-16)
+- Migrated to GamePanel base + GameTheme colors
+- Uses Chip for detail rows
+- Preserves test accessors
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B
+
+### 11. SeaZonePanel ✓ (2026-11-16)
+- Migrated to GamePanel base + GameTheme colors
+- Uses ProgressBar with GameTheme.ProgressBarStyles() for supremacy bars
+- OptionButton for protector selector
+- Preserves test accessors
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B
+
+### 12. AgendaPanel ✓ (2026-11-16)
+- Migrated to GamePanel base + GameTheme colors
+- Uses ProgressBar for active actions
+- Preserves test accessors
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B
+
+### 13. MonthlyReportPanel ✓ (2026-11-16)
+- Migrated to GamePanel base (Closable=false, CONTINUE button only)
+- No ESC close, must press CONTINUE
+- Uses Chip for status indicators
+- Preserves test accessors
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B
+
+### 14. CultureLegendPanel ✓ (2026-11-16)
+- NEW Stage 2 UI from scratch (no old version)
+- GamePanel base + GameTheme colors
+- Chip for culture items, ProgressBar for population share bars
+- All test accessors preserved
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B
+
+### 15. LibraryPanel ✓ (2026-11-16)
+- Migrated from CanvasLayer to GamePanel base
+- Preserves test accessors and SimulateClickForTest method
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B, `--library-test` PASS
+
+### 16. MiniMapPanel ✓ (2026-10-20) — Already Stage 2 compliant
+- Node2D minimap with GameTheme colors
+- Camera rectangle indicator, +/- zoom buttons
+- **Build**: 0 errors/0 warnings ✓
+
+### 17. TooltipPanel ✓ (2026-11-16) — Stage 2 migration
+- Uses GameTheme.TooltipStyle() for consistent dark theme with gold border
+- Lightweight Control (not modal), MouseFilter.Ignore so it doesn't block input
+- Label with GameTheme.TextPrimary and GameTheme.FontSizeSmall
+- **Build**: 0 errors/0 warnings ✓
+
+### 18. TutorialPanel ✓ (2026-11-16) — Stage 2 migration
+- Migrated to GamePanel base (modal, backdrop blocks input, ESC/CLOSE closes)
+- GameTheme colors throughout, RichTextLabel for formatted tips
+- CheckBox for "Don't show again" with SettingsSystem persistence
+- GamePanel Closable=true with custom "GOT IT" button text
+- Test accessors preserved (DesignedSize, TitleText, TipsText, DontShowChecked, CloseRequested)
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B
+
 ## Prioritized TODO (from TODO.md)
 1. **M52.1-52.4** — Recognition consequences (org membership, trade, AI alliances, REQUEST RECOGNITION action, war tension/intervention, save/load A==B) — ALL DONE ✓
 2. **M53.1-53.5** — Advisor System (18 profiles, hire/fire, deterministic advice, 7-day cooldown, AdvisorPanel UI, HUD button, save/load A==B both scenarios) — ALL DONE ✓
@@ -202,5 +291,5 @@ C:\Proje\Rogue-World\
 ---
 
 **Current Branch:** `gece-calisma`  
-**Last Commit:** Stage 2 UI Migration — StatisticsPanel migrated to GameTheme + reusable UI components (GamePanel, OptionButton, ProgressBar, GraphControl, EmptyState) — All 6 panels complete (Diplomacy, Climate, Migration, Advisor, CountryInfo, Statistics)  
-**Last Test Run:** All Stage 2 panel tests PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, all regression tests PASS
+**Last Commit:** Stage 2 UI Migration — All 18 panels complete (Diplomacy, Climate, Migration, Advisor, CountryInfo, Statistics, Cabinet, Election, Formable, Releasable, SeaZone, Agenda, MonthlyReport, CultureLegend, Library, MiniMap, Tooltip, Tutorial)  
+**Last Test Run:** All Stage 2 panel tests PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, all regression tests PASS (scenario-test PASS)

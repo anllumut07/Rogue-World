@@ -1,38 +1,56 @@
 using Godot;
 using System;
-using System.Collections.Generic;
 
-// M36.2: İlk açılış rehberi (tutorial) paneli.
-// Overlay (Control), backdrop MouseFilter.Stop harita girişini bloke eder, ESC kapatır.
-// Panel boyutu 1152x648'e sığar (860x520 içerik). UI metinleri İngilizce, yorumlar Türkçe.
-// "TutorialSeen" bayrağı SettingsSystem üzerinden user://settings.json'da kalıcıdır;
-public partial class TutorialPanel : Control
+/// <summary>
+/// Tutorial / First-Run Guide Panel (M36.2 + Stage 2 UI Upgrade).
+/// - Overlay modal panel using GamePanel base (backdrop blocks map input, ESC/CLOSE closes).
+/// - Panel fits within 1152x648 (content ~860x520).
+/// - "TutorialSeen" flag persisted in user://settings.json via SettingsSystem.
+/// - UI text English, comments Turkish.
+/// </summary>
+public partial class TutorialPanel : GamePanel
 {
     public static bool IsOpen { get; private set; } = false;
 
-    private PanelContainer _root;
     private VBoxContainer _content;
-    private Label _titleLabel;
     private RichTextLabel _tipsLabel;
     private CheckBox _dontShowCheck;
-    private Button _closeButton;
 
-    public static void OpenUnder(Node parent)
-    {
-        if (IsOpen) return;
-        var panel = new TutorialPanel();
-        ModalHost.AddUnder(parent, panel);
-    }
+    // ===== Test / UI inspection accessors =====
+
+    /// <summary>Panel tasarım boyutu — 1152x648 ekrana sığma kontrolü için.</summary>
+    public Vector2 DesignedSize => new Vector2(860, 520);
+
+    /// <summary>Başlık metni.</summary>
+    public string TitleText => Title;
+
+    /// <summary>İpucu metni (ham BBCode).</summary>
+    public string TipsText => _tipsLabel?.Text ?? "";
+
+    /// <summary>"Don't show again" checkbox durumu.</summary>
+    public bool DontShowChecked => _dontShowCheck?.ButtonPressed ?? false;
+
+    /// <summary>ESC ile kapatma istendi mi?</summary>
+    public new bool CloseRequested { get; private set; }
 
     public override void _Ready()
     {
+        // Configure GamePanel properties
+        Title = "TUTORIAL";
+        MinSize = new Vector2(860, 520);
+        MaxSize = new Vector2(1000, 700);
+        Draggable = false;
+        Closable = true;
+        Modal = true;
+        AutoCenter = true;
+
+        base._Ready();
+
         ProcessMode = ProcessModeEnum.Always; // paused iken de kapanış/input çalışsın
-        UITheme.ApplyTheme(this);
         BuildUi();
         IsOpen = true;
-        UITheme.PopIn(this, 0.15f);
 
-        GD.Print("[TutorialPanel] hazır — ilk açılış rehberi");
+        GD.Print("[TutorialPanel] hazır — ilk açılış rehberi (Stage 2 UI)");
     }
 
     public override void _ExitTree()
@@ -45,80 +63,47 @@ public partial class TutorialPanel : Control
         if (@event is InputEventKey key && key.Pressed && !key.Echo && key.Keycode == Key.Escape)
         {
             GetViewport().SetInputAsHandled();
+            CloseRequested = true;
             Close();
         }
     }
 
+    public static void OpenUnder(Node parent)
+    {
+        if (IsOpen) return;
+        var panel = new TutorialPanel();
+        parent.AddChild(panel);
+    }
+
     private void BuildUi()
     {
-        SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        MouseFilter = Control.MouseFilterEnum.Stop;
+        var content = ContentContainer;
+        content.AddThemeConstantOverride("separation", GameTheme.SpaceM);
 
-        var backdrop = new ColorRect { Color = new Color(0, 0, 0, 0.6f) };
-        backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        backdrop.MouseFilter = Control.MouseFilterEnum.Stop;
-        AddChild(backdrop);
+        // Title is handled by GamePanel (Title property)
 
-        _root = new PanelContainer
-        {
-            CustomMinimumSize = new Vector2(860, 520),
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-            MouseFilter = Control.MouseFilterEnum.Stop
-        };
-        _root.SetAnchorsPreset(Control.LayoutPreset.Center);
-        UITheme.ApplyTheme(_root);
-        AddChild(_root);
-
-        _content = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        _content.AddThemeConstantOverride("separation", 14);
-        _content.AddThemeConstantOverride("margin_top", 20);
-        _content.AddThemeConstantOverride("margin_bottom", 20);
-        _content.AddThemeConstantOverride("margin_left", 28);
-        _content.AddThemeConstantOverride("margin_right", 28);
-        _root.AddChild(_content);
-
-        // Başlık
-        _titleLabel = new Label { Text = "WELCOME TO ROGUE WORLD", HorizontalAlignment = HorizontalAlignment.Center };
-        _titleLabel.AddThemeFontSizeOverride("font_size", 26);
-        _titleLabel.AddThemeColorOverride("font_color", new Color(0.9f, 0.9f, 0.9f));
-        _content.AddChild(_titleLabel);
-
-        var subtitle = new Label { Text = "Grand Strategy — Country Management", HorizontalAlignment = HorizontalAlignment.Center };
-        subtitle.AddThemeFontSizeOverride("font_size", 15);
-        subtitle.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        _content.AddChild(subtitle);
-
-        _content.AddChild(new HSeparator());
-
-        // İpuçları metni (RichTextLabel: renkli, kalın, liste biçimi)
+        // Tutorial tips text (RichTextLabel: colored, bold, list format)
         _tipsLabel = new RichTextLabel();
-        _tipsLabel.AddThemeFontSizeOverride("font_size", 15);
-        _tipsLabel.AddThemeColorOverride("font_color", UITheme.TextMain);
+        _tipsLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        _tipsLabel.AddThemeColorOverride("font_color", GameTheme.TextPrimary);
         _tipsLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _tipsLabel.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
         _tipsLabel.Text = GetTutorialText();
-        _content.AddChild(_tipsLabel);
+        content.AddChild(_tipsLabel);
 
-        // "Gösterilmesin" onay kutusu
+        content.AddChild(new HSeparator());
+
+        // "Don't show again" checkbox row
         var dontShowRow = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-        dontShowRow.AddThemeConstantOverride("separation", 8);
+        dontShowRow.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         _dontShowCheck = new CheckBox { Text = "Don't show this again" };
-        _dontShowCheck.AddThemeFontSizeOverride("font_size", 14);
+        _dontShowCheck.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
         _dontShowCheck.ButtonPressed = SettingsSystem.TutorialSeen;
         dontShowRow.AddChild(_dontShowCheck);
         dontShowRow.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
-        _content.AddChild(dontShowRow);
+        content.AddChild(dontShowRow);
 
-        _content.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
-
-        // Kapat butonu
-        var btnRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
-        _closeButton = new Button { Text = "GOT IT", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(140, 44) };
-        _closeButton.Pressed += OnClosePressed;
-        UITheme.AddHoverScale(_closeButton);
-        btnRow.AddChild(_closeButton);
-        _content.AddChild(btnRow);
+        content.AddChild(new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill });
     }
 
     private static string GetTutorialText()
@@ -135,18 +120,13 @@ public partial class TutorialPanel : Control
             "Enjoy!";
     }
 
-    private void OnClosePressed()
+    public override void Close()
     {
         // "Don't show again" işaretliyse bayrağı kalıcılaştır
-        if (_dontShowCheck.ButtonPressed)
+        if (_dontShowCheck?.ButtonPressed == true)
             SettingsSystem.SetTutorialSeen(true);
 
-        Close();
-    }
-
-    private void Close()
-    {
         GD.Print("TutorialPanel: kapatılıyor");
-        UITheme.FadeOut(_root, 0.08f, () => QueueFree());
+        base.Close();
     }
 }

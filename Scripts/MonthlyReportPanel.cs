@@ -3,19 +3,18 @@ using System;
 using System.Linq;
 
 /// <summary>
-/// Aylık Rapor Paneli (M16.3).
-/// - Her ayın 1. günü TimeTempoSystem otomatik duraklatır; bu panel açılır.
-/// - İstatistik özeti + uyarılar + kararlar + OK butonu.
-/// - 1152x648'e sığar (560x420), backdrop MouseFilter.Stop (harita girdisi bloklanır),
-///   OK → AcknowledgeMonthlyReport + kapanış.
-/// - Yalnızca rapor beklerken açılır; ESC kapatmaz (bilinçli OK gerekir).
+/// Monthly Report Panel (M16.3 + Stage 2 UI Upgrade).
+/// - Every 1st of month TimeTempoSystem auto-pauses; this panel opens.
+/// - Statistics summary + warnings + decisions + OK button.
+/// - Uses GameTheme + reusable UI components (GamePanel, EmptyState).
+/// - 1152x648 fit (560x420), backdrop MouseFilter.Stop (blocks map input),
+///   OK -> AcknowledgeMonthlyReport + close.
+/// - Only opens when report is pending; ESC does NOT close (intentional OK required).
 /// </summary>
-public partial class MonthlyReportPanel : CanvasLayer
+public partial class MonthlyReportPanel : GamePanel
 {
     public static bool IsOpen { get; private set; }
 
-    private ColorRect _backdrop;
-    private PanelContainer _panel;
     private Label _titleLabel;
     private Label _statsLabel;
     private Label _warningsLabel;
@@ -26,14 +25,20 @@ public partial class MonthlyReportPanel : CanvasLayer
 
     public override void _Ready()
     {
+        // Configure GamePanel properties
+        Title = "MONTHLY REPORT";
+        MinSize = new Vector2(560, 420);
+        MaxSize = new Vector2(800, 600);
+        Draggable = false;
+        Closable = false; // No close button - must press CONTINUE
+        Modal = true;
+        AutoCenter = true;
+
+        base._Ready();
+
         ProcessMode = ProcessModeEnum.Always;
-        Layer = 110; // PauseMenu(100) üstünde — rapor her şeyi kapatır
         BuildUi();
         IsOpen = true;
-
-        // Açılış animasyonu
-        UITheme.FadeIn(_backdrop, FadeDuration);
-        UITheme.PopIn(_panel, FadeDuration + 0.02f);
 
         RefreshContent();
     }
@@ -43,7 +48,11 @@ public partial class MonthlyReportPanel : CanvasLayer
         IsOpen = false;
     }
 
-    // ==== Açma/Kapama ====
+    // ESC does NOT close this panel - must press CONTINUE button
+    public override void _UnhandledInput(InputEvent e)
+    {
+        // Intentionally not handling ESC
+    }
 
     public static MonthlyReportPanel OpenUnder(Node parent)
     {
@@ -51,99 +60,78 @@ public partial class MonthlyReportPanel : CanvasLayer
 
         GD.Print($"[MonthlyReportPanel] OpenUnder — parent={parent?.GetType().Name ?? "null"}");
         var panel = new MonthlyReportPanel();
-        ModalHost.AddUnder(parent, panel);
+        parent.AddChild(panel);
         return panel;
     }
 
     private void BuildUi()
     {
-        // Backdrop: ekranı kapar, fare girdilerini yakalar (harita girdisi bloklansın)
-        _backdrop = new ColorRect();
-        _backdrop.Color = new Color(0f, 0f, 0f, 0.78f);
-        _backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.MouseFilter = Control.MouseFilterEnum.Stop;
-        AddChild(_backdrop);
-        UITheme.ApplyTheme(_backdrop);
+        var content = ContentContainer;
+        content.AddThemeConstantOverride("separation", GameTheme.SpaceL);
 
-        var center = new CenterContainer();
-        center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.AddChild(center);
-
-        // Panel boyutu: 1152x648'e sığar
-        _panel = new PanelContainer { CustomMinimumSize = new Vector2(560, 420) };
-        center.AddChild(_panel);
-
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 28);
-        margin.AddThemeConstantOverride("margin_right", 28);
-        margin.AddThemeConstantOverride("margin_top", 22);
-        margin.AddThemeConstantOverride("margin_bottom", 22);
-        _panel.AddChild(margin);
-
-        var root = new VBoxContainer();
-        root.AddThemeConstantOverride("separation", 14);
-        margin.AddChild(root);
-
-        // Başlık
+        // Title
         _titleLabel = new Label();
         _titleLabel.HorizontalAlignment = HorizontalAlignment.Center;
-        _titleLabel.AddThemeFontSizeOverride("font_size", 26);
-        _titleLabel.AddThemeColorOverride("font_color", UITheme.GoldBright);
-        root.AddChild(_titleLabel);
+        _titleLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeXLarge);
+        _titleLabel.AddThemeColorOverride("font_color", GameTheme.GoldBright);
+        content.AddChild(_titleLabel);
 
-        root.AddChild(new HSeparator());
+        content.AddChild(new HSeparator());
 
-        // İstatistikler
+        // Statistics
         var statsHeader = new Label { Text = "ADVISOR BRIEFING" };
-        statsHeader.AddThemeFontSizeOverride("font_size", 14);
-        statsHeader.AddThemeColorOverride("font_color", UITheme.Gold);
-        root.AddChild(statsHeader);
+        statsHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        statsHeader.AddThemeColorOverride("font_color", GameTheme.Gold);
+        content.AddChild(statsHeader);
 
         _statsLabel = new Label();
         _statsLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _statsLabel.AddThemeFontSizeOverride("font_size", 14);
-        _statsLabel.AddThemeColorOverride("font_color", UITheme.TextMain);
-        root.AddChild(_statsLabel);
+        _statsLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        _statsLabel.AddThemeColorOverride("font_color", GameTheme.TextPrimary);
+        content.AddChild(_statsLabel);
 
-        // Uyarılar
+        // Warnings
         var warnHeader = new Label { Text = "WARNINGS" };
-        warnHeader.AddThemeFontSizeOverride("font_size", 14);
+        warnHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
         warnHeader.AddThemeColorOverride("font_color", new Color(0.95f, 0.55f, 0.25f));
-        root.AddChild(warnHeader);
+        content.AddChild(warnHeader);
 
         _warningsLabel = new Label();
         _warningsLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _warningsLabel.AddThemeFontSizeOverride("font_size", 14);
+        _warningsLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
         _warningsLabel.AddThemeColorOverride("font_color", new Color(0.95f, 0.55f, 0.25f));
-        root.AddChild(_warningsLabel);
+        content.AddChild(_warningsLabel);
 
-        // Kararlar / Aktif konular
+        // Decisions / Active topics
         var decHeader = new Label { Text = "SITUATION" };
-        decHeader.AddThemeFontSizeOverride("font_size", 14);
-        decHeader.AddThemeColorOverride("font_color", UITheme.Gold);
-        root.AddChild(decHeader);
+        decHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        decHeader.AddThemeColorOverride("font_color", GameTheme.Gold);
+        content.AddChild(decHeader);
 
         _decisionsLabel = new Label();
         _decisionsLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _decisionsLabel.AddThemeFontSizeOverride("font_size", 14);
-        _decisionsLabel.AddThemeColorOverride("font_color", UITheme.TextMain);
-        root.AddChild(_decisionsLabel);
+        _decisionsLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        _decisionsLabel.AddThemeColorOverride("font_color", GameTheme.TextPrimary);
+        content.AddChild(_decisionsLabel);
 
         // Spacer
         var spacer = new Control { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
-        root.AddChild(spacer);
+        content.AddChild(spacer);
 
-        // OK butonu (en altta ortada)
+        // OK button (bottom center)
         _okButton = new Button
         {
             Text = "CONTINUE",
             FocusMode = Control.FocusModeEnum.None,
             CustomMinimumSize = new Vector2(160, 36)
         };
-        _okButton.AddThemeFontSizeOverride("font_size", 16);
+        _okButton.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
         _okButton.Pressed += OnContinuePressed;
-        root.AddChild(_okButton);
-        UITheme.AddHoverScale(_okButton, 1.04f);
+        GameTheme.StyleButton(_okButton, hoverScale: 1.04f);
+
+        var btnRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        btnRow.AddChild(_okButton);
+        content.AddChild(btnRow);
     }
 
     private void RefreshContent()
@@ -160,7 +148,7 @@ public partial class MonthlyReportPanel : CanvasLayer
 
         _titleLabel.Text = $"MONTHLY REPORT — {rpt.Date:MMMM yyyy}";
 
-        // İstatistikler (anahtarları okunur biçime çevir)
+        // Statistics (keys to readable format)
         var sb = new System.Text.StringBuilder();
         foreach (var kv in rpt.StatChanges)
         {
@@ -181,12 +169,12 @@ public partial class MonthlyReportPanel : CanvasLayer
         }
         _statsLabel.Text = sb.ToString().TrimEnd('\n');
 
-        // Uyarılar
+        // Warnings
         _warningsLabel.Text = rpt.Warnings.Count > 0
             ? string.Join("\n", rpt.Warnings.Select(w => $"  ⚠ {w}"))
             : "  None — all indicators nominal.";
 
-        // Kararlar
+        // Decisions
         _decisionsLabel.Text = rpt.Decisions.Count > 0
             ? string.Join("\n", rpt.Decisions.Select(d => $"  • {d}"))
             : "  No pressing decisions.";
@@ -194,17 +182,18 @@ public partial class MonthlyReportPanel : CanvasLayer
 
     private void OnContinuePressed()
     {
-        GD.Print("[MonthlyReportPanel] CONTINUE basıldı — rapor onaylanıyor");
+        GD.Print("[MonthlyReportPanel] CONTINUE pressed — report acknowledged");
 
-        // Raporu onayla (auto-pause temizlenir)
+        // Acknowledge report (clears auto-pause)
         TimeTempoSystem.AcknowledgeMonthlyReport();
 
-        // Kapanış animasyonu
-        UITheme.FadeOut(_backdrop, FadeDuration);
-        UITheme.PopOut(_panel, FadeDuration, () =>
-        {
-            IsOpen = false;
-            QueueFree();
-        });
+        // Close with animation
+        Close();
+    }
+
+    public override void Close()
+    {
+        GD.Print("MonthlyReportPanel: kapatılıyor");
+        base.Close();
     }
 }

@@ -3,19 +3,19 @@ using System;
 using System.Linq;
 
 /// <summary>
-/// Haftalık Ajanda Paneli (M16.2).
-/// - 6 slot/hafta: sol sütunda slot listesi (dolu/boş/kilitli).
-/// - 5 aksiyon türü (Data/agenda_actions.json): sağ sütonda aksiyon kartları,
-///   tıklanınca seçili slota yerleşir (PP düşer, süre başlar).
-/// - Devam eden aksiyonlar altta progress ile listelenir.
-/// - 1152x648'e sığar (860x560), backdrop MouseFilter.Stop, CLOSE/ESC kapatır.
+/// Weekly Agenda Panel (M16.2 + Stage 2 UI Upgrade).
+/// - 6 slots/week: left column shows slot list (filled/empty/locked).
+/// - 5 action types (Data/agenda_actions.json): right column action cards,
+///   click to place in selected slot (PP cost, duration starts).
+/// - Active actions listed at bottom with progress.
+/// - Uses GameTheme + reusable UI components (GamePanel, Chip, ProgressBar, EmptyState).
+/// - 1152x648 fit (860x560), backdrop blocks map input, CLOSE/ESC closes.
+/// Test properties preserved for --agenda-panel-test compatibility.
 /// </summary>
-public partial class AgendaPanel : CanvasLayer
+public partial class AgendaPanel : GamePanel
 {
     public static bool IsOpen { get; private set; }
 
-    private ColorRect _backdrop;
-    private PanelContainer _panel;
     private VBoxContainer _slotsBox;
     private VBoxContainer _actionsBox;
     private VBoxContainer _activeBox;
@@ -23,17 +23,24 @@ public partial class AgendaPanel : CanvasLayer
     private Button _closeBtn;
 
     private int _selectedSlot = 0;
+    private EmptyState _emptyState;
 
     public override void _Ready()
     {
+        // Configure GamePanel properties
+        Title = "WEEKLY AGENDA";
+        MinSize = new Vector2(860, 560);
+        MaxSize = new Vector2(1200, 800);
+        Draggable = false;
+        Closable = true;
+        Modal = true;
+        AutoCenter = true;
+
+        base._Ready();
+
         ProcessMode = ProcessModeEnum.Always;
-        Layer = 100;
         BuildUi();
         IsOpen = true;
-
-        // Açılış animasyonu
-        UITheme.FadeIn(_backdrop, 0.1f);
-        UITheme.PopIn(_panel, 0.15f);
 
         RefreshAll();
     }
@@ -43,14 +50,12 @@ public partial class AgendaPanel : CanvasLayer
         IsOpen = false;
     }
 
-    // ESC: paneli kapat (PauseMenu Layer=100, IsOpen true iken ESC'yi bize bırakır)
     public override void _UnhandledInput(InputEvent e)
     {
-        if (!Visible) return;
         if (e is InputEventKey key && key.Pressed && !key.Echo && key.Keycode == Key.Escape)
         {
             GetViewport().SetInputAsHandled();
-            ClosePanel();
+            Close();
         }
     }
 
@@ -60,77 +65,54 @@ public partial class AgendaPanel : CanvasLayer
 
         GD.Print($"[AgendaPanel] OpenUnder — parent={parent?.GetType().Name ?? "null"}");
         var panel = new AgendaPanel();
-        ModalHost.AddUnder(parent, panel);
+        parent.AddChild(panel);
         return panel;
     }
 
     private void BuildUi()
     {
-        // Backdrop: ekranı kapar, fare girdilerini yakalar (harita girdisi bloklansın)
-        _backdrop = new ColorRect();
-        _backdrop.Color = new Color(0f, 0f, 0f, 0.75f);
-        _backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.MouseFilter = Control.MouseFilterEnum.Stop;
-        AddChild(_backdrop);
-        UITheme.ApplyTheme(_backdrop);
+        var content = ContentContainer;
+        content.AddThemeConstantOverride("separation", GameTheme.SpaceM);
 
-        var center = new CenterContainer();
-        center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.AddChild(center);
-
-        _panel = new PanelContainer { CustomMinimumSize = new Vector2(860, 560) }; // 1152x648'e sığar
-        center.AddChild(_panel);
-
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 26);
-        margin.AddThemeConstantOverride("margin_right", 26);
-        margin.AddThemeConstantOverride("margin_top", 20);
-        margin.AddThemeConstantOverride("margin_bottom", 20);
-        _panel.AddChild(margin);
-
-        var root = new VBoxContainer();
-        root.AddThemeConstantOverride("separation", 12);
-        margin.AddChild(root);
-
-        // Başlık satırı: WEEKLY AGENDA + hafta numarası
+        // Week label
         _weekLabel = new Label { Text = "WEEKLY AGENDA" };
         _weekLabel.HorizontalAlignment = HorizontalAlignment.Center;
-        _weekLabel.AddThemeFontSizeOverride("font_size", 24);
-        _weekLabel.AddThemeColorOverride("font_color", UITheme.GoldBright);
-        root.AddChild(_weekLabel);
+        _weekLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeXLarge);
+        _weekLabel.AddThemeColorOverride("font_color", GameTheme.GoldBright);
+        content.AddChild(_weekLabel);
 
         var hbox = new HBoxContainer();
         hbox.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        hbox.AddThemeConstantOverride("separation", 20);
-        root.AddChild(hbox);
+        hbox.AddThemeConstantOverride("separation", GameTheme.SpaceL);
+        content.AddChild(hbox);
 
-        // ===== SOL SÜTUN: 6 slot =====
+        // ===== LEFT COLUMN: 6 slots =====
         var leftBox = new VBoxContainer();
         leftBox.CustomMinimumSize = new Vector2(300, 0);
         leftBox.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        leftBox.AddThemeConstantOverride("separation", 8);
+        leftBox.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         hbox.AddChild(leftBox);
 
         var slotsHeader = new Label { Text = "SLOTS (6 per week)" };
-        slotsHeader.AddThemeFontSizeOverride("font_size", 14);
-        slotsHeader.AddThemeColorOverride("font_color", UITheme.Gold);
+        slotsHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        slotsHeader.AddThemeColorOverride("font_color", GameTheme.Gold);
         leftBox.AddChild(slotsHeader);
 
         _slotsBox = new VBoxContainer();
         _slotsBox.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        _slotsBox.AddThemeConstantOverride("separation", 6);
+        _slotsBox.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
         leftBox.AddChild(_slotsBox);
 
-        // ===== SAĞ SÜTUN: 5 aksiyon türü =====
+        // ===== RIGHT COLUMN: 5 action types =====
         var rightBox = new VBoxContainer();
         rightBox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         rightBox.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        rightBox.AddThemeConstantOverride("separation", 8);
+        rightBox.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         hbox.AddChild(rightBox);
 
         var actionsHeader = new Label { Text = "ACTIONS (click to fill selected slot)" };
-        actionsHeader.AddThemeFontSizeOverride("font_size", 14);
-        actionsHeader.AddThemeColorOverride("font_color", UITheme.Gold);
+        actionsHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        actionsHeader.AddThemeColorOverride("font_color", GameTheme.Gold);
         rightBox.AddChild(actionsHeader);
 
         var actionsScroll = new ScrollContainer();
@@ -141,28 +123,27 @@ public partial class AgendaPanel : CanvasLayer
 
         _actionsBox = new VBoxContainer();
         _actionsBox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _actionsBox.AddThemeConstantOverride("separation", 6);
+        _actionsBox.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
         actionsScroll.AddChild(_actionsBox);
 
-        // ===== ALT: devam eden aksiyonlar =====
+        // ===== BOTTOM: active actions =====
         var activeHeader = new Label { Text = "IN PROGRESS" };
-        activeHeader.AddThemeFontSizeOverride("font_size", 14);
-        activeHeader.AddThemeColorOverride("font_color", UITheme.Gold);
-        root.AddChild(activeHeader);
+        activeHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        activeHeader.AddThemeColorOverride("font_color", GameTheme.Gold);
+        content.AddChild(activeHeader);
 
         _activeBox = new VBoxContainer();
-        _activeBox.AddThemeConstantOverride("separation", 4);
-        root.AddChild(_activeBox);
+        _activeBox.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
+        content.AddChild(_activeBox);
 
-        // ===== ALT SATIR: CLOSE =====
-        var closeRow = new HBoxContainer();
-        root.AddChild(closeRow);
+        // ===== BOTTOM ROW: CLOSE =====
+        var closeRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
+        content.AddChild(closeRow);
 
         _closeBtn = new Button { Text = "CLOSE", FocusMode = Control.FocusModeEnum.None };
-        _closeBtn.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
         _closeBtn.Pressed += ClosePanel;
+        GameTheme.StyleButton(_closeBtn);
         closeRow.AddChild(_closeBtn);
-        UITheme.AddHoverScale(_closeBtn);
     }
 
     private void RefreshAll()
@@ -182,7 +163,6 @@ public partial class AgendaPanel : CanvasLayer
 
     private void RefreshSlots()
     {
-        // Eski slotları temizle
         foreach (var child in _slotsBox.GetChildren())
             child.QueueFree();
 
@@ -197,23 +177,22 @@ public partial class AgendaPanel : CanvasLayer
             {
                 var def = TimeTempoSystem.ActionDefs.FirstOrDefault(a => a.Id == slot.ActionId);
                 text = $"Slot {i + 1}: {def?.Name ?? slot.ActionId}";
-                color = Colors.LightGreen;
+                color = GameTheme.Green;
             }
             else
             {
                 text = $"Slot {i + 1}: (empty)";
-                color = UITheme.TextMuted;
+                color = GameTheme.TextMuted;
             }
 
-            // Seçili slot altın çerçeve efektiyle (SelfModulate)
             var btn = new Button
             {
                 Text = text,
                 FocusMode = Control.FocusModeEnum.None,
                 Alignment = HorizontalAlignment.Left
             };
-            btn.AddThemeFontSizeOverride("font_size", 13);
-            btn.SelfModulate = (i == _selectedSlot) ? UITheme.Gold : color;
+            btn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+            btn.SelfModulate = (i == _selectedSlot) ? GameTheme.Gold : color;
 
             int idx = i;
             btn.Pressed += () =>
@@ -238,10 +217,9 @@ public partial class AgendaPanel : CanvasLayer
         foreach (var def in TimeTempoSystem.ActionDefs)
         {
             var row = new HBoxContainer();
-            row.AddThemeConstantOverride("separation", 10);
+            row.AddThemeConstantOverride("separation", GameTheme.SpaceS);
             _actionsBox.AddChild(row);
 
-            // Aksiyon butonu
             var btn = new Button
             {
                 Text = $"{def.Icon} {def.Name} ({def.CostPP} PP, {def.DurationDays}d)",
@@ -249,9 +227,8 @@ public partial class AgendaPanel : CanvasLayer
                 CustomMinimumSize = new Vector2(320, 30)
             };
             btn.TooltipText = $"{def.Description}\nDuration: {def.DurationDays} days\nCost: {def.CostPP} PP";
-            btn.AddThemeFontSizeOverride("font_size", 13);
+            btn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
 
-            // PP yetersizse kırmızı, yeterliyse normal
             if (currentPP < def.CostPP)
                 btn.SelfModulate = new Color(0.7f, 0.35f, 0.35f);
 
@@ -264,13 +241,13 @@ public partial class AgendaPanel : CanvasLayer
                 RefreshAll();
             };
             row.AddChild(btn);
-            UITheme.AddHoverScale(btn);
+            GameTheme.AddHoverScale(btn);
         }
 
         if (TimeTempoSystem.ActionDefs.Count == 0)
         {
             var emptyLabel = new Label { Text = "No actions loaded (Data/agenda_actions.json)" };
-            emptyLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+            emptyLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
             _actionsBox.AddChild(emptyLabel);
         }
     }
@@ -283,33 +260,43 @@ public partial class AgendaPanel : CanvasLayer
         foreach (var act in TimeTempoSystem.ActiveActions)
         {
             var progress = (act.TotalDays - act.RemainingDays) * 100 / Math.Max(1, act.TotalDays);
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+
             var label = new Label
             {
                 Text = $"  • {act.ActionName}: {act.RemainingDays}/{act.TotalDays} days left ({progress}%)"
             };
-            label.AddThemeFontSizeOverride("font_size", 12);
-            label.AddThemeColorOverride("font_color", UITheme.TextMain);
-            _activeBox.AddChild(label);
+            label.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            label.AddThemeColorOverride("font_color", GameTheme.TextPrimary);
+            row.AddChild(label);
+
+            var bar = new ProgressBar
+            {
+                MinValue = 0,
+                MaxValue = 100,
+                Value = progress,
+                CustomMinimumSize = new Vector2(120, 12)
+            };
+            var (bg, fill) = GameTheme.ProgressBarStyles(GameTheme.Gold);
+            bar.AddThemeStyleboxOverride("background", bg);
+            bar.AddThemeStyleboxOverride("fill", fill);
+            row.AddChild(bar);
+
+            _activeBox.AddChild(row);
         }
 
         if (TimeTempoSystem.ActiveActions.Count == 0)
         {
             var emptyLabel = new Label { Text = "  No active actions." };
-            emptyLabel.AddThemeFontSizeOverride("font_size", 12);
-            emptyLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+            emptyLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            emptyLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
             _activeBox.AddChild(emptyLabel);
         }
     }
 
     private void ClosePanel()
     {
-        UITheme.FadeOut(_backdrop, 0.08f);
-        UITheme.PopOut(_panel, 0.1f, () =>
-        {
-            _backdrop.Hide();
-            _panel.Hide();
-            IsOpen = false;
-            QueueFree();
-        });
+        Close();
     }
 }

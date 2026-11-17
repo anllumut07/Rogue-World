@@ -4,57 +4,50 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// M43.5 — Deniz bölgesi paneli (oyuncu tarafı).
-///
-/// M43.1–M43.4'ün ürettiği veriyi tek ekranda toplar: her deniz bölgesinde
-/// oyuncunun hakimiyeti (filo ağırlığından saf hesap), bölgenin baskına uğrama
-/// riski, bölgeyi domine eden ülke ve müttefik korumasının etkisi.
-///
-/// Etkileşim yalnızca iki eyleme bağlıdır:
-///   • ASSIGN ESCORT — seçili müttefik filoyu oyuncunun konvoylarına atar
-///     (<see cref="ConvoyRaidSystem.AssignEscort"/>).
-///   • REVOKE ESCORT — korumayı geri çeker (<see cref="ConvoyRaidSystem.RevokeEscort"/>).
-///
-/// Panel tamamen görsel/etkileşim katmanıdır: durum tutan sistemler zaten
-/// M43.1–M43.4'te yazıldı (SeaZoneSystem, NavalCombatSystem, ConvoyRaidSystem).
-/// Bu yüzden Save/Load'a veri yazmaz — kalıcı durum o sistemlerde ve ülke
-/// verisinde zaten saklanıyor (save-load A==B testi bundan etkilenmez).
-///
-/// Ölçü sınırı: 1152x648 ekrana sığacak şekilde 940x560 tasarlandı.
+/// Sea Zone Panel (M43.5 + Stage 2 UI Upgrade):
+/// Shows fleet supremacy by sea zone and convoy escort management.
+/// Uses GameTheme + reusable UI components (GamePanel, ProgressBar, OptionButton, Chip, EmptyState).
+/// Preserves: backdrop blocking map input, ESC to close, zone list, escort assignment.
+/// Test properties preserved for --sea-zone-panel-test compatibility.
 /// </summary>
-public partial class SeaZonePanel : Control
+public partial class SeaZonePanel : GamePanel
 {
-    // ===== Durum =====
+    public static bool IsOpen { get; private set; } = false;
 
     private string _playerId = "";
+    private List<string> _protectorIds = new();
+    private List<float> _rowSupremacy = new();
+    private List<float> _rowRisk = new();
 
-    private Label _headerLabel;      // ülke + filo özeti
-    private Label _summaryLabel;     // ortalama hakimiyet / konvoy riski / koruma
-    private Label _feedbackLabel;    // atama/geri alma mesajı
+    private Label _headerLabel;
+    private Label _summaryLabel;
+    private Label _feedbackLabel;
     private OptionButton _protectorSelector;
     private Button _assignBtn;
     private Button _revokeBtn;
-
     private VBoxContainer _zoneList;
+    private EmptyState _emptyState;
 
-    // Koruyucu adayları (dropdown sırasıyla) — test ve seçim doğrulaması için.
-    private readonly List<string> _protectorIds = new();
+    // ===== Test / UI inspection accessors =====
 
-    // Satır başına çizilen değerler (test/UI denetim anlık görüntüsü).
-    private readonly List<float> _rowSupremacy = new();
-    private readonly List<float> _rowRisk = new();
-
-    // Animasyon
-    private ColorRect _backdrop;
-    private PanelContainer _panel;
-
-    public static bool IsOpen { get; private set; }
+    /// <summary>Panelin çalıştığı ülke (oyuncu).</summary>
+    public string PlayerId => _playerId;
 
     /// <summary>Panelin tasarım alt sınırı — 1152x648 ekrana sığma kontrolü için (test/UI denetim).</summary>
-    public Vector2 DesignedSize => _panel?.CustomMinimumSize ?? Vector2.Zero;
+    public Vector2 DesignedSize => new Vector2(940, 560);
 
     /// <summary>Bölge satırı sayısı (test/UI denetim).</summary>
-    public int ZoneRowCount => _zoneList?.GetChildCount() ?? 0;
+    public int ZoneRowCount
+    {
+        get
+        {
+            if (_zoneList == null) return 0;
+            int count = 0;
+            foreach (var child in _zoneList.GetChildren())
+                if (child != _emptyState) count++;
+            return count;
+        }
+    }
 
     /// <summary>Satırların hakimiyet barlarına yazılan değerler [0,100] (test/UI denetim).</summary>
     public IReadOnlyList<float> RowSupremacy => _rowSupremacy;
@@ -74,18 +67,9 @@ public partial class SeaZonePanel : Control
     /// <summary>Son işlem mesajı (test/UI denetim).</summary>
     public string FeedbackText => _feedbackLabel?.Text ?? "";
 
-    /// <summary>Panelin çalıştığı ülke (oyuncu).</summary>
-    public string PlayerId => _playerId;
+    /// <summary>ESC ile kapatma istendi mi? (test/UI denetim).</summary>
+    public new bool CloseRequested { get; private set; }
 
-    /// <summary>
-    /// ESC ile kapatma istendi mi? `_UnhandledInput` senkron set eder; `_ExitTree`
-    /// ise animasyon (PopOut) tamamlandıktan sonra çalıştığı için test bunu bekler.
-    /// </summary>
-    public bool CloseRequested { get; private set; }
-
-    // ===== Açılış =====
-
-    /// <summary>Paneli parent altında açılacak şekilde kurar (ModalHost Layer=100).</summary>
     public static void OpenUnder(Node parent)
     {
         if (IsOpen) return;
@@ -94,26 +78,31 @@ public partial class SeaZonePanel : Control
         var gm = GameManager.Instance;
         if (gm == null || !gm.HasPlayer) return;
 
-        GD.Print($"[SeaZonePanel] Açılıyor — ülke={gm.PlayerCountryId}, " +
-                 $"bölge={SeaZoneSystem.ZoneCount}");
+        GD.Print($"[SeaZonePanel] Açılıyor — ülke={gm.PlayerCountryId}, bölge={SeaZoneSystem.ZoneCount}");
 
         var panel = new SeaZonePanel { _playerId = gm.PlayerCountryId ?? "" };
-        ModalHost.AddUnder(parent, panel);
+        parent.AddChild(panel);
     }
 
     public override void _Ready()
     {
-        ProcessMode = ProcessModeEnum.Always; // duraklatılmış oyunda da kapatma çalışsın
-        UITheme.ApplyTheme(this);
+        // Configure GamePanel properties
+        Title = "SEA ZONES";
+        MinSize = new Vector2(940, 560);
+        MaxSize = new Vector2(1200, 800);
+        Draggable = false;
+        Closable = true;
+        Modal = true;
+        AutoCenter = true;
 
+        base._Ready();
+
+        ProcessMode = ProcessModeEnum.Always;
         BuildUi();
         RefreshAll();
-
         IsOpen = true;
 
-        UITheme.FadeIn(_backdrop, 0.1f);
-        UITheme.PopIn(_panel, 0.15f);
-        GD.Print("SeaZonePanel: hazır");
+        GD.Print("SeaZonePanel: hazır (Stage 2 UI)");
     }
 
     public override void _ExitTree()
@@ -126,52 +115,29 @@ public partial class SeaZonePanel : Control
         if (e is InputEventKey key && key.Pressed && !key.Echo && key.Keycode == Key.Escape)
         {
             GetViewport().SetInputAsHandled();
-            CloseRequested = true; // senkron gözlemlenebilir bayrak (test/UI denetim)
+            CloseRequested = true;
             Close();
         }
     }
 
-    // ===== Kurulum =====
-
     private void BuildUi()
     {
-        _backdrop = new ColorRect
-        {
-            Color = new Color(0f, 0f, 0f, 0.78f),
-            MouseFilter = Control.MouseFilterEnum.Stop // harita girdisini blokla
-        };
-        _backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        AddChild(_backdrop);
+        var content = ContentContainer;
+        content.AddThemeConstantOverride("separation", GameTheme.SpaceM);
 
-        var center = new CenterContainer();
-        center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.AddChild(center);
-
-        _panel = new PanelContainer { CustomMinimumSize = new Vector2(940, 560) };
-        center.AddChild(_panel);
-
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 18);
-        margin.AddThemeConstantOverride("margin_right", 18);
-        margin.AddThemeConstantOverride("margin_top", 14);
-        margin.AddThemeConstantOverride("margin_bottom", 14);
-        _panel.AddChild(margin);
-
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 8);
-        margin.AddChild(vbox);
-
-        // ===== BAŞLIK =====
+        // Header
         var header = new HBoxContainer();
-        vbox.AddChild(header);
+        header.AddThemeConstantOverride("separation", GameTheme.SpaceM);
+        content.AddChild(header);
 
         var title = new Label { Text = "SEA ZONES" };
-        title.AddThemeFontSizeOverride("font_size", 26);
+        title.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeXLarge);
+        title.AddThemeColorOverride("font_color", GameTheme.GoldBright);
         header.AddChild(title);
 
         _headerLabel = new Label { Text = "" };
-        _headerLabel.AddThemeFontSizeOverride("font_size", 15);
-        _headerLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        _headerLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        _headerLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         _headerLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _headerLabel.HorizontalAlignment = HorizontalAlignment.Right;
         header.AddChild(_headerLabel);
@@ -183,25 +149,25 @@ public partial class SeaZonePanel : Control
             CustomMinimumSize = new Vector2(96, 34)
         };
         closeBtn.Pressed += Close;
-        UITheme.AddHoverScale(closeBtn);
+        GameTheme.StyleButton(closeBtn);
         header.AddChild(closeBtn);
 
-        vbox.AddChild(new HSeparator());
+        content.AddChild(new HSeparator());
 
-        // ===== ÖZET =====
+        // Summary
         _summaryLabel = new Label { Text = "" };
-        _summaryLabel.AddThemeFontSizeOverride("font_size", 15);
-        _summaryLabel.AddThemeColorOverride("font_color", UITheme.Gold);
-        vbox.AddChild(_summaryLabel);
+        _summaryLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        _summaryLabel.AddThemeColorOverride("font_color", GameTheme.Gold);
+        content.AddChild(_summaryLabel);
 
-        // ===== KORUMA SATIRI =====
+        // Escort row
         var escortRow = new HBoxContainer();
-        escortRow.AddThemeConstantOverride("separation", 10);
-        vbox.AddChild(escortRow);
+        escortRow.AddThemeConstantOverride("separation", GameTheme.SpaceM);
+        content.AddChild(escortRow);
 
         var escortLbl = new Label { Text = "CONVOY ESCORT:" };
-        escortLbl.AddThemeFontSizeOverride("font_size", 14);
-        escortLbl.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        escortLbl.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        escortLbl.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         escortRow.AddChild(escortLbl);
 
         _protectorSelector = new OptionButton
@@ -219,7 +185,7 @@ public partial class SeaZonePanel : Control
             TooltipText = "Assign the selected allied fleet to your convoy routes"
         };
         _assignBtn.Pressed += OnAssignPressed;
-        UITheme.AddHoverScale(_assignBtn);
+        GameTheme.StyleButton(_assignBtn);
         escortRow.AddChild(_assignBtn);
 
         _revokeBtn = new Button
@@ -230,52 +196,55 @@ public partial class SeaZonePanel : Control
             TooltipText = "Withdraw the escort from your convoy routes"
         };
         _revokeBtn.Pressed += OnRevokePressed;
-        UITheme.AddHoverScale(_revokeBtn);
+        GameTheme.StyleButton(_revokeBtn);
         escortRow.AddChild(_revokeBtn);
 
         _feedbackLabel = new Label { Text = "" };
-        _feedbackLabel.AddThemeFontSizeOverride("font_size", 13);
+        _feedbackLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
         _feedbackLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _feedbackLabel.HorizontalAlignment = HorizontalAlignment.Right;
         escortRow.AddChild(_feedbackLabel);
 
-        vbox.AddChild(new HSeparator());
+        content.AddChild(new HSeparator());
 
-        // ===== BÖLGE LİSTESİ =====
+        // Zone list
         var listHeader = new Label
         {
             Text = "FLEET SUPREMACY BY ZONE   (50 = contested, 100 = your control, 0 = enemy control)"
         };
-        listHeader.AddThemeFontSizeOverride("font_size", 14);
-        listHeader.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        vbox.AddChild(listHeader);
+        listHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        listHeader.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+        content.AddChild(listHeader);
 
         var scroll = new ScrollContainer
         {
             CustomMinimumSize = new Vector2(0, 320),
             SizeFlagsVertical = Control.SizeFlags.ExpandFill
         };
-        vbox.AddChild(scroll);
+        content.AddChild(scroll);
 
         _zoneList = new VBoxContainer
         {
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _zoneList.AddThemeConstantOverride("separation", 4);
+        _zoneList.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
         scroll.AddChild(_zoneList);
+
+        _emptyState = EmptyState.CreateGeneric("No Sea Zones", "Sea zone data not available.");
+        _emptyState.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _emptyState.Visible = false;
+        _zoneList.AddChild(_emptyState);
 
         var note = new Label
         {
             Text = "Supremacy is derived from fleet weights (dockyards + naval stock, minus battle damage). " +
                    "Raiding loss is proportional to enemy supremacy; an allied escort lowers it, but never to zero."
         };
-        note.AddThemeFontSizeOverride("font_size", 12);
-        note.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        note.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        note.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         note.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        vbox.AddChild(note);
+        content.AddChild(note);
     }
-
-    // ===== Yenileme =====
 
     private void RefreshAll()
     {
@@ -312,10 +281,6 @@ public partial class SeaZonePanel : Control
         _summaryLabel.Text = $"AVG SUPREMACY {avg:F1}   •   CONVOY RISK {risk:F1}%   •   {escortText}";
     }
 
-    /// <summary>
-    /// Koruyucu adayları: oyuncunun komşusu olan bölgelerden en az birine
-    /// komşusu, müttefik ve filoya sahip ülkeler (kendisi hariç).
-    /// </summary>
     private void BuildProtectorOptions()
     {
         _protectorIds.Clear();
@@ -355,10 +320,9 @@ public partial class SeaZonePanel : Control
         _rowSupremacy.Clear();
         _rowRisk.Clear();
 
-        var children = new List<Node>();
-        foreach (Node child in _zoneList.GetChildren()) children.Add(child);
-        foreach (var child in children)
+        foreach (var child in _zoneList.GetChildren())
         {
+            if (child == _emptyState) continue;
             _zoneList.RemoveChild(child);
             child.QueueFree();
         }
@@ -367,8 +331,6 @@ public partial class SeaZonePanel : Control
 
         foreach (var zone in SeaZoneSystem.All.OrderBy(z => z.Name, StringComparer.Ordinal))
         {
-            // Hakimiyet ve risk yalnızca komşu bölgeler için anlamlıdır
-            // (ConvoyRaidSystem.FindRaidedZone de yalnızca komşu bölgelere bakar).
             bool adjacent = zone.AdjacentCountryIds.Any(id =>
                 string.Equals(id, _playerId, StringComparison.OrdinalIgnoreCase));
 
@@ -376,16 +338,14 @@ public partial class SeaZonePanel : Control
             float effSup = ConvoyRaidSystem.EffectiveSupremacy(zone, _playerId);
             float risk = adjacent ? ConvoyRaidSystem.ZoneRiskPercent(zone, _playerId) : 0f;
 
-            // Koruyucu bu bölgeye ulaşabiliyor mu? (komşu + müttefik)
             bool escortHere = adjacent && escortId != null &&
                               zone.AdjacentCountryIds.Any(id =>
                                   string.Equals(id, escortId, StringComparison.OrdinalIgnoreCase));
 
-            // Çizilen bar: koruma etkisini de yansıtır (UI, durumu değiştirmez).
             float shown = escortHere ? effSup : ownSup;
 
             var row = new HBoxContainer();
-            row.AddThemeConstantOverride("separation", 10);
+            row.AddThemeConstantOverride("separation", GameTheme.SpaceM);
             row.TooltipText =
                 $"{zone.Name} ({zone.Id}) — adjacent: {string.Join(", ", zone.AdjacentCountryIds)}. " +
                 (!adjacent
@@ -395,9 +355,9 @@ public partial class SeaZonePanel : Control
                         : $"Supremacy {ownSup:F1}, raid risk {risk:F0}%.");
 
             var name = new Label { Text = zone.Name };
-            name.AddThemeFontSizeOverride("font_size", 15);
+            name.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
             name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-            if (!adjacent) name.AddThemeColorOverride("font_color", UITheme.TextDisabled);
+            if (!adjacent) name.AddThemeColorOverride("font_color", GameTheme.TextDisabled);
             row.AddChild(name);
 
             string dominant = SeaZoneSystem.DominantCountry(zone);
@@ -406,8 +366,8 @@ public partial class SeaZonePanel : Control
                 Text = dominant == null ? "uncontrolled" : $"held: {dominant}",
                 CustomMinimumSize = new Vector2(120, 0)
             };
-            dominantLbl.AddThemeFontSizeOverride("font_size", 13);
-            dominantLbl.AddThemeColorOverride("font_color", UITheme.TextMuted);
+            dominantLbl.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            dominantLbl.AddThemeColorOverride("font_color", GameTheme.TextMuted);
             row.AddChild(dominantLbl);
 
             var bar = new ProgressBar
@@ -417,7 +377,9 @@ public partial class SeaZonePanel : Control
                 Value = Mathf.Clamp(shown, 0f, 100f),
                 CustomMinimumSize = new Vector2(160, 18)
             };
-            bar.AddThemeColorOverride("fill_color", SupremacyColor(shown));
+            var (bg, fill) = GameTheme.ProgressBarStyles(SupremacyColor(shown));
+            bar.AddThemeStyleboxOverride("background", bg);
+            bar.AddThemeStyleboxOverride("fill", fill);
             if (!adjacent) bar.Modulate = new Color(0.55f, 0.55f, 0.55f);
             row.AddChild(bar);
 
@@ -426,10 +388,10 @@ public partial class SeaZonePanel : Control
                 Text = adjacent ? $"{shown:F0}" : "—",
                 CustomMinimumSize = new Vector2(44, 0)
             };
-            value.AddThemeFontSizeOverride("font_size", 14);
+            value.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
             value.AddThemeColorOverride("font_color",
-                !adjacent ? UITheme.TextDisabled :
-                escortHere ? UITheme.GoldBright : UITheme.TextMain);
+                !adjacent ? GameTheme.TextDisabled :
+                escortHere ? GameTheme.GoldBright : GameTheme.TextPrimary);
             value.HorizontalAlignment = HorizontalAlignment.Right;
             row.AddChild(value);
 
@@ -438,9 +400,9 @@ public partial class SeaZonePanel : Control
                 Text = adjacent ? $"risk {risk:F0}%" : "no route",
                 CustomMinimumSize = new Vector2(74, 0)
             };
-            riskLbl.AddThemeFontSizeOverride("font_size", 13);
+            riskLbl.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
             riskLbl.AddThemeColorOverride("font_color",
-                !adjacent || risk <= 0.01f ? UITheme.TextMuted : UITheme.TextMain);
+                !adjacent || risk <= 0.01f ? GameTheme.TextMuted : GameTheme.TextPrimary);
             riskLbl.HorizontalAlignment = HorizontalAlignment.Right;
             row.AddChild(riskLbl);
 
@@ -449,19 +411,25 @@ public partial class SeaZonePanel : Control
             _rowRisk.Add(risk);
         }
 
+        if (_zoneList.GetChildCount() <= 1) // only empty state
+        {
+            _emptyState.Visible = true;
+        }
+        else
+        {
+            _emptyState.Visible = false;
+        }
+
         _revokeBtn.Disabled = escortId == null;
         RefreshSummary();
     }
 
-    /// <summary>Hakimiyet rengi: güvenli / çekişmeli / rakip ağırlıklı.</summary>
     private static Color SupremacyColor(float supremacy)
     {
-        if (supremacy >= SeaZoneSystem.SafeSupremacyThreshold) return new Color(0.30f, 0.72f, 0.40f);
-        if (supremacy >= 50f) return new Color(0.80f, 0.65f, 0.18f);
-        return new Color(0.78f, 0.32f, 0.32f);
+        if (supremacy >= SeaZoneSystem.SafeSupremacyThreshold) return GameTheme.Green;
+        if (supremacy >= 50f) return GameTheme.Yellow;
+        return GameTheme.Red;
     }
-
-    // ===== Eylemler =====
 
     private void OnAssignPressed()
     {
@@ -469,7 +437,7 @@ public partial class SeaZonePanel : Control
         if (index < 0 || index >= _protectorIds.Count)
         {
             _feedbackLabel.Text = "no allied fleet selected";
-            _feedbackLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+            _feedbackLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
             return;
         }
 
@@ -478,15 +446,14 @@ public partial class SeaZonePanel : Control
 
         if (!result.Accepted)
         {
-            // Reddedilen tahsis durumu değiştirmez; gerekçe kullanıcıya gösterilir.
             _feedbackLabel.Text = $"cannot assign: {ReasonText(result.Reason)}";
-            _feedbackLabel.AddThemeColorOverride("font_color", new Color(0.85f, 0.4f, 0.4f));
+            _feedbackLabel.AddThemeColorOverride("font_color", GameTheme.Red);
             GD.Print($"[SeaZonePanel] Koruma reddedildi — {protectorId} → {_playerId}: {result.Reason}");
             return;
         }
 
         _feedbackLabel.Text = $"escort assigned: {protectorId}";
-        _feedbackLabel.AddThemeColorOverride("font_color", UITheme.GoldBright);
+        _feedbackLabel.AddThemeColorOverride("font_color", GameTheme.GoldBright);
         BuildZoneList();
     }
 
@@ -495,28 +462,27 @@ public partial class SeaZonePanel : Control
         bool removed = ConvoyRaidSystem.RevokeEscort(_playerId);
         _feedbackLabel.Text = removed ? "escort withdrawn" : "no active escort";
         _feedbackLabel.AddThemeColorOverride("font_color",
-            removed ? UITheme.GoldBright : UITheme.TextMuted);
+            removed ? GameTheme.GoldBright : GameTheme.TextMuted);
         BuildZoneList();
     }
 
     private static string ReasonText(ConvoyRaidSystem.EscortReason reason)
     {
-        switch (reason)
+        return reason switch
         {
-            case ConvoyRaidSystem.EscortReason.Ok: return "ready";
-            case ConvoyRaidSystem.EscortReason.SelfProtection: return "a country cannot escort its own convoys";
-            case ConvoyRaidSystem.EscortReason.UnknownCountry: return "country not found";
-            case ConvoyRaidSystem.EscortReason.NotAllies: return "not an allied fleet";
-            case ConvoyRaidSystem.EscortReason.ProtectorHasNoFleet: return "that ally has no fleet";
-            case ConvoyRaidSystem.EscortReason.Annexed: return "the country no longer exists";
-            default: return reason.ToString();
-        }
+            ConvoyRaidSystem.EscortReason.Ok => "ready",
+            ConvoyRaidSystem.EscortReason.SelfProtection => "a country cannot escort its own convoys",
+            ConvoyRaidSystem.EscortReason.UnknownCountry => "country not found",
+            ConvoyRaidSystem.EscortReason.NotAllies => "not an allied fleet",
+            ConvoyRaidSystem.EscortReason.ProtectorHasNoFleet => "that ally has no fleet",
+            ConvoyRaidSystem.EscortReason.Annexed => "the country no longer exists",
+            _ => reason.ToString()
+        };
     }
 
-    private void Close()
+    public override void Close()
     {
         GD.Print("SeaZonePanel: kapatılıyor");
-        UITheme.FadeOut(_backdrop, 0.08f);
-        UITheme.PopOut(_panel, 0.1f, () => QueueFree());
+        base.Close();
     }
 }

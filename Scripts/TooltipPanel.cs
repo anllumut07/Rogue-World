@@ -1,7 +1,11 @@
 using Godot;
 
-// M13.2: Detaylı tooltip paneli — imlecin yanında görünen, koyu temalı açıklama paneli.
-// Tek bir örnek TooltipSystem tarafından yönetilir; tüm UI elemanlarında ortak kullanılır.
+/// <summary>
+/// Tooltip panel (M13.2 + Stage 2 UI Upgrade).
+/// - Managed by TooltipSystem; appears near cursor after short delay.
+/// - Uses GameTheme.TooltipStyle() for consistent dark theme with gold border.
+/// - Lightweight Control (not modal), MouseFilter.Ignore so it doesn't block input.
+/// </summary>
 public partial class TooltipPanel : Control
 {
     private Label _label;
@@ -13,24 +17,17 @@ public partial class TooltipPanel : Control
     {
         Visible = false;
         MouseFilter = Control.MouseFilterEnum.Ignore; // fare olaylarını geçirir (engellemez)
-        UITheme.ApplyTheme(this);
 
-        var panelStyle = new StyleBoxFlat
-        {
-            BgColor = UITheme.PanelBg,
-            BorderColor = UITheme.BorderDark,
-        };
-        panelStyle.SetBorderWidthAll(1);
-        panelStyle.SetCornerRadiusAll(5);
-        AddThemeStyleboxOverride("panel", panelStyle);
+        // Apply GameTheme tooltip style
+        AddThemeStyleboxOverride("panel", GameTheme.TooltipStyle());
 
         _label = new Label
         {
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin,
         };
-        _label.AddThemeFontSizeOverride("font_size", 13);
-        _label.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        _label.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        _label.AddThemeColorOverride("font_color", GameTheme.TextPrimary);
         AddChild(_label);
     }
 

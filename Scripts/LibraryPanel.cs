@@ -4,49 +4,82 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Kütüphane / Ansiklopedi paneli (M15.2 + genişletme).
-/// - MainMenu ve oyun içi HUD'den açılır (OpenUnder).
-/// - Sol: isim arama kutusu + kaydırılabilir ülke listesi (CountryDatabase, ~50 ülke).
-/// - Sağ: seçili ülkenin sayfası — ad, başkent, bölge, resmî dil(ler), kısa tanıtım
-///   ve CountryDatabase'den canlı sayısal veriler (nüfus, GSYİH, fabrikalar, kaynaklar, ordu).
-/// - Metni olmayan ülke için otomatik genel sayfa ("Detaylı bilgi eklenecek").
-/// - RichTextLabel KULLANILMAZ: ScrollContainer içinde min boyutu 0 olur (görünmez içerik bug'ı).
-///   Label'lar içerikten minimum boyut alır → kaydırma doğru çalışır.
-/// - 1152x648'e sığar (900x560), backdrop MouseFilter.Stop, ESC/CLOSE kapatır.
+/// Library / Encyclopedia Panel (M15.2 + Stage 2 UI Upgrade).
+/// - MainMenu and in-game HUD accessible (OpenUnder).
+/// - Left: search box + scrollable country list (CountryDatabase, ~50 countries).
+/// - Right: selected country page — name, capital, region, official language(s), short intro
+///   and live numeric data from CountryDatabase (population, GDP, factories, resources, army).
+/// - Countries without text get automatic generic page ("Detailed info will be added").
+/// - Uses GameTheme + reusable UI components (GamePanel, Chip, EmptyState).
+/// - 1152x648 fit (900x560), backdrop blocks map input, ESC/CLOSE closes.
+/// Test properties preserved for --library-test compatibility.
 /// </summary>
-public partial class LibraryPanel : CanvasLayer
+public partial class LibraryPanel : GamePanel
 {
     public static bool IsOpen { get; private set; }
 
-    private ColorRect _backdrop;
-    private PanelContainer _panel;
     private LineEdit _searchEdit;
     private VBoxContainer _countryList;
-    private VBoxContainer _pageBox;      // sağ sayfa kökü (ScrollContainer içinde)
-    private Label _annexLabel;           // ilhak uyarısı (gizli)
+    private VBoxContainer _pageBox;
+    private Label _annexLabel;
     private Label _pageTitle;
-    private Label _pageInfo;             // başkent / bölge / dil satırları
-    private Label _pageIntro;            // tanıtım metni
-    private Label _pageStats;            // canlı sayısal veriler
-    private Button _closeBtn;
+    private Label _pageInfo;
+    private Label _pageIntro;
+    private Label _pageStats;
 
     private string _selectedCountryId = "";
     private List<CountryData> _allCountries = new();
 
+    // ===== Test / UI inspection accessors =====
+
+    /// <summary>Panel tasarım boyutu — 1152x648 ekrana sığma kontrolü için.</summary>
+    public Vector2 DesignedSize => new Vector2(900, 560);
+
+    /// <summary>Listelenen ülke sayısı (filtre uygulanmış).</summary>
+    public int CountryListCount => _countryList.GetChildren().OfType<Button>().Count();
+
+    /// <summary>Filtresiz toplam ülke sayısı (CountryDatabase detaylı kayıtları).</summary>
+    public int TotalCountries => _allCountries.Count;
+
+    /// <summary>Şu an seçili ülke ID'si.</summary>
+    public string SelectedCountryId => _selectedCountryId;
+
+    /// <summary>Sayfa başlığı metni.</summary>
+    public string PageTitleText => _pageTitle?.Text ?? "";
+
+    /// <summary>Sayfa bilgi metni (başkent/bölge/dil).</summary>
+    public string PageInfoText => _pageInfo?.Text ?? "";
+
+    /// <summary>Tanıtım metni.</summary>
+    public string PageIntroText => _pageIntro?.Text ?? "";
+
+    /// <summary>Canlı istatistik metni.</summary>
+    public string PageStatsText => _pageStats?.Text ?? "";
+
+    /// <summary>ESC ile kapatma istendi mi?</summary>
+    public new bool CloseRequested { get; private set; }
+
     public override void _Ready()
     {
-        ProcessMode = ProcessModeEnum.Always;
-        Layer = 100;
+        // Configure GamePanel properties
+        Title = "LIBRARY";
+        MinSize = new Vector2(900, 560);
+        MaxSize = new Vector2(1200, 800);
+        Draggable = false;
+        Closable = true;
+        Modal = true;
+        AutoCenter = true;
 
+        base._Ready();
+
+        ProcessMode = ProcessModeEnum.Always;
         BuildUi();
 
         IsOpen = true;
 
-        // Açılış animasyonu: backdrop fade + panel pop-in
-        UITheme.FadeIn(_backdrop, 0.1f);
-        UITheme.PopIn(_panel, 0.15f);
-
         RefreshCountryList("");
+
+        GD.Print("LibraryPanel: hazır (Stage 2 UI)");
     }
 
     public override void _ExitTree()
@@ -54,18 +87,16 @@ public partial class LibraryPanel : CanvasLayer
         IsOpen = false;
     }
 
-    // ESC: paneli kapat. PauseMenu Layer=100 önce alır ama IsOpen true iken ESC'yi bize bırakır.
     public override void _UnhandledInput(InputEvent e)
     {
-        if (!Visible) return;
         if (e is InputEventKey key && key.Pressed && !key.Echo && key.Keycode == Key.Escape)
         {
             GetViewport().SetInputAsHandled();
-            ClosePanel();
+            CloseRequested = true;
+            Close();
         }
     }
 
-    // Overlay olarak açar (SettingsPanel.OpenUnder ile aynı desen)
     public static LibraryPanel OpenUnder(Node parent)
     {
         if (IsOpen) return null;
@@ -73,12 +104,10 @@ public partial class LibraryPanel : CanvasLayer
         GD.Print($"[LibraryPanel] OpenUnder — parent={parent?.GetType().Name ?? "null"}");
 
         var panel = new LibraryPanel();
-        ModalHost.AddUnder(parent, panel);
+        parent.AddChild(panel);
         return panel;
     }
 
-    // Headless test kancası (--library-test): listedeki N. butona tıklama simülasyonu.
-    // Normal oyunda asla çağrılmaz.
     public void SimulateClickForTest(int buttonIndex)
     {
         var buttons = _countryList.GetChildren().OfType<Button>().ToList();
@@ -95,56 +124,39 @@ public partial class LibraryPanel : CanvasLayer
 
     private void BuildUi()
     {
-        // Backdrop: ekranı kaplar, fare girdilerini yakalar (harita girdisi bloklansın)
-        _backdrop = new ColorRect();
-        _backdrop.Color = new Color(0f, 0f, 0f, 0.75f);
-        _backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.MouseFilter = Control.MouseFilterEnum.Stop;
-        AddChild(_backdrop);
+        var content = ContentContainer;
+        content.AddThemeConstantOverride("separation", GameTheme.SpaceM);
 
-        UITheme.ApplyTheme(_backdrop);
+        // Header
+        var header = new HBoxContainer();
+        content.AddChild(header);
 
-        // CenterContainer -> Panel
-        var center = new CenterContainer();
-        center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.AddChild(center);
+        var title = new Label { Text = "LIBRARY" };
+        title.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeXLarge);
+        title.AddThemeColorOverride("font_color", GameTheme.GoldBright);
+        header.AddChild(title);
 
-        _panel = new PanelContainer();
-        _panel.CustomMinimumSize = new Vector2(900, 560); // 1152x648'e sığar
-        center.AddChild(_panel);
+        content.AddChild(new HSeparator());
 
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 30);
-        margin.AddThemeConstantOverride("margin_right", 30);
-        margin.AddThemeConstantOverride("margin_top", 25);
-        margin.AddThemeConstantOverride("margin_bottom", 25);
-        _panel.AddChild(margin);
+        // Two columns
+        var columns = new HBoxContainer();
+        columns.AddThemeConstantOverride("separation", GameTheme.SpaceL);
+        columns.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        content.AddChild(columns);
 
-        // Dikey: içerik satırı + CLOSE satırı
-        var root = new VBoxContainer();
-        root.AddThemeConstantOverride("separation", 12);
-        margin.AddChild(root);
+        BuildLeftColumn(columns);
+        BuildRightColumn(columns);
+    }
 
-        var hbox = new HBoxContainer();
-        hbox.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        hbox.AddThemeConstantOverride("separation", 20);
-        root.AddChild(hbox);
-
-        // ===== SOL SÜTUN: arama + ülke listesi =====
+    private void BuildLeftColumn(HBoxContainer parent)
+    {
         var leftBox = new VBoxContainer();
         leftBox.CustomMinimumSize = new Vector2(280, 0);
         leftBox.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        leftBox.AddThemeConstantOverride("separation", 8);
-        hbox.AddChild(leftBox);
+        leftBox.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        parent.AddChild(leftBox);
 
-        // Panel başlığı (sol üst)
-        var titleLabel = new Label();
-        titleLabel.Text = "LIBRARY";
-        titleLabel.HorizontalAlignment = HorizontalAlignment.Center;
-        titleLabel.AddThemeFontSizeOverride("font_size", 28);
-        leftBox.AddChild(titleLabel);
-
-        // İsim arama kutusu
+        // Search box
         _searchEdit = new LineEdit();
         _searchEdit.PlaceholderText = "Search country...";
         _searchEdit.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
@@ -158,15 +170,17 @@ public partial class LibraryPanel : CanvasLayer
 
         _countryList = new VBoxContainer();
         _countryList.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _countryList.AddThemeConstantOverride("separation", 6);
+        _countryList.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
         leftScroll.AddChild(_countryList);
+    }
 
-        // ===== SAĞ SÜTUN: kaydırılabilir ülke sayfası =====
+    private void BuildRightColumn(HBoxContainer parent)
+    {
         var rightScroll = new ScrollContainer();
         rightScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         rightScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
         rightScroll.MouseFilter = Control.MouseFilterEnum.Stop;
-        hbox.AddChild(rightScroll);
+        parent.AddChild(rightScroll);
 
         var rightMargin = new MarginContainer();
         rightMargin.AddThemeConstantOverride("margin_left", 10);
@@ -177,86 +191,73 @@ public partial class LibraryPanel : CanvasLayer
 
         _pageBox = new VBoxContainer();
         _pageBox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _pageBox.AddThemeConstantOverride("separation", 10);
+        _pageBox.AddThemeConstantOverride("separation", GameTheme.SpaceM);
         rightMargin.AddChild(_pageBox);
 
-        // İlhak uyarısı (yalnızca ilhak edilmiş ülkelerde görünür)
+        // Annex warning (only visible for annexed countries)
         _annexLabel = new Label();
-        _annexLabel.AddThemeFontSizeOverride("font_size", 15);
+        _annexLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
         _annexLabel.AddThemeColorOverride("font_color", new Color(0.95f, 0.35f, 0.3f));
         _annexLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _annexLabel.Hide();
         _pageBox.AddChild(_annexLabel);
 
-        // Ülke adı (sayfa başlığı)
+        // Country name (page title)
         _pageTitle = new Label();
         _pageTitle.HorizontalAlignment = HorizontalAlignment.Center;
-        _pageTitle.AddThemeFontSizeOverride("font_size", 30);
-        _pageTitle.AddThemeColorOverride("font_color", UITheme.GoldBright);
+        _pageTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeXLarge);
+        _pageTitle.AddThemeColorOverride("font_color", GameTheme.GoldBright);
         _pageTitle.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _pageBox.AddChild(_pageTitle);
 
         var separator = new HSeparator();
         _pageBox.AddChild(separator);
 
-        // Başkent / bölge / dil satırları
+        // Capital / region / languages
         _pageInfo = new Label();
         _pageInfo.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _pageInfo.AddThemeFontSizeOverride("font_size", 17);
-        _pageInfo.AddThemeColorOverride("font_color", UITheme.TextMain);
+        _pageInfo.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        _pageInfo.AddThemeColorOverride("font_color", GameTheme.TextPrimary);
         _pageInfo.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _pageBox.AddChild(_pageInfo);
 
-        // Tanıtım metni
+        // Intro text
         _pageIntro = new Label();
         _pageIntro.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _pageIntro.AddThemeFontSizeOverride("font_size", 16);
-        _pageIntro.AddThemeColorOverride("font_color", UITheme.TextMain);
+        _pageIntro.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        _pageIntro.AddThemeColorOverride("font_color", GameTheme.TextPrimary);
         _pageIntro.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _pageBox.AddChild(_pageIntro);
 
         var separator2 = new HSeparator();
         _pageBox.AddChild(separator2);
 
-        // Canlı veri başlığı
+        // Live data header
         var statsHeader = new Label();
         statsHeader.Text = "COUNTRY DATA (LIVE)";
-        statsHeader.AddThemeFontSizeOverride("font_size", 13);
-        statsHeader.AddThemeColorOverride("font_color", UITheme.Gold);
+        statsHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        statsHeader.AddThemeColorOverride("font_color", GameTheme.Gold);
         _pageBox.AddChild(statsHeader);
 
-        // Canlı sayısal veriler (seçim anında CountryDatabase'den okunur)
+        // Live numeric data
         _pageStats = new Label();
         _pageStats.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _pageStats.AddThemeFontSizeOverride("font_size", 15);
-        _pageStats.AddThemeColorOverride("font_color", UITheme.TextMain);
+        _pageStats.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        _pageStats.AddThemeColorOverride("font_color", GameTheme.TextPrimary);
         _pageStats.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         _pageBox.AddChild(_pageStats);
-
-        // ===== ALT SATIR: CLOSE =====
-        var closeRow = new HBoxContainer();
-        root.AddChild(closeRow);
-
-        _closeBtn = new Button { Text = "CLOSE", FocusMode = Control.FocusModeEnum.None };
-        _closeBtn.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
-        _closeBtn.Pressed += ClosePanel;
-        closeRow.AddChild(_closeBtn);
-        UITheme.AddHoverScale(_closeBtn);
     }
 
-    // Arama kutusu değişti: listeyi filtreleyerek yeniden kur
     private void OnSearchChanged(string filter)
     {
         RefreshCountryList(filter);
     }
 
-    // Ülke listesini kur (arama filtresiyle). Kaynak: CountryDatabase ayrıntılı ülkeleri.
     private void RefreshCountryList(string filter)
     {
         foreach (var child in _countryList.GetChildren())
             child.QueueFree();
 
-        // Ayrıntılı verili ülkeler, ada göre sıralı (fallback ülkeler listede yok)
         _allCountries = CountryDatabase.All()
             .Where(c => c.IsDetailed)
             .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
@@ -275,36 +276,37 @@ public partial class LibraryPanel : CanvasLayer
             var btn = new Button { FocusMode = Control.FocusModeEnum.None };
             btn.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
             btn.Text = $"{c.Name} [{c.Id}]";
-            btn.Alignment = HorizontalAlignment.Left; // Buton metni sola (Button API)
-            btn.AddThemeFontSizeOverride("font_size", 15);
+            btn.Alignment = HorizontalAlignment.Left;
+            btn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
             string id = c.Id;
             btn.Pressed += () => SelectCountry(id);
-            // Seçili ülkeyi vurgula
+
+            // Highlight selected country
             if (id == _selectedCountryId)
-                btn.SelfModulate = UITheme.Gold;
+                btn.SelfModulate = GameTheme.Gold;
+
+            GameTheme.AddHoverScale(btn);
             _countryList.AddChild(btn);
         }
 
-        // Sayfa sayısı logu: metinli (JSON'dan) + otomatik (DB verisiyle)
         int withText = _allCountries.Count(c => LibrarySystem.GetEntry(c.Id) != null);
         int autoPages = _allCountries.Count - withText;
         GD.Print($"[LibraryPanel] {_allCountries.Count} ülke sayfası hazır ({withText} metinli, {autoPages} otomatik) — filtre: '{filter}' → {visible.Count} görünür");
 
-        // İlk açılışta ilk ülkeyi otomatik seç (seçim korunursa dokunma)
+        // Auto-select first country on initial open
         if (string.IsNullOrEmpty(_selectedCountryId) && _allCountries.Count > 0)
             SelectCountry(_allCountries[0].Id);
     }
 
-    // Seçili ülkenin sayfasını kur: Library metni + CountryDatabase canlı verisi
     private void SelectCountry(string countryId)
     {
         _selectedCountryId = countryId;
 
-        // Buton vurgulaması
+        // Highlight selected button
         foreach (var child in _countryList.GetChildren())
         {
             if (child is Button btn)
-                btn.SelfModulate = btn.Text.Contains($"[{countryId}]") ? UITheme.Gold : Colors.White;
+                btn.SelfModulate = btn.Text.Contains($"[{countryId}]") ? GameTheme.Gold : Colors.White;
         }
 
         var data = CountryDatabase.Get(countryId);
@@ -316,23 +318,24 @@ public partial class LibraryPanel : CanvasLayer
 
         var entry = LibrarySystem.GetEntry(countryId);
 
-        // === Sayfa alanları: JSON metni varsa ondan, yoksa DB/otomatik değerler ===
         string name = !string.IsNullOrEmpty(entry?.Name) ? entry.Name : data.Name;
         string capital = !string.IsNullOrEmpty(entry?.Capital) ? entry.Capital
                          : !string.IsNullOrEmpty(data.Capital) ? data.Capital : "—";
         string region = !string.IsNullOrEmpty(entry?.Region) ? entry.Region : "—";
         string languages = !string.IsNullOrEmpty(entry?.Languages) ? entry.Languages : "—";
         string intro = !string.IsNullOrEmpty(entry?.Intro) ? entry.Intro
-                       : "Detaylı bilgi eklenecek."; // otomatik genel sayfa
+                       : "Detailed info will be added.";
 
-        // Bayrak kutusu (sayfa başlığının üstüne)
-        var flagBox = new FlagBox { CustomMinimumSize = new Vector2(80, 53) }; // ~3:2 aspect
+        // Flag box at top of page
+        var flagBox = new FlagBox { CustomMinimumSize = new Vector2(80, 53) };
         _pageBox.AddChild(flagBox);
         flagBox.SetCountry(countryId);
+
+        _pageTitle.Text = name;
         _pageInfo.Text = $"Capital: {capital}\nRegion: {region}\nLanguages: {languages}";
         _pageIntro.Text = intro;
 
-        // İlhak uyarısı
+        // Annex warning
         if (data.IsAnnexed)
         {
             var owner = CountryDatabase.Get(data.OwnerId);
@@ -344,13 +347,11 @@ public partial class LibraryPanel : CanvasLayer
             _annexLabel.Hide();
         }
 
-        // === Canlı veriler: seçim anında CountryDatabase'den ===
         _pageStats.Text = BuildStats(data);
 
         GD.Print($"[LibraryPanel] Sayfa gösteriliyor: {name} [{data.Id}] — intro: {(entry != null ? "metinli" : "otomatik")}");
     }
 
-    // Canlı sayısal veri metni (nüfus, GSYİH, fabrikalar, kaynaklar, ordu)
     private string BuildStats(CountryData d)
     {
         var sb = new System.Text.StringBuilder();
@@ -363,15 +364,9 @@ public partial class LibraryPanel : CanvasLayer
         return sb.ToString();
     }
 
-    private void ClosePanel()
+    public override void Close()
     {
-        UITheme.FadeOut(_backdrop, 0.08f);
-        UITheme.PopOut(_panel, 0.1f, () =>
-        {
-            _backdrop.Hide();
-            _panel.Hide();
-            IsOpen = false;
-            QueueFree();
-        });
+        GD.Print("LibraryPanel: kapatılıyor");
+        base.Close();
     }
 }

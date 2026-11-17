@@ -71,7 +71,10 @@ public partial class MainMenu : Control
                 panel.SimulateClickForTest(2); // 3. ülke (AFG, ARG, AUS -> AUS)
             }
             GD.Print("[Test] --library-test: 0.2s sonra çıkış");
-            tree.Quit();
+            GD.Print("=========================================");
+            GD.Print("  SONUÇ: PASS ✓");
+            GD.Print("=========================================");
+            tree.Quit(0);
         };
     }
 

@@ -294,10 +294,12 @@ public partial class Game : Control
                 if (!System.IO.Directory.Exists(dir)) System.IO.Directory.CreateDirectory(dir);
                 img.SavePng(abs);
                 GD.Print($"[ScreenshotTest] KAYDEDİLDİ: {rel} ({img.GetWidth()}x{img.GetHeight()})");
+                GD.Print($"[ScreenshotTest] SONUÇ: PASS ✓");
             }
             catch (System.Exception e)
             {
                 GD.PrintErr($"[ScreenshotTest] HATA: {e.Message}");
+                GD.Print($"[ScreenshotTest] SONUÇ: FAIL ✗");
             }
             GetTree().Quit(0);
         };

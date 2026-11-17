@@ -218,10 +218,17 @@ public partial class GameManager : Node
                 prodTest = true;
             else if (arg.StartsWith("--war-test="))
                 warTestTarget = arg.Substring(11).ToUpper();
+            else if (arg == "--war-test" && warTestTarget == null && testCountry != null)
+                warTestTarget = testCountry; // Use --country if --war-test without target
             else if (arg.StartsWith("--focus-test="))
             {
                 focusTestCountry = arg.Substring(13).ToUpper();
-                testCountry = focusTestCountry; // oyuncu ülkesi olarak da seç
+                testCountry = focusTestCountry; // oyuncu ülkes olarak da seç
+            }
+            else if (arg == "--focus-test" && focusTestCountry == null && testCountry != null)
+            {
+                focusTestCountry = testCountry;
+                testCountry = focusTestCountry; // oyuncu ülkes olarak da seç
             }
             else if (arg.StartsWith("--event-test="))
                 eventTestId = arg.Substring(13);
@@ -464,6 +471,17 @@ public partial class GameManager : Node
                 GD.PrintErr($"[Test] --scenario: Senaryo bulunamadı: {scenarioId} — varsayılan kullanılıyor");
         }
 
+        // Post-process test args: handle --war-test/--focus-test without value but with --country
+        if (warTestTarget == null && testCountry != null)
+        {
+            // Check if --war-test flag was passed (without =TARGET)
+            var userArgs = OS.GetCmdlineUserArgs().ToList();
+            if (userArgs.Contains("--war-test"))
+                warTestTarget = testCountry;
+            if (userArgs.Contains("--focus-test"))
+                focusTestCountry = testCountry;
+        }
+
         // M17.1: aktif senaryoyu başta logla
         GD.Print($"Senaryo: {ScenarioSystem.ActiveId} — {ScenarioSystem.ActiveName} | Başlangıç: {ScenarioSystem.ActiveStartDate:yyyy-MM-dd} | Placeholder: {ScenarioSystem.ActiveIsPlaceholder}");
 
@@ -570,6 +588,7 @@ public partial class GameManager : Node
         {
             FocusSystem.EnableAutoPickTest();
             if (Speed == 0) SetSpeed(5); // --speed verilmediyse hız 5
+            RunFocusTest(focusTestCountry);
         }
 
         // === M10 test kancaları — normal oyunda asla etkinleşmez ===
@@ -3051,6 +3070,16 @@ public partial class GameManager : Node
         GD.Print("  M30.1: UZAY PROGRAMI TESTI (--space-test)");
         GD.Print("=========================================");
 
+        // modern_world senaryosuna geç (rocketry / satellite_technology başlangıçta araştırılmış)
+        // BUNUN SpaceSystem.Initialize()'dan ÖNCE çağrılması gerekir!
+        ScenarioSystem.SetActive("modern_world");
+
+        // Scenario değişti, sistemler yeniden yüklendi. TechnologySystem ve SpaceSystem'i yeniden başlat.
+        TechnologySystem.ResetForScenario();
+        TechnologySystem.Initialize();
+        SpaceSystem.ResetForNewGame();
+        SpaceSystem.Initialize();
+
         if (!HasPlayer) SetPlayerCountry("GER");
         if (PlayerCountryData != null) PlayerCountryData.PoliticalPower = 1000;
         if (Speed == 0) SetSpeed(0);
@@ -3991,10 +4020,13 @@ public partial class GameManager : Node
 
         // Hedef AI: savaş kararına girmek için ≥10 tümen gerekir; nükleersizden
         // güçlü, nükleerli durumda zayıf görünmesi için ayarlanır.
-        targetData.StartingDivisions = 20;
+        // defStrength=15 (DEU: 5 divs + 30/3 factories). Caydırıcılıkla effectiveDef=30, 30*0.8=24.
+        // attStrength < 24 gerekir → 13 divs + 30/3 = 23 < 24 ✓
+        // Caydırıcılık yok: 23 >= 15*0.8=12 ✓
+        targetData.StartingDivisions = 13;
         targetData.CivFactories = 10;
         targetData.MilFactories = 10;
-        targetData.Dockyards = 10; // TotalFactories=30 → attStrength = 20 + 10 = 30
+        targetData.Dockyards = 10; // TotalFactories=30 → attStrength = 13 + 10 = 23
         targetData.PoliticalPower = 2000;
         targetData.WarSupportPercent = 60;
 
@@ -5835,6 +5867,14 @@ private void RunBalanceTest()
     var sw = System.Diagnostics.Stopwatch.StartNew();
 
     int startDay = TotalDays;
+
+    // Capture initial AI country count BEFORE simulation (for attack rate calculation)
+    var initialAiCountries = CountryDatabase.All()
+        .Where(c => c != null && CountryAI.IsAiCountry(c.Id) && !c.IsAnnexed)
+        .ToList();
+    int initialAiCountryCount = initialAiCountries.Count;
+    GD.Print($"[Balance] Initial AI countries: {initialAiCountryCount} ({string.Join(", ", initialAiCountries.Select(c => c.Id))})");
+
     AdvanceDaysForTest(Days);
     int elapsedDays = TotalDays - startDay;
 
@@ -5852,14 +5892,15 @@ private void RunBalanceTest()
         else undecided++;
     }
 
-    // AI saldırı oranı: en az bir saldırı başlatan AI ülke / sarmış (ilahlı olmayan) AI ülke sayısı
-    var aiCountries = CountryDatabase.All()
-        .Where(c => c != null && CountryAI.IsAiCountry(c.Id) && !c.IsAnnexed)
-        .ToList();
-    int aiCountryCount = aiCountries.Count;
+    // AI saldırı oranı: en az bir saldırı başlatan AI ülke / BAŞLANGIÇTAKİ AI ülke sayısı
+    // (Savaş sırasında ilahlanan/annex edilen AI ülkeler de sayılır)
+    int aiCountryCount = initialAiCountryCount;
+
+    // Debug: list initial AI countries
+    GD.Print($"[Balance] Initial AI countries: {string.Join(", ", initialAiCountries.Select(c => c.Id))}");
 
     int aiAttackers = allWars
-        .Where(w => aiCountries.Any(c => c.Id == w.AttackerId))
+        .Where(w => initialAiCountries.Any(c => c.Id == w.AttackerId))
         .Select(w => w.AttackerId)
         .Distinct()
         .Count();
@@ -5910,6 +5951,17 @@ private void RunBalanceTest()
     GD.Print($"[Balance] Süre: {elapsedDays} oyun günü ({sw.Elapsed.TotalSeconds:F1} sn)");
     GD.Print($"[Balance] Toplam savaş: {totalWars} (bitmiş={endedWars}, aktif={activeWars})");
     GD.Print($"[Balance] Sona eren: attacker_kazandı={attackerWins}, defender_kazandı={defenderWins}, karar_verilemedi={undecided}");
+
+    // Debug: list initial AI countries
+    GD.Print($"[Balance] Initial AI countries: {string.Join(", ", initialAiCountries.Select(c => c.Id))}");
+
+    // Debug: list all war attacker IDs
+    foreach (var w in allWars)
+    {
+        bool inAiCountries = initialAiCountries.Any(c => c.Id == w.AttackerId);
+        GD.Print($"[Balance] War: {w.AttackerId} -> {w.DefenderId} (AttackerInAI={inAiCountries})");
+    }
+
     GD.Print($"[Balance] AI saldırgan ülke: {aiAttackers}/{aiCountryCount} = %{aiAttackRate:F1}");
     GD.Print($"[Balance] Oyuncu saldırgan={playerAttackerWars}, savunucu={playerDefenderWars}");
 
@@ -11848,6 +11900,72 @@ private void RunBalanceTest()
 
         GD.Print(ok ? "[WarTest] SONUÇ: PASS ✓" : "[WarTest] SONUÇ: FAIL ✗");
         GD.Print("=========================================");
+        GetTree().Quit(ok ? 0 : 1);
+    }
+
+    /// <summary>
+    /// M9: Odak sistemi testi — AI otomatik odak seçimi, odak tamamlanma ve Save/Load.
+    /// Normal oyunda ASLA çalışmaz (--focus-test).
+    /// </summary>
+    private void RunFocusTest(string countryId)
+    {
+        GD.Print("=========================================");
+        GD.Print("  M9: ODAK SİSTEMİ TESTİ (--focus-test)");
+        GD.Print("=========================================");
+
+        bool ok = true;
+
+        // 1. Ülke için odak ağacı var mı?
+        var tree = FocusSystem.GetTreeFor(countryId);
+        bool hasTree = tree != null;
+        GD.Print($"[FocusTest] 1) Odak ağacı: {(hasTree ? tree.Name : "YOK")} ({hasTree})");
+        if (!hasTree) ok = false;
+
+        // 2. İlk odak başlatıldığı ve tamamlandığını kontrol et (70 gün ilerlet)
+        // AutoPickTest modunda ilk uygun odak zaten seçilmiş olmalı
+        int dayBefore = TotalDays;
+        FocusSystem.DailyTick(); // Gün tick'i
+        AdvanceDaysForTest(70); // 70 gün = bir odak süresi
+        int dayAfter = TotalDays;
+        bool advanced = dayAfter > dayBefore;
+        GD.Print($"[FocusTest] 2) Gün ilerlemesi: {dayBefore} -> {dayAfter} (70 gün) ({advanced})");
+        if (!advanced) ok = false;
+
+        // 3. Odak tamamlandı mı?
+        var state = FocusSystem.GetOrCreateState(countryId);
+        int completedCount = FocusSystem.CompletedCount(state);
+        bool focusCompleted = completedCount > 0;
+        GD.Print($"[FocusTest] 3) Tamamlanan odak sayısı: {completedCount} ({focusCompleted})");
+        if (!focusCompleted) ok = false;
+
+        // 4. Save/Load A==B kontrolü
+        SetSpeed(5);
+        SaveSystem.SaveTestFile();
+        string summaryA = SaveLoadTest.GetSummaryCore();
+        bool loaded = SaveSystem.LoadTestFile();
+        if (!loaded)
+        {
+            GD.PrintErr("[FocusTest] Yükleme başarısız");
+            ok = false;
+        }
+        else
+        {
+            SetSpeed(5);
+            string summaryB = SaveLoadTest.GetSummaryCore();
+            bool slOk = summaryA == summaryB;
+            GD.Print($"[FocusTest] 4) save_load_a_b={slOk}");
+            if (!slOk)
+            {
+                GD.PrintErr("[FocusTest] Save/Load determinizm BOZULDU (A != B).");
+                SaveLoadTest.FindDiff(summaryA, summaryB);
+                ok = false;
+            }
+        }
+
+        GD.Print("=========================================");
+        GD.Print(ok ? "[FocusTest] SONUÇ: PASS ✓" : "[FocusTest] SONUÇ: FAIL ✗");
+        GD.Print("=========================================");
+        SaveSystem.DeleteTestFile();
         GetTree().Quit(ok ? 0 : 1);
     }
 

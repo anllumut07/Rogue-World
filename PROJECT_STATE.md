@@ -291,5 +291,23 @@ C:\Proje\Rogue-World\
 ---
 
 **Current Branch:** `gece-calisma`  
-**Last Commit:** Stage 2 UI Migration — All 18 panels complete (Diplomacy, Climate, Migration, Advisor, CountryInfo, Statistics, Cabinet, Election, Formable, Releasable, SeaZone, Agenda, MonthlyReport, CultureLegend, Library, MiniMap, Tooltip, Tutorial)  
-**Last Test Run:** All Stage 2 panel tests PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, all regression tests PASS (scenario-test PASS)
+**Last Commit:** feat: Fix failing tests for v1.0-beta — balance, AI nuclear, war, focus, screenshot tests all PASS  
+**Last Test Run:** All tests PASS ✓:
+- balance-test (AI attack rate 14.3% in 5-30% target)
+- space-test
+- ai-nuclear-test
+- settings-test
+- war-test
+- focus-test
+- screenshot-test
+- espionage-test
+- scenario-test
+- soak-test
+- save-load-test (both scenarios A==B)
+- civil-war-test
+- recognition-test
+- advisor-test
+- decisions-test
+- migration-test
+- occupation-test
+Ready for performance profiling and v1.0-beta tagging.

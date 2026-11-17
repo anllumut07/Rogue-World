@@ -131,6 +131,10 @@ public partial class MiniMapPanel : CanvasLayer
         var wm = WorldMap.Instance;
         if (wm == null) return;
 
+        // Check if viewport is ready (avoid issues in screenshot test/windowed mode)
+        var vp = c.GetViewportRect().Size;
+        if (vp.X <= 0f || vp.Y <= 0f) return;
+
         float sx = _mapRect.Size.X / wm.MapSize.X;
         float sy = _mapRect.Size.Y / wm.MapSize.Y;
 
@@ -175,7 +179,6 @@ public partial class MiniMapPanel : CanvasLayer
 
         // Kamera dikdörtgeni — minimap SINIRLARI İÇİNDE kıpraştırılır.
         float z = wm._camera.Zoom.X;
-        var vp = c.GetViewportRect().Size;
         if (vp.X <= 0f || vp.Y <= 0f || z <= 0f) return;
 
         float viewW = vp.X / z;

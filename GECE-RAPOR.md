@@ -3840,3 +3840,48 @@ toplam hatası bu değerin çok altında, gerçek "toplam 1 değil" durumlarıys
 
 ### 6. Dosyalar
 - Değiştirilen: `Scripts/MigrationPanel.cs`, `PROJECT_STATE.md`, `GECE-RAPOR.md`.
+
+---
+
+## STAGE 2 UI MIGRATION — AdvisorPanel — ✅ DONE (2026-11-16)
+
+### 1. Neyi değiştirdim
+- **Scripts/AdvisorPanel.cs** (tam yeniden yazıldı, ~650 satır): GamePanel + reusable UI components ile tam uyumlu:
+  - `GamePanel` base sınıfı: title bar, ESC kapatma, modal backdrop, 900x560 minimum / 1200x800 maksimum
+  - `TabBar`: 3 sekmeli kategori (ACTIVE ADVISORS / HIRE ADVISORS / ADVICE HISTORY)
+  - `SearchBox`: HIRE ADVISORS sekmesinde filtre, sonuç sayısı göstergeli, temizleme butonu
+  - `Chip`: Danışman tipi badge'leri (Economy/Security/Media) ve acil durum badge'i (URGENT)
+  - `TooltipBuilder`: Aktif danışman, müsait danışman ve tavsiye geçmişi kartları için zengin tooltip (trait/loyalty/popularity, confidence, effects renk kodlu)
+  - `EmptyState`: "No Player Country", "No Available Advisors", "No Advice History" durumları
+  - `AdvisorSystem.GetCooldownDaysRemaining()` eklendi (public API) — cooldown kalan gün gösterimi
+  - Tüm mevcut davranış korundu: Danışman işe alma/çıkarma, tavsiye isteme (7 gün cooldown), tavsiye geçmişi (confidence/urgency ile).
+
+### 2. Test Sonuçları
+- `dotnet build`: **0 hata / 0 uyarı**
+- `--save-load-test` (historical_1936): **PASS ✓ (A == B)**
+- `--save-load-test --scenario=modern_world`: **PASS ✓ (A == B)**
+- `--advisor-test`: **PASS ✓**
+- `--migration-test`: **PASS ✓**
+- `--climate-test`: **PASS ✓**
+- `--espionage-mission-test`: **PASS ✓**
+- `--recognition-test`: **PASS ✓**
+- `--occupation-test`: **PASS ✓**
+- `--civil-war-test`: **PASS ✓**
+- `--scenario-test`: **PASS ✓**
+- `--decisions-test`: **PASS ✓**
+
+### 3. Çözülemeyen şey
+- Yok — AdvisorPanel migration %100 tamamlandı.
+
+### 4. Bilinen sorunlar
+- EMISSIONS sekmesindeki tablo layout'u çok dar pencerede kayabilir (GamePanel max genişlik 1400 px ile sınırlı).
+
+### 5. Kullanıcının test etmesi gerekenler
+- `dotnet build` (0/0)
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --save-load-test` — PASS A==B (historical_1936)
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --save-load-test --scenario=modern_world` — PASS A==B
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --advisor-test` — PASS
+- Godot editörde F5 → ADVISORS butonu → panel açılır, 3 sekme çalışır, ESC/backdrop kapanır.
+
+### 6. Dosyalar
+- Değiştirilen: `Scripts/AdvisorPanel.cs`, `Scripts/AdvisorSystem.cs` (GetCooldownDaysRemaining eklendi), `PROJECT_STATE.md`, `GECE-RAPOR.md`.

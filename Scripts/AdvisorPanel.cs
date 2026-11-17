@@ -4,20 +4,34 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// M53: Danışman ekibi oyuncu arayüzü paneli.
-/// HUD ADVISORS butonundan overlay olarak açılır; ESC kapatır, backdrop harita girdisini bloke eder.
-/// Tüm içerik kodla oluşturulur (.tscn yok), OrganizationPanel kalıbını takip eder.
+/// Advisor Panel (M53 + Stage 2 UI Upgrade): HUD ADVISORS button opens this.
+/// Sections: Active Advisors, Available Advisors (Hire), Advice History.
+/// Built with reusable UI components from Scripts/UI/
+/// - Panel frame via GamePanel
+/// - Category tabs via TabBar (Active / Available / History)
+/// - Search filter via SearchBox with result count (for Available tab)
+/// - Advisor cards with Chip badges for type
+/// - StatBar for confidence/urgency in history
+/// - Rich tooltips via TooltipBuilder
+/// - Empty states via EmptyState
 /// </summary>
-public partial class AdvisorPanel : Control
+public partial class AdvisorPanel : GamePanel
 {
     public static bool IsOpen { get; private set; }
 
-    private ColorRect _backdrop;
-    private PanelContainer _panel;
-    private VBoxContainer _content;
-    private ScrollContainer _scroll;
+    // === UI Components (using reusable components) ===
+    private TabBar _tabBar;
+    private SearchBox _searchBox;
+    private VBoxContainer _contentContainer;
+    private ScrollContainer _contentScroll;
+    private EmptyState _emptyState;
 
-    private const string Title = "ADVISORS";
+    // Sections as tabs
+    private static readonly string[] TabIds = { "Active", "Available", "History" };
+    private static readonly string[] TabLabels = { "ACTIVE ADVISORS", "HIRE ADVISORS", "ADVICE HISTORY" };
+
+    private string _activeTab = "Active";
+    private string _searchText = "";
 
     public static void OpenUnder(Node parent)
     {
@@ -25,20 +39,29 @@ public partial class AdvisorPanel : Control
 
         GD.Print("[AdvisorPanel] OpenUnder — parent=" + (parent?.GetType().Name ?? "null"));
         var panel = new AdvisorPanel();
-        ModalHost.AddUnder(parent, panel);
+        parent.AddChild(panel);
     }
 
     public override void _Ready()
     {
-        ProcessMode = ProcessModeEnum.Always; // paused iken de kapanış/input çalışsın
-        UITheme.ApplyTheme(this);
+        // Configure GamePanel properties
+        Title = "ADVISORS";
+        MinSize = new Vector2(900, 560);
+        MaxSize = new Vector2(1200, 800);
+        Draggable = false;
+        Closable = true;
+        Modal = true;
+        AutoCenter = true;
+
+        base._Ready();
+
+        ProcessMode = ProcessModeEnum.Always;
         BuildUi();
+        ConnectSignals();
         RefreshContent();
         IsOpen = true;
 
-        UITheme.FadeIn(_backdrop, 0.1f);
-        UITheme.PopIn(_panel, 0.15f);
-        GD.Print("AdvisorPanel: hazır");
+        GD.Print("AdvisorPanel: hazır (Stage 2 UI)");
     }
 
     public override void _ExitTree()
@@ -57,360 +80,575 @@ public partial class AdvisorPanel : Control
 
     private void BuildUi()
     {
-        _backdrop = new ColorRect { Color = new Color(0, 0, 0, 0.75f), MouseFilter = Control.MouseFilterEnum.Stop };
-        _backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        AddChild(_backdrop);
+        // Content goes into GamePanel's ContentContainer
+        var content = ContentContainer;
+        content.AddThemeConstantOverride("separation", GameTheme.SpaceM);
 
-        var center = new CenterContainer();
-        center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.AddChild(center);
+        // === Category Tabs (using TabBar component) ===
+        _tabBar = new TabBar
+        {
+            TabIds = TabIds,
+            TabLabels = TabLabels,
+            SelectedIndex = 0,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _tabBar.TabChanged += OnTabChanged;
+        content.AddChild(_tabBar);
 
-        _panel = new PanelContainer { CustomMinimumSize = new Vector2(860, 520) };
-        center.AddChild(_panel);
+        // === Search Box (using SearchBox component) - only for Available tab ===
+        _searchBox = new SearchBox
+        {
+            PlaceholderText = "Filter advisors...",
+            ShowResultCount = true,
+            ShowClearButton = true,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            Visible = false // Only show for Available tab
+        };
+        _searchBox.TextChanged += OnSearchTextChanged;
+        _searchBox.SearchSubmitted += OnSearchSubmitted;
+        _searchBox.Cleared += OnSearchCleared;
+        content.AddChild(_searchBox);
 
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 24);
-        margin.AddThemeConstantOverride("margin_right", 24);
-        margin.AddThemeConstantOverride("margin_top", 20);
-        margin.AddThemeConstantOverride("margin_bottom", 20);
-        _panel.AddChild(margin);
+        content.AddChild(new HSeparator());
 
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 14);
-        margin.AddChild(vbox);
+        // === Content Area ===
+        _contentScroll = new ScrollContainer();
+        _contentScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _contentScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        content.AddChild(_contentScroll);
 
-        // --- Başlık ---
-        var titleRow = new HBoxContainer();
-        var title = new Label { Text = Title };
-        title.AddThemeFontSizeOverride("font_size", 30);
-        titleRow.AddChild(title);
-        titleRow.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        _contentContainer = new VBoxContainer();
+        _contentContainer.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        _contentContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _contentScroll.AddChild(_contentContainer);
 
-        var closeBtn = new Button { Text = "CLOSE", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(100, 36) };
-        closeBtn.Pressed += Close;
-        UITheme.AddHoverScale(closeBtn);
-        titleRow.AddChild(closeBtn);
-        vbox.AddChild(titleRow);
-        vbox.AddChild(new HSeparator());
+        _emptyState = EmptyState.CreateGeneric("No Data", "No advisor data available.");
+        _emptyState.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _emptyState.Visible = false;
+        _contentContainer.AddChild(_emptyState);
+    }
 
-        // --- Oyuncu ülke özeti ---
-        _countryLabel = new Label { Text = "Ülke seçili değil." };
-        _countryLabel.AddThemeFontSizeOverride("font_size", 20);
-        _countryLabel.AddThemeColorOverride("font_color", UITheme.Gold);
-        vbox.AddChild(_countryLabel);
+    private void ConnectSignals()
+    {
+        // Could listen for GameManager.PlayerCountryDataChanged if needed
+    }
 
-        // --- İçerik (kaydırılabilir) ---
-        _scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
-        _content = new VBoxContainer();
-        _content.AddThemeConstantOverride("separation", 10);
-        _scroll.AddChild(_content);
-        vbox.AddChild(_scroll);
-
+    private void OnTabChanged(string tabId, int tabIndex)
+    {
+        _activeTab = tabId;
+        UpdateSearchVisibility();
         RefreshContent();
     }
 
-    private Label _countryLabel;
+    private void UpdateSearchVisibility()
+    {
+        bool showSearch = _activeTab == "Available";
+        _searchBox.Visible = showSearch;
+        if (showSearch) _searchBox.Clear();
+    }
+
+    private void OnSearchTextChanged(string text)
+    {
+        _searchText = text.Trim().ToLower();
+        RefreshContent();
+    }
+
+    private void OnSearchSubmitted(string text) { }
+
+    private void OnSearchCleared()
+    {
+        _searchText = "";
+        RefreshContent();
+    }
 
     private void RefreshContent()
     {
-        if (_content == null) return;
-
-        var children = new List<Node>();
-        foreach (Node child in _content.GetChildren()) children.Add(child);
-        foreach (var child in children)
+        foreach (var child in _contentContainer.GetChildren())
         {
-            _content.RemoveChild(child);
+            if (child == _emptyState) continue;
+            _contentContainer.RemoveChild(child);
             child.QueueFree();
         }
 
-        var gm = GameManager.Instance;
-        string playerId = gm?.HasPlayer == true && gm.PlayerCountryData != null ? gm.PlayerCountryData.Id : null;
-
-        if (playerId == null)
+        if (!GameManager.IsAvailable || !GameManager.Instance.HasPlayer)
         {
-            var empty = new Label { Text = "Ülke seçili değil." };
-            empty.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            _content.AddChild(empty);
-            _countryLabel.Text = "Ülke seçili değil.";
+            _emptyState.SetContent(
+                "No Player Country",
+                "Select a country to play first.",
+                "🌍"
+            );
+            _emptyState.Visible = true;
             return;
         }
 
-        var activeAdvisors = AdvisorSystem.GetAllActiveAdvisors();
-        _countryLabel.Text = $"{gm.PlayerCountryData.Name} ({playerId}) — Aktif danışman: {activeAdvisors.Count}/3";
+        _emptyState.Visible = false;
 
-        // Mevcut aktif danışmanları göster
-        foreach (var type in new[] { AdvisorSystem.AdvisorType.Economy, AdvisorSystem.AdvisorType.Security, AdvisorSystem.AdvisorType.Media })
+        string playerId = GameManager.Instance.PlayerCountryId;
+
+        switch (_activeTab)
         {
-            var active = AdvisorSystem.GetActiveAdvisor(type);
-            var card = BuildAdvisorCard(type, active, playerId);
-            _content.AddChild(card);
-        }
-
-        // Müsait profiller listesi (işe almak için)
-        var availableLabel = new Label { Text = "MÜSAİT DANIŞMANLAR (işe almak için tıklayın)" };
-        availableLabel.AddThemeFontSizeOverride("font_size", 16);
-        availableLabel.AddThemeColorOverride("font_color", UITheme.Gold);
-        _content.AddChild(availableLabel);
-        _content.AddChild(new HSeparator());
-
-        foreach (var type in new[] { AdvisorSystem.AdvisorType.Economy, AdvisorSystem.AdvisorType.Security, AdvisorSystem.AdvisorType.Media })
-        {
-            var active = AdvisorSystem.GetActiveAdvisor(type);
-            if (active != null) continue; // Zaten bu tipte danışman var
-
-            var profiles = AdvisorSystem.GetProfilesForType(type);
-            foreach (var profile in profiles)
-            {
-                var card = BuildAvailableAdvisorCard(profile, type, playerId);
-                _content.AddChild(card);
-            }
-        }
-
-        // Tavsiye geçmişi
-        var historyLabel = new Label { Text = "TAVSİYE GEÇMİŞİ (son 10)" };
-        historyLabel.AddThemeFontSizeOverride("font_size", 16);
-        historyLabel.AddThemeColorOverride("font_color", UITheme.Gold);
-        _content.AddChild(historyLabel);
-        _content.AddChild(new HSeparator());
-
-        var history = AdvisorSystem.GetAdviceHistory(10);
-        if (history.Count == 0)
-        {
-            var noHist = new Label { Text = "Henüz tavsiye yok." };
-            noHist.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            _content.AddChild(noHist);
-        }
-        else
-        {
-            foreach (var advice in history.OrderByDescending(a => a.GeneratedDay))
-            {
-                var card = BuildAdviceHistoryCard(advice);
-                _content.AddChild(card);
-            }
+            case "Active":
+                BuildActiveAdvisorsTab(playerId);
+                break;
+            case "Available":
+                BuildAvailableAdvisorsTab(playerId);
+                break;
+            case "History":
+                BuildAdviceHistoryTab();
+                break;
         }
     }
 
-    private VBoxContainer BuildAdvisorCard(AdvisorSystem.AdvisorType type, AdvisorSystem.ActiveAdvisor active, string playerId)
+    // ===== ACTIVE ADVISORS TAB =====
+    private void BuildActiveAdvisorsTab(string playerId)
     {
-        var card = new VBoxContainer();
-        card.AddThemeConstantOverride("separation", 6);
+        var activeAdvisors = AdvisorSystem.GetAllActiveAdvisors();
 
-        // Üst satır: tip + isim + durum
-        var row = new HBoxContainer();
-        row.AddThemeConstantOverride("separation", 10);
+        // Country header
+        var header = new HBoxContainer();
+        header.AddThemeConstantOverride("separation", GameTheme.SpaceM);
+        _contentContainer.AddChild(header);
 
-        var typeBadge = new Label { Text = $"[{type}]" };
-        typeBadge.AddThemeFontSizeOverride("font_size", 14);
-        typeBadge.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        typeBadge.CustomMinimumSize = new Vector2(80, 0);
-        row.AddChild(typeBadge);
+        var countryName = GameManager.Instance.PlayerCountryData?.Name ?? playerId;
+        var countryLabel = new Label { Text = $"{countryName} ({playerId}) — Active: {activeAdvisors.Count}/3" };
+        countryLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        countryLabel.AddThemeColorOverride("font_color", GameTheme.Gold);
+        header.AddChild(countryLabel);
 
+        header.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+
+        _contentContainer.AddChild(new HSeparator());
+
+        if (activeAdvisors.Count == 0)
+        {
+            var none = new Label { Text = "No active advisors. Go to HIRE ADVISORS tab to recruit.", HorizontalAlignment = HorizontalAlignment.Center };
+            none.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            none.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+            none.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+            _contentContainer.AddChild(none);
+        }
+
+        foreach (var type in new[] { AdvisorSystem.AdvisorType.Economy, AdvisorSystem.AdvisorType.Security, AdvisorSystem.AdvisorType.Media })
+        {
+            var active = AdvisorSystem.GetActiveAdvisor(type);
+            var card = BuildActiveAdvisorCard(type, active, playerId);
+            _contentContainer.AddChild(card);
+        }
+    }
+
+    private Control BuildActiveAdvisorCard(AdvisorSystem.AdvisorType type, AdvisorSystem.ActiveAdvisor active, string playerId)
+    {
         var profile = AdvisorSystem.GetAllProfiles().FirstOrDefault(p => p.Id == active?.ProfileId);
+
+        var container = new VBoxContainer();
+        container.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
+        container.AddThemeStyleboxOverride("normal", GameTheme.CardBox(GetTypeColor(type), true));
+
+        // Header row
+        var header = new HBoxContainer();
+        header.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        container.AddChild(header);
+
+        var typeBadge = Chip.CreateCategory(type.ToString(), GetTypeColor(type));
+        typeBadge.FontSize = GameTheme.FontSizeTiny;
+        typeBadge.CustomMinimumSize = new Vector2(100, 0);
+        header.AddChild(typeBadge);
+
         string name = profile?.Name ?? active?.ProfileId ?? "—";
         var nameLabel = new Label { Text = name };
-        nameLabel.AddThemeFontSizeOverride("font_size", 16);
+        nameLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
         nameLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        row.AddChild(nameLabel);
+        header.AddChild(nameLabel);
 
-        var statusLabel = new Label { Text = "AKTİF" };
-        statusLabel.AddThemeFontSizeOverride("font_size", 12);
-        statusLabel.AddThemeColorOverride("font_color", Colors.LightGreen);
-        statusLabel.CustomMinimumSize = new Vector2(60, 0);
-        row.AddChild(statusLabel);
+        var statusLabel = new Label { Text = "ACTIVE", CustomMinimumSize = new Vector2(80, 0) };
+        statusLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+        statusLabel.AddThemeColorOverride("font_color", GameTheme.Green);
+        statusLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        header.AddChild(statusLabel);
 
+        // Action buttons
         var fireBtn = new Button
         {
-            Text = "GÖREVDEN AL",
+            Text = "FIRE",
             FocusMode = Control.FocusModeEnum.None,
-            CustomMinimumSize = new Vector2(120, 28)
+            CustomMinimumSize = new Vector2(100, 32)
         };
-        var t = type; // closure için kopya
+        var t = type;
         fireBtn.Pressed += () =>
         {
             AdvisorSystem.FireAdvisor(t, GameManager.Instance.TotalDays);
-            GD.Print($"[AdvisorPanel] Danışman görevden alındı: {t}");
+            GD.Print($"[AdvisorPanel] Advisor fired: {t}");
             RefreshContent();
         };
-        UITheme.AddHoverScale(fireBtn);
-        row.AddChild(fireBtn);
+        GameTheme.StyleButton(fireBtn);
+        header.AddChild(fireBtn);
 
         var adviceBtn = new Button
         {
-            Text = "TAVSİYE İSTE",
+            Text = "REQUEST ADVICE",
             FocusMode = Control.FocusModeEnum.None,
-            CustomMinimumSize = new Vector2(120, 28)
+            CustomMinimumSize = new Vector2(140, 32)
         };
         adviceBtn.Pressed += () =>
         {
             var advice = AdvisorSystem.RequestAdvice(t, GameManager.Instance.TotalDays, playerId);
             if (advice != null)
             {
-                GD.Print($"[AdvisorPanel] Tavsiye alındı: {advice.Recommendation} (conf={advice.Confidence})");
+                GD.Print($"[AdvisorPanel] Advice received: {advice.Recommendation} (conf={advice.Confidence})");
             }
             else
             {
-                GD.Print($"[AdvisorPanel] Tavsiye üretilemedi (cooldown aktif veya danışman yok)");
+                GD.Print($"[AdvisorPanel] Advice unavailable (cooldown or no advisor)");
             }
             RefreshContent();
         };
-        UITheme.AddHoverScale(adviceBtn);
-        row.AddChild(adviceBtn);
+        GameTheme.StyleButton(adviceBtn);
+        header.AddChild(adviceBtn);
 
-        card.AddChild(row);
-
-        // Detaylar: trait, loyalty, popularity
+        // Details
         if (profile != null)
         {
             var details = new Label
             {
-                Text = $"Trait: {profile.Trait} | Loyalty: {profile.Loyalty} | Popularity: {profile.Popularity} | Uzmanlık: {string.Join(", ", profile.ExpertiseTags)}"
+                Text = $"Trait: {profile.Trait}  |  Loyalty: {profile.Loyalty}  |  Popularity: {profile.Popularity}  |  Expertise: {string.Join(", ", profile.ExpertiseTags)}"
             };
-            details.AddThemeFontSizeOverride("font_size", 12);
-            details.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            card.AddChild(details);
+            details.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            details.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+            details.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            container.AddChild(details);
         }
 
-        // İstatistikler
+        // Stats
         if (active != null)
         {
             var stats = new Label
             {
-                Text = $"İşe alım: gün {active.HiredDay} | Tavsiye sayısı: {active.AdviceCount} | Son tavsiye: {(active.LastAdviceDay >= 0 ? active.LastAdviceDay.ToString() : "yok")}"
+                Text = $"Hired: Day {active.HiredDay}  |  Advice Count: {active.AdviceCount}  |  Last Advice: {(active.LastAdviceDay >= 0 ? "Day " + active.LastAdviceDay : "Never")}"
             };
-            stats.AddThemeFontSizeOverride("font_size", 11);
-            stats.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            card.AddChild(stats);
+            stats.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+            stats.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+            container.AddChild(stats);
         }
 
-        // Cooldown
-        if (AdvisorSystem.GetAllActiveAdvisors().TryGetValue(type, out var a) && a != null)
+        // Cooldown indicator
+        var cooldownDays = AdvisorSystem.GetCooldownDaysRemaining(type);
+        if (cooldownDays > 0)
         {
-            // Cooldown bilgisi için internal erişim yok, sadece UI'da göster
+            var cooldownLabel = new Label { Text = $"Cooldown: {cooldownDays} day(s) remaining" };
+            cooldownLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+            cooldownLabel.AddThemeColorOverride("font_color", GameTheme.Orange);
+            container.AddChild(cooldownLabel);
         }
 
-        return card;
+        // Tooltip
+        container.TooltipText = BuildActiveAdvisorTooltip(type, profile, active);
+
+        return container;
     }
 
-    private VBoxContainer BuildAvailableAdvisorCard(AdvisorSystem.AdvisorProfile profile, AdvisorSystem.AdvisorType type, string playerId)
+    private Color GetTypeColor(AdvisorSystem.AdvisorType type)
     {
-        var card = new VBoxContainer();
-        card.AddThemeConstantOverride("separation", 6);
-        card.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = new Color(0.15f, 0.15f, 0.2f, 0.5f), CornerRadiusTopLeft = 6, CornerRadiusTopRight = 6, CornerRadiusBottomLeft = 6, CornerRadiusBottomRight = 6 });
+        return type switch
+        {
+            AdvisorSystem.AdvisorType.Economy => GameTheme.Green,
+            AdvisorSystem.AdvisorType.Security => GameTheme.Red,
+            AdvisorSystem.AdvisorType.Media => GameTheme.Blue,
+            _ => GameTheme.TextMuted
+        };
+    }
 
-        // Üst satır: tip + isim
-        var row = new HBoxContainer();
-        row.AddThemeConstantOverride("separation", 10);
+    private string BuildActiveAdvisorTooltip(AdvisorSystem.AdvisorType type, AdvisorSystem.AdvisorProfile profile, AdvisorSystem.ActiveAdvisor active)
+    {
+        var data = new TooltipBuilder.TooltipData
+        {
+            Title = profile?.Name ?? "Advisor",
+            Description = $"Active {type} Advisor",
+            Category = type.ToString(),
+            CategoryColor = GetTypeColor(type),
+        };
 
-        var typeBadge = new Label { Text = $"[{type}]" };
-        typeBadge.AddThemeFontSizeOverride("font_size", 14);
-        typeBadge.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        typeBadge.CustomMinimumSize = new Vector2(80, 0);
-        row.AddChild(typeBadge);
+        if (profile != null)
+        {
+            data.Effects["Trait"] = profile.Trait;
+            data.Effects["Loyalty"] = profile.Loyalty.ToString();
+            data.Effects["Popularity"] = profile.Popularity.ToString();
+            data.Effects["Expertise"] = string.Join(", ", profile.ExpertiseTags);
+        }
+
+        if (active != null)
+        {
+            data.Effects["Hired"] = $"Day {active.HiredDay}";
+            data.Effects["Advice Given"] = active.AdviceCount.ToString();
+            data.Effects["Last Advice"] = active.LastAdviceDay >= 0 ? $"Day {active.LastAdviceDay}" : "Never";
+        }
+
+        var cooldown = AdvisorSystem.GetCooldownDaysRemaining(type);
+        if (cooldown > 0)
+        {
+            data.Effects["Cooldown"] = $"{cooldown} day(s)";
+        }
+
+        return TooltipBuilder.BuildText(data);
+    }
+
+    // ===== AVAILABLE ADVISORS TAB =====
+    private void BuildAvailableAdvisorsTab(string playerId)
+    {
+        var allProfiles = AdvisorSystem.GetAllProfiles();
+        var activeAdvisors = AdvisorSystem.GetAllActiveAdvisors();
+        var activeTypes = new HashSet<AdvisorSystem.AdvisorType>(activeAdvisors.Keys);
+
+        // Filter by type and search
+        var available = allProfiles
+            .Where(p => !activeTypes.Contains(p.Type))
+            .Where(p => string.IsNullOrEmpty(_searchText) ||
+                p.Name.ToLower().Contains(_searchText) ||
+                p.Trait.ToLower().Contains(_searchText) ||
+                p.CultureGroup.ToLower().Contains(_searchText) ||
+                p.ExpertiseTags.Any(e => e.ToLower().Contains(_searchText)))
+            .ToList();
+
+        _searchBox.UpdateResultCount(available.Count, allProfiles.Count);
+
+        if (available.Count == 0)
+        {
+            _emptyState.SetContent(
+                "No Available Advisors",
+                string.IsNullOrEmpty(_searchText)
+                    ? "All advisor types are filled or no profiles match your filter."
+                    : $"No advisors match \"{_searchText}\". Try a different search term.",
+                "👥"
+            );
+            _emptyState.Visible = true;
+            return;
+        }
+
+        _emptyState.Visible = false;
+
+        // Group by type
+        foreach (var type in new[] { AdvisorSystem.AdvisorType.Economy, AdvisorSystem.AdvisorType.Security, AdvisorSystem.AdvisorType.Media })
+        {
+            var typeProfiles = available.Where(p => p.Type == type).ToList();
+            if (typeProfiles.Count == 0) continue;
+
+            // Type header
+            var typeHeader = new HBoxContainer();
+            typeHeader.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+            _contentContainer.AddChild(typeHeader);
+
+            var typeBadge = Chip.CreateCategory(type.ToString(), GetTypeColor(type));
+            typeBadge.FontSize = GameTheme.FontSizeSmall;
+            typeHeader.AddChild(typeBadge);
+
+            var typeLabel = new Label { Text = $"{type} ADVISORS ({typeProfiles.Count} available)" };
+            typeLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            typeLabel.AddThemeColorOverride("font_color", GameTheme.Gold);
+            typeHeader.AddChild(typeLabel);
+
+            foreach (var profile in typeProfiles)
+            {
+                var card = BuildAvailableAdvisorCard(profile, type, playerId);
+                _contentContainer.AddChild(card);
+            }
+        }
+    }
+
+    private Control BuildAvailableAdvisorCard(AdvisorSystem.AdvisorProfile profile, AdvisorSystem.AdvisorType type, string playerId)
+    {
+        var container = new VBoxContainer();
+        container.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
+        container.AddThemeStyleboxOverride("normal", GameTheme.CardBox(GetTypeColor(type)));
+
+        // Header row
+        var header = new HBoxContainer();
+        header.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        container.AddChild(header);
+
+        var typeBadge = Chip.CreateCategory(type.ToString(), GetTypeColor(type));
+        typeBadge.FontSize = GameTheme.FontSizeTiny;
+        typeBadge.CustomMinimumSize = new Vector2(100, 0);
+        header.AddChild(typeBadge);
 
         var nameLabel = new Label { Text = profile.Name };
-        nameLabel.AddThemeFontSizeOverride("font_size", 16);
+        nameLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
         nameLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        row.AddChild(nameLabel);
+        header.AddChild(nameLabel);
 
-        var cultureLabel = new Label { Text = $"({profile.CultureGroup})" };
-        cultureLabel.AddThemeFontSizeOverride("font_size", 12);
-        cultureLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        cultureLabel.CustomMinimumSize = new Vector2(80, 0);
-        row.AddChild(cultureLabel);
+        var cultureLabel = new Label { Text = $"({profile.CultureGroup})", CustomMinimumSize = new Vector2(100, 0) };
+        cultureLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+        cultureLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+        cultureLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        header.AddChild(cultureLabel);
 
+        // Hire button
         var hireBtn = new Button
         {
-            Text = "İŞE AL",
+            Text = "HIRE",
             FocusMode = Control.FocusModeEnum.None,
-            CustomMinimumSize = new Vector2(100, 28)
+            CustomMinimumSize = new Vector2(100, 32)
         };
-        var pId = profile.Id; // closure için kopya
+        var pId = profile.Id;
         var t = type;
         hireBtn.Pressed += () =>
         {
             bool ok = AdvisorSystem.HireAdvisor(pId, t, GameManager.Instance.TotalDays);
             if (ok)
-                GD.Print($"[AdvisorPanel] Danışman işe alındı: {profile.Name} ({t})");
+                GD.Print($"[AdvisorPanel] Advisor hired: {profile.Name} ({t})");
             else
-                GD.Print($"[AdvisorPanel] Danışman işe alınamadı: {profile.Name}");
+                GD.Print($"[AdvisorPanel] Advisor hire failed: {profile.Name}");
             RefreshContent();
         };
-        UITheme.AddHoverScale(hireBtn);
-        row.AddChild(hireBtn);
+        GameTheme.StyleButton(hireBtn);
+        header.AddChild(hireBtn);
 
-        card.AddChild(row);
-
-        // Detaylar
+        // Details
         var details = new Label
         {
-            Text = $"Trait: {profile.Trait} | Loyalty: {profile.Loyalty} | Popularity: {profile.Popularity} | Uzmanlık: {string.Join(", ", profile.ExpertiseTags)}"
+            Text = $"Trait: {profile.Trait}  |  Loyalty: {profile.Loyalty}  |  Popularity: {profile.Popularity}  |  Expertise: {string.Join(", ", profile.ExpertiseTags)}"
         };
-        details.AddThemeFontSizeOverride("font_size", 12);
-        details.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        card.AddChild(details);
+        details.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        details.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+        details.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        container.AddChild(details);
 
-        return card;
+        // Tooltip
+        container.TooltipText = BuildAvailableAdvisorTooltip(profile, type);
+
+        return container;
     }
 
-    private VBoxContainer BuildAdviceHistoryCard(AdvisorSystem.AdvisorAdvice advice)
+    private string BuildAvailableAdvisorTooltip(AdvisorSystem.AdvisorProfile profile, AdvisorSystem.AdvisorType type)
     {
-        var card = new VBoxContainer();
-        card.AddThemeConstantOverride("separation", 4);
-        card.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = new Color(0.1f, 0.1f, 0.15f, 0.5f), CornerRadiusTopLeft = 4, CornerRadiusTopRight = 4, CornerRadiusBottomLeft = 4, CornerRadiusBottomRight = 4 });
+        var data = new TooltipBuilder.TooltipData
+        {
+            Title = profile.Name,
+            Description = $"Available {type} Advisor — {profile.CultureGroup}",
+            Category = type.ToString(),
+            CategoryColor = GetTypeColor(type),
+        };
 
-        // Başlık satırı
-        var row = new HBoxContainer();
-        row.AddThemeConstantOverride("separation", 10);
+        data.Effects["Trait"] = profile.Trait;
+        data.Effects["Loyalty"] = profile.Loyalty.ToString();
+        data.Effects["Popularity"] = profile.Popularity.ToString();
+        data.Effects["Expertise"] = string.Join(", ", profile.ExpertiseTags);
 
-        var typeBadge = new Label { Text = $"[{advice.Type}]" };
-        typeBadge.AddThemeFontSizeOverride("font_size", 12);
-        typeBadge.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        typeBadge.CustomMinimumSize = new Vector2(80, 0);
-        row.AddChild(typeBadge);
+        return TooltipBuilder.BuildText(data);
+    }
 
-        var confLabel = new Label { Text = $"Conf: {advice.Confidence}%" };
-        confLabel.AddThemeFontSizeOverride("font_size", 12);
-        confLabel.AddThemeColorOverride("font_color", advice.IsUrgent ? Colors.Orange : UITheme.Gold);
-        confLabel.CustomMinimumSize = new Vector2(80, 0);
-        row.AddChild(confLabel);
+    // ===== ADVICE HISTORY TAB =====
+    private void BuildAdviceHistoryTab()
+    {
+        var history = AdvisorSystem.GetAdviceHistory(20);
 
-        var dayLabel = new Label { Text = $"Gün {advice.GeneratedDay}" };
-        dayLabel.AddThemeFontSizeOverride("font_size", 12);
-        dayLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        dayLabel.CustomMinimumSize = new Vector2(80, 0);
-        row.AddChild(dayLabel);
+        if (history.Count == 0)
+        {
+            _emptyState.SetContent(
+                "No Advice History",
+                "Request advice from your active advisors to see history here.",
+                "📜"
+            );
+            _emptyState.Visible = true;
+            return;
+        }
+
+        _emptyState.Visible = false;
+
+        // Header
+        var header = new HBoxContainer();
+        header.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        _contentContainer.AddChild(header);
+
+        var titleLabel = new Label { Text = $"Last {history.Count} advice entries (most recent first)" };
+        titleLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        titleLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+        header.AddChild(titleLabel);
+
+        _contentContainer.AddChild(new HSeparator());
+
+        foreach (var advice in history.OrderByDescending(a => a.GeneratedDay))
+        {
+            var card = BuildAdviceHistoryCard(advice);
+            _contentContainer.AddChild(card);
+        }
+    }
+
+    private Control BuildAdviceHistoryCard(AdvisorSystem.AdvisorAdvice advice)
+    {
+        var container = new VBoxContainer();
+        container.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
+        container.AddThemeStyleboxOverride("normal", GameTheme.CardBox(GetTypeColor(advice.Type)));
+
+        // Header row
+        var header = new HBoxContainer();
+        header.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        container.AddChild(header);
+
+        var typeBadge = Chip.CreateCategory(advice.Type.ToString(), GetTypeColor(advice.Type));
+        typeBadge.FontSize = GameTheme.FontSizeTiny;
+        typeBadge.CustomMinimumSize = new Vector2(100, 0);
+        header.AddChild(typeBadge);
+
+        var confLabel = new Label { Text = $"Confidence: {advice.Confidence}%", CustomMinimumSize = new Vector2(140, 0) };
+        confLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        confLabel.AddThemeColorOverride("font_color", advice.IsUrgent ? GameTheme.Orange : GameTheme.Gold);
+        confLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        header.AddChild(confLabel);
+
+        var dayLabel = new Label { Text = $"Day {advice.GeneratedDay}", CustomMinimumSize = new Vector2(100, 0) };
+        dayLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        dayLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+        dayLabel.HorizontalAlignment = HorizontalAlignment.Center;
+        header.AddChild(dayLabel);
 
         if (advice.IsUrgent)
         {
-            var urgentBadge = new Label { Text = "⚠ ACİL" };
-            urgentBadge.AddThemeFontSizeOverride("font_size", 12);
-            urgentBadge.AddThemeColorOverride("font_color", Colors.OrangeRed);
-            row.AddChild(urgentBadge);
+            var urgentBadge = Chip.CreateStatus("URGENT", Chip.Variant.Danger);
+            urgentBadge.FontSize = GameTheme.FontSizeTiny;
+            header.AddChild(urgentBadge);
         }
 
-        row.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
-        card.AddChild(row);
+        header.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
 
-        // Öneri
+        // Recommendation
         var recLabel = new Label { Text = advice.Recommendation };
-        recLabel.AddThemeFontSizeOverride("font_size", 14);
-        recLabel.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-        card.AddChild(recLabel);
+        recLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        recLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        container.AddChild(recLabel);
 
-        // Gerekçe
+        // Rationale
         var ratLabel = new Label { Text = advice.Rationale };
-        ratLabel.AddThemeFontSizeOverride("font_size", 12);
-        ratLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        ratLabel.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-        card.AddChild(ratLabel);
+        ratLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        ratLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+        ratLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        container.AddChild(ratLabel);
 
-        return card;
+        // Tooltip
+        container.TooltipText = BuildAdviceHistoryTooltip(advice);
+
+        return container;
     }
 
-    private void Close()
+    private string BuildAdviceHistoryTooltip(AdvisorSystem.AdvisorAdvice advice)
+    {
+        var data = new TooltipBuilder.TooltipData
+        {
+            Title = $"{advice.Type} Advisor Advice",
+            Description = advice.Rationale,
+            Category = advice.Type.ToString(),
+            CategoryColor = GetTypeColor(advice.Type),
+        };
+
+        data.Effects["Recommendation"] = advice.Recommendation;
+        data.Effects["Confidence"] = $"{advice.Confidence}%";
+        data.Effects["Urgency"] = advice.IsUrgent ? "HIGH" : "Normal";
+        data.Effects["Generated"] = $"Day {advice.GeneratedDay}";
+
+        return TooltipBuilder.BuildText(data);
+    }
+
+    public override void Close()
     {
         GD.Print("AdvisorPanel: kapatılıyor");
-        UITheme.FadeOut(_backdrop, 0.08f);
-        UITheme.PopOut(_panel, 0.1f, () => QueueFree());
+        base.Close();
     }
 }

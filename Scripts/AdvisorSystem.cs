@@ -217,6 +217,13 @@ public static class AdvisorSystem
         return _adviceHistory.TakeLast(count).ToList();
     }
 
+    /// <summary>Cooldown kalan gün sayısı (0 = cooldown yok).</summary>
+    public static int GetCooldownDaysRemaining(AdvisorType type)
+    {
+        _cooldownDays.TryGetValue(type, out int cd);
+        return cd;
+    }
+
     // --- Advice Generation (Deterministic) ---
 
     private static AdvisorAdvice GenerateAdvice(AdvisorProfile profile, string countryId, long currentDay)

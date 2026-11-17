@@ -157,6 +157,17 @@ C:\Proje\Rogue-World\
 - **Build**: 0 errors/0 warnings ✓
 - **Tests**: `--save-load-test` both scenarios PASS A==B, `--migration-test` PASS, all regression tests PASS
 
+### 4. AdvisorPanel ✓ (2026-11-16)
+- Migrated to GameTheme + reusable UI components
+- 3 tabs via TabBar: ACTIVE ADVISORS / HIRE ADVISORS / ADVICE HISTORY
+- SearchBox filter with result count on Hire Advisors tab
+- Chip badges for advisor types (Economy/Security/Media) and urgency status
+- TooltipBuilder for rich advisor/advice tooltips (trait/loyalty/popularity, confidence, effects color-coded)
+- EmptyState for "No Player Country", "No Available Advisors", "No Advice History"
+- All M53 behavior preserved: hire/fire advisors, request advice with cooldown, advice history with confidence/urgency
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B, `--advisor-test` PASS, all regression tests PASS
+
 ## Prioritized TODO (from TODO.md)
 1. **M52.1-52.4** — Recognition consequences (org membership, trade, AI alliances, REQUEST RECOGNITION action, war tension/intervention, save/load A==B) — ALL DONE ✓
 2. **M53.1-53.5** — Advisor System (18 profiles, hire/fire, deterministic advice, 7-day cooldown, AdvisorPanel UI, HUD button, save/load A==B both scenarios) — ALL DONE ✓

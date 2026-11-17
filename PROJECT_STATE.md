@@ -132,6 +132,19 @@ C:\Proje\Rogue-World\
 - **Build**: 0 errors/0 warnings ✓
 - **Tests**: `--save-load-test` (modern_world + historical_1936) PASS A==B, `--decisions-test` PASS, `--espionage-mission-test` PASS, `--recognition-test` PASS, `--migration-test` PASS, `--occupation-test` PASS, `--civil-war-test` PASS, `--scenario-test` PASS
 
+### 2. ClimatePanel ✓ (2026-11-16)
+- Migrated to GameTheme + reusable UI components
+- 5 tabs via TabBar: GLOBAL / EMISSIONS / POLICIES / AGREEMENTS / TIPPING POINTS
+- SearchBox filter with result count on Emissions and Policies tabs
+- Chip badges for policy categories (Pricing/Incentives/Regulation/Nature/Energy/Transport/Adaptation)
+- StatBar for key metrics (CO₂, Warming, Emissions, Cumulative, Tipping Points)
+- TooltipBuilder for rich policy/agreement tooltips (cost/effects/requirements color-coded)
+- EmptyState for "No Results", "No Player Country", "No Policies Available"
+- **WarmingChartControl** (nested class): Real deterministic Godot drawing — CO₂ (ppm) & Warming (°C) trend lines from `ClimateSystem.GetHistory()`, grid, axes, legend, current values. Saved/loaded via ClimateSystem history, included in SaveLoadTest hash.
+- All M55.3 behavior preserved: policy enact/revoke, agreement sign/withdraw, tipping point progress bars, country emissions table with energy mix breakdown
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B, `--climate-test` PASS, all regression tests PASS
+
 ## Prioritized TODO (from TODO.md)
 1. **M52.1-52.4** — Recognition consequences (org membership, trade, AI alliances, REQUEST RECOGNITION action, war tension/intervention, save/load A==B) — ALL DONE ✓
 2. **M53.1-53.5** — Advisor System (18 profiles, hire/fire, deterministic advice, 7-day cooldown, AdvisorPanel UI, HUD button, save/load A==B both scenarios) — ALL DONE ✓

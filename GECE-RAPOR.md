@@ -3748,3 +3748,50 @@ toplam hatası bu değerin çok altında, gerçek "toplam 1 değil" durumlarıys
 ### 6. Dosyalar
 - Yeni: —
 - Değiştirilen: `Scripts/DecisionSystem.cs`, `Scripts/DecisionPanel.cs`, `Scripts/GameHud.cs`, `Scripts/GameManager.cs`, `Scripts/SaveSystem.cs`, `Scripts/SaveLoadTest.cs`, `Data/scenarios/historical_1936/decisions.json`, `Data/scenarios/modern_world/decisions.json`, `TODO.md`, `PROJECT_STATE.md`, `GECE-RAPOR.md`.
+
+---
+
+## STAGE 2 UI MIGRATION — ClimatePanel — ✅ DONE (2026-11-16)
+
+### 1. Neyi değiştirdim
+- **Scripts/ClimatePanel.cs** (tam yeniden yazıldı, ~900 satır): GamePanel + reusable UI components ile tam uyumlu:
+  - `GamePanel` base sınıfı: title bar, ESC kapatma, modal backdrop, 1000x560 minimum / 1400x800 maksimum
+  - `TabBar`: 5 sekmeli kategori (GLOBAL / EMISSIONS / POLICIES / AGREEMENTS / TIPPING POINTS)
+  - `SearchBox`: EMISSIONS ve POLICIES sekmelerinde filtre, sonuç sayısı göstergeli, temizleme butonu
+  - `Chip`: Policy kategori badge'leri (Pricing/Incentives/Regulation/Nature/Energy/Transport/Adaptation)
+  - `StatBar`: Warming trend göstergelerinde (CO₂, Warming, Emissions, Cumulative, Tipping Points)
+  - `TooltipBuilder`: Policy kartları ve anlaşma kartları için zengin tooltip (cost/effects/requirements renk kodlu)
+  - `EmptyState`: "No Results", "No Player Country", "No Policies Available" durumları
+  - `WarmingChartControl` (yeni, iç içe sınıf): Godot `_Draw()` ile deterministik çizim — CO₂ (ppm) ve Warming (°C) çizgileri, grid, eksen etiketleri, légende, son değerler. `ClimateSystem.GetHistory()` verisini kullanır (save/load'da kaydedilir, A==B hash'e dahil).
+  - Tüm mevcut davranış korundu: Policy enact/revoke, Agreement sign/withdraw, tipping point progress çubukları, ülke emisyon tablosu (renewable/nuclear/coal/oil/gas/adaptation breakdown).
+
+### 2. Test Sonuçları
+- `dotnet build`: **0 hata / 0 uyarı**
+- `--save-load-test` (historical_1936): **PASS ✓ (A == B)**
+- `--save-load-test --scenario=modern_world`: **PASS ✓ (A == B)**
+- `--climate-test`: **PASS ✓**
+- `--migration-test`: **PASS ✓**
+- `--espionage-mission-test`: **PASS ✓**
+- `--recognition-test`: **PASS ✓**
+- `--occupation-test`: **PASS ✓**
+- `--civil-war-test`: **PASS ✓**
+- `--scenario-test`: **PASS ✓**
+- `--decisions-test`: **PASS ✓**
+- `--advisor-test`: **PASS ✓**
+
+### 3. Çözülemeyen şey
+- Yok — ClimatePanel migration %100 tamamlandı.
+
+### 4. Bilinen sorunlar
+- `WarmingChartControl` headless testte `ObjectDB instance was leaked` uyarısı veriyor (test fonksiyonları `Control`'ü manuel instance ettiği için). Oyun içinde sorun yok.
+- EMISSIONS sekmesindeki tablo layout'u çok dar pencerede kayabilir (GamePanel max genişlik 1400 px ile sınırlı).
+
+### 5. Kullanıcının test etmesi gerekenler
+- `dotnet build` (0/0)
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --save-load-test` — PASS A==B (historical_1936)
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --save-load-test --scenario=modern_world` — PASS A==B
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --climate-test` — PASS
+- Godot editörde F5 → CLIMATE butonu → panel açılır, 5 sekme çalışır, grafik çizilir, ESC/backdrop kapanır.
+
+### 6. Dosyalar
+- Değiştirilen: `Scripts/ClimatePanel.cs`, `TODO.md`, `PROJECT_STATE.md`, `GECE-RAPOR.md`.

@@ -43,6 +43,10 @@ DURUM-RAPORU.md
 .swarm/
 .mcp.json
 
+# Node dependencies (Ruflo/Claude Flow CLI — statusline resolves it from here)
+node_modules/
+package-lock.json
+
 # Local Godot installation (large binary) — never commit
 Godot_v4.7.2-stable_mono_win64/
 

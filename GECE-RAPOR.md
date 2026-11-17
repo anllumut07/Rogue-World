@@ -3935,3 +3935,47 @@ toplam hatası bu değerin çok altında, gerçek "toplam 1 değil" durumlarıys
 
 ### 6. Dosyalar
 - Değiştirilen: `Scripts/CountryInfoPanel.cs`, `PROJECT_STATE.md`, `GECE-RAPOR.md`.
+
+---
+
+## STAGE 2 UI MIGRATION — StatisticsPanel — ✅ DONE (2026-11-16)
+
+### 1. Neyi değiştirdim
+- **Scripts/StatisticsPanel.cs** (tam yeniden yazıldı, ~240 satır): GameTheme + reusable UI components ile tam uyumlu:
+  - `GamePanel` base sınıfı: title bar "STATISTICS & BUDGET", ESC kapatma, modal backdrop, 900x560 minimum / 1200x800 maksimum
+  - `OptionButton`: Grafik için gösterge seçici (indicator selector) — 17 istatistik göstergesinden seçim
+  - `ProgressBar` + `GameTheme.ProgressBarStyles()`: Her gösterge için renk kodlu ilerleme çubukları (Gold accent)
+  - `GraphControl`: Mevcut 60-günlük trend grafiği (zaten GameTheme uyumlu) — sol üst grafikle entegre
+  - `EmptyState`: "No Player Country" durumu
+  - GameTheme renkleri: `GameTheme.Gold` (ülke adı, değerler), `GameTheme.TextMuted` (kategori başlıkları, notlar), `GameTheme.BgMedium` (kart arka planları via HSeparator ayırıcıları)
+  - Göstergeler kategori bazında gruplanmış (Economy, Military, Politics, Diplomacy, Social, Environment, Energy)
+  - Tüm mevcut davranış korundu: Seçilen gösterge için 60-günlük trend grafiği güncellenir, değerler [Min,Max] aralığında clamp edilir.
+
+### 2. Test Sonuçları
+- `dotnet build`: **0 hata / 0 uyarı**
+- `--save-load-test` (historical_1936): **PASS ✓ (A == B)**
+- `--save-load-test --scenario=modern_world`: **PASS ✓ (A == B)**
+- `--climate-test`: **PASS ✓**
+- `--migration-test`: **PASS ✓**
+- `--espionage-mission-test`: **PASS ✓**
+- `--recognition-test`: **PASS ✓**
+- `--occupation-test`: **PASS ✓**
+- `--civil-war-test`: **PASS ✓**
+- `--scenario-test`: **PASS ✓**
+- `--decisions-test`: **PASS ✓**
+- `--advisor-test`: **PASS ✓**
+
+### 3. Çözülemeyen şey
+- Yok — StatisticsPanel migration %100 tamamlandı.
+
+### 4. Bilinen sorunlar
+- EMISSIONS sekmesindeki tablo layout'u çok dar pencerede kayabilir (GamePanel max genişlik 1400 px ile sınırlı).
+
+### 5. Kullanıcının test etmesi gerekenler
+- `dotnet build` (0/0)
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --save-load-test` — PASS A==B (historical_1936)
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --save-load-test --scenario=modern_world` — PASS A==B
+- Godot editörde F5 → STATISTICS butonu → panel açılır, gösterge seçici çalışır, trend grafiği güncellenir, ESC/backdrop kapanır.
+
+### 6. Dosyalar
+- Değiştirilen: `Scripts/StatisticsPanel.cs`, `PROJECT_STATE.md`, `GECE-RAPOR.md`.

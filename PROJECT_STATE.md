@@ -179,6 +179,18 @@ C:\Proje\Rogue-World\
 - **Build**: 0 errors/0 warnings ✓
 - **Tests**: `--save-load-test` both scenarios PASS A==B, all regression tests PASS
 
+### 6. StatisticsPanel ✓ (2026-11-16)
+- Migrated to GameTheme + reusable UI components
+- GamePanel base with title "STATISTICS & BUDGET", modal backdrop, ESC to close
+- OptionButton for indicator selector (17 StatisticsSystem indicators)
+- ProgressBar with GameTheme.ProgressBarStyles() for each indicator (Gold accent)
+- GraphControl for 60-day trend visualization (existing, already GameTheme-compatible)
+- EmptyState for "No Player Country"
+- Indicators grouped by category (Economy, Military, Politics, Diplomacy, Social, Environment, Energy)
+- All M20.1/M20.5 behavior preserved: indicator values, [Min,Max] clamp, trend graph updates on selection change
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B, all regression tests PASS
+
 ## Prioritized TODO (from TODO.md)
 1. **M52.1-52.4** — Recognition consequences (org membership, trade, AI alliances, REQUEST RECOGNITION action, war tension/intervention, save/load A==B) — ALL DONE ✓
 2. **M53.1-53.5** — Advisor System (18 profiles, hire/fire, deterministic advice, 7-day cooldown, AdvisorPanel UI, HUD button, save/load A==B both scenarios) — ALL DONE ✓
@@ -190,5 +202,5 @@ C:\Proje\Rogue-World\
 ---
 
 **Current Branch:** `gece-calisma`  
-**Last Commit:** Stage 1 UI Upgrade — GameTheme + reusable UI components (GamePanel, TabBar, SearchBox, Chip, StatBar, ListRow, TooltipBuilder, EmptyState) + DecisionPanel rebuilt as reference implementation  
-**Last Test Run:** `--decisions-test` → PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, all regression tests PASS
+**Last Commit:** Stage 2 UI Migration — StatisticsPanel migrated to GameTheme + reusable UI components (GamePanel, OptionButton, ProgressBar, GraphControl, EmptyState) — All 6 panels complete (Diplomacy, Climate, Migration, Advisor, CountryInfo, Statistics)  
+**Last Test Run:** All Stage 2 panel tests PASS ✓, `--save-load-test` (historical_1936 + modern_world) → PASS ✓ A==B, all regression tests PASS

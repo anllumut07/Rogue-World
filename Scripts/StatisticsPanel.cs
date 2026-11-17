@@ -3,23 +3,28 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-// İstatistik & Bütçe paneli (M20.1): oyuncu ülkesinin göstergelerini
-// kategorilere ayırarak gösterir. HUD STATISTICS butonundan overlay açılır.
-public partial class StatisticsPanel : Control
+/// <summary>
+/// Statistics Panel (M20.1 + Stage 2 UI Upgrade): HUD STATISTICS button opens this.
+/// Shows country indicators grouped by category with progress bars, and trend graph.
+/// Built with reusable UI components from Scripts/UI/
+/// - Panel frame via GamePanel
+/// - Indicator selector via OptionButton (could be SearchBox in future)
+/// - Progress bars via ProgressBar with GameTheme colors
+/// - GraphControl for trend visualization
+/// </summary>
+public partial class StatisticsPanel : GamePanel
 {
     public static bool IsOpen { get; private set; }
 
-    private ColorRect _backdrop;
-    private PanelContainer _panel;
-    private VBoxContainer _content;
-    private ScrollContainer _scroll;
-
+    // UI Components
     private OptionButton _indicatorSelector;
     private GraphControl _graph;
-    private string _selectedIndicatorId;
-    private readonly List<string> _optionIds = new();
+    private VBoxContainer _contentContainer;
+    private ScrollContainer _contentScroll;
+    private EmptyState _emptyState;
 
-    private const string Title = "STATISTICS & BUDGET";
+    private string _selectedIndicatorId = "";
+    private readonly List<string> _optionIds = new();
 
     public static void OpenUnder(Node parent)
     {
@@ -27,20 +32,28 @@ public partial class StatisticsPanel : Control
 
         GD.Print($"[StatisticsPanel] OpenUnder — parent={parent?.GetType().Name ?? "null"}");
         var panel = new StatisticsPanel();
-        ModalHost.AddUnder(parent, panel);
+        parent.AddChild(panel);
     }
 
     public override void _Ready()
     {
-        ProcessMode = ProcessModeEnum.Always; // paused iken de kapanış/input çalışsın
-        UITheme.ApplyTheme(this);
+        // Configure GamePanel properties
+        Title = "STATISTICS & BUDGET";
+        MinSize = new Vector2(900, 560);
+        MaxSize = new Vector2(1200, 800);
+        Draggable = false;
+        Closable = true;
+        Modal = true;
+        AutoCenter = true;
+
+        base._Ready();
+
+        ProcessMode = ProcessModeEnum.Always;
         BuildUi();
         RefreshContent();
         IsOpen = true;
 
-        UITheme.FadeIn(_backdrop, 0.1f);
-        UITheme.PopIn(_panel, 0.15f);
-        GD.Print("StatisticsPanel: hazır");
+        GD.Print("StatisticsPanel: hazır (Stage 2 UI)");
     }
 
     public override void _ExitTree()
@@ -59,151 +72,155 @@ public partial class StatisticsPanel : Control
 
     private void BuildUi()
     {
-        _backdrop = new ColorRect { Color = new Color(0, 0, 0, 0.75f), MouseFilter = Control.MouseFilterEnum.Stop };
-        _backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        AddChild(_backdrop);
+        // Content goes into GamePanel's ContentContainer
+        var content = ContentContainer;
+        content.AddThemeConstantOverride("separation", GameTheme.SpaceM);
 
-        var center = new CenterContainer();
-        center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.AddChild(center);
+        // Header with country name and indicator selector
+        var headerRow = new HBoxContainer();
+        headerRow.AddThemeConstantOverride("separation", GameTheme.SpaceM);
+        content.AddChild(headerRow);
 
-        _panel = new PanelContainer { CustomMinimumSize = new Vector2(860, 560) };
-        center.AddChild(_panel);
+        var countryLabel = new Label { Text = "No Country Selected" };
+        countryLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        countryLabel.AddThemeColorOverride("font_color", GameTheme.Gold);
+        countryLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _countryNameLabel = countryLabel;
+        headerRow.AddChild(countryLabel);
 
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 24);
-        margin.AddThemeConstantOverride("margin_right", 24);
-        margin.AddThemeConstantOverride("margin_top", 20);
-        margin.AddThemeConstantOverride("margin_bottom", 20);
-        _panel.AddChild(margin);
+        // Indicator selector for graph
+        var selLbl = new Label { Text = "Graph:", CustomMinimumSize = new Vector2(50, 0) };
+        selLbl.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        headerRow.AddChild(selLbl);
 
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 14);
-        margin.AddChild(vbox);
+        _indicatorSelector = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(220, 0) };
+        _indicatorSelector.ItemSelected += OnIndicatorSelected;
+        headerRow.AddChild(_indicatorSelector);
 
-        // --- Başlık ---
-        var titleRow = new HBoxContainer();
-        var title = new Label { Text = Title };
-        title.AddThemeFontSizeOverride("font_size", 30);
-        titleRow.AddChild(title);
-        titleRow.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        content.AddChild(new HSeparator());
 
-        var closeBtn = new Button { Text = "CLOSE", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(100, 36) };
-        closeBtn.Pressed += Close;
-        UITheme.AddHoverScale(closeBtn);
-        titleRow.AddChild(closeBtn);
-        vbox.AddChild(titleRow);
-        vbox.AddChild(new HSeparator());
+        // Content area
+        _contentScroll = new ScrollContainer();
+        _contentScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _contentScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        content.AddChild(_contentScroll);
 
-        // --- İçerik (kaydırılabilir) ---
-        _scroll = new ScrollContainer { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
-        _content = new VBoxContainer();
-        _content.AddThemeConstantOverride("separation", 10);
-        _scroll.AddChild(_content);
-        vbox.AddChild(_scroll);
+        _contentContainer = new VBoxContainer();
+        _contentContainer.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        _contentContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _contentScroll.AddChild(_contentContainer);
 
-        RefreshContent();
+        _emptyState = EmptyState.CreateGeneric("No Data", "Select a country to view statistics.");
+        _emptyState.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _emptyState.Visible = false;
+        _contentContainer.AddChild(_emptyState);
+
+        // Graph at bottom
+        _graph = new GraphControl { CustomMinimumSize = new Vector2(0, 220) };
+        _graph.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        content.AddChild(_graph);
     }
+
+    private Label _countryNameLabel;
 
     private void RefreshContent()
     {
-        if (_content == null) return;
-
-        // Eski içeriği temizle (çıkarma sırasında koleksiyon değiştiği için önce kopyala)
-        var children = new List<Node>();
-        foreach (Node child in _content.GetChildren()) children.Add(child);
-        foreach (var child in children)
+        foreach (var child in _contentContainer.GetChildren())
         {
-            _content.RemoveChild(child);
+            if (child == _emptyState) continue;
+            _contentContainer.RemoveChild(child);
             child.QueueFree();
         }
 
-        var gm = GameManager.Instance;
-        if (!gm.HasPlayer || gm.PlayerCountryData == null)
-        {
-            var empty = new Label { Text = "Ülke seçili değil." };
-            empty.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            _content.AddChild(empty);
-            return;
-        }
-
-        string countryId = gm.PlayerCountryData.Id;
-        string countryName = gm.PlayerCountryData.Name;
-
-        var countryLabel = new Label { Text = $"{countryName} ({countryId}) — GÖSTERGELER" };
-        countryLabel.AddThemeFontSizeOverride("font_size", 20);
-        countryLabel.AddThemeColorOverride("font_color", UITheme.Gold);
-        _content.AddChild(countryLabel);
-
-        foreach (var catGroup in StatisticsSystem.Definitions.GroupBy(d => d.Category))
-        {
-            var catHeader = new Label { Text = catGroup.Key.ToUpper() };
-            catHeader.AddThemeFontSizeOverride("font_size", 17);
-            catHeader.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            _content.AddChild(catHeader);
-
-            foreach (var def in catGroup.OrderBy(d => d.Name))
-            {
-                var row = new HBoxContainer();
-                row.AddThemeConstantOverride("separation", 10);
-
-                var name = new Label { Text = def.Name };
-                name.AddThemeFontSizeOverride("font_size", 15);
-                name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-                name.TooltipText = def.Description;
-                row.AddChild(name);
-
-                double value = StatisticsSystem.GetValue(countryId, def.Id);
-                var valueLbl = new Label { Text = $"{value:N1}" };
-                valueLbl.AddThemeFontSizeOverride("font_size", 15);
-                valueLbl.AddThemeColorOverride("font_color", UITheme.Gold);
-                valueLbl.CustomMinimumSize = new Vector2(70, 0);
-                row.AddChild(valueLbl);
-
-                double span = def.Max - def.Min;
-                double pct = span > 0 ? (value - def.Min) / span * 100.0 : 0;
-                pct = Math.Clamp(pct, 0, 100);
-                var bar = new ProgressBar
-                {
-                    MinValue = 0,
-                    MaxValue = 100,
-                    Value = pct,
-                    CustomMinimumSize = new Vector2(140, 16)
-                };
-                row.AddChild(bar);
-
-                _content.AddChild(row);
-            }
-        }
-
-        var note = new Label { Text = "Göstergeler her oyun günde deterministik olarak dalganır; Değerler [Min, Max] aralığında sınırlıdır." };
-        note.AddThemeFontSizeOverride("font_size", 12);
-        note.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        _content.AddChild(note);
-
-        // --- Gösterge seçimi + eğilim grafiği (son 60 gün) ---
-        var selRow = new HBoxContainer();
-        selRow.AddThemeConstantOverride("separation", 8);
-        var selLbl = new Label { Text = "Eğilim grafiği için gösterge:" };
-        selLbl.AddThemeFontSizeOverride("font_size", 13);
-        selRow.AddChild(selLbl);
-
-        _indicatorSelector = new OptionButton { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(220, 0) };
+        // Populate indicator selector
         _optionIds.Clear();
+        _indicatorSelector.Clear();
         foreach (var def in StatisticsSystem.Definitions.OrderBy(d => d.Name))
         {
             _optionIds.Add(def.Id);
             _indicatorSelector.AddItem(def.Name);
         }
-        _indicatorSelector.Select(0);
-        _selectedIndicatorId = _optionIds.Count > 0 ? _optionIds[0] : "";
-        _indicatorSelector.ItemSelected += OnIndicatorSelected;
-        selRow.AddChild(_indicatorSelector);
-        _content.AddChild(selRow);
+        if (_optionIds.Count > 0)
+        {
+            _indicatorSelector.Select(0);
+            _selectedIndicatorId = _optionIds[0];
+        }
 
-        _graph = new GraphControl { CustomMinimumSize = new Vector2(760, 220) };
+        var gm = GameManager.Instance;
+        if (!gm.HasPlayer || gm.PlayerCountryData == null)
+        {
+            _emptyState.SetContent(
+                "No Player Country",
+                "Select a country to play first.",
+                "🌍"
+            );
+            _emptyState.Visible = true;
+
+            _countryNameLabel.Text = "No Country Selected";
+            return;
+        }
+
+        _emptyState.Visible = false;
+
+        string countryId = gm.PlayerCountryData.Id;
+        string countryName = gm.PlayerCountryData.Name;
+
+        _countryNameLabel.Text = $"{countryName} ({countryId}) — INDICATORS";
+
+        // Group indicators by category
+        foreach (var catGroup in StatisticsSystem.Definitions.GroupBy(d => d.Category))
+        {
+            var catHeader = new Label { Text = catGroup.Key.ToUpper() };
+            catHeader.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            catHeader.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+            _contentContainer.AddChild(catHeader);
+
+            foreach (var def in catGroup.OrderBy(d => d.Name))
+            {
+                var row = new HBoxContainer();
+                row.AddThemeConstantOverride("separation", GameTheme.SpaceM);
+                _contentContainer.AddChild(row);
+
+                var name = new Label { Text = def.Name };
+                name.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+                name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+                name.TooltipText = def.Description;
+                row.AddChild(name);
+
+                double value = StatisticsSystem.GetValue(countryId, def.Id);
+                var valueLbl = new Label { Text = $"{value:N1}", CustomMinimumSize = new Vector2(80, 0) };
+                valueLbl.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+                valueLbl.AddThemeColorOverride("font_color", GameTheme.Gold);
+                valueLbl.HorizontalAlignment = HorizontalAlignment.Right;
+                row.AddChild(valueLbl);
+
+                double span = def.Max - def.Min;
+                double pct = span > 0 ? (value - def.Min) / span * 100.0 : 0;
+                pct = Math.Clamp(pct, 0, 100);
+
+                var bar = new ProgressBar
+                {
+                    MinValue = 0,
+                    MaxValue = 100,
+                    Value = pct,
+                    CustomMinimumSize = new Vector2(180, 16)
+                };
+                // Apply GameTheme progress bar style
+                var (bg, fill) = GameTheme.ProgressBarStyles(GameTheme.Gold);
+                bar.AddThemeStyleboxOverride("background", bg);
+                bar.AddThemeStyleboxOverride("fill", fill);
+                row.AddChild(bar);
+            }
+        }
+
+        var note = new Label { Text = "Indicators fluctuate deterministically each game day; Values clamped to [Min, Max] range." };
+        note.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        note.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+        note.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _contentContainer.AddChild(note);
+
+        // Update graph
         _graph.SetSeries(countryId, _selectedIndicatorId);
-        _content.AddChild(_graph);
     }
 
     private void OnIndicatorSelected(long index)
@@ -214,10 +231,9 @@ public partial class StatisticsPanel : Control
         _graph.SetSeries(gm?.PlayerCountryData?.Id ?? "", _selectedIndicatorId);
     }
 
-    private void Close()
+    public override void Close()
     {
         GD.Print("StatisticsPanel: kapatılıyor");
-        UITheme.FadeOut(_backdrop, 0.08f);
-        UITheme.PopOut(_panel, 0.1f, () => QueueFree());
+        base.Close();
     }
 }

@@ -511,7 +511,18 @@ public static class CountryAI
                          && !WarSystem.IsAtWarWith(data.Id, c.Id)
                          && IsAiWarTargetEligible(data, c)) // yeni kısıtlama
                 .ToList();
-            DeterministicRNG.Shuffle(targets);
+
+            // Öncelik: geçerli casus belli olan hedefler önce, sonra komşular, sonra ideoloji
+            // Deterministik sıralama: casus belli (true önce), komşu (true önce), ideoloji farklı (true önce), sonra RNG shuffle
+            targets = targets.OrderByDescending(t => CasusBelliSystem.HasValidCasusBelli(data.Id, t.Id))
+                             .ThenByDescending(t => NeighborSystem.AreNeighbors(data.Id, t.Id))
+                             .ThenByDescending(t => !string.Equals(data.Ideology, t.Ideology, StringComparison.OrdinalIgnoreCase))
+                             .ToList();
+
+            // Rastgelelik için belirli bir dilimi shuffle et (ilk 10'u karıştır, sonra ilk 5'i al)
+            var priorityTargets = targets.Take(10).ToList();
+            DeterministicRNG.Shuffle(priorityTargets);
+            targets = priorityTargets.Take(5).Concat(targets.Skip(10)).ToList();
             targets = targets.Take(5).ToList();
 
             foreach (var target in targets)
@@ -1026,5 +1037,18 @@ public static class CountryAI
 
         _initialized = _states.Count > 0;
         GD.Print($"CountryAI: state yüklendi — AI ülke={_states.Count}, round-robin={_aiCountryIds.Count}, cursor={_cursor}");
+    }
+
+    /// <summary>
+    /// Belirli bir AI ülkesinin karar cooldown'unu (LastDecisionDay) sıfırlar.
+    /// Test amaçlı: aşamalar arası geçişte AI'nin hemen karar verebilmesi için.
+    /// </summary>
+    public static void ResetDecisionCooldown(string countryId)
+    {
+        if (_states.TryGetValue(countryId, out var st))
+        {
+            st.LastDecisionDay = -1000;
+            GD.Print($"[CountryAI] {countryId} karar cooldown sıfırlandı");
+        }
     }
 }

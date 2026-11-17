@@ -3981,14 +3981,20 @@ public partial class GameManager : Node
 
         // Oyuncuyu (DEU) zaten düşük güce indir: nükleersiz durumda hedefe saldırılabilir,
         // nükleer caydırıcılıkla (2.0x) ise saldırı engellenmeli.
+        // defStrength should be 15-28 to make deterrence work:
+        // - without deterrence: attStrength >= defStrength * 0.8 (attack allowed)
+        // - with deterrence: attStrength < defStrength * 2.0 * 0.8 = defStrength * 1.6 (attack blocked)
         deu.StartingDivisions = 5;
         deu.CivFactories = 10;
-        deu.MilFactories = 15;
-        deu.Dockyards = 20; // TotalFactories=45 → defStrength = 5 + 15 = 20
+        deu.MilFactories = 10;
+        deu.Dockyards = 10; // TotalFactories=30 → defStrength = 5 + 10 = 15
 
         // Hedef AI: savaş kararına girmek için ≥10 tümen gerekir; nükleersizden
         // güçlü, nükleerli durumda zayıf görünmesi için ayarlanır.
-        targetData.StartingDivisions = 12;
+        targetData.StartingDivisions = 20;
+        targetData.CivFactories = 10;
+        targetData.MilFactories = 10;
+        targetData.Dockyards = 10; // TotalFactories=30 → attStrength = 20 + 10 = 30
         targetData.PoliticalPower = 2000;
         targetData.WarSupportPercent = 60;
 
@@ -3996,6 +4002,9 @@ public partial class GameManager : Node
         // AI durumunu oyuncu ülkesini hariç tutacak şekilde (yeniden) başlat.
         CountryAI.Initialize();
         if (Speed == 0) SetSpeed(5);
+
+        // Test için AI savaş limitini artır (varsayılan %10 = 5 AI, test için %100)
+        CasusBelliSystem.OverrideAiWarSettings(s => s.MaxAiCountriesAtWarPercent = 100);
 
         NuclearProgramSystem.EnableTestMode();
         NuclearProgramSystem.SetTestWarheads(1);
@@ -4032,6 +4041,10 @@ public partial class GameManager : Node
         // --- Aşama 2: Caydırıcılık KALDIRILDI — AI oyuncuyu saldırıya geçebilir ---
         NuclearProgramSystem.SetTestWarheads(0); // başlık 0 → targetIsNuclearDeterrence false
         GD.Print("[AiNuclearTest] Aşama 2: Nükleer caydırıcılık KALDIRILDI (başlık=0)");
+
+        // AI karar cooldown'unu sıfırla ki 2. aşamada hemen karar verebilsin
+        CountryAI.ResetDecisionCooldown(targetId);
+
         bool warAfterDeterrence = WaitForWarWith(targetId, playerId, maxDays: 40);
         GD.Print($"[AiNuclearTest] Caydırıcılık kaldırıldıktan sonra {targetId}->{playerId} savaşta mı? {warAfterDeterrence}");
         bool deterrenceLiftedAttack = warAfterDeterrence;

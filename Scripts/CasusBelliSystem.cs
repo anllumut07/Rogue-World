@@ -56,14 +56,14 @@ public static class CasusBelliSystem
     }
 
     // ===== AI Savaş Ayarları (Data/ai_war_settings.json) =====
-    private class AiWarSettings
+    public class AiWarSettings
     {
         public double JustificationStartChance { get; set; } = 0.015;
         public int MaxAiCountriesAtWarPercent { get; set; } = 10;
         public TargetSelectionSettings TargetSelection { get; set; } = new();
     }
 
-    private class TargetSelectionSettings
+    public class TargetSelectionSettings
     {
         public bool OnlyNeighbors { get; set; } = true;
         public bool OnlyWithClaims { get; set; } = true;
@@ -72,6 +72,12 @@ public static class CasusBelliSystem
     }
 
     private static AiWarSettings _aiWarSettings = new();
+
+    /// <summary>Test için AI savaş ayarlarını geçersiz kıl (ör. MaxAiCountriesAtWarPercent).</summary>
+    public static void OverrideAiWarSettings(Action<AiWarSettings> modifier)
+    {
+        modifier(_aiWarSettings);
+    }
 
     // ===== Sabitler =====
     private static readonly Dictionary<string, CasusBelliType> _types = new();

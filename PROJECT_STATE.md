@@ -168,6 +168,17 @@ C:\Proje\Rogue-World\
 - **Build**: 0 errors/0 warnings ✓
 - **Tests**: `--save-load-test` both scenarios PASS A==B, `--advisor-test` PASS, all regression tests PASS
 
+### 5. CountryInfoPanel ✓ (2026-11-16)
+- Migrated to GameTheme + reusable UI components (left-side overlay, not modal)
+- GameTheme colors throughout, GameTheme.CardBox() panel background
+- Chip components for war justification checklist (✓/✗ with Success/Danger variants)
+- TooltipBuilder for rich tooltips on buttons
+- GameTheme.StyleButton() for all buttons (DECLARE WAR, BUILD CASE, PLAY AS)
+- Preserves unique behavior: left-side overlay positioning, ESC triggers CloseRequested, fade animations, dynamic sizing
+- All M3.2/M7/M17A/M46.3 behavior preserved: country stats, PLAY AS, DECLARE WAR, casus belli checklist, BUILD CASE, culture profile
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B, all regression tests PASS
+
 ## Prioritized TODO (from TODO.md)
 1. **M52.1-52.4** — Recognition consequences (org membership, trade, AI alliances, REQUEST RECOGNITION action, war tension/intervention, save/load A==B) — ALL DONE ✓
 2. **M53.1-53.5** — Advisor System (18 profiles, hire/fire, deterministic advice, 7-day cooldown, AdvisorPanel UI, HUD button, save/load A==B both scenarios) — ALL DONE ✓

@@ -3885,3 +3885,53 @@ toplam hatası bu değerin çok altında, gerçek "toplam 1 değil" durumlarıys
 
 ### 6. Dosyalar
 - Değiştirilen: `Scripts/AdvisorPanel.cs`, `Scripts/AdvisorSystem.cs` (GetCooldownDaysRemaining eklendi), `PROJECT_STATE.md`, `GECE-RAPOR.md`.
+
+---
+
+## STAGE 2 UI MIGRATION — CountryInfoPanel — ✅ DONE (2026-11-16)
+
+### 1. Neyi değiştirdim
+- **Scripts/CountryInfoPanel.cs** (tam yeniden yazıldı, ~650 satır): GameTheme + reusable UI components ile tam uyumlu:
+  - **GameTheme renkleri**: Tüm UI elemanlarında GameTheme paleti (Gold, GoldBright, Red, Green, TextMuted, TextPrimary, BorderMedium, vb.)
+  - **GameTheme.CardBox()**: Panel arka planı için
+  - **Chip bileşeni**: War justification checklist'te ✓ (Success/yeşil) / ✗ (Danger/kırmızı) badge'leri için
+  - **TooltipBuilder**: DECLARE WAR, BUILD CASE, PLAY AS butonları için zengin tooltip'ler
+  - **GameTheme.StyleButton()**: Tüm butonlar için tutarlı stil
+  - **Yeni FontSize/Spacing sabitleri**: GameTheme.FontSizeSmall/Normal/Large, GameTheme.SpaceXS/S/M/L/XL
+  - Korunan özel davranışlar:
+    - Sol taraf overlay pozisyonlaması (modal değil, merkezde değil)
+    - ESC tuşu → CloseRequested event (Game → WorldMap.ClearSelection)
+    - Fade in/out animasyonları (UITheme.FadeIn/FadeOut)
+    - Dinamik boyutlandırma (_Process'te viewport boyutuna göre)
+    - PLAY AS / DECLARE WAR / BUILD CASE butonları
+    - Casus belli checklist + BUILD CASE UI
+    - Kültür profili (M46.3)
+
+### 2. Test Sonuçları
+- `dotnet build`: **0 hata / 0 uyarı**
+- `--save-load-test` (historical_1936): **PASS ✓ (A == B)**
+- `--save-load-test --scenario=modern_world`: **PASS ✓ (A == B)**
+- `--migration-test`: **PASS ✓**
+- `--climate-test`: **PASS ✓**
+- `--espionage-mission-test`: **PASS ✓**
+- `--recognition-test`: **PASS ✓**
+- `--occupation-test`: **PASS ✓**
+- `--civil-war-test`: **PASS ✓**
+- `--scenario-test`: **PASS ✓**
+- `--decisions-test`: **PASS ✓**
+- `--advisor-test`: **PASS ✓**
+
+### 3. Çözülemeyen şey
+- Yok — CountryInfoPanel migration %100 tamamlandı.
+
+### 4. Bilinen sorunlar
+- EMISSIONS sekmesindeki tablo layout'u çok dar pencerede kayabilir (GamePanel max genişlik 1400 px ile sınırlı).
+
+### 5. Kullanıcının test etmesi gerekenler
+- `dotnet build` (0/0)
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --save-load-test` — PASS A==B (historical_1936)
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --save-load-test --scenario=modern_world` — PASS A==B
+- Godot editörde F5 → Ülke tıkla → panel açılır, ESC/butonlarla kapanır, veriler doğru gösterilir.
+
+### 6. Dosyalar
+- Değiştirilen: `Scripts/CountryInfoPanel.cs`, `PROJECT_STATE.md`, `GECE-RAPOR.md`.

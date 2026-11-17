@@ -3,32 +3,36 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-// Seçili ülkenin bilgi paneli (sol overlay): HUD altında, sabit genişlikte, ScrollContainer ile taşan içerik kaydırılır.
-// M3.2: PLAY AS butonu → GameManager.SetPlayerCountry + buton durumu geri bildirimi.
-// M11: Overlay olarak Game köküne eklenir; LeftStack/LeftPanel KALDIRILDI.
+/// <summary>
+/// Country Info Panel (M3.2 + M7 + M17A + M46.3 + Stage 2 UI Upgrade):
+/// Left-side overlay panel shown when clicking a country.
+/// Uses GameTheme colors and reusable UI components (Chip, TooltipBuilder).
+/// Preserves overlay positioning, ESC handling (CloseRequested), animations.
+/// </summary>
 public partial class CountryInfoPanel : PanelContainer
 {
+    // UI elements
     private FlagBox _flagBox;
     private Label _nameLabel;
     private Label _capitalLabel;
     private Label _ideologyLabel;
-    private Label _detailNoteLabel;     // fallback ülkeler: "ayrıntılı veri yok" notu
+    private Label _detailNoteLabel;
     private Label _stabilityLabel;
     private Label _warSupportLabel;
     private Label _ppLabel;
     private Label _populationLabel;
     private Label _manpowerLabel;
-    private Label _cultureLabel;             // M46.3: kültür profili (baskın kültür + yabancı il)
+    private Label _cultureLabel;
     private Label _gdpLabel;
     private Label _factoriesLabel;
     private Label _resourcesLabel;
     private Label _divisionsLabel;
-    private Label _warStatusLabel;      // M7: savaş durumu
+    private Label _warStatusLabel;
     private Button _playButton;
-    private Button _declareWarButton;   // M7: savaş ilanı
-    private Button _closeButton;        // X: paneli kapat
+    private Button _declareWarButton;
+    private Button _closeButton;
 
-    // M17A: WAR JUSTIFICATION UI
+    // War justification UI
     private VBoxContainer _warJustificationBox;
     private Label _warJustificationTitle;
     private VBoxContainer _checklistContainer;
@@ -36,15 +40,14 @@ public partial class CountryInfoPanel : PanelContainer
 
     private CountryData _currentData;
     private string _currentCountryId = "";
+    private Tween _fadeTween;
 
-    private Tween _fadeTween; // aktif fade animasyonu — yeni fade öncesi Kill() edilir (yarış önleme)
-
-    // PauseMenu ESC çakışması için: panel görünür mü? (SettingsPanel.IsOpen deseni)
+    // Singleton for ESC handling
     private static CountryInfoPanel _instance;
     public static bool IsOpen =>
         _instance != null && GodotObject.IsInstanceValid(_instance) && _instance.Visible;
 
-    // X / ESC kapatma isteği → Game dinler → WorldMap.ClearSelection() (seçim + panel kalkar)
+    // Close request event (handled by Game → WorldMap.ClearSelection)
     public event Action CloseRequested;
 
     private GameManager GM => GameManager.Instance;
@@ -53,12 +56,11 @@ public partial class CountryInfoPanel : PanelContainer
     {
         _instance = this;
 
-        // Ortak koyu tema
-        UITheme.ApplyTheme(this);
+        // Apply GameTheme
+        GameTheme.Apply(this);
 
         BuildUi();
 
-        // Oyuncu ülkesi değişirse buton durumunu güncelle (ör. başka yerden değişirse)
         if (GameManager.IsAvailable)
         {
             GM.PlayerCountryChanged += OnPlayerCountryChanged;
@@ -66,6 +68,7 @@ public partial class CountryInfoPanel : PanelContainer
         }
 
         Hide();
+        GD.Print("CountryInfoPanel: hazır (Stage 2 UI)");
     }
 
     public override void _ExitTree()
@@ -76,19 +79,19 @@ public partial class CountryInfoPanel : PanelContainer
         GM.PlayerCountryDataChanged -= OnPlayerCountryDataChanged;
     }
 
-    // ESC: paneli kapat. PauseMenu Layer=100 önce alır ama IsOpen true iken ESC'yi bize bırakır.
+    // ESC: trigger close request (Game handles ClearSelection)
     public override void _UnhandledInput(InputEvent e)
     {
         if (!Visible) return;
         if (e is InputEventKey key && key.Pressed && !key.Echo && key.Keycode == Key.Escape)
         {
             GetViewport().SetInputAsHandled();
-            GD.Print("[Diag] CountryInfoPanel: ESC → kapatma isteği");
+            GD.Print("[CountryInfoPanel] ESC → kapatma isteği");
             CloseRequested?.Invoke();
         }
     }
 
-    // Overlay konumlandırma: pencere boyutu değişince panel pozisyonu/boyutunu güncelle
+    // Update overlay position/size on resize
     public override void _Process(double delta)
     {
         UpdateOverlayRect();
@@ -98,30 +101,22 @@ public partial class CountryInfoPanel : PanelContainer
     {
         if (!Visible) return;
         var winSize = GetViewportRect().Size;
-        // HUD altında başla (Game.HudHeight), alt kenar boşluk 16px
         float top = Game.HudHeight;
         float height = Mathf.Max(0f, winSize.Y - top - 16);
-        // Sabit genişlik: 360px, ama ekran dar ise ekrana sığdır (min 280).
-        // Clamp argüman sırası önemli: min>max olan çağrı ArgumentException atar.
         float width = Mathf.Clamp(winSize.X * 0.9f, 280f, 360f);
 
         Position = new Vector2(16, top);
         Size = new Vector2(width, height);
-        // PanelContainer içindeki ScrollContainer zaten ExpandFill → boyut değişince auto layout
     }
 
     private void OnPlayerCountryChanged(string id) => UpdatePlayButton();
 
-    // Günlük tick / savaş durumu değişince panel verilerini tazele
     private void OnPlayerCountryDataChanged()
     {
         if (_currentData != null && !string.IsNullOrEmpty(_currentCountryId))
             UpdateWarStatus();
     }
 
-    // PLAY AS butonunu oyuncu ülkesine göre günceller (metin + disabled).
-    // Kilit: oyuncu ülkesi bir kez seçilince oyun sürerken değiştirilemez —
-    // diğer ülkelerde buton kilitli gösterilir (yalnızca yeni oyunda değişir).
     private void UpdatePlayButton()
     {
         if (_playButton == null || !GodotObject.IsInstanceValid(_playButton)) return;
@@ -151,35 +146,35 @@ public partial class CountryInfoPanel : PanelContainer
 
     private void BuildUi()
     {
-        // Overlay panel: başlangıçta gizli, _Process'te konumlandırılır
+        // Overlay panel: positioned by _Process, hidden initially
         SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
         SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
-        MouseFilter = Control.MouseFilterEnum.Stop; // içindeki butonlar tıklanabilsin
+        MouseFilter = Control.MouseFilterEnum.Stop; // allow button clicks
+        AddThemeStyleboxOverride("normal", GameTheme.CardBox());
 
         var scroll = new ScrollContainer();
         scroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         scroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled; // sadece dikey scroll
+        scroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
         AddChild(scroll);
 
         var vbox = new VBoxContainer();
         vbox.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        vbox.AddThemeConstantOverride("separation", 8);
+        vbox.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         scroll.AddChild(vbox);
 
-        // --- Bayrak placeholder + ülke adı satırı + X kapat butonu ---
+        // --- Header: flag + name + close button ---
         var headerRow = new HBoxContainer();
-        headerRow.AddThemeConstantOverride("separation", 10);
+        headerRow.AddThemeConstantOverride("separation", GameTheme.SpaceM);
         vbox.AddChild(headerRow);
 
         _flagBox = new FlagBox { CustomMinimumSize = new Vector2(42, 28) };
         headerRow.AddChild(_flagBox);
 
-        _nameLabel = NewLabel("No Country Selected", 24, new Color(0.85f, 0.66f, 0.22f));
-        _nameLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; // X butonunu en sağa iter
+        _nameLabel = NewLabel("No Country Selected", GameTheme.FontSizeLarge, GameTheme.Gold);
+        _nameLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         headerRow.AddChild(_nameLabel);
 
-        // X: paneli kapat (seçim de kalkar — CloseRequested → Game → ClearSelection)
         _closeButton = new Button
         {
             Text = "×",
@@ -187,109 +182,107 @@ public partial class CountryInfoPanel : PanelContainer
             TooltipText = "Close panel (ESC)",
             CustomMinimumSize = new Vector2(30, 30)
         };
-        _closeButton.AddThemeFontSizeOverride("font_size", 16);
-        _closeButton.AddThemeColorOverride("font_color", new Color(0.9f, 0.45f, 0.4f));
-        _closeButton.AddThemeColorOverride("font_hover_color", new Color(1f, 0.35f, 0.3f));
-        _closeButton.AddThemeColorOverride("font_pressed_color", Colors.White);
+        _closeButton.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        _closeButton.AddThemeColorOverride("font_color", GameTheme.Red);
+        _closeButton.AddThemeColorOverride("font_hover_color", GameTheme.RedBright);
         _closeButton.Pressed += () =>
         {
-            GD.Print("[Diag] CountryInfoPanel: X butonu → kapatma isteği");
+            GD.Print("[CountryInfoPanel] X butonu → kapatma isteği");
             CloseRequested?.Invoke();
         };
         headerRow.AddChild(_closeButton);
 
-        _capitalLabel = NewLabel("", 16);
+        _capitalLabel = NewLabel("", GameTheme.FontSizeNormal);
         vbox.AddChild(_capitalLabel);
 
-        _ideologyLabel = NewLabel("", 16);
+        _ideologyLabel = NewLabel("", GameTheme.FontSizeNormal);
         vbox.AddChild(_ideologyLabel);
 
-        // Fallback ülke notu: countries_data.json'da olmayan ülkeler (tahmini değerler)
-        _detailNoteLabel = NewLabel("", 13, UITheme.TextMuted);
+        // Fallback note
+        _detailNoteLabel = NewLabel("", GameTheme.FontSizeSmall, GameTheme.TextMuted);
         vbox.AddChild(_detailNoteLabel);
 
         vbox.AddChild(new HSeparator());
 
-        var row = new GridContainer { Columns = 2 };
-        row.AddThemeConstantOverride("h_separation", 20);
-        row.AddThemeConstantOverride("v_separation", 6);
-        vbox.AddChild(row);
+        // --- Stats grid ---
+        var grid = new GridContainer { Columns = 2 };
+        grid.AddThemeConstantOverride("h_separation", GameTheme.SpaceL);
+        grid.AddThemeConstantOverride("v_separation", GameTheme.SpaceS);
+        vbox.AddChild(grid);
 
-        _stabilityLabel = NewLabel("Stability: —", 16);
-        row.AddChild(_stabilityLabel);
-        _warSupportLabel = NewLabel("War Support: —", 16);
-        row.AddChild(_warSupportLabel);
-        _ppLabel = NewLabel("Political Power: —", 16);
-        row.AddChild(_ppLabel);
+        _stabilityLabel = NewLabel("Stability: —", GameTheme.FontSizeNormal);
+        grid.AddChild(_stabilityLabel);
+        _warSupportLabel = NewLabel("War Support: —", GameTheme.FontSizeNormal);
+        grid.AddChild(_warSupportLabel);
+        _ppLabel = NewLabel("Political Power: —", GameTheme.FontSizeNormal);
+        grid.AddChild(_ppLabel);
 
         vbox.AddChild(new HSeparator());
 
-        _gdpLabel = NewLabel("GDP: —", 16);
+        _gdpLabel = NewLabel("GDP: —", GameTheme.FontSizeNormal);
         vbox.AddChild(_gdpLabel);
-        _populationLabel = NewLabel("Population: —", 16);
+        _populationLabel = NewLabel("Population: —", GameTheme.FontSizeNormal);
         vbox.AddChild(_populationLabel);
-        _manpowerLabel = NewLabel("Manpower: —", 16);
+        _manpowerLabel = NewLabel("Manpower: —", GameTheme.FontSizeNormal);
         vbox.AddChild(_manpowerLabel);
 
-        // M46.3: Kültür profili — ayrı bir satır: eşleşmeyen il sayısı her
-        // ülkede anlamlı bir sayı olduğundan kalabalık grid hücresine sığmaz.
-        _cultureLabel = NewLabel("Culture: —", 16);
+        // Culture profile (M46.3)
+        _cultureLabel = NewLabel("Culture: —", GameTheme.FontSizeNormal);
         vbox.AddChild(_cultureLabel);
 
         vbox.AddChild(new HSeparator());
 
-        _factoriesLabel = NewLabel("Factories: —", 16);
+        _factoriesLabel = NewLabel("Factories: —", GameTheme.FontSizeNormal);
         vbox.AddChild(_factoriesLabel);
 
         vbox.AddChild(new HSeparator());
 
-        _resourcesLabel = NewLabel("Resources: —", 16);
+        _resourcesLabel = NewLabel("Resources: —", GameTheme.FontSizeNormal);
         vbox.AddChild(_resourcesLabel);
 
         vbox.AddChild(new HSeparator());
 
-        _divisionsLabel = NewLabel("Divisions: —", 16);
+        _divisionsLabel = NewLabel("Divisions: —", GameTheme.FontSizeNormal);
         vbox.AddChild(_divisionsLabel);
 
-        // M7: Savaş durumu etiketi (AT WAR / capitulated)
-        _warStatusLabel = NewLabel("", 16, new Color(1f, 0.35f, 0.3f));
+        // War status
+        _warStatusLabel = NewLabel("", GameTheme.FontSizeNormal, GameTheme.Red);
         vbox.AddChild(_warStatusLabel);
 
-        // M17A: WAR JUSTIFICATION bölümü — casus belli checklist + BUILD CASE butonları
+        // War justification box
         _warJustificationBox = new VBoxContainer();
-        _warJustificationBox.AddThemeConstantOverride("separation", 4);
+        _warJustificationBox.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
         vbox.AddChild(_warJustificationBox);
 
-        _warJustificationTitle = NewLabel("WAR JUSTIFICATION", 14, UITheme.Gold);
+        _warJustificationTitle = NewLabel("WAR JUSTIFICATION", GameTheme.FontSizeSmall, GameTheme.Gold);
         _warJustificationBox.AddChild(_warJustificationTitle);
 
         _checklistContainer = new VBoxContainer();
-        _checklistContainer.AddThemeConstantOverride("separation", 2);
+        _checklistContainer.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
         _warJustificationBox.AddChild(_checklistContainer);
 
         _buildCaseContainer = new VBoxContainer();
-        _buildCaseContainer.AddThemeConstantOverride("separation", 4);
+        _buildCaseContainer.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
         _warJustificationBox.AddChild(_buildCaseContainer);
 
-        // M7: DECLARE WAR butonu
+        // DECLARE WAR button
         _declareWarButton = new Button
         {
             Text = $"DECLARE WAR ({WarSystem.DeclareWarPPCost} PP)",
             FocusMode = Control.FocusModeEnum.None,
             TooltipText = "Declare war on this country (costs Political Power)"
         };
-        _declareWarButton.AddThemeColorOverride("font_disabled_color", UITheme.TextMuted);
+        _declareWarButton.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        _declareWarButton.AddThemeColorOverride("font_disabled_color", GameTheme.TextMuted);
         _declareWarButton.Pressed += () =>
         {
             if (!string.IsNullOrEmpty(_currentCountryId))
             {
-                // M8: DiplomacySystem üzerinden — garanti tetiklemesi + faksiyon çağrısı dahil
                 bool ok = DiplomacySystem.DeclareWar(_currentCountryId);
                 if (ok)
                 {
                     UpdateWarStatus();
                     UpdatePlayButton();
-                    // Savaş ilanı PP/WS/STA değiştirdi → etiketleri tazele
                     if (_currentData != null)
                     {
                         _ppLabel.Text = $"Political Power: {_currentData.PoliticalPower:N1}";
@@ -300,10 +293,9 @@ public partial class CountryInfoPanel : PanelContainer
             }
         };
         vbox.AddChild(_declareWarButton);
-        UITheme.AddHoverScale(_declareWarButton);
+        GameTheme.StyleButton(_declareWarButton);
 
-        // "Play as" butonu (M3.2: SetPlayerCountry + durum geri bildirimi)
-        // EN ALTA + belirgin: altın çerçeve, büyük font, parlak hover.
+        // PLAY AS button (prominent, at bottom)
         _playButton = new Button
         {
             Text = "PLAY AS THIS COUNTRY",
@@ -311,49 +303,49 @@ public partial class CountryInfoPanel : PanelContainer
             CustomMinimumSize = new Vector2(0, 46),
             TooltipText = "Select this country as your player country"
         };
-        _playButton.AddThemeFontSizeOverride("font_size", 18);
-        _playButton.AddThemeColorOverride("font_color", UITheme.GoldBright);
-        _playButton.AddThemeColorOverride("font_hover_color", UITheme.GoldBright);
-        _playButton.AddThemeColorOverride("font_pressed_color", Colors.White);
-        _playButton.AddThemeColorOverride("font_disabled_color", UITheme.TextMuted);
+        _playButton.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        _playButton.AddThemeColorOverride("font_color", GameTheme.GoldBright);
+        _playButton.AddThemeColorOverride("font_hover_color", GameTheme.GoldBright);
+        _playButton.AddThemeColorOverride("font_pressed_color", GameTheme.TextOnGold);
+        _playButton.AddThemeColorOverride("font_disabled_color", GameTheme.TextMuted);
 
-        // Belirgin altın çerçeve stili (normal/hover/pressed)
+        // Gold border style
         var playNormal = new StyleBoxFlat
         {
             BgColor = new Color("#1A2410"),
-            BorderColor = UITheme.Gold,
+            BorderColor = GameTheme.Gold,
             ContentMarginLeft = 10, ContentMarginRight = 10,
             ContentMarginTop = 8, ContentMarginBottom = 8
         };
         playNormal.SetBorderWidthAll(2);
-        playNormal.SetCornerRadiusAll(4);
+        playNormal.SetCornerRadiusAll(GameTheme.RadiusNormal);
         var playHover = new StyleBoxFlat
         {
             BgColor = new Color("#2A3A18"),
-            BorderColor = UITheme.GoldBright,
+            BorderColor = GameTheme.GoldBright,
             ContentMarginLeft = 10, ContentMarginRight = 10,
             ContentMarginTop = 8, ContentMarginBottom = 8
         };
         playHover.SetBorderWidthAll(2);
-        playHover.SetCornerRadiusAll(4);
+        playHover.SetCornerRadiusAll(GameTheme.RadiusNormal);
         var playPressed = new StyleBoxFlat
         {
             BgColor = new Color("#3A4A20"),
-            BorderColor = UITheme.GoldBright,
+            BorderColor = GameTheme.GoldBright,
             ContentMarginLeft = 10, ContentMarginRight = 10,
             ContentMarginTop = 8, ContentMarginBottom = 8
         };
         playPressed.SetBorderWidthAll(3);
-        playPressed.SetCornerRadiusAll(4);
+        playPressed.SetCornerRadiusAll(GameTheme.RadiusNormal);
         var playDisabled = new StyleBoxFlat
         {
             BgColor = new Color("#0D1210"),
-            BorderColor = new Color("#2A3542"),
+            BorderColor = GameTheme.BorderMedium,
             ContentMarginLeft = 10, ContentMarginRight = 10,
             ContentMarginTop = 8, ContentMarginBottom = 8
         };
         playDisabled.SetBorderWidthAll(1);
-        playDisabled.SetCornerRadiusAll(4);
+        playDisabled.SetCornerRadiusAll(GameTheme.RadiusNormal);
         _playButton.AddThemeStyleboxOverride("normal", playNormal);
         _playButton.AddThemeStyleboxOverride("hover", playHover);
         _playButton.AddThemeStyleboxOverride("pressed", playPressed);
@@ -367,8 +359,8 @@ public partial class CountryInfoPanel : PanelContainer
                 GM.SetPlayerCountry(_currentCountryId);
             }
         };
-        vbox.AddChild(_playButton); // en altta
-        UITheme.AddHoverScale(_playButton);
+        vbox.AddChild(_playButton);
+        GameTheme.StyleButton(_playButton);
     }
 
     private Label NewLabel(string text, int size, Color? color = null)
@@ -379,48 +371,46 @@ public partial class CountryInfoPanel : PanelContainer
         return l;
     }
 
-    // M7: Savaş durumu + DECLARE WAR butonunun görünürlüğü
-    // M17A: casus belli checklist + BUILD CASE butonları + eksik koşul tooltip'i
+    // M7 + M17A: War status + casus belli checklist + BUILD CASE
     private void UpdateWarStatus()
     {
         if (_warStatusLabel == null || _declareWarButton == null ||
             !GodotObject.IsInstanceValid(_warStatusLabel) || !GodotObject.IsInstanceValid(_declareWarButton))
             return;
 
-        // Varsayılan: gizle
         _warStatusLabel.Text = "";
         _declareWarButton.Disabled = true;
         ClearJustificationUi();
 
         if (_currentData == null || string.IsNullOrEmpty(_currentCountryId)) return;
 
-        // İlhaç edilmiş ülke: buton tamamen kapalı, etiket bilgi verir
+        // Annexed country
         if (_currentData.IsAnnexed)
         {
             var owner = CountryDatabase.Get(_currentData.OwnerId);
-            _warStatusLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+            _warStatusLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
             _warStatusLabel.Text = $"ANNEXED by {owner?.Name ?? _currentData.OwnerId}";
             return;
         }
 
-        // Oyuncu ülkesi seçiliyse savaş ilanı yok
+        // Player's own country
         if (GM.HasPlayer && _currentCountryId == GM.PlayerCountryId) return;
 
-        // Savaşta mı?
+        // At war
         var war = WarSystem.GetWarWith(_currentCountryId);
         if (war != null)
         {
-            _warStatusLabel.AddThemeColorOverride("font_color", new Color(1f, 0.35f, 0.3f));
+            _warStatusLabel.AddThemeColorOverride("font_color", GameTheme.Red);
             _warStatusLabel.Text = $"AT WAR — Progress: {war.WarProgress:F0}% | Enemy divisions: {war.EnemyDivisions}";
             _declareWarButton.Disabled = true;
             _declareWarButton.Text = "AT WAR";
             return;
         }
 
-        // Savaş ilanı mümkün mü? (oyuncu olmalı)
+        // Can declare war?
         if (!GM.HasPlayer || GM.PlayerCountryData == null) return;
 
-        // === M17A: Casus belli checklist ===
+        // Casus belli checklist
         int warCost = WarSystem.CalculateWarGoalCost(_currentCountryId);
         _declareWarButton.Text = $"DECLARE WAR ({warCost} PP)";
 
@@ -430,7 +420,6 @@ public partial class CountryInfoPanel : PanelContainer
         _declareWarButton.Disabled = !check.CanDeclare;
         if (!check.CanDeclare)
         {
-            // Tooltip: eksik koşulları listele
             var missing = check.Items.Where(i => !i.Met).Select(i => $"✗ {i.Label}: {i.Detail}");
             _declareWarButton.TooltipText = "War declaration blocked:\n" + string.Join("\n", missing);
         }
@@ -440,7 +429,6 @@ public partial class CountryInfoPanel : PanelContainer
         }
     }
 
-    // M17A: casus belli checklist + BUILD CASE UI'ını temizle
     private void ClearJustificationUi()
     {
         if (_checklistContainer == null || !GodotObject.IsInstanceValid(_checklistContainer)) return;
@@ -451,27 +439,25 @@ public partial class CountryInfoPanel : PanelContainer
             _warJustificationBox.Visible = false;
     }
 
-    // M17A: checklist etiketleri + BUILD CASE butonları kur
     private void BuildJustificationUi(CasusBelliSystem.WarCheckResult check)
     {
         _warJustificationBox.Visible = true;
 
-        // Checklist: her koşul ✓ (yeşil) / ✗ (kırmızı)
+        // Checklist: ✓ (green) / ✗ (red) using Chip component
         foreach (var item in check.Items)
         {
-            var l = NewLabel($"{(item.Met ? "✓" : "✗")} {item.Label}", 13,
-                item.Met ? new Color(0.45f, 0.85f, 0.45f) : new Color(0.9f, 0.4f, 0.35f));
+            var chip = Chip.CreateStatus($"{(item.Met ? "✓" : "✗")} {item.Label}",
+                item.Met ? Chip.Variant.Success : Chip.Variant.Danger);
+            chip.FontSize = GameTheme.FontSizeSmall;
+            chip.Clickable = false;
             if (!item.Met && !string.IsNullOrEmpty(item.Detail))
             {
-                l.TooltipText = item.Detail;
-                // Detay kırmızı koşullarda yanına küçük yazı olarak da gelsin
-                if (check.Items.Count(i => !i.Met) <= 3)
-                    l.Text += $" — {item.Detail}";
+                chip.TooltipText = item.Detail;
             }
-            _checklistContainer.AddChild(l);
+            _checklistContainer.AddChild(chip);
         }
 
-        // Devam eden gerekçe inşaatı (build case) varsa göster
+        // In-progress justifications
         var inProgress = CasusBelliSystem.Justifications
             .Where(j => j.CountryId == GM.PlayerCountryId && j.TargetId == _currentCountryId
                      && !j.IsConsumed && (j.BuildDaysLeft > 0 || j.UltimatumDaysLeft > 0))
@@ -482,11 +468,11 @@ public partial class CountryInfoPanel : PanelContainer
             string status = j.BuildDaysLeft > 0
                 ? $"BUILDING CASE: {t?.Name ?? j.TypeId} — {j.BuildDaysLeft} days left"
                 : $"CASE READY — ultimatum: {j.UltimatumDaysLeft} days left";
-            var l = NewLabel(status, 13, UITheme.GoldBright);
+            var l = NewLabel(status, GameTheme.FontSizeSmall, GameTheme.GoldBright);
             _checklistContainer.AddChild(l);
         }
 
-        // BUILD CASE butonları: başlatılabilir gerekçe türleri
+        // BUILD CASE buttons
         var startable = CasusBelliSystem.GetStartableTypes(GM.PlayerCountryId, _currentCountryId);
         foreach (var type in startable)
         {
@@ -496,28 +482,25 @@ public partial class CountryInfoPanel : PanelContainer
                 FocusMode = Control.FocusModeEnum.None,
                 TooltipText = type.Description
             };
-            b.AddThemeFontSizeOverride("font_size", 13);
+            b.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
             b.Pressed += () =>
             {
                 bool ok = CasusBelliSystem.StartBuildCase(GM.PlayerCountryId, _currentCountryId, type.Id);
                 if (ok)
                 {
-                    // UI tazele: checklist + buton durumu değişir
                     UpdateWarStatus();
                     if (_currentData != null)
                         _ppLabel.Text = $"Political Power: {_currentData.PoliticalPower:N1}";
                 }
             };
             _buildCaseContainer.AddChild(b);
-            UITheme.AddHoverScale(b);
+            GameTheme.StyleButton(b);
         }
     }
 
     public void ShowCountry(CountryData data, string name)
     {
-        // === DEBUG PRINT (istemci isteği) ===
         GD.Print($"[CountryInfoPanel] ShowCountry: id={data?.Id ?? "null"}, name={name}");
-        GD.Print($"  panel=null? {this == null}, Visible={Visible}, Pos={Position}, Size={Size}, GlobalPos={GlobalPosition}, parent={GetParent()?.GetType().Name ?? "null"}, ZIndex={ZIndex}");
 
         _currentData = data;
         _currentCountryId = data?.Id ?? "";
@@ -525,7 +508,6 @@ public partial class CountryInfoPanel : PanelContainer
         _capitalLabel.Text = $"Capital: {data.Capital}";
         _ideologyLabel.Text = $"Ideology: {data.Ideology}";
 
-        // Fallback notu: countries_data.json'da olmayan ülkeler tahmini değerle gelir
         _detailNoteLabel.Text = data.IsDetailed ? "" : "No detailed data — shown values are estimates";
 
         _stabilityLabel.Text = $"Stability: {data.StabilityPercent:N0}%";
@@ -536,7 +518,7 @@ public partial class CountryInfoPanel : PanelContainer
         _populationLabel.Text = $"Population: {data.Population:N0}";
         _manpowerLabel.Text = $"Manpower Pool: {data.ManpowerPool:N0}";
 
-        // M46.3: Kültür profili — il kültür katmanından türetilir (M44.2).
+        // Culture profile
         RefreshCultureLabel(data.Id);
 
         _factoriesLabel.Text = $"Factories: {data.CivFactories} Civ / {data.MilFactories} Mil / {data.Dockyards} Dock";
@@ -545,27 +527,19 @@ public partial class CountryInfoPanel : PanelContainer
 
         _divisionsLabel.Text = $"Starting Divisions: {data.StartingDivisions}";
 
-        // Bayrak: FlagLibrary üzerinden önbellekli PNG / yedek
         _flagBox.SetCountry(data.Id);
 
-        // Buton durumunu yeni seçime göre güncelle
         UpdatePlayButton();
         UpdateWarStatus();
 
-        // Overlay rect'i hemen güncelle
         UpdateOverlayRect();
 
-        // Açılış animasyonu: fade in — önceki fade'i öldür (paralel FadeOut yarışını önle)
         _fadeTween?.Kill();
         _fadeTween = UITheme.FadeIn(this, 0.12f);
     }
 
     /// <summary>
-    /// M46.3: Ülkenin kültür profilini il kültür katmanından kurar.
-    ///
-    /// Baskın kültür = il sayısına göre en çok tekrarlanan kültür (eşitlikte
-    /// kimlik — deterministik). Yabancı kültürlü il sayısı M45'nin uzlaşma ve
-    /// direniş mekaniğinin taşıyıcısı olduğundan panelde ayrı gösterilir.
+    /// M46.3: Country culture profile from province culture layer.
     /// </summary>
     private void RefreshCultureLabel(string countryId)
     {
@@ -573,7 +547,7 @@ public partial class CountryInfoPanel : PanelContainer
         if (records.Count == 0)
         {
             _cultureLabel.Text = "Culture: no province records";
-            _cultureLabel.AddThemeColorOverride("font_color", UITheme.TextDisabled);
+            _cultureLabel.AddThemeColorOverride("font_color", GameTheme.TextDisabled);
             return;
         }
 
@@ -596,17 +570,14 @@ public partial class CountryInfoPanel : PanelContainer
         _cultureLabel.Text = $"Culture: {dominant} ({dist.Count} total) " +
                             $"— {dominantCount}/{records.Count} provinces, " +
                             $"{foreignCount} foreign";
-        // Yabancı kültür baskınsa panel okuyucuyu uyarmalı.
         _cultureLabel.AddThemeColorOverride("font_color",
-            foreignCount > dominantCount ? new Color(0.95f, 0.55f, 0.3f) : UITheme.TextMain);
+            foreignCount > dominantCount ? GameTheme.Orange : GameTheme.TextPrimary);
     }
 
-    /// <summary>Kültür profil satırının metni (test/UI denetim).</summary>
     public string CultureSummary => _cultureLabel?.Text ?? "";
 
     public void HidePanel()
     {
-        // Kapanış animasyonu: fade out, bitince gizle — önceki fade'i öldür
         _fadeTween?.Kill();
         _fadeTween = UITheme.FadeOut(this, 0.08f, () => Hide());
     }

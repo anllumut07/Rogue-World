@@ -145,6 +145,18 @@ C:\Proje\Rogue-World\
 - **Build**: 0 errors/0 warnings ✓
 - **Tests**: `--save-load-test` both scenarios PASS A==B, `--climate-test` PASS, all regression tests PASS
 
+### 3. MigrationPanel ✓ (2026-11-16)
+- Migrated to GameTheme + reusable UI components
+- 4 tabs via TabBar: OVERVIEW / CRISES / FLOWS / POLICIES
+- SearchBox filter with result count on Crises and Flows tabs
+- Chip badges for border policy categories (Humanitarian/Balanced/Security/Isolationist) and crisis types
+- StatBar-style metrics cards for global/player refugee counts
+- TooltipBuilder for rich border policy/aid package/crisis tooltips (cost/effects/requirements color-coded)
+- EmptyState for "No Active Crises", "No Migration Flows", "No Player Country"
+- All M56.3 behavior preserved: border policy change, aid package activation, crisis/flow tables, intensity bars
+- **Build**: 0 errors/0 warnings ✓
+- **Tests**: `--save-load-test` both scenarios PASS A==B, `--migration-test` PASS, all regression tests PASS
+
 ## Prioritized TODO (from TODO.md)
 1. **M52.1-52.4** — Recognition consequences (org membership, trade, AI alliances, REQUEST RECOGNITION action, war tension/intervention, save/load A==B) — ALL DONE ✓
 2. **M53.1-53.5** — Advisor System (18 profiles, hire/fire, deterministic advice, 7-day cooldown, AdvisorPanel UI, HUD button, save/load A==B both scenarios) — ALL DONE ✓

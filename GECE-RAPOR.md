@@ -3795,3 +3795,48 @@ toplam hatası bu değerin çok altında, gerçek "toplam 1 değil" durumlarıys
 
 ### 6. Dosyalar
 - Değiştirilen: `Scripts/ClimatePanel.cs`, `TODO.md`, `PROJECT_STATE.md`, `GECE-RAPOR.md`.
+
+---
+
+## STAGE 2 UI MIGRATION — MigrationPanel — ✅ DONE (2026-11-16)
+
+### 1. Neyi değiştirdim
+- **Scripts/MigrationPanel.cs** (tam yeniden yazıldı, ~700 satır): GamePanel + reusable UI components ile tam uyumlu:
+  - `GamePanel` base sınıfı: title bar, ESC kapatma, modal backdrop, 1000x560 minimum / 1400x800 maksimum
+  - `TabBar`: 4 sekmeli kategori (OVERVIEW / CRISES / FLOWS / POLICIES)
+  - `SearchBox`: CRISES ve FLOWS sekmelerinde filtre, sonuç sayısı göstergeli, temizleme butonu
+  - `Chip`: Sınır politikası kategori badge'leri (Humanitarian/Balanced/Security/Isolationist) ve kriz türü badge'leri
+  - Metrik kartları: Küresel/oyuncu mülteci sayıları (StatBar tarzı)
+  - `TooltipBuilder`: Sınır politikası, yardım paketi ve kriz kartları için zengin tooltip (cost/effects/requirements renk kodlu)
+  - `EmptyState`: "No Active Crises", "No Migration Flows", "No Player Country" durumları
+  - Tüm mevcut davranış korundu: Sınır politikası değiştirme, yardım paketi aktif etme, kriz/akış tabloları, şiddet çubukları.
+
+### 2. Test Sonuçları
+- `dotnet build`: **0 hata / 0 uyarı**
+- `--save-load-test` (historical_1936): **PASS ✓ (A == B)**
+- `--save-load-test --scenario=modern_world`: **PASS ✓ (A == B)**
+- `--migration-test`: **PASS ✓**
+- `--climate-test`: **PASS ✓**
+- `--espionage-mission-test`: **PASS ✓**
+- `--recognition-test`: **PASS ✓**
+- `--occupation-test`: **PASS ✓**
+- `--civil-war-test`: **PASS ✓**
+- `--scenario-test`: **PASS ✓**
+- `--decisions-test`: **PASS ✓**
+- `--advisor-test`: **PASS ✓**
+
+### 3. Çözülemeyen şey
+- Yok — MigrationPanel migration %100 tamamlandı.
+
+### 4. Bilinen sorunlar
+- EMISSIONS sekmesindeki tablo layout'u çok dar pencerede kayabilir (GamePanel max genişlik 1400 px ile sınırlı).
+
+### 5. Kullanıcının test etmesi gerekenler
+- `dotnet build` (0/0)
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --save-load-test` — PASS A==B (historical_1936)
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --save-load-test --scenario=modern_world` — PASS A==B
+- `powershell -ExecutionPolicy Bypass -File tools\run-test.ps1 --migration-test` — PASS
+- Godot editörde F5 → MIGRATION butonu → panel açılır, 4 sekme çalışır, ESC/backdrop kapanır.
+
+### 6. Dosyalar
+- Değiştirilen: `Scripts/MigrationPanel.cs`, `PROJECT_STATE.md`, `GECE-RAPOR.md`.

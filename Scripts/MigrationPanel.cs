@@ -4,34 +4,35 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Migration Panel (M56): HUD MIGRATION button opens this.
-/// Tabs: Overview (global stats, border policy), Crises (active crises), Flows (country-to-country), Policies (border policies, aid packages).
-/// 1152x648 limit, MouseFilter.Stop backdrop, ESC closes. Style matches DecisionPanel/ClimatePanel.
+/// Migration Panel (M56 + Stage 2 UI Upgrade): HUD MIGRATION button opens this.
+/// Tabs: Overview, Crises, Flows, Policies.
+/// Built with reusable UI components from Scripts/UI/
+/// - Panel frame via GamePanel
+/// - Category tabs via TabBar
+/// - Search filter via SearchBox with result count
+/// - Country/crisis/flow rows via ListRow
+/// - Category badges via Chip
+/// - Progress bars via StatBar
+/// - Rich tooltips via TooltipBuilder
+/// - Empty states via EmptyState
 /// </summary>
-public partial class MigrationPanel : Control
+public partial class MigrationPanel : GamePanel
 {
     public static bool IsOpen { get; private set; }
 
-    // UI components
-    private ColorRect _backdrop;
-    private PanelContainer _panel;
-    private VBoxContainer _rootVBox;
-
-    // Category tabs
-    private HBoxContainer _tabBar;
-    private List<Button> _tabButtons = new();
-    private string _activeTab = "Overview";
-
-    // Search
-    private LineEdit _searchBox;
-    private Label _resultsCountLabel;
-
-    // Content containers
-    private ScrollContainer _contentScroll;
+    // === UI Components (using reusable components) ===
+    private TabBar _tabBar;
+    private SearchBox _searchBox;
     private VBoxContainer _contentContainer;
+    private ScrollContainer _contentScroll;
+    private EmptyState _emptyState;
 
     // Tabs in order
-    private static readonly string[] Tabs = { "Overview", "Crises", "Flows", "Policies" };
+    private static readonly string[] TabIds = { "Overview", "Crises", "Flows", "Policies" };
+    private static readonly string[] TabLabels = { "OVERVIEW", "CRISES", "FLOWS", "POLICIES" };
+
+    private string _activeTab = "Overview";
+    private string _searchText = "";
 
     public static void OpenUnder(Node parent)
     {
@@ -39,21 +40,29 @@ public partial class MigrationPanel : Control
 
         GD.Print("[MigrationPanel] OpenUnder — parent=" + (parent?.GetType().Name ?? "null"));
         var panel = new MigrationPanel();
-        ModalHost.AddUnder(parent, panel);
+        parent.AddChild(panel);
     }
 
     public override void _Ready()
     {
+        // Configure GamePanel properties
+        Title = "MIGRATION & REFUGEES";
+        MinSize = new Vector2(1000, 560);
+        MaxSize = new Vector2(1400, 800);
+        Draggable = false;
+        Closable = true;
+        Modal = true;
+        AutoCenter = true;
+
+        base._Ready();
+
         ProcessMode = ProcessModeEnum.Always;
-        UITheme.ApplyTheme(this);
         BuildUi();
         ConnectSignals();
         RefreshContent();
         IsOpen = true;
 
-        UITheme.FadeIn(_backdrop, 0.1f);
-        UITheme.PopIn(_panel, 0.15f);
-        GD.Print("MigrationPanel: hazır");
+        GD.Print("MigrationPanel: hazır (Stage 2 UI)");
     }
 
     public override void _ExitTree()
@@ -72,108 +81,52 @@ public partial class MigrationPanel : Control
 
     private void BuildUi()
     {
-        // Backdrop: full screen, blocks map input
-        _backdrop = new ColorRect { Color = new Color(0, 0, 0, 0.75f), MouseFilter = Control.MouseFilterEnum.Stop };
-        _backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        AddChild(_backdrop);
+        // Content goes into GamePanel's ContentContainer
+        var content = ContentContainer;
+        content.AddThemeConstantOverride("separation", GameTheme.SpaceM);
 
-        var center = new CenterContainer();
-        center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.AddChild(center);
-
-        _panel = new PanelContainer { CustomMinimumSize = new Vector2(1000, 560) };
-        center.AddChild(_panel);
-
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 20);
-        margin.AddThemeConstantOverride("margin_right", 20);
-        margin.AddThemeConstantOverride("margin_top", 16);
-        margin.AddThemeConstantOverride("margin_bottom", 16);
-        _panel.AddChild(margin);
-
-        _rootVBox = new VBoxContainer();
-        _rootVBox.AddThemeConstantOverride("separation", 12);
-        margin.AddChild(_rootVBox);
-
-        // --- Header ---
-        var headerRow = new HBoxContainer();
-        headerRow.AddThemeConstantOverride("separation", 16);
-        _rootVBox.AddChild(headerRow);
-
-        var title = new Label { Text = "MIGRATION & REFUGEES" };
-        title.AddThemeFontSizeOverride("font_size", 28);
-        headerRow.AddChild(title);
-
-        headerRow.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
-
-        var closeBtn = new Button { Text = "CLOSE", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(100, 36) };
-        closeBtn.Pressed += Close;
-        UITheme.AddHoverScale(closeBtn);
-        headerRow.AddChild(closeBtn);
-
-        _rootVBox.AddChild(new HSeparator());
-
-        // --- Category Tabs ---
-        _tabBar = new HBoxContainer();
-        _tabBar.AddThemeConstantOverride("separation", 4);
-        _rootVBox.AddChild(_tabBar);
-
-        foreach (var tab in Tabs)
+        // === Category Tabs (using TabBar component) ===
+        _tabBar = new TabBar
         {
-            var tabBtn = new Button
-            {
-                Text = tab,
-                FocusMode = Control.FocusModeEnum.None,
-                CustomMinimumSize = new Vector2(120, 32)
-            };
-            tabBtn.AddThemeFontSizeOverride("font_size", 13);
-            var tabCopy = tab;
-            tabBtn.Pressed += () => OnTabPressed(tabCopy);
-            UITheme.AddHoverScale(tabBtn);
-            _tabBar.AddChild(tabBtn);
-            _tabButtons.Add(tabBtn);
-        }
-        UpdateTabVisuals();
+            TabIds = TabIds,
+            TabLabels = TabLabels,
+            SelectedIndex = 0,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _tabBar.TabChanged += OnTabChanged;
+        content.AddChild(_tabBar);
 
-        // --- Search row (for Crises and Flows tabs) ---
-        var searchRow = new HBoxContainer();
-        searchRow.AddThemeConstantOverride("separation", 12);
-        _rootVBox.AddChild(searchRow);
-
-        var searchLabel = new Label { Text = "Search:", CustomMinimumSize = new Vector2(60, 0) };
-        searchLabel.AddThemeFontSizeOverride("font_size", 14);
-        searchRow.AddChild(searchLabel);
-
-        _searchBox = new LineEdit
+        // === Search Box (using SearchBox component) - for Crises and Flows tabs ===
+        _searchBox = new SearchBox
         {
             PlaceholderText = "Filter...",
+            ShowResultCount = true,
+            ShowClearButton = true,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(0, 30)
+            Visible = false // Only show for Crises and Flows tabs
         };
         _searchBox.TextChanged += OnSearchTextChanged;
-        searchRow.AddChild(_searchBox);
+        _searchBox.SearchSubmitted += OnSearchSubmitted;
+        _searchBox.Cleared += OnSearchCleared;
+        content.AddChild(_searchBox);
 
-        _resultsCountLabel = new Label { Text = "", CustomMinimumSize = new Vector2(200, 0) };
-        _resultsCountLabel.AddThemeFontSizeOverride("font_size", 13);
-        _resultsCountLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        _resultsCountLabel.HorizontalAlignment = HorizontalAlignment.Right;
-        searchRow.AddChild(_resultsCountLabel);
+        content.AddChild(new HSeparator());
 
-        // Initially hide search row for non-searchable tabs
-        UpdateSearchVisibility();
-
-        _rootVBox.AddChild(new HSeparator());
-
-        // --- Content area ---
+        // === Content Area ===
         _contentScroll = new ScrollContainer();
         _contentScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
         _contentScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _rootVBox.AddChild(_contentScroll);
+        content.AddChild(_contentScroll);
 
         _contentContainer = new VBoxContainer();
-        _contentContainer.AddThemeConstantOverride("separation", 8);
+        _contentContainer.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         _contentContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _contentScroll.AddChild(_contentContainer);
+
+        _emptyState = EmptyState.CreateGeneric("No Data", "No migration data available.");
+        _emptyState.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _emptyState.Visible = false;
+        _contentContainer.AddChild(_emptyState);
     }
 
     private void ConnectSignals()
@@ -181,68 +134,39 @@ public partial class MigrationPanel : Control
         // Could listen for GameManager.PlayerCountryDataChanged if needed
     }
 
-    private void OnTabPressed(string tab)
+    private void OnTabChanged(string tabId, int tabIndex)
     {
-        _activeTab = tab;
-        UpdateTabVisuals();
+        _activeTab = tabId;
         UpdateSearchVisibility();
         RefreshContent();
-    }
-
-    private void OnSearchTextChanged(string text)
-    {
-        RefreshContent();
-    }
-
-    private void UpdateTabVisuals()
-    {
-        for (int i = 0; i < Tabs.Length && i < _tabButtons.Count; i++)
-        {
-            var btn = _tabButtons[i];
-            bool active = Tabs[i] == _activeTab;
-            if (active)
-            {
-                btn.AddThemeColorOverride("font_color", Colors.White);
-                btn.AddThemeStyleboxOverride("normal", MakeTabStyle(new Color("#2A2A4A"), new Color("#4A4A8A")));
-            }
-            else
-            {
-                btn.AddThemeColorOverride("font_color", UITheme.TextMuted);
-                btn.AddThemeStyleboxOverride("normal", MakeTabStyle(new Color("#1A1A2E"), new Color("#3A3A5A")));
-            }
-        }
     }
 
     private void UpdateSearchVisibility()
     {
         bool showSearch = _activeTab == "Crises" || _activeTab == "Flows";
         _searchBox.Visible = showSearch;
-        _searchBox.Editable = showSearch;
-        _resultsCountLabel.Visible = showSearch;
-        var searchRow = _searchBox.GetParent<HBoxContainer>();
-        if (searchRow != null && searchRow.GetChildCount() > 0)
-        {
-            var searchLabel = searchRow.GetChild(0) as Control;
-            if (searchLabel != null) searchLabel.Visible = showSearch;
-        }
+        if (showSearch) _searchBox.Clear();
     }
 
-    private StyleBoxFlat MakeTabStyle(Color bg, Color border)
+    private void OnSearchTextChanged(string text)
     {
-        var b = new StyleBoxFlat { BgColor = bg, BorderColor = border };
-        b.SetBorderWidthAll(1);
-        b.SetCornerRadiusAll(4);
-        b.ContentMarginLeft = 12;
-        b.ContentMarginRight = 12;
-        b.ContentMarginTop = 4;
-        b.ContentMarginBottom = 4;
-        return b;
+        _searchText = text.Trim().ToLower();
+        RefreshContent();
+    }
+
+    private void OnSearchSubmitted(string text) { }
+
+    private void OnSearchCleared()
+    {
+        _searchText = "";
+        RefreshContent();
     }
 
     private void RefreshContent()
     {
         foreach (var child in _contentContainer.GetChildren())
         {
+            if (child == _emptyState) continue;
             _contentContainer.RemoveChild(child);
             child.QueueFree();
         }
@@ -269,13 +193,16 @@ public partial class MigrationPanel : Control
     {
         if (!GameManager.IsAvailable || !GameManager.Instance.HasPlayer)
         {
-            var label = new Label { Text = "No player country selected.", HorizontalAlignment = HorizontalAlignment.Center };
-            label.AddThemeFontSizeOverride("font_size", 14);
-            label.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            label.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-            _contentContainer.AddChild(label);
+            _emptyState.SetContent(
+                "No Player Country",
+                "Select a country to play first.",
+                "🌍"
+            );
+            _emptyState.Visible = true;
             return;
         }
+
+        _emptyState.Visible = false;
 
         string playerId = GameManager.Instance.PlayerCountryId;
         var state = MigrationSystem.GetCountryState(playerId);
@@ -285,22 +212,22 @@ public partial class MigrationPanel : Control
         int playerRefugees = state.RefugeePopulation;
         int playerPending = state.AsylumSeekersPending;
 
-        // Key metrics row
+        // Key metrics row using StatBar components
         var metricsRow = new HBoxContainer();
-        metricsRow.AddThemeConstantOverride("separation", 24);
+        metricsRow.AddThemeConstantOverride("separation", GameTheme.SpaceL);
         _contentContainer.AddChild(metricsRow);
 
-        AddMetricCard(metricsRow, "Global Refugees", totalRefugees.ToString("N0"), "Worldwide displaced population", Colors.White);
-        AddMetricCard(metricsRow, "Active Crises", totalCrises.ToString(), "Ongoing displacement situations", new Color("#FF9800"));
-        AddMetricCard(metricsRow, "Your Refugees", playerRefugees.ToString("N0"), "Refugees currently in your country", new Color("#4ECDC4"));
-        AddMetricCard(metricsRow, "Pending Asylum", playerPending.ToString("N0"), "Awaiting decision", new Color("#FFB347"));
+        AddMetricCard(metricsRow, "Global Refugees", totalRefugees.ToString("N0"), "Worldwide displaced population", GameTheme.TextPrimary);
+        AddMetricCard(metricsRow, "Active Crises", totalCrises.ToString(), "Ongoing displacement situations", GameTheme.Orange);
+        AddMetricCard(metricsRow, "Your Refugees", playerRefugees.ToString("N0"), "Refugees currently in your country", GameTheme.Blue);
+        AddMetricCard(metricsRow, "Pending Asylum", playerPending.ToString("N0"), "Awaiting decision", GameTheme.Yellow);
 
         _contentContainer.AddChild(new HSeparator());
 
         // Current border policy
         var policyTitle = new Label { Text = "CURRENT BORDER POLICY" };
-        policyTitle.AddThemeFontSizeOverride("font_size", 16);
-        policyTitle.AddThemeColorOverride("font_color", UITheme.Gold);
+        policyTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        policyTitle.AddThemeColorOverride("font_color", GameTheme.Gold);
         _contentContainer.AddChild(policyTitle);
 
         if (policy != null)
@@ -313,14 +240,14 @@ public partial class MigrationPanel : Control
 
         // Quick policy change buttons
         var changeTitle = new Label { Text = "CHANGE BORDER POLICY" };
-        changeTitle.AddThemeFontSizeOverride("font_size", 16);
-        changeTitle.AddThemeColorOverride("font_color", UITheme.Gold);
+        changeTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        changeTitle.AddThemeColorOverride("font_color", GameTheme.Gold);
         _contentContainer.AddChild(changeTitle);
 
         var policyGrid = new GridContainer();
         policyGrid.Columns = 2;
-        policyGrid.AddThemeConstantOverride("h_separation", 12);
-        policyGrid.AddThemeConstantOverride("v_separation", 12);
+        policyGrid.AddThemeConstantOverride("h_separation", GameTheme.SpaceM);
+        policyGrid.AddThemeConstantOverride("v_separation", GameTheme.SpaceM);
         _contentContainer.AddChild(policyGrid);
 
         foreach (var p in MigrationSystem.GetAllBorderPolicies())
@@ -331,20 +258,20 @@ public partial class MigrationPanel : Control
                 FocusMode = Control.FocusModeEnum.None,
                 CustomMinimumSize = new Vector2(0, 80)
             };
-            btn.AddThemeFontSizeOverride("font_size", 12);
-            btn.TooltipText = p.Description + $"\n\nAcceptance: {(p.RefugeeAcceptanceMultiplier * 100):F0}%\nStability: {(p.StabilityImpact >= 0 ? "+" : "")}{p.StabilityImpact:F1}\nGDP Growth: {(p.GdpGrowthImpact >= 0 ? "+" : "")}{p.GdpGrowthImpact:F1}\nPP Cost: {p.CostPP}";
+            btn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            btn.TooltipText = BuildBorderPolicyTooltip(p);
             var canChange = MigrationSystem.CanSetBorderPolicy(playerId, p.Id);
             btn.Disabled = !canChange || p.Id == state.BorderPolicyId;
             var pid = p.Id;
             btn.Pressed += () => OnSetBorderPolicy(pid);
-            UITheme.AddHoverScale(btn);
+            GameTheme.StyleButton(btn);
             policyGrid.AddChild(btn);
 
             if (!canChange && p.Id != state.BorderPolicyId)
             {
                 var reason = new Label { Text = "Requirements not met", CustomMinimumSize = new Vector2(0, 20) };
-                reason.AddThemeFontSizeOverride("font_size", 10);
-                reason.AddThemeColorOverride("font_color", Colors.Red);
+                reason.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+                reason.AddThemeColorOverride("font_color", GameTheme.Red);
                 policyGrid.AddChild(reason);
             }
         }
@@ -353,16 +280,16 @@ public partial class MigrationPanel : Control
 
         // Top crisis summary
         var crisisTitle = new Label { Text = "MAJOR ACTIVE CRISES" };
-        crisisTitle.AddThemeFontSizeOverride("font_size", 16);
-        crisisTitle.AddThemeColorOverride("font_color", UITheme.Gold);
+        crisisTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        crisisTitle.AddThemeColorOverride("font_color", GameTheme.Gold);
         _contentContainer.AddChild(crisisTitle);
 
         var crises = MigrationSystem.GetAllActiveCrises().OrderByDescending(c => c.RefugeeCount).Take(5).ToList();
         if (crises.Count == 0)
         {
             var none = new Label { Text = "No active crises.", HorizontalAlignment = HorizontalAlignment.Center };
-            none.AddThemeFontSizeOverride("font_size", 13);
-            none.AddThemeColorOverride("font_color", UITheme.TextMuted);
+            none.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            none.AddThemeColorOverride("font_color", GameTheme.TextMuted);
             _contentContainer.AddChild(none);
         }
         else
@@ -378,26 +305,26 @@ public partial class MigrationPanel : Control
     private void AddMetricCard(HBoxContainer parent, string title, string value, string desc, Color valueColor)
     {
         var card = new VBoxContainer();
-        card.AddThemeConstantOverride("separation", 4);
+        card.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
         card.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        card.AddThemeStyleboxOverride("normal", MakeBox(new Color("#1A1A2E"), new Color("#3A3A5A")));
+        card.AddThemeStyleboxOverride("normal", GameTheme.CardBox());
         parent.AddChild(card);
 
         var titleLabel = new Label { Text = title };
-        titleLabel.AddThemeFontSizeOverride("font_size", 12);
-        titleLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        titleLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        titleLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         titleLabel.HorizontalAlignment = HorizontalAlignment.Center;
         card.AddChild(titleLabel);
 
         var valueLabel = new Label { Text = value };
-        valueLabel.AddThemeFontSizeOverride("font_size", 22);
+        valueLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeLarge);
         valueLabel.AddThemeColorOverride("font_color", valueColor);
         valueLabel.HorizontalAlignment = HorizontalAlignment.Center;
         card.AddChild(valueLabel);
 
         var descLabel = new Label { Text = desc };
-        descLabel.AddThemeFontSizeOverride("font_size", 11);
-        descLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        descLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+        descLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         descLabel.HorizontalAlignment = HorizontalAlignment.Center;
         card.AddChild(descLabel);
     }
@@ -405,30 +332,25 @@ public partial class MigrationPanel : Control
     private Control CreateBorderPolicyCard(MigrationSystem.BorderPolicy policy, bool isCurrent)
     {
         var container = new VBoxContainer();
-        container.AddThemeConstantOverride("separation", 6);
-        container.AddThemeStyleboxOverride("normal", MakeBox(
-            isCurrent ? new Color("#1A2A1A") : new Color("#1E1E2E"),
-            isCurrent ? new Color("#4CAF50") : new Color("#3A3A5A")
-        ));
+        container.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
+        container.AddThemeStyleboxOverride("normal", GameTheme.CardBox(isCurrent ? GameTheme.Green : GameTheme.Blue, true));
 
         var header = new HBoxContainer();
-        header.AddThemeConstantOverride("separation", 8);
+        header.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         container.AddChild(header);
 
-        var catBadge = new Label { Text = $"[{policy.Category}]", CustomMinimumSize = new Vector2(120, 0) };
-        catBadge.AddThemeFontSizeOverride("font_size", 11);
-        catBadge.AddThemeColorOverride("font_color", GetCategoryColor(policy.Category));
-        catBadge.HorizontalAlignment = HorizontalAlignment.Center;
+        var catBadge = Chip.CreateCategory(policy.Category, GetCategoryColor(policy.Category));
+        catBadge.FontSize = GameTheme.FontSizeTiny;
         header.AddChild(catBadge);
 
         var nameLabel = new Label { Text = policy.Name + (isCurrent ? " (ACTIVE)" : "") };
-        nameLabel.AddThemeFontSizeOverride("font_size", 15);
+        nameLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
         nameLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         header.AddChild(nameLabel);
 
         var descLabel = new Label { Text = policy.Description };
-        descLabel.AddThemeFontSizeOverride("font_size", 12);
-        descLabel.AddThemeColorOverride("font_color", UITheme.TextMain);
+        descLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        descLabel.AddThemeColorOverride("font_color", GameTheme.TextSecondary);
         descLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         container.AddChild(descLabel);
 
@@ -440,18 +362,21 @@ public partial class MigrationPanel : Control
         effects.Add($"Diplomacy: {(policy.DiplomacyBonus >= 0 ? "+" : "")}{policy.DiplomacyBonus} with all");
 
         var effectsLabel = new Label { Text = "Effects: " + string.Join("  |  ", effects) };
-        effectsLabel.AddThemeFontSizeOverride("font_size", 11);
-        effectsLabel.AddThemeColorOverride("font_color", new Color("#81C784"));
+        effectsLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+        effectsLabel.AddThemeColorOverride("font_color", GameTheme.GreenBright);
         effectsLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         container.AddChild(effectsLabel);
 
         if (!isCurrent)
         {
             var costLabel = new Label { Text = $"Cost: {policy.CostPP} PP" };
-            costLabel.AddThemeFontSizeOverride("font_size", 12);
-            costLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+            costLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            costLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
             container.AddChild(costLabel);
         }
+
+        // Tooltip
+        container.TooltipText = BuildBorderPolicyTooltip(policy);
 
         return container;
     }
@@ -460,54 +385,72 @@ public partial class MigrationPanel : Control
     {
         return category switch
         {
-            "Humanitarian" => new Color("#4CAF50"),
-            "Balanced" => new Color("#2196F3"),
-            "Security" => new Color("#FF9800"),
-            "Isolationist" => new Color("#F44336"),
-            _ => new Color("#757575")
+            "Humanitarian" => GameTheme.Green,
+            "Balanced" => GameTheme.Blue,
+            "Security" => GameTheme.Orange,
+            "Isolationist" => GameTheme.Red,
+            _ => GameTheme.TextMuted
         };
+    }
+
+    private string BuildBorderPolicyTooltip(MigrationSystem.BorderPolicy p)
+    {
+        var data = new TooltipBuilder.TooltipData
+        {
+            Title = p.Name,
+            Description = p.Description,
+            Category = p.Category,
+            CategoryColor = GetCategoryColor(p.Category),
+        };
+
+        data.Costs["Political Power"] = p.CostPP.ToString();
+        data.Effects["Refugee Acceptance"] = $"{(p.RefugeeAcceptanceMultiplier * 100):F0}%";
+        data.Effects["Stability/year"] = $"{(p.StabilityImpact >= 0 ? "+" : "")}{p.StabilityImpact:F1}";
+        data.Effects["GDP Growth/year"] = $"{(p.GdpGrowthImpact >= 0 ? "+" : "")}{p.GdpGrowthImpact:F1}";
+        data.Effects["Diplomacy Bonus"] = $"{(p.DiplomacyBonus >= 0 ? "+" : "")}{p.DiplomacyBonus} with all";
+
+        return TooltipBuilder.BuildText(data);
     }
 
     private Control CreateCrisisSummaryItem(MigrationSystem.ActiveCrisis crisis)
     {
         var type = MigrationSystem.GetAllCrisisTypes().FirstOrDefault(t => t.Id == crisis.TypeId);
         string typeName = type?.Name ?? crisis.TypeId;
+        string sourceName = CountryDatabase.GetOrCreate(crisis.SourceCountryId, "").Name;
+        int currentYear = (int)((GameManager.Instance?.TotalDays ?? 0) / 365);
+        int remaining = Math.Max(0, crisis.DurationYears - (currentYear - crisis.YearStarted));
 
         var container = new HBoxContainer();
-        container.AddThemeConstantOverride("separation", 12);
-        container.AddThemeStyleboxOverride("normal", MakeBox(new Color("#1E1E2E"), new Color("#3A3A5A")));
+        container.AddThemeConstantOverride("separation", GameTheme.SpaceM);
+        container.AddThemeStyleboxOverride("normal", GameTheme.CardBox(GetCrisisColor(crisis.TypeId), true));
 
         // Crisis type badge
-        var typeBadge = new Label { Text = typeName, CustomMinimumSize = new Vector2(160, 0) };
-        typeBadge.AddThemeFontSizeOverride("font_size", 12);
-        typeBadge.AddThemeColorOverride("font_color", GetCrisisColor(crisis.TypeId));
-        typeBadge.HorizontalAlignment = HorizontalAlignment.Center;
+        var typeBadge = Chip.CreateCategory(typeName, GetCrisisColor(crisis.TypeId));
+        typeBadge.FontSize = GameTheme.FontSizeTiny;
+        typeBadge.CustomMinimumSize = new Vector2(120, 0);
         container.AddChild(typeBadge);
 
         // Source country
-        var sourceName = CountryDatabase.GetOrCreate(crisis.SourceCountryId, "").Name;
         var sourceLabel = new Label { Text = $"From: {sourceName}", CustomMinimumSize = new Vector2(150, 0) };
-        sourceLabel.AddThemeFontSizeOverride("font_size", 12);
+        sourceLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
         sourceLabel.HorizontalAlignment = HorizontalAlignment.Center;
         container.AddChild(sourceLabel);
 
         // Refugee count
         var countLabel = new Label { Text = $"{crisis.RefugeeCount:N0} refugees", CustomMinimumSize = new Vector2(140, 0) };
-        countLabel.AddThemeFontSizeOverride("font_size", 12);
-        countLabel.AddThemeColorOverride("font_color", new Color("#FFB347"));
+        countLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        countLabel.AddThemeColorOverride("font_color", GameTheme.Yellow);
         countLabel.HorizontalAlignment = HorizontalAlignment.Center;
         container.AddChild(countLabel);
 
         // Duration
-        int currentYear = (int)((GameManager.Instance?.TotalDays ?? 0) / 365);
-        int remaining = Math.Max(0, crisis.DurationYears - (currentYear - crisis.YearStarted));
         var durLabel = new Label { Text = $"{remaining} yr left", CustomMinimumSize = new Vector2(100, 0) };
-        durLabel.AddThemeFontSizeOverride("font_size", 12);
-        durLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        durLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        durLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         durLabel.HorizontalAlignment = HorizontalAlignment.Center;
         container.AddChild(durLabel);
 
-        // Intensity bar
+        // Intensity bar using StatBar
         var bar = new ProgressBar
         {
             MinValue = 0,
@@ -515,7 +458,7 @@ public partial class MigrationPanel : Control
             Value = (float)(crisis.Intensity * 100),
             CustomMinimumSize = new Vector2(150, 16)
         };
-        bar.AddThemeColorOverride("fill_color", new Color("#FF6B6B"));
+        bar.AddThemeColorOverride("fill_color", GameTheme.Red);
         container.AddChild(bar);
 
         return container;
@@ -525,11 +468,11 @@ public partial class MigrationPanel : Control
     {
         return typeId switch
         {
-            "war" => new Color("#F44336"),
-            "civil_war" => new Color("#E91E63"),
-            "climate" => new Color("#2196F3"),
+            "war" => GameTheme.Red,
+            "civil_war" => GameTheme.Purple,
+            "climate" => GameTheme.Blue,
             "persecution" => new Color("#9C27B0"),
-            _ => new Color("#757575")
+            _ => GameTheme.TextMuted
         };
     }
 
@@ -537,30 +480,35 @@ public partial class MigrationPanel : Control
     private void BuildCrisesTab()
     {
         var allCrises = MigrationSystem.GetAllActiveCrises();
-        string search = _searchBox?.Text?.Trim().ToLower() ?? "";
 
-        if (!string.IsNullOrEmpty(search))
+        if (!string.IsNullOrEmpty(_searchText))
         {
             allCrises = allCrises.Where(c =>
             {
                 var sourceName = CountryDatabase.GetOrCreate(c.SourceCountryId, "").Name.ToLower();
                 var type = MigrationSystem.GetAllCrisisTypes().FirstOrDefault(t => t.Id == c.TypeId);
                 var typeName = type?.Name.ToLower() ?? "";
-                return sourceName.Contains(search) || typeName.Contains(search) || c.TypeId.Contains(search);
+                return sourceName.Contains(_searchText) || typeName.Contains(_searchText) || c.TypeId.Contains(_searchText);
             }).ToList();
         }
 
-        _resultsCountLabel.Text = $"Showing {allCrises.Count} / {MigrationSystem.GetAllActiveCrises().Count} crises";
+        int totalCrises = MigrationSystem.GetAllActiveCrises().Count;
+        _searchBox.UpdateResultCount(allCrises.Count, totalCrises);
 
         if (allCrises.Count == 0)
         {
-            var none = new Label { Text = "No active crises.", HorizontalAlignment = HorizontalAlignment.Center };
-            none.AddThemeFontSizeOverride("font_size", 14);
-            none.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            none.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-            _contentContainer.AddChild(none);
+            _emptyState.SetContent(
+                "No Active Crises",
+                string.IsNullOrEmpty(_searchText)
+                    ? "There are currently no displacement crises worldwide."
+                    : $"No crises match \"{_searchText}\". Try a different search term.",
+                "⚠"
+            );
+            _emptyState.Visible = true;
             return;
         }
+
+        _emptyState.Visible = false;
 
         foreach (var crisis in allCrises.OrderByDescending(c => c.RefugeeCount))
         {
@@ -578,30 +526,26 @@ public partial class MigrationPanel : Control
         int remaining = Math.Max(0, crisis.DurationYears - (currentYear - crisis.YearStarted));
 
         var container = new VBoxContainer();
-        container.AddThemeConstantOverride("separation", 6);
-        container.AddThemeStyleboxOverride("normal", MakeBox(
-            new Color("#1E1E2E"),
-            GetCrisisColor(crisis.TypeId)
-        ));
+        container.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
+        container.AddThemeStyleboxOverride("normal", GameTheme.CardBox(GetCrisisColor(crisis.TypeId), true));
 
         var header = new HBoxContainer();
-        header.AddThemeConstantOverride("separation", 8);
+        header.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         container.AddChild(header);
 
-        var typeBadge = new Label { Text = $"[{typeName}]", CustomMinimumSize = new Vector2(160, 0) };
-        typeBadge.AddThemeFontSizeOverride("font_size", 12);
-        typeBadge.AddThemeColorOverride("font_color", GetCrisisColor(crisis.TypeId));
-        typeBadge.HorizontalAlignment = HorizontalAlignment.Center;
+        var typeBadge = Chip.CreateCategory(typeName, GetCrisisColor(crisis.TypeId));
+        typeBadge.FontSize = GameTheme.FontSizeTiny;
+        typeBadge.CustomMinimumSize = new Vector2(160, 0);
         header.AddChild(typeBadge);
 
         var nameLabel = new Label { Text = $"Crisis from {sourceName}" };
-        nameLabel.AddThemeFontSizeOverride("font_size", 15);
+        nameLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
         nameLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         header.AddChild(nameLabel);
 
         // Details
         var details = new HBoxContainer();
-        details.AddThemeConstantOverride("separation", 24);
+        details.AddThemeConstantOverride("separation", GameTheme.SpaceL);
         container.AddChild(details);
 
         AddDetailItem(details, "Refugees", crisis.RefugeeCount.ToString("N0"));
@@ -614,19 +558,22 @@ public partial class MigrationPanel : Control
         if (flows.Count > 0)
         {
             var destTitle = new Label { Text = "Main Destinations:" };
-            destTitle.AddThemeFontSizeOverride("font_size", 12);
-            destTitle.AddThemeColorOverride("font_color", UITheme.Gold);
+            destTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            destTitle.AddThemeColorOverride("font_color", GameTheme.Gold);
             container.AddChild(destTitle);
 
             foreach (var flow in flows.Take(3))
             {
                 var destName = CountryDatabase.GetOrCreate(flow.DestinationCountryId, "").Name;
                 var destItem = new Label { Text = $"  → {destName}: {flow.AnnualFlow:N0}/yr" };
-                destItem.AddThemeFontSizeOverride("font_size", 11);
-                destItem.AddThemeColorOverride("font_color", UITheme.TextMain);
+                destItem.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+                destItem.AddThemeColorOverride("font_color", GameTheme.TextSecondary);
                 container.AddChild(destItem);
             }
         }
+
+        // Tooltip
+        container.TooltipText = BuildCrisisTooltip(crisis, type);
 
         return container;
     }
@@ -634,53 +581,77 @@ public partial class MigrationPanel : Control
     private void AddDetailItem(HBoxContainer parent, string label, string value)
     {
         var item = new VBoxContainer();
-        item.AddThemeConstantOverride("separation", 2);
+        item.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
         parent.AddChild(item);
 
         var lbl = new Label { Text = label };
-        lbl.AddThemeFontSizeOverride("font_size", 10);
-        lbl.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        lbl.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+        lbl.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         lbl.HorizontalAlignment = HorizontalAlignment.Center;
         item.AddChild(lbl);
 
         var val = new Label { Text = value };
-        val.AddThemeFontSizeOverride("font_size", 13);
-        val.AddThemeColorOverride("font_color", Colors.White);
+        val.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        val.AddThemeColorOverride("font_color", GameTheme.TextPrimary);
         val.HorizontalAlignment = HorizontalAlignment.Center;
         item.AddChild(val);
+    }
+
+    private string BuildCrisisTooltip(MigrationSystem.ActiveCrisis crisis, MigrationSystem.CrisisType type)
+    {
+        var data = new TooltipBuilder.TooltipData
+        {
+            Title = type?.Name ?? crisis.TypeId,
+            Description = type?.Description ?? "Displacement crisis",
+            Category = "Crisis",
+            CategoryColor = GetCrisisColor(crisis.TypeId),
+        };
+
+        data.Effects["Refugees"] = crisis.RefugeeCount.ToString("N0");
+        data.Effects["Duration Left"] = $"{Math.Max(0, crisis.DurationYears - ((GameManager.Instance?.TotalDays ?? 0) / 365 - crisis.YearStarted))} years";
+        data.Effects["Intensity"] = $"{crisis.Intensity * 100:F0}%";
+        data.Effects["Started"] = $"Year {crisis.YearStarted}";
+        data.Effects["Source Country"] = CountryDatabase.GetOrCreate(crisis.SourceCountryId, "").Name;
+
+        return TooltipBuilder.BuildText(data);
     }
 
     // ===== FLOWS TAB =====
     private void BuildFlowsTab()
     {
         var allFlows = MigrationSystem.GetAllFlows();
-        string search = _searchBox?.Text?.Trim().ToLower() ?? "";
 
-        if (!string.IsNullOrEmpty(search))
+        if (!string.IsNullOrEmpty(_searchText))
         {
             allFlows = allFlows.Where(f =>
             {
                 var srcName = CountryDatabase.GetOrCreate(f.SourceCountryId, "").Name.ToLower();
                 var dstName = CountryDatabase.GetOrCreate(f.DestinationCountryId, "").Name.ToLower();
-                return srcName.Contains(search) || dstName.Contains(search) || f.PrimaryCause.Contains(search);
+                return srcName.Contains(_searchText) || dstName.Contains(_searchText) || f.PrimaryCause.Contains(_searchText);
             }).ToList();
         }
 
-        _resultsCountLabel.Text = $"Showing {allFlows.Count} / {MigrationSystem.GetAllFlows().Count} flows";
+        int totalFlows = MigrationSystem.GetAllFlows().Count;
+        _searchBox.UpdateResultCount(allFlows.Count, totalFlows);
 
         if (allFlows.Count == 0)
         {
-            var none = new Label { Text = "No active migration flows.", HorizontalAlignment = HorizontalAlignment.Center };
-            none.AddThemeFontSizeOverride("font_size", 14);
-            none.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            none.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-            _contentContainer.AddChild(none);
+            _emptyState.SetContent(
+                "No Migration Flows",
+                string.IsNullOrEmpty(_searchText)
+                    ? "No active migration flows at this time."
+                    : $"No flows match \"{_searchText}\". Try a different search term.",
+                "🌊"
+            );
+            _emptyState.Visible = true;
             return;
         }
 
+        _emptyState.Visible = false;
+
         // Header row
         var headerRow = new HBoxContainer();
-        headerRow.AddThemeConstantOverride("separation", 8);
+        headerRow.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         _contentContainer.AddChild(headerRow);
 
         AddTableHeader(headerRow, "Source", 150);
@@ -693,7 +664,7 @@ public partial class MigrationPanel : Control
         foreach (var flow in allFlows)
         {
             var row = new HBoxContainer();
-            row.AddThemeConstantOverride("separation", 8);
+            row.AddThemeConstantOverride("separation", GameTheme.SpaceS);
             _contentContainer.AddChild(row);
 
             var srcName = CountryDatabase.GetOrCreate(flow.SourceCountryId, "").Name;
@@ -701,9 +672,9 @@ public partial class MigrationPanel : Control
 
             AddTableCell(row, srcName, 150);
             AddTableCell(row, dstName, 150);
-            AddTableCell(row, $"{flow.AnnualFlow:N0}/yr", 120, new Color("#FFB347"));
+            AddTableCell(row, $"{flow.AnnualFlow:N0}/yr", 120, GameTheme.Yellow);
             AddTableCell(row, GetCauseDisplayName(flow.PrimaryCause), 100, GetCauseColor(flow.PrimaryCause));
-            AddTableCell(row, $"{(flow.Pressure * 100):F0}%", 100, flow.Pressure > 0.7 ? Colors.Red : (flow.Pressure > 0.4 ? new Color("#FF9800") : new Color("#4CAF50")));
+            AddTableCell(row, $"{(flow.Pressure * 100):F0}%", 100, flow.Pressure > 0.7 ? GameTheme.Red : (flow.Pressure > 0.4 ? GameTheme.Orange : GameTheme.Green));
             AddTableCell(row, $"Y{flow.YearStarted}", 80);
         }
     }
@@ -724,19 +695,19 @@ public partial class MigrationPanel : Control
     {
         return causeId switch
         {
-            "war" => new Color("#F44336"),
-            "civil_war" => new Color("#E91E63"),
-            "climate" => new Color("#2196F3"),
+            "war" => GameTheme.Red,
+            "civil_war" => GameTheme.Purple,
+            "climate" => GameTheme.Blue,
             "persecution" => new Color("#9C27B0"),
-            _ => new Color("#757575")
+            _ => GameTheme.TextMuted
         };
     }
 
     private void AddTableHeader(HBoxContainer parent, string text, float width)
     {
         var label = new Label { Text = text, CustomMinimumSize = new Vector2(width, 0) };
-        label.AddThemeFontSizeOverride("font_size", 11);
-        label.AddThemeColorOverride("font_color", UITheme.Gold);
+        label.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+        label.AddThemeColorOverride("font_color", GameTheme.Gold);
         label.HorizontalAlignment = HorizontalAlignment.Center;
         parent.AddChild(label);
     }
@@ -744,7 +715,7 @@ public partial class MigrationPanel : Control
     private void AddTableCell(HBoxContainer parent, string text, float width, Color? color = null)
     {
         var label = new Label { Text = text, CustomMinimumSize = new Vector2(width, 0) };
-        label.AddThemeFontSizeOverride("font_size", 12);
+        label.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
         label.HorizontalAlignment = HorizontalAlignment.Center;
         if (color.HasValue)
             label.AddThemeColorOverride("font_color", color.Value);
@@ -756,13 +727,16 @@ public partial class MigrationPanel : Control
     {
         if (!GameManager.IsAvailable || !GameManager.Instance.HasPlayer)
         {
-            var label = new Label { Text = "No player country selected.", HorizontalAlignment = HorizontalAlignment.Center };
-            label.AddThemeFontSizeOverride("font_size", 14);
-            label.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            label.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-            _contentContainer.AddChild(label);
+            _emptyState.SetContent(
+                "No Player Country",
+                "Select a country to play first.",
+                "🌍"
+            );
+            _emptyState.Visible = true;
             return;
         }
+
+        _emptyState.Visible = false;
 
         string playerId = GameManager.Instance.PlayerCountryId;
         var state = MigrationSystem.GetCountryState(playerId);
@@ -770,8 +744,8 @@ public partial class MigrationPanel : Control
 
         // Current policy
         var currentTitle = new Label { Text = "CURRENT BORDER POLICY" };
-        currentTitle.AddThemeFontSizeOverride("font_size", 16);
-        currentTitle.AddThemeColorOverride("font_color", new Color("#4CAF50"));
+        currentTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        currentTitle.AddThemeColorOverride("font_color", GameTheme.Green);
         _contentContainer.AddChild(currentTitle);
 
         if (currentPolicy != null)
@@ -784,8 +758,8 @@ public partial class MigrationPanel : Control
 
         // Available policies
         var availTitle = new Label { Text = "AVAILABLE BORDER POLICIES" };
-        availTitle.AddThemeFontSizeOverride("font_size", 16);
-        availTitle.AddThemeColorOverride("font_color", UITheme.Gold);
+        availTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        availTitle.AddThemeColorOverride("font_color", GameTheme.Gold);
         _contentContainer.AddChild(availTitle);
 
         foreach (var policy in MigrationSystem.GetAllBorderPolicies().Where(p => p.Id != state.BorderPolicyId))
@@ -793,25 +767,25 @@ public partial class MigrationPanel : Control
             var card = CreateBorderPolicyCard(policy, false);
             // Add SET button
             var actionRow = new HBoxContainer();
-            actionRow.AddThemeConstantOverride("separation", 8);
+            actionRow.AddThemeConstantOverride("separation", GameTheme.SpaceS);
             card.AddChild(actionRow);
 
             actionRow.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
 
             var canSet = MigrationSystem.CanSetBorderPolicy(playerId, policy.Id);
             var setBtn = new Button { Text = "SET POLICY", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(120, 32) };
-            setBtn.AddThemeFontSizeOverride("font_size", 12);
+            setBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
             setBtn.Disabled = !canSet;
             var pid = policy.Id;
             setBtn.Pressed += () => OnSetBorderPolicy(pid);
-            UITheme.AddHoverScale(setBtn);
+            GameTheme.StyleButton(setBtn);
             actionRow.AddChild(setBtn);
 
             if (!canSet)
             {
                 var reason = new Label { Text = "Requirements not met", CustomMinimumSize = new Vector2(140, 0) };
-                reason.AddThemeFontSizeOverride("font_size", 11);
-                reason.AddThemeColorOverride("font_color", Colors.Red);
+                reason.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+                reason.AddThemeColorOverride("font_color", GameTheme.Red);
                 actionRow.AddChild(reason);
             }
 
@@ -822,8 +796,8 @@ public partial class MigrationPanel : Control
 
         // Aid packages
         var aidTitle = new Label { Text = "HUMANITARIAN AID PACKAGES" };
-        aidTitle.AddThemeFontSizeOverride("font_size", 16);
-        aidTitle.AddThemeColorOverride("font_color", new Color("#2196F3"));
+        aidTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        aidTitle.AddThemeColorOverride("font_color", GameTheme.Blue);
         _contentContainer.AddChild(aidTitle);
 
         var activeAids = state.ActiveAidPackages.Select(a => a.PackageId).ToHashSet();
@@ -832,8 +806,8 @@ public partial class MigrationPanel : Control
         if (state.ActiveAidPackages.Count > 0)
         {
             var activeSection = new Label { Text = "ACTIVE AID PACKAGES" };
-            activeSection.AddThemeFontSizeOverride("font_size", 13);
-            activeSection.AddThemeColorOverride("font_color", new Color("#4CAF50"));
+            activeSection.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            activeSection.AddThemeColorOverride("font_color", GameTheme.Green);
             _contentContainer.AddChild(activeSection);
 
             foreach (var aid in state.ActiveAidPackages)
@@ -851,8 +825,8 @@ public partial class MigrationPanel : Control
 
         // Available aid packages
         var availAidTitle = new Label { Text = "AVAILABLE AID PACKAGES" };
-        availAidTitle.AddThemeFontSizeOverride("font_size", 13);
-        availAidTitle.AddThemeColorOverride("font_color", UITheme.Gold);
+        availAidTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        availAidTitle.AddThemeColorOverride("font_color", GameTheme.Gold);
         _contentContainer.AddChild(availAidTitle);
 
         foreach (var pkg in MigrationSystem.GetAllAidPackages())
@@ -861,25 +835,25 @@ public partial class MigrationPanel : Control
 
             var card = CreateAidPackageCard(pkg, false, 0);
             var actionRow = new HBoxContainer();
-            actionRow.AddThemeConstantOverride("separation", 8);
+            actionRow.AddThemeConstantOverride("separation", GameTheme.SpaceS);
             card.AddChild(actionRow);
 
             actionRow.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
 
             var canActivate = MigrationSystem.CanActivateAidPackage(playerId, pkg.Id);
             var activateBtn = new Button { Text = "ACTIVATE", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(120, 32) };
-            activateBtn.AddThemeFontSizeOverride("font_size", 12);
+            activateBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
             activateBtn.Disabled = !canActivate;
             var pid = pkg.Id;
             activateBtn.Pressed += () => OnActivateAidPackage(pid);
-            UITheme.AddHoverScale(activateBtn);
+            GameTheme.StyleButton(activateBtn);
             actionRow.AddChild(activateBtn);
 
             if (!canActivate)
             {
                 var reason = new Label { Text = "Requirements not met", CustomMinimumSize = new Vector2(140, 0) };
-                reason.AddThemeFontSizeOverride("font_size", 11);
-                reason.AddThemeColorOverride("font_color", Colors.Red);
+                reason.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+                reason.AddThemeColorOverride("font_color", GameTheme.Red);
                 actionRow.AddChild(reason);
             }
 
@@ -890,24 +864,21 @@ public partial class MigrationPanel : Control
     private Control CreateAidPackageCard(MigrationSystem.AidPackage pkg, bool isActive, int yearStarted)
     {
         var container = new VBoxContainer();
-        container.AddThemeConstantOverride("separation", 6);
-        container.AddThemeStyleboxOverride("normal", MakeBox(
-            isActive ? new Color("#1A2A3A") : new Color("#1E1E2E"),
-            isActive ? new Color("#2196F3") : new Color("#3A3A5A")
-        ));
+        container.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
+        container.AddThemeStyleboxOverride("normal", GameTheme.CardBox(isActive ? GameTheme.Blue : GameTheme.BgMedium, true));
 
         var header = new HBoxContainer();
-        header.AddThemeConstantOverride("separation", 8);
+        header.AddThemeConstantOverride("separation", GameTheme.SpaceS);
         container.AddChild(header);
 
         var nameLabel = new Label { Text = pkg.Name + (isActive ? " (ACTIVE)" : "") };
-        nameLabel.AddThemeFontSizeOverride("font_size", 15);
+        nameLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
         nameLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         header.AddChild(nameLabel);
 
         var descLabel = new Label { Text = pkg.Description };
-        descLabel.AddThemeFontSizeOverride("font_size", 12);
-        descLabel.AddThemeColorOverride("font_color", UITheme.TextMain);
+        descLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        descLabel.AddThemeColorOverride("font_color", GameTheme.TextSecondary);
         descLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         container.AddChild(descLabel);
 
@@ -922,8 +893,8 @@ public partial class MigrationPanel : Control
         effects.Add($"Reputation: +{pkg.ReputationBonus}");
 
         var effectsLabel = new Label { Text = "Effects: " + string.Join("  |  ", effects) };
-        effectsLabel.AddThemeFontSizeOverride("font_size", 11);
-        effectsLabel.AddThemeColorOverride("font_color", new Color("#81C784"));
+        effectsLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+        effectsLabel.AddThemeColorOverride("font_color", GameTheme.GreenBright);
         effectsLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         container.AddChild(effectsLabel);
 
@@ -932,8 +903,8 @@ public partial class MigrationPanel : Control
             int currentYear = (int)((GameManager.Instance?.TotalDays ?? 0) / 365);
             int remaining = Math.Max(0, 3 - (currentYear - yearStarted));
             var durLabel = new Label { Text = $"Expires in: {remaining} year(s)" };
-            durLabel.AddThemeFontSizeOverride("font_size", 11);
-            durLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+            durLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeTiny);
+            durLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
             container.AddChild(durLabel);
         }
 
@@ -945,19 +916,24 @@ public partial class MigrationPanel : Control
 
     private string BuildAidPackageTooltip(MigrationSystem.AidPackage p)
     {
-        var lines = new List<string>();
-        lines.Add(p.Description);
-        lines.Add("");
-        lines.Add($"Cost: {p.CostPP} PP + {(p.CostBudgetPercent * 100):F0}% budget");
-        lines.Add($"Refugees Supported: {p.RefugeesSupported:N0}");
-        lines.Add("");
-        lines.Add("Effects:");
-        if (p.StabilityBonus > 0) lines.Add($"  Stability: +{p.StabilityBonus:F1}");
-        if (p.AssimilationBoost > 0) lines.Add($"  Assimilation Boost: +{(p.AssimilationBoost * 100):F0}%");
-        if (p.GdpGrowthBonus > 0) lines.Add($"  GDP Growth: +{(p.GdpGrowthBonus * 100):F0}%");
-        if (p.ReturnRateBoost > 0) lines.Add($"  Return Rate Boost: +{(p.ReturnRateBoost * 100):F0}%");
-        lines.Add($"  Reputation Bonus: +{p.ReputationBonus}");
-        return string.Join("\n", lines);
+        var data = new TooltipBuilder.TooltipData
+        {
+            Title = p.Name,
+            Description = p.Description,
+            Category = "Aid Package",
+            CategoryColor = GameTheme.Blue,
+        };
+
+        data.Costs["Political Power"] = p.CostPP.ToString();
+        data.Costs["Budget"] = $"{(p.CostBudgetPercent * 100):F0}%";
+        data.Effects["Refugees Supported"] = p.RefugeesSupported.ToString("N0");
+        if (p.StabilityBonus > 0) data.Effects["Stability"] = $"+{p.StabilityBonus:F1}";
+        if (p.AssimilationBoost > 0) data.Effects["Assimilation Boost"] = $"{(p.AssimilationBoost * 100):F0}%";
+        if (p.GdpGrowthBonus > 0) data.Effects["GDP Growth"] = $"{(p.GdpGrowthBonus * 100):F0}%";
+        if (p.ReturnRateBoost > 0) data.Effects["Return Rate Boost"] = $"{(p.ReturnRateBoost * 100):F0}%";
+        data.Effects["Reputation Bonus"] = $"+{p.ReputationBonus}";
+
+        return TooltipBuilder.BuildText(data);
     }
 
     private void OnSetBorderPolicy(string policyId)
@@ -978,22 +954,9 @@ public partial class MigrationPanel : Control
         }
     }
 
-    private StyleBoxFlat MakeBox(Color bg, Color border)
-    {
-        var b = new StyleBoxFlat { BgColor = bg, BorderColor = border };
-        b.SetBorderWidthAll(1);
-        b.SetCornerRadiusAll(4);
-        b.ContentMarginLeft = 12;
-        b.ContentMarginRight = 12;
-        b.ContentMarginTop = 10;
-        b.ContentMarginBottom = 10;
-        return b;
-    }
-
-    private void Close()
+    public override void Close()
     {
         GD.Print("MigrationPanel: kapatılıyor");
-        UITheme.FadeOut(_backdrop, 0.08f);
-        UITheme.PopOut(_panel, 0.1f, () => QueueFree());
+        base.Close();
     }
 }

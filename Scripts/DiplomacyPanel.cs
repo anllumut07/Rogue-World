@@ -4,86 +4,81 @@ using System.Collections.Generic;
 using System.Linq;
 
 /// <summary>
-/// Diplomasi paneli (M8): world tension, faksiyonlar, ilişkiler matrisi,
-/// diplomatik aksiyonlar (garanti, erişim, savaş ilanı, faksiyon), barış konferansı.
-/// HUD DIPLOMACY butonundan açılır.
+/// Diplomasi paneli (M8 + Stage 2 UI Upgrade):
+/// Built with reusable UI components from Scripts/UI/
+/// - Panel frame via GamePanel
+/// - Category tabs via TabBar
+/// - Search filter via SearchBox with result count
+/// - Country rows via ListRow
+/// - Category badges via Chip
+/// - Progress bars via StatBar
+/// - Rich tooltips via TooltipBuilder
+/// - Empty states via EmptyState
 /// </summary>
-public partial class DiplomacyPanel : Control
+public partial class DiplomacyPanel : GamePanel
 {
-    // UI
-    private Label _tensionLabel;
-    private ProgressBar _tensionBar;
-    private VBoxContainer _factionsBox;
-    private VBoxContainer _relationsBox;      // ülke listesi + butonlar
-    private VBoxContainer _guaranteesBox;
-    private VBoxContainer _actionsBox;        // aksiyon butonları
-    private OptionButton _targetCountry;      // hedef ülke seçici
-    private Label _targetRelationLabel;       // seçili ülkeyle ilişki/görüş
-
-    // Animasyon
-    private ColorRect _backdrop;
-    private PanelContainer _panel;
-
     public static bool IsOpen { get; private set; }
 
-    private const string ScenePath = "res://Scenes/diplomacy_panel.tscn";
+    // === UI Components (using reusable components) ===
+    private TabBar _tabBar;
+    private SearchBox _searchBox;
+    private OptionButton _targetCountry;
+    private Label _targetRelationLabel;
+    private StatBar _tensionBar;
+    private Label _tensionLabel;
+
+    // Content containers per tab
+    private VBoxContainer _factionsContainer;
+    private VBoxContainer _actionsContainer;
+    private VBoxContainer _guaranteesContainer;
+    private VBoxContainer _relationsContainer;
+    private ScrollContainer _factionsScroll;
+    private ScrollContainer _actionsScroll;
+    private ScrollContainer _guaranteesScroll;
+    private ScrollContainer _relationsScroll;
+
+    // Empty states
+    private EmptyState _factionsEmptyState;
+    private EmptyState _actionsEmptyState;
+    private EmptyState _guaranteesEmptyState;
+    private EmptyState _relationsEmptyState;
+
+    // Categories in order
+    private static readonly string[] CategoryIds = { "Factions", "Actions", "Guarantees", "Relations" };
+    private static readonly string[] CategoryLabels = { "FACTIONS", "ACTIONS", "GUARANTEES", "RELATIONS" };
+
+    private string _activeCategory = "Factions";
+    private string _searchText = "";
 
     public static void OpenUnder(Node parent)
     {
         if (IsOpen) return;
 
-        GD.Print($"[DiplomacyPanel] OpenUnder çağrıldı — parent={parent?.GetType().Name ?? "null"}");
-
-        DiplomacyPanel panel = null;
-
-        // 1) Sahne dosyası projede var mı?
-        if (ResourceLoader.Exists(ScenePath))
-        {
-            var scene = GD.Load<PackedScene>(ScenePath);
-            if (scene != null)
-            {
-                try
-                {
-                    panel = scene.Instantiate<DiplomacyPanel>();
-                    GD.Print($"[DiplomacyPanel] Sahne yüklendi ve instantiate edildi: {ScenePath}");
-                }
-                catch (Exception e)
-                {
-                    GD.PrintErr($"[DiplomacyPanel] Sahne instantiate hatası ({ScenePath}): {e.Message} — KODDAN oluşturuluyor");
-                }
-            }
-            else
-            {
-                GD.PrintErr($"[DiplomacyPanel] GD.Load null döndürdü: {ScenePath} — dosya bozuk/parse edilemiyor olabilir. KODDAN oluşturuluyor.");
-            }
-        }
-        else
-        {
-            GD.PrintErr($"[DiplomacyPanel] Sahne YOK: {ScenePath} (ResourceLoader.Exists=false) — KODDAN oluşturuluyor.");
-        }
-
-        // 2) Yedek yol: koddan oluştur
-        panel ??= new DiplomacyPanel();
-
-        ModalHost.AddUnder(parent, panel);
-        GD.Print($"[DiplomacyPanel] Sahneye eklendi: Visible={panel.Visible}, Size={panel.Size}, Pos={panel.Position}, parent={panel.GetParent()?.GetType().Name ?? "null"}");
+        GD.Print($"[DiplomacyPanel] OpenUnder — parent={parent?.GetType().Name ?? "null"}");
+        var panel = new DiplomacyPanel();
+        parent.AddChild(panel);
     }
 
     public override void _Ready()
     {
-        ProcessMode = ProcessModeEnum.Always;
-        UITheme.ApplyTheme(this);
+        // Configure GamePanel properties
+        Title = "DIPLOMACY";
+        MinSize = new Vector2(1000, 560);
+        MaxSize = new Vector2(1400, 800);
+        Draggable = false;
+        Closable = true;
+        Modal = true;
+        AutoCenter = true;
 
+        base._Ready();
+
+        ProcessMode = ProcessModeEnum.Always;
         BuildUi();
         ConnectSignals();
         RefreshAll();
-
         IsOpen = true;
 
-        UITheme.FadeIn(_backdrop, 0.1f);
-        UITheme.PopIn(_panel, 0.15f);
-
-        GD.Print("DiplomacyPanel: hazır");
+        GD.Print("DiplomacyPanel: hazır (Stage 2 UI)");
     }
 
     public override void _ExitTree()
@@ -104,144 +99,172 @@ public partial class DiplomacyPanel : Control
 
     private void BuildUi()
     {
-        _backdrop = new ColorRect
+        // Content goes into GamePanel's ContentContainer
+        var content = ContentContainer;
+        content.AddThemeConstantOverride("separation", GameTheme.SpaceM);
+
+        // === Header: Tension Bar ===
+        var tensionRow = new HBoxContainer();
+        tensionRow.AddThemeConstantOverride("separation", GameTheme.SpaceM);
+        content.AddChild(tensionRow);
+
+        var tensionTitle = new Label { Text = "WORLD TENSION" };
+        tensionTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        tensionTitle.AddThemeColorOverride("font_color", GameTheme.Gold);
+        tensionRow.AddChild(tensionTitle);
+
+        _tensionBar = new StatBar
         {
-            Color = new Color(0f, 0f, 0f, 0.75f),
-            MouseFilter = Control.MouseFilterEnum.Stop
+            LabelText = "",
+            Value = DiplomacySystem.WorldTension,
+            MinValue = 0,
+            MaxValue = 100,
+            ShowValue = true,
+            ShowPercent = true,
+            ColorSource = GameTheme.ColorSource.Custom,
+            CustomFillColor = GetTensionColor(DiplomacySystem.WorldTension),
+            BarHeight = 16,
+            LabelWidth = 0,
+            ValueWidth = 100,
+            CustomMinimumSize = new Vector2(250, 0),
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
         };
-        _backdrop.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        AddChild(_backdrop);
+        tensionRow.AddChild(_tensionBar);
 
-        var center = new CenterContainer();
-        center.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        _backdrop.AddChild(center);
+        _tensionLabel = new Label { Text = $"{DiplomacySystem.WorldTension:F1}%" };
+        _tensionLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        _tensionLabel.AddThemeColorOverride("font_color", GetTensionColor(DiplomacySystem.WorldTension));
+        tensionRow.AddChild(_tensionLabel);
 
-        _panel = new PanelContainer { CustomMinimumSize = new Vector2(900, 620) };
-        center.AddChild(_panel);
+        content.AddChild(new HSeparator());
 
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 16);
-        margin.AddThemeConstantOverride("margin_right", 16);
-        margin.AddThemeConstantOverride("margin_top", 14);
-        margin.AddThemeConstantOverride("margin_bottom", 14);
-        _panel.AddChild(margin);
-
-        var vbox = new VBoxContainer();
-        vbox.AddThemeConstantOverride("separation", 10);
-        margin.AddChild(vbox);
-
-        // ===== BAŞLIK + TENSION + CLOSE =====
-        var headerRow = new HBoxContainer();
-        vbox.AddChild(headerRow);
-
-        var title = new Label { Text = "DIPLOMACY" };
-        title.AddThemeFontSizeOverride("font_size", 30);
-        headerRow.AddChild(title);
-
-        headerRow.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
-
-        // World Tension
-        _tensionBar = new ProgressBar
-        {
-            MinValue = 0, MaxValue = 100, Value = DiplomacySystem.WorldTension,
-            CustomMinimumSize = new Vector2(200, 20)
-        };
-        _tensionBar.AddThemeColorOverride("fill_color", Colors.OrangeRed);
-        headerRow.AddChild(_tensionBar);
-
-        _tensionLabel = new Label { Text = $"World Tension: {DiplomacySystem.WorldTension:F1}%" };
-        _tensionLabel.AddThemeFontSizeOverride("font_size", 14);
-        _tensionLabel.AddThemeColorOverride("font_color", Colors.OrangeRed);
-        headerRow.AddChild(_tensionLabel);
-
-        var closeBtn = new Button { Text = "CLOSE", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(100, 36) };
-        closeBtn.Pressed += Close;
-        UITheme.AddHoverScale(closeBtn);
-        headerRow.AddChild(closeBtn);
-
-        vbox.AddChild(new HSeparator());
-
-        // ===== HEDEF ÜLKE SEÇİCİ + İLİŞKİ BİLGİSİ =====
+        // === Target Country Selector ===
         var targetRow = new HBoxContainer();
-        targetRow.AddThemeConstantOverride("separation", 12);
-        vbox.AddChild(targetRow);
+        targetRow.AddThemeConstantOverride("separation", GameTheme.SpaceM);
+        content.AddChild(targetRow);
 
-        var targetLabel = new Label { Text = "Target:", CustomMinimumSize = new Vector2(60, 0) };
+        var targetLabel = new Label { Text = "TARGET:", CustomMinimumSize = new Vector2(80, 0) };
+        targetLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        targetLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
         targetRow.AddChild(targetLabel);
 
         _targetCountry = new OptionButton
         {
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            FocusMode = Control.FocusModeEnum.None
+            FocusMode = Control.FocusModeEnum.None,
+            CustomMinimumSize = new Vector2(0, 32)
         };
         _targetCountry.ItemSelected += OnTargetCountryChanged;
         targetRow.AddChild(_targetCountry);
 
         _targetRelationLabel = new Label();
-        _targetRelationLabel.AddThemeFontSizeOverride("font_size", 13);
-        _targetRelationLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
+        _targetRelationLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        _targetRelationLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+        _targetRelationLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         targetRow.AddChild(_targetRelationLabel);
 
-        vbox.AddChild(new HSeparator());
+        content.AddChild(new HSeparator());
 
-        // Ana scroll
-        var scroll = new ScrollContainer();
-        scroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
-        scroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        vbox.AddChild(scroll);
+        // === Category Tabs (using TabBar component) ===
+        _tabBar = new TabBar
+        {
+            TabIds = CategoryIds,
+            TabLabels = CategoryLabels,
+            SelectedIndex = 0,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill
+        };
+        _tabBar.TabChanged += OnCategoryTabChanged;
+        content.AddChild(_tabBar);
 
-        var content = new VBoxContainer();
-        content.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        content.AddThemeConstantOverride("separation", 10);
-        scroll.AddChild(content);
-
-        // ===== 1. FAKSİYONLAR =====
-        var facTitle = new Label { Text = "FACTIONS" };
-        facTitle.AddThemeFontSizeOverride("font_size", 18);
-        content.AddChild(facTitle);
-
-        _factionsBox = new VBoxContainer();
-        _factionsBox.AddThemeConstantOverride("separation", 6);
-        content.AddChild(_factionsBox);
+        // === Search Box (using SearchBox component) - for Relations tab ===
+        _searchBox = new SearchBox
+        {
+            PlaceholderText = "Filter countries...",
+            ShowResultCount = true,
+            ShowClearButton = true,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            Visible = false // Only show for Relations tab
+        };
+        _searchBox.TextChanged += OnSearchTextChanged;
+        _searchBox.SearchSubmitted += OnSearchSubmitted;
+        _searchBox.Cleared += OnSearchCleared;
+        content.AddChild(_searchBox);
 
         content.AddChild(new HSeparator());
 
-        // ===== 2. İLİŞKİLER (Hedef ülkeye göre aksiyonlar) =====
-        var relTitleRow = new HBoxContainer();
-        relTitleRow.AddThemeConstantOverride("separation", 12);
-        content.AddChild(relTitleRow);
+        // === Content Area: Stack of scroll containers (one per tab) ===
+        var contentStack = new VBoxContainer();
+        contentStack.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        contentStack.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        content.AddChild(contentStack);
 
-        var relTitle = new Label { Text = "DIPLOMATIC ACTIONS" };
-        relTitle.AddThemeFontSizeOverride("font_size", 18);
-        relTitleRow.AddChild(relTitle);
+        // FACTIONS TAB
+        _factionsScroll = new ScrollContainer();
+        _factionsScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _factionsScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _factionsScroll.Visible = true;
+        contentStack.AddChild(_factionsScroll);
 
-        content.AddChild(new HSeparator());
+        _factionsContainer = new VBoxContainer();
+        _factionsContainer.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        _factionsContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _factionsScroll.AddChild(_factionsContainer);
 
-        _actionsBox = new VBoxContainer();
-        _actionsBox.AddThemeConstantOverride("separation", 8);
-        content.AddChild(_actionsBox);
+        _factionsEmptyState = EmptyState.CreateGeneric("No Factions", "No factions exist yet. Create one or join an existing faction.");
+        _factionsEmptyState.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _factionsEmptyState.Visible = false;
+        _factionsContainer.AddChild(_factionsEmptyState);
 
-        content.AddChild(new HSeparator());
+        // ACTIONS TAB
+        _actionsScroll = new ScrollContainer();
+        _actionsScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _actionsScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _actionsScroll.Visible = false;
+        contentStack.AddChild(_actionsScroll);
 
-        // ===== 3. GARANTİLER =====
-        var guarTitle = new Label { Text = "GUARANTEES GIVEN" };
-        guarTitle.AddThemeFontSizeOverride("font_size", 18);
-        content.AddChild(guarTitle);
+        _actionsContainer = new VBoxContainer();
+        _actionsContainer.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        _actionsContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _actionsScroll.AddChild(_actionsContainer);
 
-        _guaranteesBox = new VBoxContainer();
-        _guaranteesBox.AddThemeConstantOverride("separation", 4);
-        content.AddChild(_guaranteesBox);
+        _actionsEmptyState = EmptyState.CreateGeneric("Select a Target", "Choose a target country above to see available diplomatic actions.");
+        _actionsEmptyState.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _actionsEmptyState.Visible = false;
+        _actionsContainer.AddChild(_actionsEmptyState);
 
-        content.AddChild(new HSeparator());
+        // GUARANTEES TAB
+        _guaranteesScroll = new ScrollContainer();
+        _guaranteesScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _guaranteesScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _guaranteesScroll.Visible = false;
+        contentStack.AddChild(_guaranteesScroll);
 
-        // ===== 4. TÜM İLİŞKİLER (kısaltılmış) =====
-        var allRelTitle = new Label { Text = "RELATIONS (Player → Others)" };
-        allRelTitle.AddThemeFontSizeOverride("font_size", 18);
-        content.AddChild(allRelTitle);
+        _guaranteesContainer = new VBoxContainer();
+        _guaranteesContainer.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        _guaranteesContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _guaranteesScroll.AddChild(_guaranteesContainer);
 
-        _relationsBox = new VBoxContainer();
-        _relationsBox.AddThemeConstantOverride("separation", 2);
-        content.AddChild(_relationsBox);
+        _guaranteesEmptyState = EmptyState.CreateGeneric("No Guarantees", "No guarantees given or received.");
+        _guaranteesEmptyState.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _guaranteesEmptyState.Visible = false;
+        _guaranteesContainer.AddChild(_guaranteesEmptyState);
+
+        // RELATIONS TAB
+        _relationsScroll = new ScrollContainer();
+        _relationsScroll.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _relationsScroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _relationsScroll.Visible = false;
+        contentStack.AddChild(_relationsScroll);
+
+        _relationsContainer = new VBoxContainer();
+        _relationsContainer.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
+        _relationsContainer.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _relationsScroll.AddChild(_relationsContainer);
+
+        _relationsEmptyState = EmptyState.CreateGeneric("No Relations", "No diplomatic relations data available.");
+        _relationsEmptyState.SizeFlagsVertical = Control.SizeFlags.ExpandFill;
+        _relationsEmptyState.Visible = false;
+        _relationsContainer.AddChild(_relationsEmptyState);
     }
 
     private void ConnectSignals()
@@ -251,6 +274,45 @@ public partial class DiplomacyPanel : Control
     }
 
     private void OnDataChanged() => RefreshAll();
+
+    private void OnCategoryTabChanged(string tabId, int tabIndex)
+    {
+        _activeCategory = tabId;
+        UpdateTabVisibility();
+        RefreshAll();
+    }
+
+    private void UpdateTabVisibility()
+    {
+        bool showFactions = _activeCategory == "Factions";
+        bool showActions = _activeCategory == "Actions";
+        bool showGuarantees = _activeCategory == "Guarantees";
+        bool showRelations = _activeCategory == "Relations";
+
+        _factionsScroll.Visible = showFactions;
+        _actionsScroll.Visible = showActions;
+        _guaranteesScroll.Visible = showGuarantees;
+        _relationsScroll.Visible = showRelations;
+
+        _searchBox.Visible = showRelations;
+        if (showRelations) _searchBox.Clear();
+    }
+
+    private void OnSearchTextChanged(string text)
+    {
+        _searchText = text.Trim().ToLower();
+        RefreshRelations();
+    }
+
+    private void OnSearchSubmitted(string text) { }
+
+    private void OnSearchCleared()
+    {
+        _searchText = "";
+        RefreshRelations();
+    }
+
+    private void OnTargetCountryChanged(long idx) => RefreshActions();
 
     private void RefreshAll()
     {
@@ -266,20 +328,26 @@ public partial class DiplomacyPanel : Control
     private void RefreshTension()
     {
         if (_tensionBar == null || !GodotObject.IsInstanceValid(_tensionBar)) return;
-        _tensionBar.Value = DiplomacySystem.WorldTension;
-        _tensionLabel.Text = $"World Tension: {DiplomacySystem.WorldTension:F1}%";
-        // Renk: <25 yeşil, 25-50 sarı, 50-75 turuncu, >75 kırmızı
-        Color c = DiplomacySystem.WorldTension < 25 ? Colors.Green
-                    : DiplomacySystem.WorldTension < 50 ? Colors.Yellow
-                    : DiplomacySystem.WorldTension < 75 ? new Color(1f, 0.5f, 0f)
-                    : Colors.Red;
-        _tensionBar.AddThemeColorOverride("fill_color", c);
+        float tension = DiplomacySystem.WorldTension;
+        _tensionBar.SetValue(tension);
+        _tensionLabel.Text = $"{tension:F1}%";
+        Color c = GetTensionColor(tension);
+        _tensionBar.CustomFillColor = c;
         _tensionLabel.AddThemeColorOverride("font_color", c);
+        _tensionBar.UpdateBarColor();
+    }
+
+    private Color GetTensionColor(float tension)
+    {
+        if (tension < 25) return GameTheme.Green;
+        if (tension < 50) return GameTheme.Yellow;
+        if (tension < 75) return GameTheme.Orange;
+        return GameTheme.Red;
     }
 
     private void RefreshTargetCountries()
     {
-        // Seçili ülkeyi koru (günlük tazelemede sıfırlanmasın)
+        // Preserve selected country
         string prevTarget = null;
         if (_targetCountry.GetItemCount() > 0)
         {
@@ -307,8 +375,6 @@ public partial class DiplomacyPanel : Control
         if (_targetCountry.GetItemCount() > 0)
             _targetCountry.Selected = Mathf.Clamp(restoreIdx, 0, _targetCountry.GetItemCount() - 1);
     }
-
-    private void OnTargetCountryChanged(long idx) => RefreshTargetRelation();
 
     private void RefreshTargetRelation()
     {
@@ -339,90 +405,115 @@ public partial class DiplomacyPanel : Control
             _targetRelationLabel.Text = $"Relation: 0  |  Opinion: 0{war}{faction}{guarantee}{milAccess}{navAccess}";
     }
 
+    // ===== FACTIONS TAB =====
     private void RefreshFactions()
     {
-        ClearChildren(_factionsBox);
+        ClearChildren(_factionsContainer, _factionsEmptyState);
+
+        if (DiplomacySystem.Factions.Count == 0)
+        {
+            _factionsEmptyState.Visible = true;
+            return;
+        }
+
+        _factionsEmptyState.Visible = false;
 
         foreach (var kv in DiplomacySystem.Factions)
         {
             var f = kv.Value;
-            var box = new VBoxContainer();
-            box.AddThemeConstantOverride("separation", 2);
-            _factionsBox.AddChild(box);
-
-            var header = new HBoxContainer();
-            header.AddThemeConstantOverride("separation", 10);
-            box.AddChild(header);
-
-            var nameLabel = new Label { Text = f.Name };
-            nameLabel.AddThemeFontSizeOverride("font_size", 15);
-            nameLabel.AddThemeColorOverride("font_color", new Color(f.Color));
-            header.AddChild(nameLabel);
-
-            var leader = CountryDatabase.Get(f.LeaderId);
-            var leaderLabel = new Label { Text = $"Leader: {leader?.Name ?? f.LeaderId}" };
-            leaderLabel.AddThemeFontSizeOverride("font_size", 12);
-            leaderLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            header.AddChild(leaderLabel);
-
-            var memberLabel = new Label { Text = $"Members: {string.Join(", ", f.MemberIds.Select(m => CountryDatabase.Get(m)?.Name ?? m))}" };
-            memberLabel.AddThemeFontSizeOverride("font_size", 11);
-            memberLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            box.AddChild(memberLabel);
-
-            // Oyuncu bu faksiyonda mı?
-            bool playerInFaction = f.IsMember(GameManager.Instance?.PlayerCountryId ?? "");
-            if (playerInFaction)
-            {
-                var leaveBtn = new Button { Text = "LEAVE FACTION", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(130, 26) };
-                leaveBtn.Pressed += () => { DiplomacySystem.LeaveFaction(); RefreshAll(); };
-                UITheme.AddHoverScale(leaveBtn);
-                header.AddChild(leaveBtn);
-            }
-            else if (f.MemberIds.Count > 0)
-            {
-                var joinBtn = new Button { Text = "JOIN FACTION", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(130, 26) };
-                joinBtn.Pressed += () =>
-                {
-                    if (DiplomacySystem.RequestJoinFaction(f.Id)) RefreshAll();
-                };
-                UITheme.AddHoverScale(joinBtn);
-                header.AddChild(joinBtn);
-            }
-        }
-
-        // Faksiyon oluştur butonu (oyuncu faksiyonda değilse)
-        if (GameManager.Instance.HasPlayer && DiplomacySystem.GetFactionOf(GameManager.Instance.PlayerCountryId) == null)
-        {
-            var createBtn = new Button { Text = "CREATE FACTION", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(150, 28) };
-            createBtn.Pressed += OnCreateFactionPressed;
-            UITheme.AddHoverScale(createBtn);
-            _factionsBox.AddChild(createBtn);
+            var card = CreateFactionCard(f);
+            _factionsContainer.AddChild(card);
         }
     }
 
-    private void OnCreateFactionPressed()
+    private Control CreateFactionCard(DiplomacySystem.Faction f)
     {
-        // Basit: ideology = player's ideology
-        var player = GameManager.Instance.PlayerCountryData;
-        string name = $"{player.Name} Faction";
-        if (DiplomacySystem.CreateFaction(name, player.Ideology))
-            RefreshAll();
+        var container = new VBoxContainer();
+        container.AddThemeConstantOverride("separation", GameTheme.SpaceXS);
+        container.AddThemeStyleboxOverride("normal", GameTheme.CardBox(new Color(f.Color), true));
+
+        // Header row
+        var header = new HBoxContainer();
+        header.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        container.AddChild(header);
+
+        // Category chip
+        var catChip = Chip.CreateCategory("FACTION", new Color(f.Color));
+        catChip.FontSize = GameTheme.FontSizeTiny;
+        header.AddChild(catChip);
+
+        // Name
+        var nameLabel = new Label { Text = f.Name };
+        nameLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+        nameLabel.AddThemeColorOverride("font_color", new Color(f.Color));
+        nameLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        header.AddChild(nameLabel);
+
+        // Leader
+        var leader = CountryDatabase.Get(f.LeaderId);
+        var leaderLabel = new Label { Text = $"Leader: {leader?.Name ?? f.LeaderId}" };
+        leaderLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        leaderLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+        header.AddChild(leaderLabel);
+
+        // Members
+        var memberNames = f.MemberIds.Select(m => CountryDatabase.Get(m)?.Name ?? m).ToList();
+        var memberLabel = new Label { Text = $"Members: {string.Join(", ", memberNames)}" };
+        memberLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+        memberLabel.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+        container.AddChild(memberLabel);
+
+        // Action buttons
+        bool playerInFaction = f.IsMember(GameManager.Instance?.PlayerCountryId ?? "");
+        if (playerInFaction)
+        {
+            var leaveBtn = new Button { Text = "LEAVE FACTION", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(140, 28) };
+            leaveBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            leaveBtn.Pressed += () => { DiplomacySystem.LeaveFaction(); RefreshAll(); };
+            GameTheme.StyleButton(leaveBtn);
+            header.AddChild(leaveBtn);
+        }
+        else if (f.MemberIds.Count > 0)
+        {
+            var joinBtn = new Button { Text = "JOIN FACTION", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(140, 28) };
+            joinBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            joinBtn.Pressed += () =>
+            {
+                if (DiplomacySystem.RequestJoinFaction(f.Id)) RefreshAll();
+            };
+            GameTheme.StyleButton(joinBtn);
+            header.AddChild(joinBtn);
+        }
+
+        // Tooltip
+        var tooltipData = new TooltipBuilder.TooltipData
+        {
+            Title = f.Name,
+            Category = "Faction",
+            CategoryColor = new Color(f.Color),
+            Description = $"Leader: {leader?.Name ?? f.LeaderId}\nMembers: {memberNames.Count}",
+        };
+        container.TooltipText = TooltipBuilder.BuildText(tooltipData);
+
+        return container;
     }
 
+    // ===== ACTIONS TAB =====
     private void RefreshActions()
     {
-        ClearChildren(_actionsBox);
+        ClearChildren(_actionsContainer, _actionsEmptyState);
 
         if (!GameManager.Instance.HasPlayer)
         {
-            AddMuted(_actionsBox, "No player country selected");
+            _actionsEmptyState.SetContent("No Player Country", "Select a country to play first.", "🌍");
+            _actionsEmptyState.Visible = true;
             return;
         }
 
         if (_targetCountry.GetItemCount() == 0)
         {
-            AddMuted(_actionsBox, "Select a target country above");
+            _actionsEmptyState.SetContent("Select a Target", "Choose a target country above to see available diplomatic actions.", "🎯");
+            _actionsEmptyState.Visible = true;
             return;
         }
 
@@ -430,9 +521,12 @@ public partial class DiplomacyPanel : Control
         var target = CountryDatabase.Get(targetId);
         if (target == null || target.IsAnnexed)
         {
-            AddMuted(_actionsBox, "Invalid target");
+            _actionsEmptyState.SetContent("Invalid Target", "The selected target is no longer valid.", "❌");
+            _actionsEmptyState.Visible = true;
             return;
         }
+
+        _actionsEmptyState.Visible = false;
 
         var playerId = GameManager.Instance.PlayerCountryId;
         bool atWar = WarSystem.IsAtWarWith(playerId, targetId);
@@ -443,28 +537,26 @@ public partial class DiplomacyPanel : Control
         var targetFaction = DiplomacySystem.GetFactionOf(targetId);
         bool sameFaction = myFaction != null && myFaction == targetFaction;
 
-        // M17A: WAR JUSTIFICATION bölümü — casus belli checklist + BUILD CASE
+        // WAR JUSTIFICATION section
         if (!atWar)
         {
             var check = CasusBelliSystem.CheckWarPreconditions(playerId, targetId);
 
             var justTitle = new Label { Text = "WAR JUSTIFICATION" };
-            justTitle.AddThemeFontSizeOverride("font_size", 14);
-            justTitle.AddThemeColorOverride("font_color", UITheme.Gold);
-            _actionsBox.AddChild(justTitle);
+            justTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+            justTitle.AddThemeColorOverride("font_color", GameTheme.Gold);
+            _actionsContainer.AddChild(justTitle);
 
-            // Checklist: her koşul ✓ (yeşil) / ✗ (kırmızı)
+            // Checklist
             foreach (var item in check.Items)
             {
                 var l = new Label { Text = $"  {(item.Met ? "✓" : "✗")} {item.Label}", TooltipText = item.Detail };
-                l.AddThemeFontSizeOverride("font_size", 12);
-                l.AddThemeColorOverride("font_color", item.Met
-                    ? new Color(0.45f, 0.85f, 0.45f)
-                    : new Color(0.9f, 0.4f, 0.35f));
-                _actionsBox.AddChild(l);
+                l.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+                l.AddThemeColorOverride("font_color", item.Met ? GameTheme.GreenBright : GameTheme.RedBright);
+                _actionsContainer.AddChild(l);
             }
 
-            // Devam eden gerekçe inşaatı / ültimatom
+            // In-progress justifications
             var inProgress = CasusBelliSystem.Justifications
                 .Where(j => j.CountryId == playerId && j.TargetId == targetId
                          && !j.IsConsumed && (j.BuildDaysLeft > 0 || j.UltimatumDaysLeft > 0))
@@ -476,38 +568,38 @@ public partial class DiplomacyPanel : Control
                     ? $"  ⏳ BUILDING CASE: {t?.Name ?? j.TypeId} — {j.BuildDaysLeft} days left"
                     : $"  ⚠ CASE READY — ultimatum: {j.UltimatumDaysLeft} days left";
                 var l = new Label { Text = status };
-                l.AddThemeFontSizeOverride("font_size", 12);
-                l.AddThemeColorOverride("font_color", UITheme.GoldBright);
-                _actionsBox.AddChild(l);
+                l.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+                l.AddThemeColorOverride("font_color", GameTheme.Orange);
+                _actionsContainer.AddChild(l);
             }
 
-            // BUILD CASE butonları (başlatılabilir gerekçe türleri)
+            // BUILD CASE buttons
             foreach (var type in CasusBelliSystem.GetStartableTypes(playerId, targetId))
             {
                 var buildBtn = new Button
                 {
                     Text = $"BUILD CASE: {type.Name} ({type.BuildDays}d, {type.PPCost} PP)",
                     FocusMode = Control.FocusModeEnum.None,
-                    CustomMinimumSize = new Vector2(220, 26),
+                    CustomMinimumSize = new Vector2(240, 28),
                     TooltipText = type.Description
                 };
-                buildBtn.AddThemeFontSizeOverride("font_size", 12);
+                buildBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
                 buildBtn.Pressed += () =>
                 {
                     if (CasusBelliSystem.StartBuildCase(playerId, targetId, type.Id))
                         RefreshAll();
                 };
-                UITheme.AddHoverScale(buildBtn);
-                _actionsBox.AddChild(buildBtn);
+                GameTheme.StyleButton(buildBtn);
+                _actionsContainer.AddChild(buildBtn);
             }
 
-            // M52.2: REQUEST RECOGNITION — tanınmamış ülke için diplomatik eylem
+            // REQUEST RECOGNITION (M52.2)
             if (!atWar && RecognitionSystem.WasBorn(targetId) && !RecognitionSystem.IsRecognized(playerId, targetId))
             {
                 var recTitle = new Label { Text = "RECOGNITION" };
-                recTitle.AddThemeFontSizeOverride("font_size", 14);
-                recTitle.AddThemeColorOverride("font_color", UITheme.Gold);
-                _actionsBox.AddChild(recTitle);
+                recTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+                recTitle.AddThemeColorOverride("font_color", GameTheme.Gold);
+                _actionsContainer.AddChild(recTitle);
 
                 int recognizerCount = RecognitionSystem.RecognizerCount(targetId);
                 int establishedCount = RecognitionSystem.EstablishedCountForOrg(targetId);
@@ -517,37 +609,39 @@ public partial class DiplomacyPanel : Control
                 {
                     Text = $"  Recognized by: {recognizerCount}/{establishedCount} ({ratio:P0}) — REQUEST RECOGNITION (25 PP)"
                 };
-                recInfo.AddThemeFontSizeOverride("font_size", 12);
-                recInfo.AddThemeColorOverride("font_color", UITheme.TextMuted);
-                _actionsBox.AddChild(recInfo);
+                recInfo.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+                recInfo.AddThemeColorOverride("font_color", GameTheme.TextMuted);
+                _actionsContainer.AddChild(recInfo);
 
                 var recBtn = new Button
                 {
                     Text = "REQUEST RECOGNITION (25 PP)",
                     FocusMode = Control.FocusModeEnum.None,
-                    CustomMinimumSize = new Vector2(220, 30),
+                    CustomMinimumSize = new Vector2(240, 32),
                     Disabled = GameManager.Instance.PlayerCountryData.PoliticalPower < 25
                 };
                 recBtn.TooltipText = $"Ask {target.Name} to recognize your country. Accepted: +10 relation both ways. Rejected: -5 relation both ways, +2 World Tension.";
+                recBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
                 recBtn.Pressed += () =>
                 {
                     if (DiplomacySystem.RequestRecognition(targetId)) RefreshAll();
                 };
-                UITheme.AddHoverScale(recBtn);
-                _actionsBox.AddChild(recBtn);
+                GameTheme.StyleButton(recBtn);
+                _actionsContainer.AddChild(recBtn);
 
-                _actionsBox.AddChild(new HSeparator());
+                _actionsContainer.AddChild(new HSeparator());
             }
 
-            // Savaş ilanı — buton yalnız tüm koşullar sağlanınca aktif; tooltip eksikleri listeler
+            // DECLARE WAR
             int warCost = WarSystem.CalculateWarGoalCost(targetId);
             var warBtn = new Button
             {
                 Text = $"DECLARE WAR ({warCost} PP)",
                 FocusMode = Control.FocusModeEnum.None,
-                CustomMinimumSize = new Vector2(220, 30),
+                CustomMinimumSize = new Vector2(240, 32),
                 Disabled = !check.CanDeclare
             };
+            warBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
             if (check.CanDeclare)
             {
                 warBtn.TooltipText = "Declare war on this country (justified)";
@@ -557,173 +651,263 @@ public partial class DiplomacyPanel : Control
                 var missing = check.Items.Where(i => !i.Met).Select(i => $"✗ {i.Label}: {i.Detail}");
                 warBtn.TooltipText = "War declaration blocked:\n" + string.Join("\n", missing);
 
-                // Görünür durum etiketi: neden bloklu
                 var blockedLabel = new Label { Text = $"WAR DECLARATION BLOCKED — {check.Items.First(i => !i.Met).Label}" };
-                blockedLabel.AddThemeFontSizeOverride("font_size", 12);
-                blockedLabel.AddThemeColorOverride("font_color", new Color(0.9f, 0.4f, 0.35f));
-                _actionsBox.AddChild(blockedLabel);
+                blockedLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+                blockedLabel.AddThemeColorOverride("font_color", GameTheme.Red);
+                _actionsContainer.AddChild(blockedLabel);
             }
-            warBtn.AddThemeColorOverride("font_disabled_color", UITheme.TextMuted);
+            warBtn.AddThemeColorOverride("font_disabled_color", GameTheme.TextMuted);
             warBtn.Pressed += () =>
             {
-                // Tıklamada her koşulu logla (test edilebilirlik)
                 CasusBelliSystem.LogWarDeclarationCheck(playerId, targetId);
                 if (DiplomacySystem.DeclareWar(targetId)) RefreshAll();
             };
-            UITheme.AddHoverScale(warBtn);
-            _actionsBox.AddChild(warBtn);
+            GameTheme.StyleButton(warBtn);
+            _actionsContainer.AddChild(warBtn);
         }
         else
         {
-            // Savaşta: bilgi + barış seçenekleri
+            // AT WAR - show war info and peace options
             var war = WarSystem.GetWarWith(targetId);
             if (war != null)
             {
                 var warInfo = new Label { Text = $"⚔ AT WAR — Enemy div: {war.EnemyDivisions} | Progress: {war.WarProgress:F0}% | Losses: {war.PlayerCasualties:N0}/{war.EnemyCasualties:N0}" };
-                warInfo.AddThemeFontSizeOverride("font_size", 12);
-                warInfo.AddThemeColorOverride("font_color", Colors.Red);
-                _actionsBox.AddChild(warInfo);
+                warInfo.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+                warInfo.AddThemeColorOverride("font_color", GameTheme.Red);
+                _actionsContainer.AddChild(warInfo);
 
-                // Zafer barışı (ilerleme %50+): puppet/annex teklifi
                 if (war.WarProgress >= 50)
                 {
-                    var peaceBtn = new Button { Text = "PROPOSE PEACE (VICTORY — PUPPET/ANNEX)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(220, 30) };
+                    var peaceBtn = new Button { Text = "PROPOSE PEACE (VICTORY — PUPPET/ANNEX)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(240, 32) };
+                    peaceBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
                     peaceBtn.Pressed += () =>
                     {
                         var deal = DiplomacySystem.ProposePeace(playerId, targetId);
                         DiplomacySystem.ApplyPeaceDeal(deal);
                         RefreshAll();
                     };
-                    UITheme.AddHoverScale(peaceBtn);
-                    _actionsBox.AddChild(peaceBtn);
+                    GameTheme.StyleButton(peaceBtn);
+                    _actionsContainer.AddChild(peaceBtn);
                 }
 
-                // Beyaz barış: her zaman sunulur
-                var whiteBtn = new Button { Text = "WHITE PEACE (STATUS QUO)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(220, 30) };
+                var whiteBtn = new Button { Text = "WHITE PEACE (STATUS QUO)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(240, 32) };
+                whiteBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
                 whiteBtn.Pressed += () =>
                 {
                     if (DiplomacySystem.WhitePeace(targetId)) RefreshAll();
                 };
-                UITheme.AddHoverScale(whiteBtn);
-                _actionsBox.AddChild(whiteBtn);
+                GameTheme.StyleButton(whiteBtn);
+                _actionsContainer.AddChild(whiteBtn);
 
-                // M42.5: Barış konferansı paneli — puan harcayarak talep der
-                var confBtn = new Button { Text = "PEACE CONFERENCE (DEMANDS)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(220, 30) };
+                var confBtn = new Button { Text = "PEACE CONFERENCE (DEMANDS)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(240, 32) };
+                confBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
                 confBtn.TooltipText = "Spend your war score on demands (territory, puppet, reparations)";
                 confBtn.Pressed += () => PeaceConferencePanel.OpenUnder(this, war, playerId);
-                UITheme.AddHoverScale(confBtn);
-                _actionsBox.AddChild(confBtn);
+                GameTheme.StyleButton(confBtn);
+                _actionsContainer.AddChild(confBtn);
             }
         }
 
-        // Garanti
+        _actionsContainer.AddChild(new HSeparator());
+
+        // GUARANTEE
         if (!atWar && !hasGuarantee)
         {
-            var guarBtn = new Button { Text = "GUARANTEE INDEPENDENCE (25 PP)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(220, 30) };
+            var guarBtn = new Button { Text = "GUARANTEE INDEPENDENCE (25 PP)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(240, 32) };
+            guarBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
             guarBtn.Pressed += () => { if (DiplomacySystem.GuaranteeIndependence(targetId)) RefreshAll(); };
-            UITheme.AddHoverScale(guarBtn);
-            _actionsBox.AddChild(guarBtn);
+            GameTheme.StyleButton(guarBtn);
+            _actionsContainer.AddChild(guarBtn);
         }
         else if (hasGuarantee)
         {
-            var revokeBtn = new Button { Text = "REVOKE GUARANTEE", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(220, 30) };
+            var revokeBtn = new Button { Text = "REVOKE GUARANTEE", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(240, 32) };
+            revokeBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
             revokeBtn.Pressed += () => { DiplomacySystem.RevokeGuarantee(targetId); RefreshAll(); };
-            UITheme.AddHoverScale(revokeBtn);
-            _actionsBox.AddChild(revokeBtn);
+            GameTheme.StyleButton(revokeBtn);
+            _actionsContainer.AddChild(revokeBtn);
         }
 
-        // Askeri erişim
+        // MILITARY ACCESS
         if (!atWar && !hasMilAccess)
         {
-            var milBtn = new Button { Text = "REQUEST MILITARY ACCESS (10 PP)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(220, 30) };
+            var milBtn = new Button { Text = "REQUEST MILITARY ACCESS (10 PP)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(240, 32) };
+            milBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
             milBtn.Pressed += () => { if (DiplomacySystem.RequestMilitaryAccess(targetId)) RefreshAll(); };
-            UITheme.AddHoverScale(milBtn);
-            _actionsBox.AddChild(milBtn);
+            GameTheme.StyleButton(milBtn);
+            _actionsContainer.AddChild(milBtn);
         }
 
-        // Deniz erişimi
+        // NAVAL ACCESS
         if (!atWar && !hasNavAccess)
         {
-            var navBtn = new Button { Text = "REQUEST NAVAL ACCESS (10 PP)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(220, 30) };
+            var navBtn = new Button { Text = "REQUEST NAVAL ACCESS (10 PP)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(240, 32) };
+            navBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
             navBtn.Pressed += () => { if (DiplomacySystem.RequestNavalAccess(targetId)) RefreshAll(); };
-            UITheme.AddHoverScale(navBtn);
-            _actionsBox.AddChild(navBtn);
+            GameTheme.StyleButton(navBtn);
+            _actionsContainer.AddChild(navBtn);
         }
 
-        // İlişki geliştir
+        // IMPROVE RELATIONS
         if (!atWar)
         {
-            var improveBtn = new Button { Text = "IMPROVE RELATIONS (10 PP/day)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(220, 30) };
+            var improveBtn = new Button { Text = "IMPROVE RELATIONS (10 PP/day)", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(240, 32) };
+            improveBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
             improveBtn.Pressed += () => { if (DiplomacySystem.ImproveRelations(targetId)) RefreshAll(); };
-            UITheme.AddHoverScale(improveBtn);
-            _actionsBox.AddChild(improveBtn);
+            GameTheme.StyleButton(improveBtn);
+            _actionsContainer.AddChild(improveBtn);
         }
     }
 
+    // ===== GUARANTEES TAB =====
     private void RefreshGuarantees()
     {
-        ClearChildren(_guaranteesBox);
+        ClearChildren(_guaranteesContainer, _guaranteesEmptyState);
 
         if (!GameManager.Instance.HasPlayer)
         {
-            AddMuted(_guaranteesBox, "No player country");
+            _guaranteesEmptyState.SetContent("No Player Country", "Select a country to play first.", "🌍");
+            _guaranteesEmptyState.Visible = true;
             return;
         }
 
         var guarantees = DiplomacySystem.GetGuaranteesBy(GameManager.Instance.PlayerCountryId);
-        if (guarantees.Count == 0)
+        bool hasAny = guarantees.Count > 0;
+
+        // Given guarantees
+        if (guarantees.Count > 0)
         {
-            AddMuted(_guaranteesBox, "No guarantees given");
-            return;
+            var givenTitle = new Label { Text = "GUARANTEES GIVEN" };
+            givenTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+            givenTitle.AddThemeColorOverride("font_color", GameTheme.Gold);
+            _guaranteesContainer.AddChild(givenTitle);
+
+            foreach (var g in guarantees)
+            {
+                var target = CountryDatabase.Get(g.TargetId);
+                var row = CreateGuaranteeRow(target, g.TargetId, true);
+                _guaranteesContainer.AddChild(row);
+            }
         }
 
-        foreach (var g in guarantees)
-        {
-            var target = CountryDatabase.Get(g.TargetId);
-            var row = new HBoxContainer();
-            row.AddThemeConstantOverride("separation", 10);
-            _guaranteesBox.AddChild(row);
-
-            // Bayrak (16x10)
-            var flagBox = new FlagBox { CustomMinimumSize = new Vector2(16, 10) };
-            flagBox.SetCountry(g.TargetId);
-            row.AddChild(flagBox);
-
-            var nameLabel = new Label { Text = $"★ {target?.Name ?? g.TargetId}", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-            nameLabel.AddThemeFontSizeOverride("font_size", 13);
-            nameLabel.AddThemeColorOverride("font_color", Colors.Gold);
-            row.AddChild(nameLabel);
-
-            var revokeBtn = new Button { Text = "REVOKE", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(80, 24) };
-            revokeBtn.Pressed += () => { DiplomacySystem.RevokeGuarantee(g.TargetId); RefreshAll(); };
-            UITheme.AddHoverScale(revokeBtn);
-            row.AddChild(revokeBtn);
-        }
-
-        // Alınan garantiler
+        // Received guarantees
         var received = DiplomacySystem.GetGuaranteesFor(GameManager.Instance.PlayerCountryId);
         if (received.Count > 0)
         {
-            AddMuted(_guaranteesBox, "Guarantees received from:");
+            hasAny = true;
+            var receivedTitle = new Label { Text = "GUARANTEES RECEIVED FROM" };
+            receivedTitle.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeMedium);
+            receivedTitle.AddThemeColorOverride("font_color", GameTheme.Blue);
+            _guaranteesContainer.AddChild(receivedTitle);
+
             foreach (var gId in received)
             {
-                var g = CountryDatabase.Get(gId);
-                AddMuted(_guaranteesBox, $"  ★ {g?.Name ?? gId}");
+                var target = CountryDatabase.Get(gId);
+                var row = CreateGuaranteeRow(target, gId, false);
+                _guaranteesContainer.AddChild(row);
             }
+        }
+
+        if (!hasAny)
+        {
+            _guaranteesEmptyState.Visible = true;
+        }
+        else
+        {
+            _guaranteesEmptyState.Visible = false;
         }
     }
 
+    private Control CreateGuaranteeRow(CountryData target, string targetId, bool isGiven)
+    {
+        var container = new HBoxContainer();
+        container.AddThemeConstantOverride("separation", GameTheme.SpaceS);
+        container.AddThemeStyleboxOverride("normal", GameTheme.CardBox(isGiven ? GameTheme.Gold : GameTheme.Blue, true));
+
+        // Flag
+        var flagBox = new FlagBox { CustomMinimumSize = new Vector2(24, 16) };
+        flagBox.SetCountry(targetId);
+        container.AddChild(flagBox);
+
+        // Name
+        var nameLabel = new Label { Text = $"★ {target?.Name ?? targetId}", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        nameLabel.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeNormal);
+        nameLabel.AddThemeColorOverride("font_color", isGiven ? GameTheme.Gold : GameTheme.BlueBright);
+        container.AddChild(nameLabel);
+
+        // Revoke button (only for given)
+        if (isGiven)
+        {
+            var revokeBtn = new Button { Text = "REVOKE", FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(80, 26) };
+            revokeBtn.AddThemeFontSizeOverride("font_size", GameTheme.FontSizeSmall);
+            revokeBtn.Pressed += () => { DiplomacySystem.RevokeGuarantee(targetId); RefreshAll(); };
+            GameTheme.StyleButton(revokeBtn);
+            container.AddChild(revokeBtn);
+        }
+
+        // Tooltip
+        var tooltipData = new TooltipBuilder.TooltipData
+        {
+            Title = isGiven ? "Guarantee Given" : "Guarantee Received",
+            Description = $"{(isGiven ? "You guarantee" : target?.Name ?? targetId)}'s independence",
+            Category = "Diplomatic",
+            CategoryColor = isGiven ? GameTheme.Gold : GameTheme.Blue,
+        };
+        container.TooltipText = TooltipBuilder.BuildText(tooltipData);
+
+        return container;
+    }
+
+    // ===== RELATIONS TAB =====
     private void RefreshRelations()
     {
-        ClearChildren(_relationsBox);
+        ClearChildren(_relationsContainer, _relationsEmptyState);
 
-        if (!GameManager.Instance.HasPlayer) return;
+        if (!GameManager.Instance.HasPlayer)
+        {
+            _relationsEmptyState.SetContent("No Player Country", "Select a country to play first.", "🌍");
+            _relationsEmptyState.Visible = true;
+            return;
+        }
 
         var playerId = GameManager.Instance.PlayerCountryId;
         var all = CountryDatabase.All().Where(c => c.Id != playerId && !c.IsAnnexed)
             .OrderByDescending(c => DiplomacySystem.GetRelation(playerId, c.Id))
-            .Take(30) // İlk 30
             .ToList();
+
+        // Filter by search
+        if (!string.IsNullOrEmpty(_searchText))
+        {
+            all = all.Where(c =>
+                c.Name.ToLower().Contains(_searchText) ||
+                c.Id.ToLower().Contains(_searchText)
+            ).ToList();
+        }
+
+        int totalCount = CountryDatabase.All().Where(c => c.Id != playerId && !c.IsAnnexed).Count();
+        int filteredCount = all.Count;
+
+        _searchBox.UpdateResultCount(filteredCount, totalCount);
+
+        if (filteredCount == 0)
+        {
+            if (!string.IsNullOrEmpty(_searchText))
+            {
+                _relationsEmptyState.SetContent(
+                    "No Results Found",
+                    $"No countries match \"{_searchText}\". Try a different search term or clear filters.",
+                    "🔍"
+                );
+            }
+            else
+            {
+                _relationsEmptyState.SetContent("No Relations", "No diplomatic relations data available.", "📋");
+            }
+            _relationsEmptyState.Visible = true;
+            return;
+        }
+
+        _relationsEmptyState.Visible = false;
 
         foreach (var c in all)
         {
@@ -731,61 +915,81 @@ public partial class DiplomacyPanel : Control
             int op = DiplomacySystem.GetOpinion(playerId, c.Id);
             bool atWar = WarSystem.IsAtWarWith(playerId, c.Id);
 
-            var row = new HBoxContainer();
-            row.AddThemeConstantOverride("separation", 8);
-            _relationsBox.AddChild(row);
-
-            // Bayrak (16x10)
-            var flagBox = new FlagBox { CustomMinimumSize = new Vector2(16, 10) };
-            flagBox.SetCountry(c.Id);
-            row.AddChild(flagBox);
-
-            var nameLabel = new Label { Text = $"{c.Name} [{c.Id}]", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
-            nameLabel.AddThemeFontSizeOverride("font_size", 12);
-            if (atWar) nameLabel.AddThemeColorOverride("font_color", Colors.Red);
-            else if (rel > 50) nameLabel.AddThemeColorOverride("font_color", Colors.Green);
-            else if (rel < -50) nameLabel.AddThemeColorOverride("font_color", Colors.Red);
-            row.AddChild(nameLabel);
-
-            var relLabel = new Label { Text = $"Rel: {rel}  Op: {op}" };
-            relLabel.AddThemeFontSizeOverride("font_size", 11);
-            relLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
-            row.AddChild(relLabel);
-
-            if (atWar)
-            {
-                var warLabel = new Label { Text = "⚔ WAR" };
-                warLabel.AddThemeFontSizeOverride("font_size", 11);
-                warLabel.AddThemeColorOverride("font_color", Colors.Red);
-                row.AddChild(warLabel);
-            }
+            var row = CreateRelationRow(c, rel, op, atWar);
+            _relationsContainer.AddChild(row);
         }
     }
 
-    private static void ClearChildren(Node box)
+    private Control CreateRelationRow(CountryData c, int rel, int op, bool atWar)
     {
-        foreach (Node child in box.GetChildren())
+        var row = new ListRow
         {
-            box.RemoveChild(child);
+            Title = $"{c.Name} [{c.Id}]",
+            Subtitle = $"Relation: {rel}  |  Opinion: {op}",
+            RightText = atWar ? "⚔ WAR" : "",
+            AccentColor = atWar ? GameTheme.Red : (rel > 50 ? GameTheme.Green : (rel < -50 ? GameTheme.Red : GameTheme.TextMuted)),
+            UseAccentColor = true,
+            RowHeight = 56
+        };
+
+        // Add flag
+        var flagBox = new FlagBox { CustomMinimumSize = new Vector2(24, 16) };
+        flagBox.SetCountry(c.Id);
+        var mainContainer = row.GetChild(0) as HBoxContainer;
+        if (mainContainer != null)
+        {
+            mainContainer.MoveChild(flagBox, 0);
+        }
+
+        // Tooltip
+        var tooltipData = new TooltipBuilder.TooltipData
+        {
+            Title = $"{c.Name} [{c.Id}]",
+            Description = $"Relation: {rel}\nOpinion: {op}\n{(atWar ? "AT WAR" : "At Peace")}",
+            Category = "Relations",
+            CategoryColor = GameTheme.Blue,
+        };
+        row.TooltipText = TooltipBuilder.BuildText(tooltipData);
+
+        // Click to set as target
+        row.RowPressed += () =>
+        {
+            _tabBar.SelectedIndex = 1; // Switch to Actions tab
+            _tabBar.UpdateVisuals();
+            UpdateTabVisibility();
+            // Find and select this country in target dropdown
+            for (int i = 0; i < _targetCountry.GetItemCount(); i++)
+            {
+                if (_targetCountry.GetItemMetadata(i).AsString() == c.Id)
+                {
+                    _targetCountry.Selected = i;
+                    RefreshTargetRelation();
+                    RefreshActions();
+                    break;
+                }
+            }
+        };
+        GameTheme.AddHoverScale(row, 1.02f);
+
+        return row;
+    }
+
+    private static void ClearChildren(Node container, EmptyState emptyState)
+    {
+        foreach (var child in container.GetChildren())
+        {
+            if (child == emptyState) continue;
+            container.RemoveChild(child);
             child.QueueFree();
         }
     }
 
-    private static void AddMuted(Node box, string text)
-    {
-        var l = new Label { Text = text };
-        l.AddThemeFontSizeOverride("font_size", 12);
-        l.AddThemeColorOverride("font_color", UITheme.TextMuted);
-        box.AddChild(l);
-    }
-
-    private void Close()
+    public override void Close()
     {
         GD.Print("DiplomacyPanel: kapatılıyor");
         if (GameManager.IsAvailable)
             GameManager.Instance.PlayerCountryDataChanged -= OnDataChanged;
 
-        UITheme.FadeOut(_backdrop, 0.08f);
-        UITheme.PopOut(_panel, 0.1f, () => QueueFree());
+        base.Close();
     }
 }

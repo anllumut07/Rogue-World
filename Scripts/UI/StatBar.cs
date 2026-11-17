@@ -77,7 +77,7 @@ public partial class StatBar : VBoxContainer
         AddChild(_progressBar);
     }
 
-    private void UpdateBarColor()
+    public void UpdateBarColor()
     {
         Color fillColor;
 

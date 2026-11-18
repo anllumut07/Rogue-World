@@ -52,7 +52,7 @@ After EVERY completed milestone or stage, when build is 0 errors/0 warnings and 
 2. `git branch --show-current` → verify on `gece-calisma`
 3. `git log --oneline -8` → recent history
 4. `dotnet build` → verify clean build
-5. Check `TODO.md` for next task (currently **M52.1**)
+5. Check `TODO.md` for next task (currently **M14.1** — Export, blocked on user approval)
 
 ## Session End Protocol
 
@@ -66,11 +66,9 @@ After every completed task:
 
 ## Current Focus
 
-**Next Task: M52 — Recognition Consequences: Unrecognized State**
-- 52.1: Recognition count → OrganizationSystem membership, trade income, AI alliance/guarantee eligibility
-- 52.2: "REQUEST RECOGNITION" diplomatic action
-- 52.3: Recognition effect on war tension / intervention probability
-- 52.4: Save/Load + regression tests (A==B both scenarios)
+**Completed: M52–M56** (Recognition Consequences, Advisor System, Decisions Panel Redesign, Climate System, Migration System)
+**Next Task: M14.1** — Export presets (Windows/Linux/macOS) — **BLOCKED**: requires Godot export templates & user approval
+**Alternative**: Evaluate "Önerilen Ek Özellikler" (Advisor/Climate/Migration already done; remaining: Covert ops/leaks, Judiciary, Army morale, Localization, Achievements/History page, Difficulty/Tutorial, Mod support)
 
 ## Key Files to Know
 

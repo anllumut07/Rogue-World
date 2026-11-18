@@ -4297,5 +4297,44 @@ Completed all export configuration, CI/CD pipeline, store page preparation, and 
 - [ ] AI coverage expansion (all 180 countries)
 - [ ] CC0 audio files added to Assets/audio/
 - [ ] Godot export templates downloaded & verified
+
+---
+
+## 2026-11-18 — Session Summary: M52 Verification Complete ✓
+
+**Build & Tests:** All PASS
+- `dotnet build`: 0 errors / 0 warnings ✓
+- `--recognition-test`: PASS ✓
+- `--scenario-test`: PASS ✓
+- `--save-load-test` (historical_1936 + modern_world): PASS A==B ✓
+- `--espionage-mission-test`: PASS ✓
+- `--soak-test`: PASS ✓
+- `--balance-test`: PASS ✓
+- `--occupation-test`: PASS ✓
+- `--civil-war-test`: PASS ✓
+
+**M52 Status: ALREADY DONE** (verified via code review + test runs)
+
+| Sub-task | Implementation | Location |
+|----------|----------------|----------|
+| **52.1** Org membership / Trade income / AI alliance | Org membership gating (%30 recognition threshold), Trade multiplier (0.1-1.0 proportional), AI guarantee/faction eligibility (100% IsFullyRecognized) | `OrganizationSystem.IsEligibleForMembership`, `EconomySystem.GetRecognitionTradeMultiplier`, `DiplomacySystem` (guarantee, faction join) |
+| **52.2** REQUEST RECOGNITION diplomatic action | Player action (25 PP), AI evaluation (relation/ideology/neighbor/strength/tension/recognition ratio), Accept: +10 relation both ways, Reject: -5 relation +2 tension | `DiplomacySystem.RequestRecognition`, `DiplomacySystem.AIEvaluateRequestRecognition`, `DiplomacyPanel` UI button |
+| **52.3** War tension / intervention scaling | Unrecognized attacker → +0 to +10 tension (illegitimate war), Recognized defender → -0 to -5 tension (legitimate defense), AI intervention probability weighted by recognition ratio | `CasusBelliSystem.NotifyWarDeclared` (tension ±5-10), `CivilWarSystem.EvaluateAIIntervention` (recognition ratio in scoring) |
+| **52.4** Save/Load A==B both scenarios | Recognition hash in BuildSummaryCore, both scenarios PASS | `SaveLoadTest.BuildSummaryCore` |
+
+**Files Reviewed (no changes needed):**
+- `Scripts/RecognitionSystem.cs` — Core recognition logic
+- `Scripts/OrganizationSystem.cs` — Membership eligibility (%30 threshold)
+- `Scripts/EconomySystem.cs` — Trade multiplier (recognition ratio)
+- `Scripts/DiplomacySystem.cs` — Guarantees, factions, REQUEST RECOGNITION, AI evaluation
+- `Scripts/CasusBelliSystem.cs` — War tension scaling
+- `Scripts/CivilWarSystem.cs` — AI intervention evaluation with recognition
+
+**Documentation Updated:**
+- `CLAUDE.md` — Next Task updated to M14.1 (Export, blocked on user)
+- `TODO.md` — M52 already marked [x] Bitti (all 4 sub-tasks)
+- `PROJECT_STATE.md` — Already reflects M52-M56 DONE
+
+**Git:** Commit + push to `gece-calisma`
 - [ ] QA sign-off (editor play + all 70 headless tests)
 - [ ] v1.0.0 tag creation + GitHub Release

@@ -60,3 +60,8 @@ litellm_config.yaml
 
 # UID files (Godot metadata)
 *.uid
+
+# Map data pipeline — raw downloads and venv (large, not committed)
+tools/map_data/raw/
+tools/map_data/.venv/
+tools/map_data/__pycache__/

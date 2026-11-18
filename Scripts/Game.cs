@@ -1,8 +1,9 @@
 using Godot;
 using System;
 
-// Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMap, ülke bilgi paneli, HUD.
+// Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMap/WorldMapV2, ülke bilgi paneli, HUD.
 // M11: Harita TAM EKRAN (MapViewportFrame FullRect). HUD ve CountryInfoPanel overlay.
+// Stage B: --map-v2 flag enables WorldMapV2 (Natural Earth data pipeline)
 public partial class Game : Control
 {
     private MapViewportFrame _mapFrame;
@@ -10,8 +11,9 @@ public partial class Game : Control
     private CountryMiniCard _miniCard; // M15.1: kilitli oyundaki küçük ülke kartı
     private GameHud _hud;
     private MiniMapPanel _miniMap; // M32.4: sağ-alt köşede mini harita
-    private WorldMap _worldMap; // X/ESC kapatma isteğinde ClearSelection() için
+    private Node2D _worldMap; // WorldMap or WorldMapV2 - X/ESC kapatma isteğinde ClearSelection() için
     private bool _isNewGame; // M24.1: yeni oyun mu yoksa yükleme mi?
+    private bool _useMapV2; // Stage B: use WorldMapV2 instead of WorldMap
 
     public const int HudHeight = 64; // HUD yüksekliği (görsel ölçüm) — info panel bundan sonra başlar
 
@@ -56,7 +58,12 @@ public partial class Game : Control
 
     private void OnMapFrameReady()
     {
-        // --- Merkez: SubViewport içinde WorldMap ---
+        // Stage B: Check for --map-v2 flag
+        _useMapV2 = GameManager.UseMapV2;
+        if (_useMapV2)
+            GD.Print("Game: Using WorldMapV2 (Natural Earth data pipeline)");
+
+        // --- Merkez: SubViewport içinde WorldMap/WorldMapV2 ---
         var subViewport = new SubViewport();
         // DÜZELTME (eski projeden öğrenildi): HandleInputLocally=true olmalı,
         // yoksa input SubViewport yerine parent'a gider.
@@ -67,8 +74,19 @@ public partial class Game : Control
         var winSize = GetViewportRect().Size;
         subViewport.Size = new Vector2I(System.Math.Max(64, (int)winSize.X), System.Math.Max(64, (int)winSize.Y));
 
-        _worldMap = new WorldMap();
-        subViewport.AddChild(_worldMap);
+        // Create WorldMap or WorldMapV2 based on flag
+        if (_useMapV2)
+        {
+            var mapV2 = new WorldMapV2();
+            _worldMap = mapV2;
+            subViewport.AddChild(mapV2);
+        }
+        else
+        {
+            var map = new WorldMap();
+            _worldMap = map;
+            subViewport.AddChild(map);
+        }
         _mapFrame.CenterViewport.AddChild(subViewport);
 
         // DÜZELTME (eski projeden öğrenildi): SubViewportContainer input'u
@@ -84,7 +102,9 @@ public partial class Game : Control
             var containerRect = viewportContainer.GetGlobalRect();
             GD.Print($"[Teşhis] SubViewport={subViewport.Size}, konteyner={containerRect}, " +
                      $"Stretch={viewportContainer.Stretch}, görünür={viewportContainer.IsVisibleInTree()}");
-            _worldMap.EnsureCameraCurrent();
+            // Ensure camera is current for both WorldMap and WorldMapV2
+            if (_worldMap is WorldMap wm) wm.EnsureCameraCurrent();
+            else if (_worldMap is WorldMapV2 wmv2) wmv2.EnsureCameraCurrent();
         }).CallDeferred();
 
         // --- Sol panel: ülke bilgi paneli (overlay — HUD altında, genişlik sınırlı) ---
@@ -95,7 +115,7 @@ public partial class Game : Control
         _infoPanel.CloseRequested += () =>
         {
             GD.Print("[Diag] Game: CloseRequested → WorldMap.ClearSelection()");
-            _worldMap?.ClearSelection();
+            _worldMap?.Call("ClearSelection");
         };
 
         // --- M15.1: Küçük ülke kartı (kilitli oyunda tam panel yerine) ---
@@ -104,7 +124,7 @@ public partial class Game : Control
         _miniCard.CloseRequested += () =>
         {
             GD.Print("[Diag] Game: MiniCard CloseRequested → WorldMap.ClearSelection()");
-            _worldMap?.ClearSelection();
+            _worldMap?.Call("ClearSelection");
         };
 
         // --- Üst bar: HUD (CanvasLayer overlay) ---
@@ -115,9 +135,9 @@ public partial class Game : Control
         _miniMap = new MiniMapPanel();
         AddChild(_miniMap);
 
-        // --- Sinyaller ---
-        _worldMap.CountrySelected += OnCountrySelected;
-        _worldMap.CountryDeselected += OnCountryDeselected;
+        // --- Sinyaller (both WorldMap and WorldMapV2 have same signals) ---
+        _worldMap.Connect("CountrySelected", new Callable(this, nameof(OnCountrySelected)));
+        _worldMap.Connect("CountryDeselected", new Callable(this, nameof(OnCountryDeselected)));
 
         // --- Diagnostik: --screenshot-test (yalnızca komut satırı) ---
         if (ScreenshotTest.Enabled) SetupScreenshotShot();

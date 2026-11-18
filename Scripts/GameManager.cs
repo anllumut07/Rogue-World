@@ -14,6 +14,9 @@ public partial class GameManager : Node
     public static bool IsAvailable =>
         Instance != null && GodotObject.IsInstanceValid(Instance);
 
+    // Stage B: --map-v2 flag to enable WorldMapV2 (Natural Earth data pipeline)
+    public static bool UseMapV2 { get; private set; }
+
     // --- Sinyaller ---
     [Signal] public delegate void DateChangedEventHandler(string dateText);
     [Signal] public delegate void SpeedChangedEventHandler(int newSpeed);
@@ -209,6 +212,7 @@ public partial class GameManager : Node
         bool climateTest = false;            // M55: iklim sistemi testi (--climate-test)
         bool migrationTest = false;          // M56: göç ve mülteci krizleri testi (--migration-test)
         bool uiTest = false;              // M-UI: UI sistemi testi (--ui-test)
+        bool useMapV2 = false;           // Stage B: --map-v2 — use new WorldMapV2 with Natural Earth data
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -423,6 +427,8 @@ public partial class GameManager : Node
                 settingsTest = true;
             else if (arg == "--ui-test")
                 uiTest = true;
+            else if (arg == "--map-v2")
+                useMapV2 = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -484,6 +490,11 @@ public partial class GameManager : Node
             if (userArgs.Contains("--focus-test"))
                 focusTestCountry = testCountry;
         }
+
+        // Stage B: Set static UseMapV2 flag for WorldMapV2 selection
+        UseMapV2 = useMapV2;
+        if (UseMapV2)
+            GD.Print("Stage B: WorldMapV2 ENABLED via --map-v2 flag");
 
         // M17.1: aktif senaryoyu başta logla
         GD.Print($"Senaryo: {ScenarioSystem.ActiveId} — {ScenarioSystem.ActiveName} | Başlangıç: {ScenarioSystem.ActiveStartDate:yyyy-MM-dd} | Placeholder: {ScenarioSystem.ActiveIsPlaceholder}");

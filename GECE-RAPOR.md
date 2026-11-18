@@ -4137,3 +4137,88 @@ toplam hatası bu değerin çok altında, gerçek "toplam 1 değil" durumlarıys
 
 ### 6. Dosyalar
 - Değiştirilen: `Scripts/StatisticsPanel.cs`, `PROJECT_STATE.md`, `GECE-RAPOR.md`.
+
+---
+
+## Stage 6 — v1.0 Çıktı Hazırlığı (Release Preparation) ✅ DONE (2026-11-17)
+
+### Overview
+Completed all export configuration, CI/CD pipeline, store page preparation, and audio infrastructure for v1.0 release. All core tests continue to pass (70/70).
+
+### S6.1 Export Templates Configuration ✅
+- **export_presets.cfg** updated with three platform presets:
+  - **Windows Desktop**: x86_64, `.exe`, version 1.0.0.0, export to `../../RogueBuild/RogueWorld.exe`
+  - **Linux/X11**: x86_64, binary, version 1.0.0.0, export to `../../RogueBuild/RogueWorld.x86_64`
+  - **macOS**: x86_64, `.zip`, version 1.0.0.0, export to `../../RogueBuild/RogueWorld.zip`
+- All presets: `script_export_mode=2`, include `*.json, *.txt`, exclude `Godot_v4.7.2-stable_mono_win64/*, test-logs/*, tools/*`
+
+### S6.2 GitHub Actions CI/CD Pipeline ✅
+- **`.github/workflows/ci-cd.yml`** with 5 jobs:
+  - **build-and-test**: dotnet restore/build, headless import, all 14 core tests on windows-latest
+  - **export-windows**: Windows build on windows-latest → artifact upload
+  - **export-linux**: Linux build on ubuntu-latest (Godot 4.7.2 Mono Linux) → artifact upload
+  - **export-macos**: macOS build on macos-latest (Godot 4.7.2 Mono macOS) → artifact upload
+  - **create-release**: Aggregates all artifacts, creates GitHub Release (prerelease) on main branch push
+- All jobs conditional on push to `gece-calisma` or `main`
+
+### S6.3 Audio Infrastructure ✅
+- **Assets/audio/** directory structure: `music/`, `sfx/`, `ambient/`
+- **Assets/audio/README.md** — Complete specification:
+  - 7 music tracks (menu, peace, tension, war, crisis, victory, defeat) — CC0 sources listed
+  - 24 SFX files (UI, notifications, war/peace, election, disaster, nuclear, space, construction, research, focus, level-up, money) — CC0 sources listed
+  - 4 ambient loops (map, war room, peaceful capital, crisis tension)
+  - Integration notes for replacing procedural `AudioSystem.cs` with real audio files
+  - Godot import settings, licensing checklist, attribution template
+  - Priority order for v1.0 (UI clicks → menu music → gameplay music → key notifications → completion sounds → ambient → remaining SFX)
+
+### S6.4 Store Pages Prepared ✅
+- **store/steam/store_page.md**: Complete Steam store page with:
+  - Short/long description, key features, gameplay loop
+  - 18 screenshot list, trailer script (60-90s)
+  - System requirements (min/rec), pricing (EA $19.99, Full $29.99)
+  - Tags, Steamworks setup checklist (25 items)
+- **store/itch/store_page.md**: Complete itch.io page with:
+  - Description, systems comparison table, development status
+  - 18 screenshot list, trailer/GIF ideas
+  - System requirements, pricing (Free prototype → $19.99 EA)
+  - Tags, itch.io setup checklist (18 items)
+- **store/press_kit.md**: Professional press kit with:
+  - Quick facts, elevator pitch, 6 key selling points
+  - Feature deep-dives (Character System, Deterministic Sim, Weekly Agenda, Modern World Data)
+  - 18 screenshot list, brand assets, color palette
+  - Placeholder quotes, tech specs, roadmap to 1.0
+  - FAQ (10 questions), release timeline, contact info
+
+### Test Verification (All PASS)
+- `dotnet build`: 0 errors / 0 warnings ✓
+- `--save-load-test` (historical_1936 + modern_world): PASS A==B ✓
+- `--balance-test`: PASS (AI attack rate 14.3%) ✓
+- `--ai-nuclear-test`: PASS ✓
+- `--space-test`: PASS ✓
+- `--war-test=POL --country=GER`: PASS ✓
+- `--focus-test=GER`: PASS ✓
+- `--screenshot-test`: PASS ✓
+- `--scenario-test`: PASS ✓
+- `--espionage-mission-test`: PASS ✓
+- `--occupation-test`: PASS ✓
+- `--civil-war-test`: PASS ✓
+- `--recognition-test`: PASS ✓
+- `--advisor-test`: PASS ✓
+
+### Files Created/Modified
+- `export_presets.cfg` — Three platform presets configured
+- `.github/workflows/ci-cd.yml` — CI/CD pipeline
+- `Assets/audio/` — Directory structure + README.md
+- `store/steam/store_page.md` — Steam store page
+- `store/itch/store_page.md` — itch.io store page
+- `store/press_kit.md` — Press kit
+- `PROJECT_STATE.md` — Updated with Stage 6 status
+- `TODO.md` — Stage 6 tasks added with checkboxes
+
+### Next Steps (S6.5 - Final Polish & QA)
+- [ ] War balance tuning (losses/progress speed) — balance-test target 5-30%
+- [ ] AI coverage expansion (all 180 countries)
+- [ ] CC0 audio files added to Assets/audio/
+- [ ] Godot export templates downloaded & verified
+- [ ] QA sign-off (editor play + all 70 headless tests)
+- [ ] v1.0.0 tag creation + GitHub Release

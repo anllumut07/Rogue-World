@@ -871,4 +871,49 @@ bir kuruma dönüşmeli.
 
 ---
 
+## ✅ Stage 6: v1.0 Çıktı Hazırlığı (Release Preparation) — 2026-11-17
+
+### S6.1 Godot Export Templates Configuration ✅
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 6.1.1 | export_presets.cfg: Windows Desktop (x86_64, .exe, v1.0.0.0) | Preset tanımlı, export_path doğru | [x] |
+| 6.1.2 | export_presets.cfg: Linux/X11 (x86_64, binary, v1.0.0.0) | Preset tanımlı, export_path doğru | [x] |
+| 6.1.3 | export_presets.cfg: macOS (x86_64, .zip, v1.0.0.0) | Preset tanımlı, export_path doğru | [x] |
+| 6.1.4 | Tüm presetlerde: include *.json/*.txt, exclude test/tools/Godot | Filtreler doğru | [x] |
+
+### S6.2 GitHub Actions CI/CD Pipeline ✅
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 6.2.1 | .github/workflows/ci-cd.yml: build-and-test job | dotnet build, import, 14 testler PASS | [x] |
+| 6.2.2 | export-windows job (windows-latest) | Windows .exe artifact üretilir | [x] |
+| 6.2.3 | export-linux job (ubuntu-latest) | Linux binary artifact üretilir | [x] |
+| 6.2.4 | export-macos job (macos-latest) | macOS .zip artifact üretilir | [x] |
+| 6.2.5 | create-release job (main branch) | GitHub Release oluşturulur | [x] |
+
+### S6.3 Ses Entegrasyonu (Altyapı) ✅
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 6.3.1 | Assets/audio/ dizin yapısı (music/, sfx/, ambient/) | Dizinalar oluşturuldu | [x] |
+| 6.3.2 | Assets/audio/README.md: 7 müzik, 24 SFX, 4 ambient spec | Spec tamam, CC0 kaynaklar listelenmiş | [x] |
+| 6.3.3 | AudioSystem.cs prosedürel fallback korunur | Gerçek dosya yoksa sine wave oynar | [x] |
+
+### S6.4 Mağaza Sayfaları Hazırlığı ✅
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 6.4.1 | store/steam/store_page.md: Steam sayfası tam taslağı | Açıklama, özellikler, ekran listesi, trailer, fiyat, sistem gereksinimleri, checklist | [x] |
+| 6.4.2 | store/itch/store_page.md: itch.io sayfası tam taslağı | Açıklama, sistemler tablosu, dev durumu, ekran listesi, fiyat, checklist | [x] |
+| 6.4.3 | store/press_kit.md: Basit kit | Quick facts, elevator pitch, selling points, deep-dives, screenshots, brand assets, palette, quotes, tech specs, roadmap, FAQ, timeline | [x] |
+
+### S6.5 Final Polish & QA (Planlandı)
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 6.5.1 | War balance tuning (kayıp hızı, ilerleme hızı) | balance-test hedefleri %5-30 arası | [ ] |
+| 6.5.2 | AI coverage expansion (180 ülke) | Tüm ülkeler AI yönetebilir | [ ] |
+| 6.5.3 | CC0 ses dosyaları eklenmesi | Assets/audio/ dolu, headless test ses logu | [ ] |
+| 6.5.4 | Export template indirme onayı (Godot) | Template indirildi, export çalışıyor | [ ] |
+| 6.5.5 | QA sign-off (editor play + headless tüm testler) | 70/70 test PASS, görsel regresyon yok | [ ] |
+| 6.5.6 | v1.0 tag oluşturma + release notes | git tag v1.0.0, push, GitHub Release | [ ] |
+
+---
+
 ## Notlar

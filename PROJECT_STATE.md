@@ -89,7 +89,7 @@ C:\Proje\Rogue-World\
 - **M56:** Migration & Refugee Crises — Global settings, 4 border policies (Open/Controlled/Restricted/Closed), 4 crisis types (War, Civil War, Climate, Persecution), 3 aid packages, weighted refugee distribution (neighbors/economy/relations/stability/border policy), assimilation/return mechanics, AI border policy decisions, HUD MIGRATION button with 4-tab panel (Overview/Crises/Flows/Policies), WarSystem/CivilWarSystem/ClimateSystem hooks for refugee generation, StatisticsSystem/DiplomacySystem/OrganizationSystem integration (stability/GDP/ideology/reputation effects), Save/Load A==B both scenarios — **DONE ✓** (`--migration-test` PASS, `--save-load-test` both scenarios PASS)
 
 ## What is Broken / Unfinished
-- **Export/Deployment (M13-14)** — Blocked on Godot export templates, versioning, CI/CD (user approval needed)
+- **Export/Deployment (M13-14)** — Export templates configured for Windows/Linux/macOS, CI/CD pipeline created, store pages prepared. Blocked on: export template download approval, sound asset integration, final QA sign-off.
 
 ## Known Issues / Technical Debt
 - AI only manages ~49 detailed countries; rest passive
@@ -117,6 +117,41 @@ C:\Proje\Rogue-World\
   - All existing behavior preserved (category filter, search, start/cancel, daily refresh)
 - **Test hook added**: `--ui-screenshot=<panel>` (works in editor; headless needs game state)
 - **Quality gate**: Build 0 errors/0 warnings ✓, `--decisions-test` PASS ✓, `--save-load-test` both scenarios A==B ✓
+
+## Completed in Stage 6 (v1.0 Release Preparation - 2026-11-17)
+
+### Export Configuration ✓
+- **export_presets.cfg** updated with three presets:
+  - **Windows Desktop** (x86_64, .exe, version 1.0.0.0)
+  - **Linux/X11** (x86_64, binary, version 1.0.0.0)
+  - **macOS** (x86_64, .zip, version 1.0.0.0)
+- All presets: script_export_mode=2, include *.json/*.txt, exclude test/tools/Godot folders
+- Export paths: `../../RogueBuild/` for each platform
+
+### CI/CD Pipeline ✓
+- **`.github/workflows/ci-cd.yml`** created with:
+  - **build-and-test**: dotnet restore/build, headless import, all 14 core tests
+  - **export-windows**: Windows build on windows-latest
+  - **export-linux**: Linux build on ubuntu-latest (Godot 4.7.2 Mono Linux)
+  - **export-macos**: macOS build on macos-latest (Godot 4.7.2 Mono macOS)
+  - **create-release**: Aggregates artifacts, creates GitHub Release (prerelease) on main branch push
+- All jobs conditional on push to gece-calisma or main
+
+### Store Pages Prepared ✓
+- **store/steam/store_page.md**: Complete Steam store page with description, features, screenshots list, trailer script, system requirements, pricing, tags, Steamworks checklist
+- **store/itch/store_page.md**: Complete itch.io page with description, systems table, development status, screenshots, pricing, tags, setup checklist
+- **store/press_kit.md**: Press kit with quick facts, elevator pitch, key selling points, feature deep-dives, screenshots list, brand assets, color palette, quotes, tech specs, roadmap, FAQ, release timeline
+
+### Audio Infrastructure ✓
+- **Assets/audio/** directory structure created (music/, sfx/, ambient/)
+- **Assets/audio/README.md**: Complete audio asset specification with:
+  - 7 required music tracks (CC0 sources listed)
+  - 24 required SFX files (CC0 sources listed)
+  - 4 required ambient loops
+  - Integration notes for replacing procedural AudioSystem.cs
+  - Godot import settings
+  - Licensing checklist and attribution template
+  - Priority order for v1.0
 
 ## Completed in Stage 2 (Panel Migration)
 ### 1. DiplomacyPanel ✓ (2026-11-16)

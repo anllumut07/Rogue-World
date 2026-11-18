@@ -1,0 +1,284 @@
+[gd_scene load_steps=8 format=3 uid="uid://dkiq8fq7oq5k7"]
+
+[ext_resource type="Script" path="res://ui/UIManager.gd" id="1_ui_manager"]
+[ext_resource type="Script" path="res://ui/panels/HUD.gd" id="2_hud"]
+[ext_resource type="Script" path="res://ui/panels/DiplomacyPanel.gd" id="3_diplomacy"]
+[ext_resource type="Script" path="res://ui/panels/SettingsPanel.gd" id="4_settings"]
+[ext_resource type="Script" path="res://ui/Theme/UITheme.gd" id="5_theme"]
+[ext_resource type="Texture2D" path="res://ui/graphics/icons/diplomacy.png" id="6_icon_diplomacy"]
+[ext_resource type="Texture2D" path="res://ui/graphics/icons/settings.png" id="7_icon_settings"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1"]
+bg_color = Color(0.043, 0.063, 0.09, 1)
+border_color = Color(0.788, 0.635, 0.153, 1)
+border_width_bottom = 1
+border_width_left = 1
+border_width_right = 1
+border_width_top = 1
+content_margin_bottom = 12
+content_margin_left = 16
+content_margin_right = 16
+content_margin_top = 12
+corner_radius_bottom_left = 6
+corner_radius_bottom_right = 6
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_offset = Vector2(0, 3)
+shadow_size = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2"]
+bg_color = Color(0.043, 0.063, 0.09, 1)
+border_color = Color(0.165, 0.227, 0.29, 1)
+border_width_bottom = 1
+border_width_left = 1
+border_width_right = 1
+border_width_top = 1
+content_margin_bottom = 8
+content_margin_left = 12
+content_margin_right = 12
+content_margin_top = 8
+corner_radius_bottom_left = 4
+corner_radius_bottom_right = 4
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3"]
+bg_color = Color(0.09, 0.137, 0.2, 1)
+border_color = Color(0.165, 0.227, 0.29, 1)
+border_width_bottom = 1
+border_width_left = 1
+border_width_right = 1
+border_width_top = 1
+content_margin_bottom = 6
+content_margin_left = 10
+content_margin_right = 10
+content_margin_top = 6
+corner_radius_bottom_left = 3
+corner_radius_bottom_right = 3
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4"]
+bg_color = Color(0.078, 0.102, 0.153, 1)
+border_color = Color(0.165, 0.227, 0.29, 1)
+border_width_bottom = 1
+border_width_left = 1
+border_width_right = 1
+border_width_top = 1
+content_margin_bottom = 4
+content_margin_left = 8
+content_margin_right = 8
+content_margin_top = 4
+corner_radius_bottom_left = 3
+corner_radius_bottom_right = 3
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+
+[node name="MainUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+
+[node name="HUDLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="HUD" type="HBoxContainer" parent="HUDLayer"]
+layout_mode = 3
+anchors_preset = 15
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 10.0
+offset_bottom = 10.0
+theme = SubResource("5_theme")
+
+[node name="LeftSection" type="HBoxContainer" parent="HUDLayer/HUD"]
+size_flags_horizontal = 1
+size_flags_vertical = 1
+
+[node name="Resources" type="VBoxContainer" parent="HUDLayer/HUD/LeftSection"]
+size_flags_horizontal = 1
+
+[node name="GoldContainer" type="HBoxContainer" parent="HUDLayer/HUD/LeftSection/Resources"]
+[node name="GoldIcon" type="TextureRect" parent="HUDLayer/HUD/LeftSection/Resources/GoldContainer"]
+custom_minimum_size = Vector2(20, 20)
+stretch_mode = 1
+
+[node name="GoldLabel" type="Label" parent="HUDLayer/HUD/LeftSection/Resources/GoldContainer"]
+text = "Gold: 1000"
+theme_type_variation = "Header"
+
+[node name="GoldPerTurn" type="Label" parent="HUDLayer/HUD/LeftSection/Resources/GoldContainer"]
+text = "+15/turn"
+theme_type_variation = "Positive"
+
+[node name="ManpowerContainer" type="HBoxContainer" parent="HUDLayer/HUD/LeftSection/Resources"]
+[node name="ManpowerIcon" type="TextureRect" parent="HUDLayer/HUD/LeftSection/Resources/ManpowerContainer"]
+custom_minimum_size = Vector2(20, 20)
+stretch_mode = 1
+
+[node name="ManpowerLabel" type="Label" parent="HUDLayer/HUD/LeftSection/Resources/ManpowerContainer"]
+text = "Manpower: 50000"
+theme_type_variation = "Header"
+
+[node name="ManpowerPerTurn" type="Label" parent="HUDLayer/HUD/LeftSection/Resources/ManpowerContainer"]
+text = "+200/turn"
+theme_type_variation = "Positive"
+
+[node name="StabilityContainer" type="HBoxContainer" parent="HUDLayer/HUD/LeftSection/Resources"]
+[node name="StabilityIcon" type="TextureRect" parent="HUDLayer/HUD/LeftSection/Resources/StabilityContainer"]
+custom_minimum_size = Vector2(20, 20)
+stretch_mode = 1
+
+[node name="StabilityLabel" type="Label" parent="HUDLayer/HUD/LeftSection/Resources/StabilityContainer"]
+text = "Stability: 75%"
+theme_type_variation = "Header"
+
+[node name="WarSupportContainer" type="HBoxContainer" parent="HUDLayer/HUD/LeftSection/Resources"]
+[node name="WarSupportIcon" type="TextureRect" parent="HUDLayer/HUD/LeftSection/Resources/WarSupportContainer"]
+custom_minimum_size = Vector2(20, 20)
+stretch_mode = 1
+
+[node name="WarSupportLabel" type="Label" parent="HUDLayer/HUD/LeftSection/Resources/WarSupportContainer"]
+text = "War Support: 60%"
+theme_type_variation = "Header"
+
+[node name="CenterSection" type="VBoxContainer" parent="HUDLayer/HUD"]
+alignment = 1
+size_flags_horizontal = 2
+size_flags_vertical = 1
+
+[node name="TurnInfo" type="HBoxContainer" parent="HUDLayer/HUD/CenterSection"]
+alignment = 1
+
+[node name="DateLabel" type="Label" parent="HUDLayer/HUD/CenterSection/TurnInfo"]
+text = "January 1936"
+theme_type_variation = "Title"
+
+[node name="SpeedContainer" type="HBoxContainer" parent="HUDLayer/HUD/CenterSection"]
+alignment = 1
+
+[node name="SpeedLabel" type="Label" parent="HUDLayer/HUD/CenterSection/SpeedContainer"]
+text = "Speed: "
+theme_type_variation = "Header"
+
+[node name="SpeedButtons" type="HBoxContainer" parent="HUDLayer/HUD/CenterSection/SpeedContainer"]
+alignment = 1
+
+[node name="PauseBtn" type="Button" parent="HUDLayer/HUD/CenterSection/SpeedContainer/SpeedButtons"]
+text = "⏸"
+theme_type_variation = "ToolbarButton"
+custom_minimum_size = Vector2(32, 32)
+
+[node name="Speed1xBtn" type="Button" parent="HUDLayer/HUD/CenterSection/SpeedContainer/SpeedButtons"]
+text = "1x"
+theme_type_variation = "ToolbarButton"
+custom_minimum_size = Vector2(40, 32)
+
+[node name="Speed2xBtn" type="Button" parent="HUDLayer/HUD/CenterSection/SpeedContainer/SpeedButtons"]
+text = "2x"
+theme_type_variation = "ToolbarButton"
+custom_minimum_size = Vector2(40, 32)
+
+[node name="Speed3xBtn" type="Button" parent="HUDLayer/HUD/CenterSection/SpeedContainer/SpeedButtons"]
+text = "3x"
+theme_type_variation = "ToolbarButton"
+custom_minimum_size = Vector2(40, 32)
+
+[node name="RightSection" type="HBoxContainer" parent="HUDLayer/HUD"]
+alignment = 2
+size_flags_horizontal = 1
+size_flags_vertical = 1
+
+[node name="PanelButtons" type="HBoxContainer" parent="HUDLayer/HUD/RightSection"]
+alignment = 2
+
+[node name="DiplomacyBtn" type="Button" parent="HUDLayer/HUD/RightSection/PanelButtons"]
+text = "Diplomacy"
+icon = ExtResource("6_icon_diplomacy")
+theme_type_variation = "ToolbarButton"
+custom_minimum_size = Vector2(120, 40)
+
+[node name="SettingsBtn" type="Button" parent="HUDLayer/HUD/RightSection/PanelButtons"]
+text = "Settings"
+icon = ExtResource("7_icon_settings")
+theme_type_variation = "ToolbarButton"
+custom_minimum_size = Vector2(100, 40)
+
+[node name="PanelsLayer" type="CanvasLayer" parent="."]
+layer = 20
+
+[node name="PanelsContainer" type="Control" parent="PanelsLayer"]
+layout_mode = 3
+anchors_preset = 15
+
+[node name="PanelBackdrop" type="ColorRect" parent="PanelsLayer/PanelsContainer"]
+color = Color(0, 0, 0, 0.5)
+layout_mode = 3
+anchors_preset = 15
+visible = false
+mouse_filter = 2
+
+[node name="DiplomacyPanel" type="PanelContainer" parent="PanelsLayer/PanelsContainer"]
+layout_mode = 3
+anchors_preset = 10
+anchor_left = 0.1
+anchor_top = 0.1
+anchor_right = 0.9
+anchor_bottom = 0.9
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+visible = false
+theme_override_constants/panel = SubResource("1")
+
+[node name="TitleBar" type="HBoxContainer" parent="PanelsLayer/PanelsContainer/DiplomacyPanel"]
+size_flags_vertical = 1
+
+[node name="PanelTitle" type="Label" parent="PanelsLayer/PanelsContainer/DiplomacyPanel/TitleBar"]
+text = "Diplomacy"
+theme_type_variation = "Title"
+size_flags_horizontal = 2
+
+[node name="CloseBtn" type="Button" parent="PanelsLayer/PanelsContainer/DiplomacyPanel/TitleBar"]
+text = "✕"
+theme_type_variation = "ToolbarButton"
+custom_minimum_size = Vector2(32, 32)
+
+[node name="PanelContent" type="VBoxContainer" parent="PanelsLayer/PanelsContainer/DiplomacyPanel"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="SettingsPanel" type="PanelContainer" parent="PanelsLayer/PanelsContainer"]
+layout_mode = 3
+anchors_preset = 10
+anchor_left = 0.2
+anchor_top = 0.15
+anchor_right = 0.8
+anchor_bottom = 0.85
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+visible = false
+theme_override_constants/panel = SubResource("1")
+
+[node name="TitleBar2" type="HBoxContainer" parent="PanelsLayer/PanelsContainer/SettingsPanel"]
+size_flags_vertical = 1
+
+[node name="PanelTitle2" type="Label" parent="PanelsLayer/PanelsContainer/SettingsPanel/TitleBar2"]
+text = "Settings"
+theme_type_variation = "Title"
+size_flags_horizontal = 2
+
+[node name="CloseBtn2" type="Button" parent="PanelsLayer/PanelsContainer/SettingsPanel/TitleBar2"]
+text = "✕"
+theme_type_variation = "ToolbarButton"
+custom_minimum_size = Vector2(32, 32)
+
+[node name="PanelContent2" type="VBoxContainer" parent="PanelsLayer/PanelsContainer/SettingsPanel"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="UIManager" type="Node" parent="."]
+script = ExtResource("1_ui_manager")

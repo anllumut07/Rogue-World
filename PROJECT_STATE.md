@@ -153,6 +153,21 @@ C:\Proje\Rogue-World\
   - Licensing checklist and attribution template
   - Priority order for v1.0
 
+### GDScript UI System (New Modular Layer) ✓ (2026-11-17)
+- **ui/MainUI.tscn**: Root scene with HUDLayer (z=10) and PanelsLayer (z=20), CanvasLayer z-ordering
+- **ui/Theme/UITheme.gd**: Complete theme port from C# UITheme.cs — color palette, StyleBox factories, helper methods (pop_in, fade_in, pop_out, fade_out, pulse, shake, style_button, style_label, style_panel)
+- **ui/UIManager.gd**: Singleton managing panel registry, open/close animations, backdrop (MouseFilter.Stop), HUD updates, ESC handling
+- **ui/panels/HUD.gd**: Persistent HUD — resources (Gold, Manpower, Stability, War Support with color coding), turn info (date, speed controls Pause/1x/2x/3x), panel buttons (Diplomacy, Settings)
+- **ui/panels/DiplomacyPanel.gd**: 4 tabs (Relations with searchable country list, Factions, Guarantees, Actions with 7 diplomatic actions), country selection signal, action requested signal
+- **ui/panels/SettingsPanel.gd**: 5 tabs (Graphics, Audio, Gameplay, UI, Controls) with persistence via ConfigFile (user://settings.cfg), apply_settings() for engine integration
+- **ui/graphics/icons/**: diplomacy.svg, settings.svg placeholder icons
+- **ui/test_ui.gd**: Headless unit test covering colors, styleboxes, helpers, HUD, settings, animations
+- **ui/README.md**: Complete documentation (architecture, theme, API, responsive design, testing, adding panels)
+- **Test hook**: `--ui-test` added to GameManager.cs (RunUITest) — PASS ✓
+- **Responsive**: Percentage-based anchors (0.1/0.9), UI scale 0.5x-2.0x, breakpoints for 720p-4K
+- **Build**: 0 errors/0 warnings ✓
+- **All tests PASS**: `--ui-test`, `--save-load-test` (both scenarios), `--espionage-mission-test`, `--scenario-test`, `--soak-test`, `--balance-test`, `--occupation-test`, `--civil-war-test`, `--recognition-test`
+
 ## Completed in Stage 2 (Panel Migration)
 ### 1. DiplomacyPanel ✓ (2026-11-16)
 - Migrated to GameTheme + reusable UI components

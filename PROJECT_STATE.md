@@ -110,19 +110,22 @@ C:\Proje\Rogue-World\
 - All licenses verified at https://www.naturalearthdata.com/about/terms-of-use/ — public domain
 - Created `docs/MAP_SOURCES.md` with full source records (name, URL, license, date, size, fields)
 - Created `CREDITS.md` with attribution text
-- Python pipeline (`tools/map_data/scripts/process_natural_earth.py`) converts shapefiles → compact JSON:
-  - `Data/map/countries.json` (18.4 MB): 258 countries with LOD polygons (3 levels), borders, metadata
-  - `Data/map/country_borders.json` (21.5 MB): exterior rings as linestrings per country
-  - `Data/map/regions.json` (33.0 MB): 4,596 admin-1 regions with LOD polygons, linked by ISO3
-  - `Data/map/region_borders.json` (50.6 MB): region borders per country
-  - `Data/map/cities.json` (2.6 MB): 7,342 cities with pop, rank, min-zoom, capital flags
-  - `Data/map/regions_by_country.json` (52 KB): region ID lists per country
-  - `Data/map/country_mapping_report.json` (1.6 KB): game↔NE country mapping
-- Country mapping: 173/179 direct ISO3 matches; 6 required manual mapping (Northern Cyprus, Somaliland, Kosovo, Western Sahara, French Guiana, Palestine, South Sudan) — documented in MAP_SOURCES.md
+- Python pipeline (`tools/map_data/scripts/process_natural_earth.py`) converts shapefiles → compact JSON
+- **Optimization** (`tools/map_data/scripts/optimize_map_data.py`): quantized coords to 2 decimals (~1.1km), kept only needed LODs (countries: lod0+lod1; regions: lod1), filtered to 173 game countries, dropped region_borders.json (borders derivable from region polygons at runtime)
+- **Generated files in `Data/map/` (total 8.78 MB):**
+  - `countries.json` (0.03 MB): 258 countries with lod0+lod1 polygons
+  - `country_borders.json` (6.53 MB): exterior rings as linestrings per country (filtered to game countries)
+  - `regions.json` (0.61 MB): 4,596 admin-1 regions with lod1 polygons
+  - `cities.json` (1.55 MB): 7,342 cities with pop, rank, min-zoom, capital flags
+  - `regions_by_country.json` (51 KB): region ID lists per country
+  - `country_mapping_report.json` (1 KB): game↔NE country mapping
+- Country mapping: 173 direct ISO3 matches; 6 manual mappings documented in MAP_SOURCES.md (Northern Cyprus/Somaliland split from `-99`, Kosovo→KOS, Western Sahara→SAH, French Guiana→FRA, Palestine→PSX, South Sudan→SDS)
 - Build: 0 errors/0 warnings ✓
-- Tests: `--save-load-test` PASS (A==B), `--scenario-test` PASS ✓
+- Tests: `--save-load-test --scenario=modern_world` PASS (A==B), `--save-load-test --scenario=historical_1936` PASS (A==B), `--scenario-test` PASS ✓
+- Preview renders: `test-logs/map/preview_world.png` (360 KB), `test-logs/map/preview_europe.png` (334 KB) — countries colored by game palette, regions + major cities labeled
+- Git: committed & pushed to `gece-calisma`
 
-**NEXT STEP:** Stage B — Base Rendering (WorldMapV2 with ocean, countries, borders, labels, camera/zoom)
+**NEXT STEP:** Stage B — Base Rendering (WorldMapV2 with ocean + shaded relief base, country fills from palette, borders from country_borders.json, labels, camera/zoom). WorldMapV2 OFF by default, enabled with `--map-v2` flag. Must reach parity with current WorldMap before becoming default.
 
 ## Completed in Stage 1 (UI Foundation + DecisionPanel)
 - **GameTheme** (Scripts/UI/GameTheme.cs): Central dark theme with gold accent, status colors (green/yellow/red), consistent fonts, StyleBoxes for panels/buttons/tabs/inputs/scrollbars/progress bars/tooltips

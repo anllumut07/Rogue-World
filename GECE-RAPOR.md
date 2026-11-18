@@ -100,11 +100,13 @@
 **To verify Stage A is complete:**
 1. Open `docs/MAP_SOURCES.md` — verify all 5 datasets listed with URLs, licenses, dates
 2. Open `CREDITS.md` — verify Natural Earth attribution present
-3. Check `Data/map/` exists with 7 JSON files (countries, country_borders, regions, region_borders, cities, regions_by_country, country_mapping_report)
+3. Check `Data/map/` exists with 6 JSON files (countries, country_borders, regions, cities, regions_by_country, country_mapping_report) — **region_borders.json removed (derivable from region polygons at runtime)**
 4. Run `dotnet build` — must show 0 errors / 0 warnings
-5. Run `powershell -File tools/run-test.ps1 --save-load-test` — must PASS (A==B)
-6. Run `powershell -File tools/run-test.ps1 --scenario-test` — must PASS
-7. Check `git log --oneline -1` shows "feat: Stage A - Natural Earth data pipeline..."
+5. Run `powershell -File tools/run-test.ps1 --save-load-test --scenario=modern_world` — must PASS (A==B)
+6. Run `powershell -File tools/run-test.ps1 --save-load-test --scenario=historical_1936` — must PASS (A==B)
+7. Run `powershell -File tools/run-test.ps1 --scenario-test` — must PASS
+8. Check `test-logs/map/preview_world.png` and `test-logs/map/preview_europe.png` exist
+9. Check `git log --oneline -1` shows "feat: Stage A verification & cleanup..."
 
 **To enable Stage A data in game (not yet implemented — Stage B):**
 - Stage B will create `WorldMapV2` that loads `Data/map/` JSON

@@ -98,6 +98,32 @@ C:\Proje\Rogue-World\
 - Sound files (music, UI clicks) missing — user must add CC0/licensed assets
 - Some test-only code paths still in production (being cleaned incrementally)
 
+## Current Focus: New World Map (Natural Earth Pipeline)
+
+**Stage A: Sources + Licenses + Data Pipeline + Generated Data — COMPLETE ✓**
+
+- Downloaded 4 Natural Earth datasets (public domain, CC0 equivalent):
+  - Admin-0 Countries (1:10m, v5.1.1): 258 countries, 4.9 MB zip
+  - Admin-1 States/Provinces (1:10m, v5.1.1): 4,596 regions, 14.9 MB zip
+  - Populated Places (1:10m, v5.1.2): 7,342 cities, 2.8 MB zip
+  - Shaded Relief Grayscale (1:10m): Large (42.3 MB) + Medium (24.0 MB) GeoTIFF
+- All licenses verified at https://www.naturalearthdata.com/about/terms-of-use/ — public domain
+- Created `docs/MAP_SOURCES.md` with full source records (name, URL, license, date, size, fields)
+- Created `CREDITS.md` with attribution text
+- Python pipeline (`tools/map_data/scripts/process_natural_earth.py`) converts shapefiles → compact JSON:
+  - `Data/map/countries.json` (18.4 MB): 258 countries with LOD polygons (3 levels), borders, metadata
+  - `Data/map/country_borders.json` (21.5 MB): exterior rings as linestrings per country
+  - `Data/map/regions.json` (33.0 MB): 4,596 admin-1 regions with LOD polygons, linked by ISO3
+  - `Data/map/region_borders.json` (50.6 MB): region borders per country
+  - `Data/map/cities.json` (2.6 MB): 7,342 cities with pop, rank, min-zoom, capital flags
+  - `Data/map/regions_by_country.json` (52 KB): region ID lists per country
+  - `Data/map/country_mapping_report.json` (1.6 KB): game↔NE country mapping
+- Country mapping: 173/179 direct ISO3 matches; 6 required manual mapping (Northern Cyprus, Somaliland, Kosovo, Western Sahara, French Guiana, Palestine, South Sudan) — documented in MAP_SOURCES.md
+- Build: 0 errors/0 warnings ✓
+- Tests: `--save-load-test` PASS (A==B), `--scenario-test` PASS ✓
+
+**NEXT STEP:** Stage B — Base Rendering (WorldMapV2 with ocean, countries, borders, labels, camera/zoom)
+
 ## Completed in Stage 1 (UI Foundation + DecisionPanel)
 - **GameTheme** (Scripts/UI/GameTheme.cs): Central dark theme with gold accent, status colors (green/yellow/red), consistent fonts, StyleBoxes for panels/buttons/tabs/inputs/scrollbars/progress bars/tooltips
 - **Reusable UI Components** (Scripts/UI/):

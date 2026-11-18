@@ -40,6 +40,81 @@
 
 ---
 
+## Stage 6 — New World Map (Natural Earth Pipeline) — Stage A COMPLETE ✓ (2026-11-18)
+
+### Stage A: Sources + Licenses + Data Pipeline + Generated Data
+
+**Source Verification & Downloads (all public domain):**
+| Dataset | Version | Size (zip) | Source URL | License |
+|---------|---------|------------|------------|---------|
+| Admin-0 Countries | 5.1.1 | 4.9 MB | https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_0_countries.zip | Public Domain |
+| Admin-1 States/Provinces | 5.1.1 | 14.9 MB | https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_1_states_provinces.zip | Public Domain |
+| Populated Places | 5.1.2 | 2.8 MB | https://naciscdn.org/naturalearth/10m/cultural/ne_10m_populated_places.zip | Public Domain |
+| Shaded Relief (Large) | 3.2.0 | 42.3 MB | https://naciscdn.org/naturalearth/10m/raster/SR_HR.zip | Public Domain |
+| Shaded Relief (Medium) | 3.2.0 | 24.0 MB | https://naciscdn.org/naturalearth/10m/raster/SR_LR.zip | Public Domain |
+
+**Documentation Created:**
+- `docs/MAP_SOURCES.md` — Full source records with URLs, licenses, dates, fields, sizes
+- `CREDITS.md` — Attribution text per Natural Earth terms
+
+**Python Pipeline (`tools/map_data/scripts/process_natural_earth.py`):**
+- Virtual env at `tools/map_data/.venv` (gitignored)
+- Dependencies: pyshp, shapely, numpy, pyproj
+- Outputs to `Data/map/` (compact JSON, git-tracked)
+
+**Generated Files:**
+| File | Size | Description |
+|------|------|-------------|
+| `countries.json` | 18.4 MB | 258 countries with 3 LOD polygons, borders, metadata |
+| `country_borders.json` | 21.5 MB | Exterior rings as linestrings per country |
+| `regions.json` | 33.0 MB | 4,596 admin-1 regions with 2 LOD polygons |
+| `region_borders.json` | 50.6 MB | Region borders per country |
+| `cities.json` | 2.6 MB | 7,342 cities with pop, rank, min-zoom, capital flags |
+| `regions_by_country.json` | 52 KB | Region ID lists per country |
+| `country_mapping_report.json` | 1.6 KB | Game↔NE ISO3 mapping analysis |
+
+**Country Mapping (Game 179 → NE 258):**
+- 173 direct ISO3 matches
+- 6 manual mappings documented:
+  - Northern Cyprus (-99) → CYP (Cyprus)
+  - Somaliland (-99) → SOM (Somalia)
+  - Kosovo (CS-KM) → KOS (Kosovo)
+  - Western Sahara (ESH) → SAH (W. Sahara)
+  - French Guiana (GUF) → FRA (France, overseas region)
+  - Palestine (PSE) → PSX (Palestine)
+  - South Sudan (SSD) → SDS (S. Sudan)
+
+**Quality Gates:**
+- ✅ Build: 0 errors / 0 warnings
+- ✅ Tests: `--save-load-test` PASS (A==B), `--scenario-test` PASS
+- ✅ Git: Committed and pushed to `gece-calisma`
+
+**Files Added:**
+- `docs/MAP_SOURCES.md`, `CREDITS.md`
+- `tools/map_data/scripts/process_natural_earth.py`
+- `Data/map/*.json` (7 files)
+- `.gitignore` updated with `tools/map_data/raw/`, `tools/map_data/.venv/`
+
+### Manual Checklist for Stage A Verification
+
+**To verify Stage A is complete:**
+1. Open `docs/MAP_SOURCES.md` — verify all 5 datasets listed with URLs, licenses, dates
+2. Open `CREDITS.md` — verify Natural Earth attribution present
+3. Check `Data/map/` exists with 7 JSON files (countries, country_borders, regions, region_borders, cities, regions_by_country, country_mapping_report)
+4. Run `dotnet build` — must show 0 errors / 0 warnings
+5. Run `powershell -File tools/run-test.ps1 --save-load-test` — must PASS (A==B)
+6. Run `powershell -File tools/run-test.ps1 --scenario-test` — must PASS
+7. Check `git log --oneline -1` shows "feat: Stage A - Natural Earth data pipeline..."
+
+**To enable Stage A data in game (not yet implemented — Stage B):**
+- Stage B will create `WorldMapV2` that loads `Data/map/` JSON
+- V2 is OFF by default; enable with `--map-v2` command line flag
+- V2 must reach parity with `WorldMap` before becoming default
+
+**NEXT: Stage B — Base Rendering (WorldMapV2 with ocean, countries, borders, labels, camera/zoom)**
+
+---
+
 ## Stage 5 — Performance Profiling & v1.0-beta Release ✅ DONE (2026-11-17)
 
 ### Performance Profiling Results

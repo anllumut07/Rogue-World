@@ -1,10 +1,9 @@
+@tool
 extends HBoxContainer
 class_name HUD
 
 ## HUD.gd - Persistent Heads-Up Display
 ## Shows resources, turn info, and speed controls in real-time
-
-@tool
 
 signal speed_changed(speed: int)
 signal pause_toggled()

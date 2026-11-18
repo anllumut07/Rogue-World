@@ -1,10 +1,9 @@
+@tool
 extends Node
 class_name UIManager
 
 ## UIManager.gd - Central UI management for Rogue World
 ## Handles HUD updates, panel open/close, and UI state management
-
-@tool
 
 signal hud_updated(resources: Dictionary)
 signal panel_opened(panel_name: String)

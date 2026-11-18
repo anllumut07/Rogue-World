@@ -1,10 +1,9 @@
+@tool
 extends PanelContainer
 class_name DiplomacyPanel
 
 ## DiplomacyPanel.gd - Diplomacy management panel
 ## Modular panel that can be opened/closed via UIManager
-
-@tool
 
 signal country_selected(country_id: String)
 signal action_requested(action: String, target: String)

@@ -1,10 +1,9 @@
+@tool
 extends PanelContainer
 class_name SettingsPanel
 
 ## SettingsPanel.gd - Game settings management panel
 ## Modular panel for graphics, audio, gameplay, and UI settings
-
-@tool
 
 signal setting_changed(setting_name: String, value: Variant)
 signal settings_reset()

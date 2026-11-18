@@ -1,10 +1,9 @@
+@tool
 extends Resource
 class_name UITheme
 
 ## UITheme.gd - Godot 4 Theme Extension for Rogue World
 ## This extends the C# GameTheme with Godot-native theme overrides for UI panels
-
-@tool
 
 ## Color palette (matching GameTheme.cs)
 const BG_DARKEST = Color("#080C12")

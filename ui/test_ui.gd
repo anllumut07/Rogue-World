@@ -1,10 +1,9 @@
+@tool
 extends SceneTree
 class_name UITest
 
 ## ui/test_ui.gd - Unit tests for UI system
 ## Run with: godot --headless -s res://ui/test_ui.gd
-
-@tool
 
 func _init() -> void:
 	# Required for SceneTree script

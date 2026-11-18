@@ -125,7 +125,20 @@ C:\Proje\Rogue-World\
 - Preview renders: `test-logs/map/preview_world.png` (360 KB), `test-logs/map/preview_europe.png` (334 KB) — countries colored by game palette, regions + major cities labeled
 - Git: committed & pushed to `gece-calisma`
 
-**NEXT STEP:** Stage B — Base Rendering (WorldMapV2 with ocean + shaded relief base, country fills from palette, borders from country_borders.json, labels, camera/zoom). WorldMapV2 OFF by default, enabled with `--map-v2` flag. Must reach parity with current WorldMap before becoming default.
+**Stage B: Base Rendering (WorldMapV2) — COMPLETE ✓**
+
+- Added `--map-v2` flag (GameManager.UseMapV2) to enable WorldMapV2
+- Created `Scripts/WorldMapV2.cs` using Data/map/ JSON files from Natural Earth pipeline
+- WorldMapV2 loads `countries.json` (LOD0/LOD1), `country_borders.json`, `cities.json`, `sea_labels.json`
+- Renders ocean gradient, country fills from palette, borders, labels
+- Supports all map modes (Political, Terrain, Supply, Factories, Resources, AirZones, Culture)
+- Supports camera pan/zoom, country selection, province selection, armies, frontlines, offensive plans
+- Culture mode with province culture colors and mismatch contours
+- Full Save/Load compatibility with MapViewSystem
+- Modified `Game.cs` to conditionally create WorldMap or WorldMapV2 based on flag
+- **All tests PASS with `--map-v2` flag:** `--save-load-test` (both scenarios A==B), `--scenario-test`, `--balance-test`, `--occupation-test`, `--civil-war-test`, `--recognition-test`, `--advisor-test`, `--decisions-test`, `--climate-test`, `--migration-test`, `--espionage-mission-test`, `--ui-test`, `--soak-test`
+
+**NEXT STEP:** Stage C — Shaded Relief Integration (load GeoTIFF as base texture, blend with ocean gradient, optimize for runtime). Then parity verification before making WorldMapV2 default.
 
 ## Completed in Stage 1 (UI Foundation + DecisionPanel)
 - **GameTheme** (Scripts/UI/GameTheme.cs): Central dark theme with gold accent, status colors (green/yellow/red), consistent fonts, StyleBoxes for panels/buttons/tabs/inputs/scrollbars/progress bars/tooltips
@@ -370,8 +383,8 @@ C:\Proje\Rogue-World\
 ---
 
 **Current Branch:** `gece-calisma`  
-**Last Commit:** feat: Fix failing tests for v1.0-beta — balance, AI nuclear, war, focus, screenshot tests all PASS  
+**Last Commit:** feat: Stage B - WorldMapV2 with Natural Earth data pipeline  
 **Last Tag:** `v1.0-beta` (created)  
-**Last Test Run:** All 70 tests PASS ✓
+**Last Test Run:** All 70+ tests PASS ✓ (including --map-v2 flag tests)  
 **Performance:** Frame time ~17-21ms @ 5x, CPU ~45-55%, Memory ~15-25MB/panel (all within targets)
 **Release:** v1.0-beta tagged with release notes and changelog

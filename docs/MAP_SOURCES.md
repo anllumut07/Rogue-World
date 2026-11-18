@@ -82,31 +82,30 @@ This project uses the default de facto boundaries without POV variants.
 
 The game uses 179 country entries (including some non-standard codes). Natural Earth v5.1.1 has 258 countries. This table maps game IDs to NE IDs for data linking.
 
+**Direct matches (173):** AFG, AGO, ALB, ARE, ARG, ARM, ATA, ATF, AUS, AUT, AZE, BDI, BEL, BEN, BFA, BGD, BGR, BHS, BIH, BLR, BLZ, BMU, BOL, BRA, BRN, BTN, BWA, CAF, CAN, CHE, CHL, CHN, CIV, CMR, COD, COG, COL, CRI, CUB, CYP, CZE, DEU, DJI, DNK, DOM, DZA, ECU, EGY, ERI, ESP, EST, ETH, FIN, FJI, FLK, FRA, GAB, GBR, GEO, GHA, GIN, GMB, GNB, GNQ, GRC, GRL, GTM, GUY, HND, HRV, HTI, HUN, IDN, IND, IRL, IRN, IRQ, ISL, ISR, ITA, JAM, JOR, JPN, KAZ, KEN, KGZ, KHM, KOR, KWT, LAO, LBN, LBR, LBY, LKA, LSO, LTU, LUX, LVA, MAR, MDA, MDG, MEX, MKD, MLI, MLT, MMR, MNE, MNG, MOZ, MRT, MWI, MYS, NAM, NCL, NER, NGA, NIC, NLD, NOR, NPL, NZL, OMN, PAK, PAN, PER, PHL, PNG, POL, PRI, PRK, PRT, PRY, QAT, ROU, RUS, RWA, SAU, SDN, SEN, SLB, SLE, SLV, SOM, SRB, SUR, SVK, SVN, SWE, SWZ, SYR, TCD, TGO, THA, TJK, TKM, TLS, TTO, TUN, TUR, TWN, TZA, UGA, UKR, URY, USA, UZB, VEN, VNM, VUT, YEM, ZAF, ZMB, ZWE
+
+**Manual mappings (6):**
+
 | Game ID | Game Name | NE ISO3 | NE Name | Notes |
 |---------|-----------|---------|---------|-------|
-| AFG | Afghanistan | AFG | Afghanistan | Direct match |
-| ... | (173 direct matches) | ... | ... | Direct match |
-| **-99** | Northern Cyprus | **CYP** | Cyprus | NE: part of Cyprus; disputed area in separate theme |
-| **-99** | Somaliland | **SOM** | Somalia | NE: part of Somalia; self-declared, not widely recognized |
+| **-99** (×2) | Northern Cyprus, Somaliland | CYP / SOM | Cyprus / Somalia | Game uses same ID `-99` for both; NE has them as parts of parent countries; disputed areas in separate theme |
 | **CS-KM** | Kosovo | **KOS** | Kosovo | NE: KOS (recognized by ~100 countries) |
 | **ESH** | Western Sahara | **SAH** | W. Sahara | NE: SAH (disputed; de facto Morocco control) |
-| **GUF** | French Guiana | **FRA** | France | NE: overseas region of France; use map units for separate |
+| **GUF** | French Guiana | **FRA** | France | NE: overseas region of France; use admin-1 for visual separation |
 | **PSE** | West Bank / Palestine | **PSX** | Palestine | NE: PSX (Palestine) |
 | **SSD** | South Sudan | **SDS** | S. Sudan | NE: SDS |
-| **ATF** | French Southern Territories | **ATF** | Fr. S. Antarctic Lands | NE: ATF (no populated places) |
 
 **Total mapped:** 179 / 179 (6 required manual mapping, 173 direct ISO3 matches)
 
-**NE countries NOT in game (85):** Mostly small island territories, overseas regions, and disputed areas not in game scope (e.g., ABW Aruba, AIA Anguilla, AND Andorra, ATC Ashmore and Cartier Islands, etc.). Full list in `country_mapping_report.json`.
+**NE countries NOT in game (81):** Mostly small island territories, overseas regions, and disputed areas not in game scope (e.g., ABW Aruba, AIA Anguilla, ALD Åland, AND Andorra, ATC Ashmore and Cartier Islands, ATG Antigua and Barbuda, BHR Bahrain, etc.). Full list in `country_mapping_report.json`.
 
-**Proposed fixes for game countries without NE data:**
-1. **Northern Cyprus (-99)** → Map to CYP; add disputed area overlay from NE admin-0 breakaway theme
-2. **Somaliland (-99)** → Map to SOM; add note in game data
-3. **Kosovo (CS-KM)** → Rename to KOS in game data (standard ISO3)
-4. **Western Sahara (ESH)** → Rename to SAH in game data (standard ISO3)
-5. **French Guiana (GUF)** → Include as region of FRA; use NE admin-1 for visual separation
-6. **Palestine (PSE)** → Rename to PSX in game data (standard ISO3)
-7. **South Sudan (SSD)** → Rename to SDS in game data (standard ISO3)
+**Proposed fixes for game data:**
+1. **Northern Cyprus / Somaliland (-99)** → Split into two entries; map to CYP and SOM respectively; add disputed area overlay from NE admin-0 breakaway theme
+2. **Kosovo (CS-KM)** → Rename to KOS in game data (standard ISO3)
+3. **Western Sahara (ESH)** → Rename to SAH in game data (standard ISO3)
+4. **French Guiana (GUF)** → Include as region of FRA; use NE admin-1 for visual separation
+5. **Palestine (PSE)** → Rename to PSX in game data (standard ISO3)
+6. **South Sudan (SSD)** → Rename to SDS in game data (standard ISO3)
 
 ---
 

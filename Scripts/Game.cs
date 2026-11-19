@@ -1,10 +1,11 @@
 using Godot;
 using System;
 
-// Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMap/WorldMapV2/WorldMapV3, ülke bilgi paneli, HUD.
+// Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMap/WorldMapV2/WorldMapV3/WorldMapV4, ülke bilgi paneli, HUD.
 // M11: Harita TAM EKRAN (MapViewportFrame FullRect). HUD ve CountryInfoPanel overlay.
 // Stage B: --map-v2 flag enables WorldMapV2 (Natural Earth data pipeline)
 // Stage C: --map-v3 flag enables WorldMapV3 (HOI4-style LOD, paper texture, cities)
+// Stage D: --map-v4 flag enables WorldMapV4 (Full HOI4-style: shaded relief, semi-transparent countries, cities, LOD)
 public partial class Game : Control
 {
     private MapViewportFrame _mapFrame;
@@ -12,10 +13,11 @@ public partial class Game : Control
     private CountryMiniCard _miniCard; // M15.1: kilitli oyundaki küçük ülke kartı
     private GameHud _hud;
     private MiniMapPanel _miniMap; // M32.4: sağ-alt köşede mini harita
-    private Node2D _worldMap; // WorldMap, WorldMapV2, or WorldMapV3 - X/ESC kapatma isteğinde ClearSelection() için
+    private Node2D _worldMap; // WorldMap, WorldMapV2, WorldMapV3, or WorldMapV4 - X/ESC kapatma isteğinde ClearSelection() için
     private bool _isNewGame; // M24.1: yeni oyun mu yoksa yükleme mi?
     private bool _useMapV2; // Stage B: use WorldMapV2 instead of WorldMap
     private bool _useMapV3; // Stage C: use WorldMapV3 instead of WorldMap/V2
+    private bool _useMapV4; // Stage D: use WorldMapV4 instead of WorldMap/V2/V3
 
     public const int HudHeight = 64; // HUD yüksekliği (görsel ölçüm) — info panel bundan sonra başlar
 
@@ -70,7 +72,12 @@ public partial class Game : Control
         if (_useMapV3)
             GD.Print("Game: Using WorldMapV3 (HOI4-style LOD, paper texture, cities)");
 
-        // --- Merkez: SubViewport içinde WorldMap/WorldMapV2/WorldMapV3 ---
+        // Stage D: Check for --map-v4 flag
+        _useMapV4 = GameManager.UseMapV4;
+        if (_useMapV4)
+            GD.Print("Game: Using WorldMapV4 (Full HOI4-style: shaded relief, semi-transparent countries, cities, LOD)");
+
+        // --- Merkez: SubViewport içinde WorldMap/WorldMapV2/WorldMapV3/WorldMapV4 ---
         var subViewport = new SubViewport();
         // DÜZELTME (eski projeden öğrenildi): HandleInputLocally=true olmalı,
         // yoksa input SubViewport yerine parent'a gider.
@@ -81,8 +88,14 @@ public partial class Game : Control
         var winSize = GetViewportRect().Size;
         subViewport.Size = new Vector2I(System.Math.Max(64, (int)winSize.X), System.Math.Max(64, (int)winSize.Y));
 
-        // Create WorldMap, WorldMapV2, or WorldMapV3 based on flag
-        if (_useMapV3)
+        // Create WorldMap, WorldMapV2, WorldMapV3, or WorldMapV4 based on flag
+        if (_useMapV4)
+        {
+            var mapV4 = new WorldMapV4();
+            _worldMap = mapV4;
+            subViewport.AddChild(mapV4);
+        }
+        else if (_useMapV3)
         {
             var mapV3 = new WorldMapV3();
             _worldMap = mapV3;
@@ -119,6 +132,7 @@ public partial class Game : Control
             if (_worldMap is WorldMap wm) wm.EnsureCameraCurrent();
             else if (_worldMap is WorldMapV2 wmv2) wmv2.EnsureCameraCurrent();
             else if (_worldMap is WorldMapV3 wmv3) wmv3.EnsureCameraCurrent();
+            else if (_worldMap is WorldMapV4 wmv4) wmv4.EnsureCameraCurrent();
         }).CallDeferred();
 
         // --- Sol panel: ülke bilgi paneli (overlay — HUD altında, genişlik sınırlı) ---

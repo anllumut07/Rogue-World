@@ -18,6 +18,8 @@ public partial class GameManager : Node
     public static bool UseMapV2 { get; private set; }
     // Stage C: --map-v3 flag to enable WorldMapV3 (HOI4-style LOD, paper texture, cities)
     public static bool UseMapV3 { get; private set; }
+    // Stage D: --map-v4 flag to enable WorldMapV4 (Full HOI4-style with shaded relief terrain)
+    public static bool UseMapV4 { get; private set; }
 
     // --- Sinyaller ---
     [Signal] public delegate void DateChangedEventHandler(string dateText);
@@ -216,6 +218,7 @@ public partial class GameManager : Node
         bool uiTest = false;              // M-UI: UI sistemi testi (--ui-test)
         bool useMapV2 = false;           // Stage B: --map-v2 — use new WorldMapV2 with Natural Earth data
         bool useMapV3 = false;           // Stage C: --map-v3 — use new WorldMapV3 with HOI4-style LOD, paper texture, cities
+        bool useMapV4 = false;           // Stage D: --map-v4 — use new WorldMapV4 with full HOI4-style terrain
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -434,6 +437,8 @@ public partial class GameManager : Node
                 useMapV2 = true;
             else if (arg == "--map-v3")
                 useMapV3 = true;
+            else if (arg == "--map-v4")
+                useMapV4 = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -505,6 +510,11 @@ public partial class GameManager : Node
         UseMapV3 = useMapV3;
         if (UseMapV3)
             GD.Print("Stage C: WorldMapV3 ENABLED via --map-v3 flag (HOI4-style LOD, paper texture, cities)");
+
+        // Stage D: Set static UseMapV4 flag for WorldMapV4 selection
+        UseMapV4 = useMapV4;
+        if (UseMapV4)
+            GD.Print("Stage D: WorldMapV4 ENABLED via --map-v4 flag (Full HOI4-style: shaded relief, semi-transparent countries, cities, LOD)");
 
         // M17.1: aktif senaryoyu başta logla
         GD.Print($"Senaryo: {ScenarioSystem.ActiveId} — {ScenarioSystem.ActiveName} | Başlangıç: {ScenarioSystem.ActiveStartDate:yyyy-MM-dd} | Placeholder: {ScenarioSystem.ActiveIsPlaceholder}");

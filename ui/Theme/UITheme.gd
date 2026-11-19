@@ -76,7 +76,7 @@ static var _built: bool = false
 func _init():
 	build_theme()
 
-func build_theme() -> void:
+static func build_theme() -> void:
 	if _built:
 		return
 
@@ -288,11 +288,13 @@ func build_theme() -> void:
 	_theme.set_constant("outline_size", "RichTextLabel", 1)
 
 static func get_theme() -> Theme:
+	if not _built:
+		build_theme()
 	return _theme
 
-## StyleBox factories
+## StyleBox factories (static - can be called as UITheme._make_...)
 
-func _make_box(bg: Color, border: Color, border_width: int = BORDER_THIN, radius: int = RADIUS_NORMAL, margin_h: int = 10, margin_v: int = 6) -> StyleBoxFlat:
+static func _make_box(bg: Color, border: Color, border_width: int = BORDER_THIN, radius: int = RADIUS_NORMAL, margin_h: int = 10, margin_v: int = 6) -> StyleBoxFlat:
 	var box = StyleBoxFlat.new()
 	box.bg_color = bg
 	box.border_color = border
@@ -304,7 +306,7 @@ func _make_box(bg: Color, border: Color, border_width: int = BORDER_THIN, radius
 	box.content_margin_bottom = margin_v
 	return box
 
-func _make_panel_box(bg = null, border = null, border_width: int = BORDER_THIN, radius: int = RADIUS_MEDIUM, shadow: bool = true) -> StyleBoxFlat:
+static func _make_panel_box(bg = null, border = null, border_width: int = BORDER_THIN, radius: int = RADIUS_MEDIUM, shadow: bool = true) -> StyleBoxFlat:
 	var box = StyleBoxFlat.new()
 	box.bg_color = bg if bg else BG_DARK
 	box.border_color = border if border else GOLD
@@ -320,7 +322,7 @@ func _make_panel_box(bg = null, border = null, border_width: int = BORDER_THIN, 
 		box.shadow_offset = Vector2(0, 3)
 	return box
 
-func _make_inner_panel_box(bg = null, radius: int = RADIUS_SMALL) -> StyleBoxFlat:
+static func _make_inner_panel_box(bg = null, radius: int = RADIUS_SMALL) -> StyleBoxFlat:
 	var box = StyleBoxFlat.new()
 	box.bg_color = bg if bg else BG_DARK
 	box.border_color = BORDER_DARK
@@ -332,7 +334,7 @@ func _make_inner_panel_box(bg = null, radius: int = RADIUS_SMALL) -> StyleBoxFla
 	box.set_corner_radius_all(radius)
 	return box
 
-func _make_card_box(accent = null, hoverable: bool = false) -> StyleBoxFlat:
+static func _make_card_box(accent = null, hoverable: bool = false) -> StyleBoxFlat:
 	var box = StyleBoxFlat.new()
 	box.bg_color = BG_DARK
 	if accent:
@@ -347,7 +349,7 @@ func _make_card_box(accent = null, hoverable: bool = false) -> StyleBoxFlat:
 	box.set_corner_radius_all(RADIUS_NORMAL)
 	return box
 
-func _make_button_styles(base_bg = null, accent = null, radius: int = RADIUS_NORMAL) -> Array[StyleBoxFlat]:
+static func _make_button_styles(base_bg = null, accent = null, radius: int = RADIUS_NORMAL) -> Array:
 	var styles = []
 	var bg = base_bg if base_bg else BG_DARK
 	var acc = accent if accent else GOLD
@@ -360,7 +362,7 @@ func _make_button_styles(base_bg = null, accent = null, radius: int = RADIUS_NOR
 	styles.append(_make_box(Color(0,0,0,0), acc_bright, BORDER_THICK, radius))
 	return styles
 
-func _make_toolbar_button_styles() -> Array[StyleBoxFlat]:
+static func _make_toolbar_button_styles() -> Array:
 	var styles = []
 	styles.append(_make_box(Color("#0E1620"), BORDER_DARK, BORDER_THIN, RADIUS_SMALL, 8, 4))
 	styles.append(_make_box(BG_MEDIUM, GOLD, BORDER_THIN, RADIUS_SMALL, 8, 4))
@@ -369,7 +371,7 @@ func _make_toolbar_button_styles() -> Array[StyleBoxFlat]:
 	styles.append(_make_box(Color(0,0,0,0), GOLD_BRIGHT, BORDER_THICK, RADIUS_SMALL, 8, 4))
 	return styles
 
-func _make_tab_styles(active_bg = null, active_border = null) -> Array[StyleBoxFlat]:
+static func _make_tab_styles(active_bg = null, active_border = null) -> Array:
 	var styles = []
 	styles.append(_make_box(Color("#1A1A2E"), Color("#3A3A5A"), BORDER_THIN, RADIUS_SMALL, 12, 4))
 	styles.append(_make_box(Color("#222242"), Color("#4A4A7A"), BORDER_THIN, RADIUS_SMALL, 12, 4))
@@ -378,14 +380,14 @@ func _make_tab_styles(active_bg = null, active_border = null) -> Array[StyleBoxF
 	styles.append(_make_box(Color(0,0,0,0), GOLD_BRIGHT, BORDER_THICK, RADIUS_SMALL, 12, 4))
 	return styles
 
-func _make_input_styles() -> Array[StyleBoxFlat]:
+static func _make_input_styles() -> Array:
 	var styles = []
 	styles.append(_make_box(BG_INPUT, BORDER_DARK, BORDER_THIN, RADIUS_NORMAL))
 	styles.append(_make_box(BG_INPUT, GOLD, BORDER_THIN, RADIUS_NORMAL))
 	styles.append(_make_box(BG_INPUT, BORDER_DARK, BORDER_THIN, RADIUS_NORMAL))
 	return styles
 
-func _make_scrollbar_styles() -> Array[StyleBoxFlat]:
+static func _make_scrollbar_styles() -> Array:
 	var styles = []
 	styles.append(_make_box(Color(0,0,0,0), BORDER_DARK, BORDER_NONE, RADIUS_FULL))
 	styles.append(_make_box(GOLD, GOLD, BORDER_NONE, RADIUS_FULL))
@@ -393,13 +395,13 @@ func _make_scrollbar_styles() -> Array[StyleBoxFlat]:
 	styles.append(_make_box(GOLD_BRIGHT, GOLD_BRIGHT, BORDER_NONE, RADIUS_FULL))
 	return styles
 
-func _make_progress_bar_styles(fill_color = null) -> Array[StyleBoxFlat]:
+static func _make_progress_bar_styles(fill_color = null) -> Array:
 	var styles = []
 	styles.append(_make_box(Color("#1A2A3A"), BORDER_DARK, BORDER_NONE, RADIUS_NORMAL))
 	styles.append(_make_box(fill_color if fill_color else GOLD, fill_color if fill_color else GOLD, BORDER_NONE, RADIUS_NORMAL))
 	return styles
 
-func _make_separator(color = null, thickness: int = 1) -> StyleBoxFlat:
+static func _make_separator(color = null, thickness: int = 1) -> StyleBoxFlat:
 	var box = StyleBoxFlat.new()
 	box.bg_color = color if color else BORDER_MEDIUM
 	box.set_border_width_all(BORDER_NONE)
@@ -408,7 +410,7 @@ func _make_separator(color = null, thickness: int = 1) -> StyleBoxFlat:
 	box.content_margin_bottom = 0
 	return box
 
-func _make_popup_style() -> StyleBoxFlat:
+static func _make_popup_style() -> StyleBoxFlat:
 	var box = StyleBoxFlat.new()
 	box.bg_color = BG_DARK
 	box.border_color = GOLD
@@ -423,7 +425,7 @@ func _make_popup_style() -> StyleBoxFlat:
 	box.shadow_offset = Vector2(0, 4)
 	return box
 
-func _make_tooltip_style() -> StyleBoxFlat:
+static func _make_tooltip_style() -> StyleBoxFlat:
 	var box = StyleBoxFlat.new()
 	box.bg_color = Color("#0E1218")
 	box.border_color = GOLD

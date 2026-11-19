@@ -1,4 +1,58 @@
-﻿# GECE-RAPOR — 2026-11-18 (gece-calisma dalı)
+﻿# GECE-RAPOR — 2026-11-19 (gece-calisma dalı)
+
+## Stage 6 — WorldMapV4 HOI4-Style Full Shaded Relief Map — COMPLETE ✓
+
+### WorldMapV4 Implementation (Stage D)
+
+**Core System: `Scripts/WorldMapV4.cs` (~2500 lines)**
+- **Shaded relief terrain**: Natural Earth NE1_HR_LC_SR_W_DR (cross-blended hypsometric) + SR_HR (grayscale shaded relief) via multiply blend shader
+- **Semi-transparent country fills**: 55% alpha so terrain shows through
+- **Coastal glow**: Inner turquoise glow on country borders
+- **Ocean bathymetry**: CleanTOPO2-derived depth coloring with gradient overlay
+- **4-level LOD system**: Strategic (countries only) → Operational (+provinces) → Tactical (+city markers) → Detail (+all labels)
+- **1600+ city markers**: Capital=gold star, megacity/major=colored circles, minor=gray dots; labels at zoom ≥3.0
+- **300+ sea/ocean labels** with zoom-based visibility
+- **Performance**: Province spatial grid, LOD-based culling, mipmaps, [PERF] logging with country/city/province counts
+- **Visual effects**: Era tone (1936-1945), day/night terminator, vignette (all toggleable)
+- **Full map mode support**: Political, Terrain, Supply, Factories, Resources, AirZones, Culture
+- **Save/Load A==B compatibility** verified
+
+**Terrain Shader: `Shaders/terrain_shader.gdshader`**
+- Multiply blend shaded relief (NE1 base + SR_HR relief)
+- Saturation and contrast control via ShaderMaterial uniforms
+- Contrast adjustment and saturation mixing
+
+**Asset Pipeline:**
+- `tools/download_map_assets.py` (~200 lines): Downloads Natural Earth rasters/vectors, GeoNames cities15000, Google Fonts (Cinzel/Oswald/Cormorant)
+- `tools/process_cities.py` (~400 lines): Merges Natural Earth + GeoNames city data, point-in-polygon country assignment, city classification (capital/megacity/major/large/medium/minor/small)
+
+**Integration:**
+- `GameManager.cs`: Added `--map-v4` flag, `UseMapV4` static property
+- `Game.cs`: Conditional WorldMap/WorldMapV2/WorldMapV3/WorldMapV4 instantiation
+- `TODO.md`: Added Milestone 58 with 8 completed sub-tasks
+- `PROJECT_STATE.md`: Updated Stage D completion status
+
+**Test Results (All PASS with `--map-v4`):**
+- `--save-load-test` ✓ (historical_1936 A==B, modern_world A==B)
+- `--balance-test` ✓
+- `--scenario-test` ✓
+- `--province-test` ✓
+- `--army-test` ✓
+- `--map-mode-test` ✓
+
+### Files Created/Modified
+- `Scripts/WorldMapV4.cs` (NEW) — Full HOI4-style world map with shaded relief
+- `Shaders/terrain_shader.gdshader` (NEW) — Multiply blend terrain shader
+- `tools/download_map_assets.py` (NEW) — Asset downloader
+- `tools/process_cities.py` (NEW) — City data processor
+- `Scripts/GameManager.cs` — Added `--map-v4` flag + `UseMapV4` property
+- `Scripts/Game.cs` — WorldMapV4 instantiation
+- `TODO.md` — Added Milestone 58 with 8 sub-tasks
+- `PROJECT_STATE.md` — Updated Stage D completion status
+
+---
+
+# GECE-RAPOR — 2026-11-18 (gece-calisma dalı)
 
 ## Stage 6 — WorldMapV3 HOI4-Style Enhanced Map — COMPLETE ✓
 

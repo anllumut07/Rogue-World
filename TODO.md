@@ -960,3 +960,23 @@ bir kuruma dönüşmeli.
 ---
 
 ## Notlar
+
+---
+
+### 📋 Milestone 58: HOI4-Style WorldMapV4 — Full Shaded Relief Terrain, Semi-Transparent Countries, Cities, LOD
+**Hedef:** Tam HOI4 tarzı dünya haritası — Natural Earth shaded relief (NE1 + SR_HR) terrain, %55 opaklık ülke renkleri terrain üstünde, kıyı parıltısı, batimetri gradyanı, 4 seviyeli LOD, şehir işaretçileri (başkent=altın yıldız, büyük şehir=beyaz daire, liman=çapa), eğri ülke etiketleri (Cinzel), italik deniz etiketleri (Cormorant), 4 harita modu, vinyet/era tonu. `--map-v4` flag ile etkinleştirilir.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 58.1 | `Scripts/WorldMapV4.cs`: Tam HOI4 tarzı renderer — shaded relief terrain (NE1_HR_LC_SR_W_DR + SR_HR multiply blend shader), %55 alpha ülke dolguları, kıyı parıltısı (iç kenar turkuaz glow), batimetri gradyanı (OB_HR), vinyet/era tonu/terminatör toggle'ları | Terrain shader çalışır, ülkeler terrain üstünde %55 alpha ile görünür, kıyı glow görünür, zoom'da LOD geçişleri pürüzsüz | [x] Tamamlandı: WorldMapV4.cs (~2500 satır), terrain_shader.gdshader (multiply blend + saturation/contrast), 4 LOD seviyesi |
+| 58.2 | `Shaders/terrain_shader.gdshader`: Multiply blend shaded relief, saturation/contrast kontrolü | Shader derlenir, NE1 base + SR_HR relief multiply blend çalışır, saturation/contrast parametreleri ayarlanabilir | [x] Tamamlandı: terrain_shader.gdshader (~30 satır), ShaderMaterial ile entegre |
+| 58.3 | `tools/download_map_assets.py`: Natural Earth raster/vector, GeoNames cities15000, Google Fonts (Cinzel/Oswald/Cormorant) indirme scripti | Tüm assetler Assets/ altında indirilir, zip'ler açılır | [x] Tamamlandı: download_map_assets.py (~200 satır), 4 kategori (rasters/vectors/cities/fonts) |
+| 58.4 | `tools/process_cities.py`: Natural Earth populated_places + GeoNames cities15000 birleştirme, ülke atama (point-in-polygon), şehir sınıflandırma (başkent/megacity/major/large/medium/minor/small), label anchor üretimi | cities_processed.json + cities_runtime.json üretilir, şehirler doğru ülkelere atanır, sınıflandırma doğru | [x] Tamamlandı: process_cities.py (~400 satır), 2 çıktı dosyası |
+| 58.5 | `GameManager.cs` + `Game.cs`: `--map-v4` flag, `UseMapV4` static property, WorldMapV4 instance oluşturma | `--map-v4` flag ile oyun başlatılır, WorldMapV4 yüklenir, GD.Print onayı | [x] Tamamlandı: GameManager.cs flag parsing + static property, Game.cs WorldMapV4 instance |
+| 58.6 | Performans: uzamsal indeks (province grid), LOD-based culling, draw call azaltma, mipmaps, 60 FPS hedefi (zoom 1.0) | `--balance-test`, `--map-mode-test`, `--province-test`, `--army-test`, `--scenario-test`, `--save-load-test` PASS, [PERF] logları doğru | [x] Tamamlandı: Tüm testler PASS, [PERF] loglarında countries/cities/provinces sayısı |
+| 58.7 | Save/Load A==B determinizm korunur, `--save-load-test` PASS | A==B PASS (historical_1936 + modern_world) | [x] Tamamlandı: --save-load-test A==B PASS ✓ |
+| 58.8 | Görsel: HOI4 tarzı shaded relief terrain, %55 alpha ülke renkleri, kıyı glow, batimetri, vinyet/era tonu, şehirler (başkent=altın yıldız, major=beyaz daire), eğri etiketler | Görsel kalite F5 editörde doğrulanır, zoom'da LOD geçişleri pürüzsüz, şehirler doğru zoomlarda görünür | [x] Tamamlandı: Terrain shader + LOD sistemi, Cinzel/Cormorant/Oswald fontlar, 4 LOD seviyesi |
+
+---
+
+## Notlar

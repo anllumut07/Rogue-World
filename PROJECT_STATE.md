@@ -157,6 +157,28 @@ C:\Proje\Rogue-World\
 - **All tests PASS with `--map-v3` flag**: `--save-load-test` (both scenarios A==B), `--balance-test`, `--scenario-test`, `--province-test`, `--army-test`, `--map-mode-test`
 - Git: committed & pushed to `gece-calisma`
 
+**Stage D: WorldMapV4 — Full HOI4-Style Shaded Relief Map (COMPLETE ✓)**
+
+- Added `--map-v4` flag (GameManager.UseMapV4) to enable WorldMapV4
+- Created `Scripts/WorldMapV4.cs` — full HOI4-style world map with:
+  - **Shaded relief terrain**: Natural Earth NE1_HR_LC_SR_W_DR (cross-blended hypsometric) + SR_HR (grayscale shaded relief) via multiply blend shader
+  - **Semi-transparent country fills**: 55% alpha so terrain shows through
+  - **Coastal glow**: Inner turquoise glow on country borders
+  - **Ocean bathymetry**: CleanTOPO2-derived depth coloring with gradient overlay
+  - **4-level LOD system**: Strategic (countries only) → Operational (+provinces) → Tactical (+city markers) → Detail (+all labels)
+  - **1600+ city markers**: Capital=gold star, megacity/major=colored circles, minor=gray dots; labels at zoom ≥3.0
+  - **300+ sea/ocean labels** with zoom-based visibility
+  - **Performance**: Province spatial grid, LOD-based culling, mipmaps, [PERF] logging with country/city/province counts
+  - **Visual effects**: Era tone (1936-1945), day/night terminator, vignette (all toggleable)
+  - **Full map mode support**: Political, Terrain, Supply, Factories, Resources, AirZones, Culture
+  - **Save/Load A==B compatibility** verified
+- Created `Shaders/terrain_shader.gdshader` — multiply blend shaded relief with saturation/contrast control
+- Created `tools/download_map_assets.py` — Python script for downloading Natural Earth, GeoNames, Google Fonts assets
+- Created `tools/process_cities.py` — Python script merging Natural Earth + GeoNames city data with country assignment
+- Modified `Game.cs` to conditionally create WorldMap/WorldMapV2/WorldMapV3/WorldMapV4 based on flags
+- **All tests PASS with `--map-v4` flag**: `--save-load-test` (both scenarios A==B), `--balance-test`, `--scenario-test`, `--province-test`, `--army-test`, `--map-mode-test`
+- Git: committed & pushed to `gece-calisma`
+
 **NEXT STEP:** Final export/deployment (M13-14) — export template download approval, sound asset integration, final QA sign-off.
 
 ## Completed in Stage 1 (UI Foundation + DecisionPanel)

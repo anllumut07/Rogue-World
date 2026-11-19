@@ -1,9 +1,10 @@
 using Godot;
 using System;
 
-// Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMap/WorldMapV2, ülke bilgi paneli, HUD.
+// Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMap/WorldMapV2/WorldMapV3, ülke bilgi paneli, HUD.
 // M11: Harita TAM EKRAN (MapViewportFrame FullRect). HUD ve CountryInfoPanel overlay.
 // Stage B: --map-v2 flag enables WorldMapV2 (Natural Earth data pipeline)
+// Stage C: --map-v3 flag enables WorldMapV3 (HOI4-style LOD, paper texture, cities)
 public partial class Game : Control
 {
     private MapViewportFrame _mapFrame;
@@ -11,9 +12,10 @@ public partial class Game : Control
     private CountryMiniCard _miniCard; // M15.1: kilitli oyundaki küçük ülke kartı
     private GameHud _hud;
     private MiniMapPanel _miniMap; // M32.4: sağ-alt köşede mini harita
-    private Node2D _worldMap; // WorldMap or WorldMapV2 - X/ESC kapatma isteğinde ClearSelection() için
+    private Node2D _worldMap; // WorldMap, WorldMapV2, or WorldMapV3 - X/ESC kapatma isteğinde ClearSelection() için
     private bool _isNewGame; // M24.1: yeni oyun mu yoksa yükleme mi?
     private bool _useMapV2; // Stage B: use WorldMapV2 instead of WorldMap
+    private bool _useMapV3; // Stage C: use WorldMapV3 instead of WorldMap/V2
 
     public const int HudHeight = 64; // HUD yüksekliği (görsel ölçüm) — info panel bundan sonra başlar
 
@@ -63,7 +65,12 @@ public partial class Game : Control
         if (_useMapV2)
             GD.Print("Game: Using WorldMapV2 (Natural Earth data pipeline)");
 
-        // --- Merkez: SubViewport içinde WorldMap/WorldMapV2 ---
+        // Stage C: Check for --map-v3 flag
+        _useMapV3 = GameManager.UseMapV3;
+        if (_useMapV3)
+            GD.Print("Game: Using WorldMapV3 (HOI4-style LOD, paper texture, cities)");
+
+        // --- Merkez: SubViewport içinde WorldMap/WorldMapV2/WorldMapV3 ---
         var subViewport = new SubViewport();
         // DÜZELTME (eski projeden öğrenildi): HandleInputLocally=true olmalı,
         // yoksa input SubViewport yerine parent'a gider.
@@ -74,8 +81,14 @@ public partial class Game : Control
         var winSize = GetViewportRect().Size;
         subViewport.Size = new Vector2I(System.Math.Max(64, (int)winSize.X), System.Math.Max(64, (int)winSize.Y));
 
-        // Create WorldMap or WorldMapV2 based on flag
-        if (_useMapV2)
+        // Create WorldMap, WorldMapV2, or WorldMapV3 based on flag
+        if (_useMapV3)
+        {
+            var mapV3 = new WorldMapV3();
+            _worldMap = mapV3;
+            subViewport.AddChild(mapV3);
+        }
+        else if (_useMapV2)
         {
             var mapV2 = new WorldMapV2();
             _worldMap = mapV2;
@@ -102,9 +115,10 @@ public partial class Game : Control
             var containerRect = viewportContainer.GetGlobalRect();
             GD.Print($"[Teşhis] SubViewport={subViewport.Size}, konteyner={containerRect}, " +
                      $"Stretch={viewportContainer.Stretch}, görünür={viewportContainer.IsVisibleInTree()}");
-            // Ensure camera is current for both WorldMap and WorldMapV2
+            // Ensure camera is current for WorldMap, WorldMapV2, and WorldMapV3
             if (_worldMap is WorldMap wm) wm.EnsureCameraCurrent();
             else if (_worldMap is WorldMapV2 wmv2) wmv2.EnsureCameraCurrent();
+            else if (_worldMap is WorldMapV3 wmv3) wmv3.EnsureCameraCurrent();
         }).CallDeferred();
 
         // --- Sol panel: ülke bilgi paneli (overlay — HUD altında, genişlik sınırlı) ---

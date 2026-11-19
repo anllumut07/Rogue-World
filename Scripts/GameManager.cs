@@ -16,6 +16,8 @@ public partial class GameManager : Node
 
     // Stage B: --map-v2 flag to enable WorldMapV2 (Natural Earth data pipeline)
     public static bool UseMapV2 { get; private set; }
+    // Stage C: --map-v3 flag to enable WorldMapV3 (HOI4-style LOD, paper texture, cities)
+    public static bool UseMapV3 { get; private set; }
 
     // --- Sinyaller ---
     [Signal] public delegate void DateChangedEventHandler(string dateText);
@@ -213,6 +215,7 @@ public partial class GameManager : Node
         bool migrationTest = false;          // M56: göç ve mülteci krizleri testi (--migration-test)
         bool uiTest = false;              // M-UI: UI sistemi testi (--ui-test)
         bool useMapV2 = false;           // Stage B: --map-v2 — use new WorldMapV2 with Natural Earth data
+        bool useMapV3 = false;           // Stage C: --map-v3 — use new WorldMapV3 with HOI4-style LOD, paper texture, cities
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -429,6 +432,8 @@ public partial class GameManager : Node
                 uiTest = true;
             else if (arg == "--map-v2")
                 useMapV2 = true;
+            else if (arg == "--map-v3")
+                useMapV3 = true;
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -495,6 +500,11 @@ public partial class GameManager : Node
         UseMapV2 = useMapV2;
         if (UseMapV2)
             GD.Print("Stage B: WorldMapV2 ENABLED via --map-v2 flag");
+
+        // Stage C: Set static UseMapV3 flag for WorldMapV3 selection
+        UseMapV3 = useMapV3;
+        if (UseMapV3)
+            GD.Print("Stage C: WorldMapV3 ENABLED via --map-v3 flag (HOI4-style LOD, paper texture, cities)");
 
         // M17.1: aktif senaryoyu başta logla
         GD.Print($"Senaryo: {ScenarioSystem.ActiveId} — {ScenarioSystem.ActiveName} | Başlangıç: {ScenarioSystem.ActiveStartDate:yyyy-MM-dd} | Placeholder: {ScenarioSystem.ActiveIsPlaceholder}");

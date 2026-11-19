@@ -138,7 +138,26 @@ C:\Proje\Rogue-World\
 - Modified `Game.cs` to conditionally create WorldMap or WorldMapV2 based on flag
 - **All tests PASS with `--map-v2` flag:** `--save-load-test` (both scenarios A==B), `--scenario-test`, `--balance-test`, `--occupation-test`, `--civil-war-test`, `--recognition-test`, `--advisor-test`, `--decisions-test`, `--climate-test`, `--migration-test`, `--espionage-mission-test`, `--ui-test`, `--soak-test`
 
-**NEXT STEP:** Stage C — Shaded Relief Integration (load GeoTIFF as base texture, blend with ocean gradient, optimize for runtime). Then parity verification before making WorldMapV2 default.
+**Stage C: WorldMapV3 — HOI4-Style Enhanced Map (COMPLETE ✓)**
+
+- Added `--map-v3` flag (GameManager.UseMapV3) to enable WorldMapV3
+- Created `Scripts/WorldMapV3.cs` — full HOI4-style world map with:
+  - **3-level LOD system**: LOD0 (world view, country polygons), LOD1 (regional view, admin-1 boundaries), LOD2 (local view, high-detail borders from country_borders.json)
+  - **Procedural paper texture** (2048×2048) with aged paper look, fibers, stains, folds
+  - **Terrain color ramp** (4096×2048) — elevation-based coloring from deep ocean to snow peaks
+  - **Ocean bathymetry gradient** (1024×1024) — 5-stop gradient with caustic patterns
+  - **City markers** — 1600+ cities with population-based icons (capital/major/minor), appear at zoom ≥1.5, names at zoom ≥3.0
+  - **300+ sea/ocean labels** with zoom-based visibility
+  - **Performance optimizations**: spatial grid index for provinces, LOD-based culling, draw call reduction, [PERF] logging with country/city/region counts
+  - **Visual effects**: Era tone (1936-1945), day/night terminator, vignette (all toggleable)
+  - **Full map mode support**: Political, Terrain, Supply, Factories, Resources, AirZones, Culture
+  - **Save/Load A==B compatibility** verified
+- Created `tools/generate_map_textures.py` — Python script generating all textures (7 files) via Pillow
+- Modified `Game.cs` to conditionally create WorldMap/WorldMapV2/WorldMapV3 based on flags
+- **All tests PASS with `--map-v3` flag**: `--save-load-test` (both scenarios A==B), `--balance-test`, `--scenario-test`, `--province-test`, `--army-test`, `--map-mode-test`
+- Git: committed & pushed to `gece-calisma`
+
+**NEXT STEP:** Final export/deployment (M13-14) — export template download approval, sound asset integration, final QA sign-off.
 
 ## Completed in Stage 1 (UI Foundation + DecisionPanel)
 - **GameTheme** (Scripts/UI/GameTheme.cs): Central dark theme with gold accent, status colors (green/yellow/red), consistent fonts, StyleBoxes for panels/buttons/tabs/inputs/scrollbars/progress bars/tooltips

@@ -511,6 +511,20 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 ---
 
+### 📋 Milestone 57: HOI4-Style WorldMapV3 — Progressive Detail LOD, Paper Texture, Cities
+**Hedef:** 4K kalite HOI4 tarzı dünya haritası — 3 seviyeli LOD (ülke/bölge/şehir), kağıt dokusu, şehir işaretçileri, batimetri, FPS optimizasyonları. `--map-v3` flag ile etkinleştirilir.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 57.1 | `Scripts/WorldMapV3.cs`: 3 seviyeli LOD (LOD0: ülke, LOD1: bölge, LOD2: detaylı sınır), zoom'a göre otomatik geçiş, 250+ ülke, 1600+ şehir, 300+ deniz/okyanus etiketi | Zoom out: ülke poligonları, zoom in: bölge sınırları, daha yakın: detaylı sınır + şehirler | [x] Tamamlandı: WorldMapV3.cs (~2500 satır), 3 LOD seviyesi, Kağıt dokusu, Terrain rampa, Batimetri |
+| 57.2 | `tools/generate_map_textures.py`: Prosedürel tekstür üretimi (2048x2048 kağıt doku, 4096x2048 terrain rampa, 1024x1024 okyanus, şehir işaretçileri) | Tekstürler Assets/map_textures/ altında üretilir, Godot import eder | [x] Tamamlandı: generate_map_textures.py (~400 satır), 7 tekstür dosyası üretildi, headless import başarılı |
+| 57.3 | `GameManager.cs`: `--map-v3` komut satırı flag'i, `UseMapV3` static property, WorldMapV3 seçimi | `--map-v3` flag ile oyun başlatılır, WorldMapV3 yüklenir, GD.Print onayı | [x] Tamamlandı: GameManager.cs flag parsing + static property, Game.cs WorldMapV3 instance oluşturma |
+| 57.4 | Performans: uzamsal indeks (province grid), LOD-based culling, draw call azaltma, 60 FPS hedefi (zoom 1.0) | `--balance-test`, `--map-mode-test`, `--province-test` PASS, FPS logu [PERF] doğru | [x] Tamamlandı: Tüm testler PASS, [PERF] loglarında countries/cities/regions/provinces sayısı |
+| 57.5 | Save/Load A==B determinizm korunur, `--save-load-test` PASS | A==B PASS (historical_1936 + modern_world) | [x] Tamamlandı: --save-load-test A==B PASS ✓ |
+| 57.6 | Görsel: HOI4 tarzı kağıt dokusu overlay, deniz batimetri gradyanı, era tonu (1936-1945), gündüz/gece terminatörü (açma/kapama), vinyet | Görsel kalite F5 editörde doğrulanır, zoom'da LOD geçişleri pürüzsüz | [x] Tamamlandı: Kağıt dokusu tiled, okyanus 5-stop gradyan, era/terminatör/vignette toggle'ları |
+
+---
+
 ## Notlar
 - **Test stratejisi:** Her milestone bitiminde:
   1. `dotnet build` → hata yok
@@ -743,6 +757,20 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 ---
 
+### 📋 Milestone 57: HOI4-Style WorldMapV3 — Progressive Detail LOD, Paper Texture, Cities
+**Hedef:** 4K kalite HOI4 tarzı dünya haritası — 3 seviyeli LOD (ülke/bölge/şehir), kağıt dokusu, şehir işaretçileri, batimetri, FPS optimizasyonları. `--map-v3` flag ile etkinleştirilir.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 57.1 | `Scripts/WorldMapV3.cs`: 3 seviyeli LOD (LOD0: ülke, LOD1: bölge, LOD2: detaylı sınır), zoom'a göre otomatik geçiş, 250+ ülke, 1600+ şehir, 300+ deniz/okyanus etiketi | Zoom out: ülke poligonları, zoom in: bölge sınırları, daha yakın: detaylı sınır + şehirler | [x] Tamamlandı: WorldMapV3.cs (~2500 satır), 3 LOD seviyesi, Kağıt dokusu, Terrain rampa, Batimetri |
+| 57.2 | `tools/generate_map_textures.py`: Prosedürel tekstür üretimi (2048x2048 kağıt doku, 4096x2048 terrain rampa, 1024x1024 okyanus, şehir işaretçileri) | Tekstürler Assets/map_textures/ altında üretilir, Godot import eder | [x] Tamamlandı: generate_map_textures.py (~400 satır), 7 tekstür dosyası üretildi, headless import başarılı |
+| 57.3 | `GameManager.cs`: `--map-v3` komut satırı flag'i, `UseMapV3` static property, WorldMapV3 seçimi | `--map-v3` flag ile oyun başlatılır, WorldMapV3 yüklenir, GD.Print onayı | [x] Tamamlandı: GameManager.cs flag parsing + static property, Game.cs WorldMapV3 instance oluşturma |
+| 57.4 | Performans: uzamsal indeks (province grid), LOD-based culling, draw call azaltma, 60 FPS hedefi (zoom 1.0) | `--balance-test`, `--map-mode-test`, `--province-test` PASS, FPS logu [PERF] doğru | [x] Tamamlandı: Tüm testler PASS, [PERF] loglarında countries/cities/regions/provinces sayısı |
+| 57.5 | Save/Load A==B determinizm korunur, `--save-load-test` PASS | A==B PASS (historical_1936 + modern_world) | [x] Tamamlandı: --save-load-test A==B PASS ✓ |
+| 57.6 | Görsel: HOI4 tarzı kağıt dokusu overlay, deniz batimetri gradyanı, era tonu (1936-1945), gündüz/gece terminatörü (açma/kapama), vinyet | Görsel kalite F5 editörde doğrulanır, zoom'da LOD geçişleri pürüzsüz | [x] Tamamlandı: Kağıt dokusu tiled, okyanus 5-stop gradyan, era/terminatör/vignette toggle'ları |
+
+---
+
 ## Notlar
 
 ---
@@ -914,6 +942,20 @@ bir kuruma dönüşmeli.
 | 6.5.4 | Export template indirme onayı (Godot) | Template indirildi, export çalışıyor | [ ] |
 | 6.5.5 | QA sign-off (editor play + headless tüm testler) | 70/70 test PASS, görsel regresyon yok | [ ] |
 | 6.5.6 | v1.0 tag oluşturma + release notes | git tag v1.0.0, push, GitHub Release | [ ] |
+
+---
+
+### 📋 Milestone 57: HOI4-Style WorldMapV3 — Progressive Detail LOD, Paper Texture, Cities
+**Hedef:** 4K kalite HOI4 tarzı dünya haritası — 3 seviyeli LOD (ülke/bölge/şehir), kağıt dokusu, şehir işaretçileri, batimetri, FPS optimizasyonları. `--map-v3` flag ile etkinleştirilir.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 57.1 | `Scripts/WorldMapV3.cs`: 3 seviyeli LOD (LOD0: ülke, LOD1: bölge, LOD2: detaylı sınır), zoom'a göre otomatik geçiş, 250+ ülke, 1600+ şehir, 300+ deniz/okyanus etiketi | Zoom out: ülke poligonları, zoom in: bölge sınırları, daha yakın: detaylı sınır + şehirler | [x] Tamamlandı: WorldMapV3.cs (~2500 satır), 3 LOD seviyesi, Kağıt dokusu, Terrain rampa, Batimetri |
+| 57.2 | `tools/generate_map_textures.py`: Prosedürel tekstür üretimi (2048x2048 kağıt doku, 4096x2048 terrain rampa, 1024x1024 okyanus, şehir işaretçileri) | Tekstürler Assets/map_textures/ altında üretilir, Godot import eder | [x] Tamamlandı: generate_map_textures.py (~400 satır), 7 tekstür dosyası üretildi, headless import başarılı |
+| 57.3 | `GameManager.cs`: `--map-v3` komut satırı flag'i, `UseMapV3` static property, WorldMapV3 seçimi | `--map-v3` flag ile oyun başlatılır, WorldMapV3 yüklenir, GD.Print onayı | [x] Tamamlandı: GameManager.cs flag parsing + static property, Game.cs WorldMapV3 instance oluşturma |
+| 57.4 | Performans: uzamsal indeks (province grid), LOD-based culling, draw call azaltma, 60 FPS hedefi (zoom 1.0) | `--balance-test`, `--map-mode-test`, `--province-test` PASS, FPS logu [PERF] doğru | [x] Tamamlandı: Tüm testler PASS, [PERF] loglarında countries/cities/regions/provinces sayısı |
+| 57.5 | Save/Load A==B determinizm korunur, `--save-load-test` PASS | A==B PASS (historical_1936 + modern_world) | [x] Tamamlandı: --save-load-test A==B PASS ✓ |
+| 57.6 | Görsel: HOI4 tarzı kağıt dokusu overlay, deniz batimetri gradyanı, era tonu (1936-1945), gündüz/gece terminatörü (açma/kapama), vinyet | Görsel kalite F5 editörde doğrulanır, zoom'da LOD geçişleri pürüzsüz | [x] Tamamlandı: Kağıt dokusu tiled, okyanus 5-stop gradyan, era/terminatör/vignette toggle'ları |
 
 ---
 

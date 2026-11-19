@@ -1,4 +1,72 @@
-﻿# GECE-RAPOR — 2026-11-17 (gece-calisma dalı)
+﻿# GECE-RAPOR — 2026-11-18 (gece-calisma dalı)
+
+## Stage 6 — WorldMapV3 HOI4-Style Enhanced Map — COMPLETE ✓
+
+### WorldMapV3 Implementation (Stage C → WorldMapV3)
+
+**Core System: `Scripts/WorldMapV3.cs` (~2500 lines)**
+- **3-level LOD system**: Automatic zoom-based switching
+  - LOD0 (zoom ≤ 0.8): Country polygons (simplified) — 258 countries
+  - LOD1 (zoom 0.8–2.0): Region boundaries (admin-1) — 4,596 regions  
+  - LOD2 (zoom > 2.0): High-detail borders from country_borders.json
+- **Procedural textures** generated via `tools/generate_map_textures.py`:
+  - Paper texture (2048×2048): Aged paper with fibers, coffee stains, fold lines, vignette
+  - Terrain color ramp (4096×2048): 14-stop elevation coloring (deep ocean → snow peaks)
+  - Ocean bathymetry (1024×1024): 5-stop gradient with caustic patterns
+  - City markers (capital/major/minor): Gold/white/gray icons with glow
+- **1600+ cities** from Natural Earth Populated Places:
+  - Capital cities (gold star marker, name at zoom ≥ 3.0)
+  - Major cities (white circle, name at zoom ≥ 3.0)
+  - Minor cities (gray circle, no name)
+  - Appear at zoom ≥ 1.5
+- **300+ sea/ocean labels** with zoom-based visibility ranges
+- **Performance**: Province spatial grid, LOD culling, [PERF] logging with country/city/region counts
+- **Visual effects** (toggleable): Era tone (1936-1945), day/night terminator, vignette
+- **Full map mode support**: Political, Terrain, Supply, Factories, Resources, AirZones, Culture
+- **Save/Load A==B verified** with MapViewSystem integration
+
+**Texture Generator: `tools/generate_map_textures.py` (~400 lines, Pillow)**
+- Generates 7 high-quality texture files to `Assets/map_textures/`
+- All textures are CC0 / public domain (procedurally generated)
+- Godot headless import successful
+
+**Integration:**
+- `GameManager.cs`: Added `--map-v3` flag, `UseMapV3` static property
+- `Game.cs`: Conditional WorldMap/WorldMapV2/WorldMapV3 instantiation
+- `TODO.md`: Added Milestone 57 with 6 completed sub-tasks
+- `PROJECT_STATE.md`: Updated Stage C completion status
+
+**Test Results (All PASS with `--map-v3`):**
+- `--save-load-test` ✓ (historical_1936 A==B, modern_world A==B)
+- `--balance-test` ✓
+- `--scenario-test` ✓
+- `--province-test` ✓
+- `--army-test` ✓
+- `--map-mode-test` ✓
+
+### Files Created/Modified
+- `Scripts/WorldMapV3.cs` (NEW) — Full HOI4-style world map
+- `tools/generate_map_textures.py` (NEW) — Texture generator
+- `Assets/map_textures/paper/paper_texture.png` (NEW)
+- `Assets/map_textures/terrain/terrain_texture.png` (NEW)
+- `Assets/map_textures/ocean/ocean_texture.png` (NEW)
+- `Assets/map_textures/cities/city_marker_capital.png` (NEW)
+- `Assets/map_textures/cities/city_marker_major.png` (NEW)
+- `Assets/map_textures/cities/city_marker_minor.png` (NEW)
+- `Assets/map_textures/border_texture.png` (NEW)
+- `Scripts/GameManager.cs` — --map-v3 flag + UseMapV3 property
+- `Scripts/Game.cs` — WorldMapV3 instantiation
+- `TODO.md` — Milestone 57 added
+- `PROJECT_STATE.md` — Stage C → WorldMapV3 complete
+- `GECE-RAPOR.md` — This entry
+
+### Build Status
+- `dotnet build`: 0 errors / 0 warnings ✓
+- `godot --headless --import`: All 7 textures imported ✓
+
+---
+
+# GECE-RAPOR — 2026-11-17 (gece-calisma dalı)
 
 ## Stage 4 — Fix All Failing Tests & Prepare v1.0-beta ✅ DONE (2026-11-17)
 

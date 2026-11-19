@@ -424,6 +424,7 @@ public partial class WorldMapV3 : Node2D
 
             if (countriesData == null) return;
 
+            // First pass: load all countries with basic info
             foreach (var data in countriesData)
             {
                 var country = new Country
@@ -433,7 +434,7 @@ public partial class WorldMapV3 : Node2D
                     MapColor = ColorForId(data.iso3),
                 };
 
-                // Load LOD geometries
+                // Load LOD geometries from countries.json if available
                 if (data.lod != null)
                 {
                     if (data.lod.TryGetValue("lod0", out var lod0) && lod0.ValueKind != JsonValueKind.Null)
@@ -474,19 +475,13 @@ public partial class WorldMapV3 : Node2D
                     }
                 }
 
-                // Fallback: if no LOD data, use country_borders.json
-                if (country.Lod0Rings.Count == 0 && country.Lod1Rings.Count == 0 && country.Lod2Rings.Count == 0)
-                {
-                    // Will be loaded from country_borders.json separately
-                    continue;
-                }
-
+                // Always add country to list - geometry will be loaded from country_borders.json if needed
                 CreateCountryVisuals(country);
                 SetupNameLabel(country);
                 _countries.Add(country);
             }
 
-            // Load high-detail borders from country_borders.json for countries that need it
+            // Second pass: load high-detail borders from country_borders.json for all countries
             LoadCountryBorders();
 
             GD.Print($"WorldMapV3: loaded {_countries.Count} countries from {path}");
@@ -519,7 +514,8 @@ public partial class WorldMapV3 : Node2D
                 var country = _countries.FirstOrDefault(c => c.Id == kvp.Key);
                 if (country == null) continue;
 
-                // Use high-detail borders as LOD2 (local view)
+                // Use borders as LOD0 (world view) and LOD2 (local view)
+                // If country already has LOD data from countries.json, use borders as additional detail
                 if (kvp.Value.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var polygon in kvp.Value.EnumerateArray())
@@ -528,24 +524,37 @@ public partial class WorldMapV3 : Node2D
                         if (vecRing != null && vecRing.Length >= 3)
                         {
                             var clipped = ClipRingToMap(vecRing, MapSize);
-                            country.Lod2Rings.Add(clipped);
+                            // Add to LOD0 if empty, otherwise to LOD2
+                            if (country.Lod0Rings.Count == 0)
+                                country.Lod0Rings.Add(clipped);
+                            else
+                                country.Lod2Rings.Add(clipped);
                             loaded++;
                         }
                     }
                 }
             }
 
-            // Recreate visuals for countries that got LOD2 data
+            // Update visuals for all countries with their loaded rings
             foreach (var country in _countries)
             {
-                if (country.Lod2Rings.Count > 0 && country.Nodes.Count == 0)
-                {
-                    CreateCountryVisuals(country);
-                    SetupNameLabel(country);
-                }
+                // Clear existing visuals
+                foreach (var node in country.Nodes)
+                    if (GodotObject.IsInstanceValid(node)) node.QueueFree();
+                foreach (var outline in country.Outlines)
+                    if (GodotObject.IsInstanceValid(outline)) outline.QueueFree();
+                foreach (var glow in country.GlowOutlines)
+                    if (GodotObject.IsInstanceValid(glow)) glow.QueueFree();
+
+                country.Nodes.Clear();
+                country.Outlines.Clear();
+                country.GlowOutlines.Clear();
+
+                // Recreate with loaded rings
+                CreateCountryVisuals(country);
             }
 
-            GD.Print($"WorldMapV3: loaded {loaded} high-detail border rings from {path}");
+            GD.Print($"WorldMapV3: loaded {loaded} border rings from {path} for {_countries.Count} countries");
         }
         catch (Exception e)
         {

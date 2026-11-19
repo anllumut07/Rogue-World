@@ -103,7 +103,7 @@ func open_panel(panel_name: String) -> void:
 
 	# Show panel with animation
 	panel.visible = true
-	panel.global_position = (get_viewport_rect().size - panel.size) / 2
+	panel.global_position = (get_viewport().get_visible_rect().size - panel.size) / 2
 	UITheme.pop_in(panel, 0.15)
 
 	open_panels.append(panel_name)

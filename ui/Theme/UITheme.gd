@@ -70,8 +70,8 @@ const BORDER_THIN = 1
 const BORDER_THICK = 2
 
 ## Theme instance
-var _theme: Theme = null
-var _built: bool = false
+static var _theme: Theme = null
+static var _built: bool = false
 
 func _init():
 	build_theme()
@@ -98,7 +98,7 @@ func build_theme() -> void:
 	_theme.set_constant("font_outline_size", "Label", 1)
 
 	# Button base styles
-	var (btn_normal, btn_hover, btn_pressed, btn_disabled, btn_focus) = _make_button_styles()
+	var btn_styles = _make_button_styles()
 	_theme.set_color("font_color", "Button", TEXT_PRIMARY)
 	_theme.set_color("font_hover_color", "Button", TEXT_PRIMARY)
 	_theme.set_color("font_pressed_color", "Button", TEXT_ON_GOLD)
@@ -106,20 +106,20 @@ func build_theme() -> void:
 	_theme.set_color("font_hover_pressed_color", "Button", TEXT_ON_GOLD)
 	_theme.set_color("font_disabled_color", "Button", TEXT_DISABLED)
 	_theme.set_constant("outline_size", "Button", 1)
-	_theme.set_stylebox("normal", "Button", btn_normal)
-	_theme.set_stylebox("hover", "Button", btn_hover)
-	_theme.set_stylebox("pressed", "Button", btn_pressed)
-	_theme.set_stylebox("disabled", "Button", btn_disabled)
-	_theme.set_stylebox("focus", "Button", btn_focus)
+	_theme.set_stylebox("normal", "Button", btn_styles[0])
+	_theme.set_stylebox("hover", "Button", btn_styles[1])
+	_theme.set_stylebox("pressed", "Button", btn_styles[2])
+	_theme.set_stylebox("disabled", "Button", btn_styles[3])
+	_theme.set_stylebox("focus", "Button", btn_styles[4])
 
 	# Toolbar button variation
 	_theme.set_type_variation("ToolbarButton", "Button")
-	var (tb_normal, tb_hover, tb_pressed, tb_disabled, tb_focus) = _make_toolbar_button_styles()
-	_theme.set_stylebox("normal", "ToolbarButton", tb_normal)
-	_theme.set_stylebox("hover", "ToolbarButton", tb_hover)
-	_theme.set_stylebox("pressed", "ToolbarButton", tb_pressed)
-	_theme.set_stylebox("disabled", "ToolbarButton", tb_disabled)
-	_theme.set_stylebox("focus", "ToolbarButton", tb_focus)
+	var tb_styles = _make_toolbar_button_styles()
+	_theme.set_stylebox("normal", "ToolbarButton", tb_styles[0])
+	_theme.set_stylebox("hover", "ToolbarButton", tb_styles[1])
+	_theme.set_stylebox("pressed", "ToolbarButton", tb_styles[2])
+	_theme.set_stylebox("disabled", "ToolbarButton", tb_styles[3])
+	_theme.set_stylebox("focus", "ToolbarButton", tb_styles[4])
 
 	# Header label variation
 	_theme.set_type_variation("Header", "Label")
@@ -156,10 +156,10 @@ func build_theme() -> void:
 	_theme.set_stylebox("separator", "VSeparator", _make_separator())
 
 	# LineEdit
-	var (le_normal, le_focus, le_readonly) = _make_input_styles()
-	_theme.set_stylebox("normal", "LineEdit", le_normal)
-	_theme.set_stylebox("focus", "LineEdit", le_focus)
-	_theme.set_stylebox("read_only", "LineEdit", le_readonly)
+	var le_styles = _make_input_styles()
+	_theme.set_stylebox("normal", "LineEdit", le_styles[0])
+	_theme.set_stylebox("focus", "LineEdit", le_styles[1])
+	_theme.set_stylebox("read_only", "LineEdit", le_styles[2])
 	_theme.set_color("font_color", "LineEdit", TEXT_PRIMARY)
 	_theme.set_color("font_placeholder_color", "LineEdit", TEXT_MUTED)
 	_theme.set_color("font_selected_color", "LineEdit", GOLD_BRIGHT)
@@ -167,15 +167,15 @@ func build_theme() -> void:
 	_theme.set_constant("minimum_spaces", "LineEdit", 12)
 
 	# TextEdit
-	_theme.set_stylebox("normal", "TextEdit", le_normal)
-	_theme.set_stylebox("focus", "TextEdit", le_focus)
-	_theme.set_stylebox("read_only", "TextEdit", le_readonly)
+	_theme.set_stylebox("normal", "TextEdit", le_styles[0])
+	_theme.set_stylebox("focus", "TextEdit", le_styles[1])
+	_theme.set_stylebox("read_only", "TextEdit", le_styles[2])
 	_theme.set_color("font_color", "TextEdit", TEXT_PRIMARY)
 	_theme.set_color("font_selected_color", "TextEdit", GOLD_BRIGHT)
 	_theme.set_constant("outline_size", "TextEdit", 1)
 
 	# OptionButton
-	_theme.set_stylebox("normal", "OptionButton", le_normal)
+	_theme.set_stylebox("normal", "OptionButton", le_styles[0])
 	_theme.set_stylebox("hover", "OptionButton", _make_box(BG_MEDIUM, GOLD))
 	_theme.set_stylebox("pressed", "OptionButton", _make_box(BG_LIGHT, GOLD_BRIGHT))
 	_theme.set_stylebox("focus", "OptionButton", _make_box(BG_INPUT, GOLD_BRIGHT, BORDER_THICK))
@@ -212,18 +212,18 @@ func build_theme() -> void:
 	_theme.set_color("font_disabled_color", "RadioButton", TEXT_DISABLED)
 
 	# ProgressBar
-	var (pb_bg, pb_fill) = _make_progress_bar_styles(GOLD)
-	_theme.set_stylebox("background", "ProgressBar", pb_bg)
-	_theme.set_stylebox("fill", "ProgressBar", pb_fill)
+	var pb_styles = _make_progress_bar_styles(GOLD)
+	_theme.set_stylebox("background", "ProgressBar", pb_styles[0])
+	_theme.set_stylebox("fill", "ProgressBar", pb_styles[1])
 	_theme.set_constant("margin", "ProgressBar", 0)
 
 	# TabBar
-	var (tab_normal, tab_hover, tab_pressed, tab_disabled, tab_focus) = _make_tab_styles()
-	_theme.set_stylebox("tab_normal", "TabBar", tab_normal)
-	_theme.set_stylebox("tab_hover", "TabBar", tab_hover)
-	_theme.set_stylebox("tab_selected", "TabBar", tab_pressed)
-	_theme.set_stylebox("tab_disabled", "TabBar", tab_disabled)
-	_theme.set_stylebox("tab_focus", "TabBar", tab_focus)
+	var tab_styles = _make_tab_styles()
+	_theme.set_stylebox("tab_normal", "TabBar", tab_styles[0])
+	_theme.set_stylebox("tab_hover", "TabBar", tab_styles[1])
+	_theme.set_stylebox("tab_selected", "TabBar", tab_styles[2])
+	_theme.set_stylebox("tab_disabled", "TabBar", tab_styles[3])
+	_theme.set_stylebox("tab_focus", "TabBar", tab_styles[4])
 	_theme.set_color("font_color", "TabBar", TEXT_SECONDARY)
 	_theme.set_color("font_hover_color", "TabBar", TEXT_PRIMARY)
 	_theme.set_color("font_selected_color", "TabBar", TEXT_ON_GOLD)
@@ -236,17 +236,17 @@ func build_theme() -> void:
 	_theme.set_stylebox("tab_fg", "TabContainer", _make_box(BG_DARK, BORDER_DARK, BORDER_THIN, RADIUS_NONE))
 
 	# ScrollBar
-	var (sb_track, sb_grabber, sb_grabber_hi, sb_grabber_pressed) = _make_scrollbar_styles()
-	_theme.set_stylebox("scroll", "HScrollBar", sb_track)
-	_theme.set_stylebox("grabber", "HScrollBar", sb_grabber)
-	_theme.set_stylebox("grabber_highlight", "HScrollBar", sb_grabber_hi)
-	_theme.set_stylebox("grabber_pressed", "HScrollBar", sb_grabber_pressed)
+	var sb_styles = _make_scrollbar_styles()
+	_theme.set_stylebox("scroll", "HScrollBar", sb_styles[0])
+	_theme.set_stylebox("grabber", "HScrollBar", sb_styles[1])
+	_theme.set_stylebox("grabber_highlight", "HScrollBar", sb_styles[2])
+	_theme.set_stylebox("grabber_pressed", "HScrollBar", sb_styles[3])
 	_theme.set_constant("grabber_size", "HScrollBar", 10)
 
-	_theme.set_stylebox("scroll", "VScrollBar", sb_track)
-	_theme.set_stylebox("grabber", "VScrollBar", sb_grabber)
-	_theme.set_stylebox("grabber_highlight", "VScrollBar", sb_grabber_hi)
-	_theme.set_stylebox("grabber_pressed", "VScrollBar", sb_grabber_pressed)
+	_theme.set_stylebox("scroll", "VScrollBar", sb_styles[0])
+	_theme.set_stylebox("grabber", "VScrollBar", sb_styles[1])
+	_theme.set_stylebox("grabber_highlight", "VScrollBar", sb_styles[2])
+	_theme.set_stylebox("grabber_pressed", "VScrollBar", sb_styles[3])
 	_theme.set_constant("grabber_size", "VScrollBar", 10)
 
 	# ItemList
@@ -276,7 +276,7 @@ func build_theme() -> void:
 	_theme.set_constant("h_separation", "Tree", 8)
 
 	# Window/Popup
-	_theme.set_stylebox("panel", "Window", _make_panel_box(border: GOLD, border_width: BORDER_THIN, radius: RADIUS_LARGE, shadow: true))
+	_theme.set_stylebox("panel", "Window", _make_panel_box(GOLD, GOLD, BORDER_THIN, RADIUS_LARGE, true))
 
 	# Tooltip
 	_theme.set_stylebox("panel", "TooltipPanel", _make_tooltip_style())
@@ -287,7 +287,7 @@ func build_theme() -> void:
 	_theme.set_color("font_outline_color", "RichTextLabel", Color(0,0,0,0.8))
 	_theme.set_constant("outline_size", "RichTextLabel", 1)
 
-func get_theme() -> Theme:
+static func get_theme() -> Theme:
 	return _theme
 
 ## StyleBox factories
@@ -304,10 +304,10 @@ func _make_box(bg: Color, border: Color, border_width: int = BORDER_THIN, radius
 	box.content_margin_bottom = margin_v
 	return box
 
-func _make_panel_box(bg: Color = null, border: Color = null, border_width: int = BORDER_THIN, radius: int = RADIUS_MEDIUM, shadow: bool = true) -> StyleBoxFlat:
+func _make_panel_box(bg = null, border = null, border_width: int = BORDER_THIN, radius: int = RADIUS_MEDIUM, shadow: bool = true) -> StyleBoxFlat:
 	var box = StyleBoxFlat.new()
-	box.bg_color = bg ?? BG_DARK
-	box.border_color = border ?? GOLD
+	box.bg_color = bg if bg else BG_DARK
+	box.border_color = border if border else GOLD
 	box.content_margin_left = 16
 	box.content_margin_right = 16
 	box.content_margin_top = 12
@@ -320,9 +320,9 @@ func _make_panel_box(bg: Color = null, border: Color = null, border_width: int =
 		box.shadow_offset = Vector2(0, 3)
 	return box
 
-func _make_inner_panel_box(bg: Color = null, radius: int = RADIUS_SMALL) -> StyleBoxFlat:
+func _make_inner_panel_box(bg = null, radius: int = RADIUS_SMALL) -> StyleBoxFlat:
 	var box = StyleBoxFlat.new()
-	box.bg_color = bg ?? BG_DARK
+	box.bg_color = bg if bg else BG_DARK
 	box.border_color = BORDER_DARK
 	box.content_margin_left = 8
 	box.content_margin_right = 8
@@ -332,7 +332,7 @@ func _make_inner_panel_box(bg: Color = null, radius: int = RADIUS_SMALL) -> Styl
 	box.set_corner_radius_all(radius)
 	return box
 
-func _make_card_box(accent: Color = null, hoverable: bool = false) -> StyleBoxFlat:
+func _make_card_box(accent = null, hoverable: bool = false) -> StyleBoxFlat:
 	var box = StyleBoxFlat.new()
 	box.bg_color = BG_DARK
 	if accent:
@@ -347,56 +347,61 @@ func _make_card_box(accent: Color = null, hoverable: bool = false) -> StyleBoxFl
 	box.set_corner_radius_all(RADIUS_NORMAL)
 	return box
 
-func _make_button_styles(base_bg: Color = null, accent: Color = null, radius: int = RADIUS_NORMAL) -> Array[StyleBoxFlat]:
-	var bg = base_bg ?? BG_DARK
-	var acc = accent ?? GOLD
+func _make_button_styles(base_bg = null, accent = null, radius: int = RADIUS_NORMAL) -> Array[StyleBoxFlat]:
+	var styles = []
+	var bg = base_bg if base_bg else BG_DARK
+	var acc = accent if accent else GOLD
 	var acc_bright = GOLD_BRIGHT
 
-	var normal = _make_box(bg, BORDER_DARK, BORDER_THIN, radius)
-	var hover = _make_box(BG_MEDIUM, acc, BORDER_THIN, radius)
-	var pressed = _make_box(BG_LIGHT, acc_bright, BORDER_THIN, radius)
-	var disabled = _make_box(Color("#06080A"), Color("#1A222A"), BORDER_THIN, radius)
-	var focus = _make_box(Color(0,0,0,0), acc_bright, BORDER_THICK, radius)
-
-	return [normal, hover, pressed, disabled, focus]
+	styles.append(_make_box(bg, BORDER_DARK, BORDER_THIN, radius))
+	styles.append(_make_box(BG_MEDIUM, acc, BORDER_THIN, radius))
+	styles.append(_make_box(BG_LIGHT, acc_bright, BORDER_THIN, radius))
+	styles.append(_make_box(Color("#06080A"), Color("#1A222A"), BORDER_THIN, radius))
+	styles.append(_make_box(Color(0,0,0,0), acc_bright, BORDER_THICK, radius))
+	return styles
 
 func _make_toolbar_button_styles() -> Array[StyleBoxFlat]:
-	var normal = _make_box(Color("#0E1620"), BORDER_DARK, BORDER_THIN, RADIUS_SMALL, 8, 4)
-	var hover = _make_box(BG_MEDIUM, GOLD, BORDER_THIN, RADIUS_SMALL, 8, 4)
-	var pressed = _make_box(BG_LIGHT, GOLD_BRIGHT, BORDER_THIN, RADIUS_SMALL, 8, 4)
-	var disabled = _make_box(Color("#06080A"), Color("#1A222A"), BORDER_THIN, RADIUS_SMALL, 8, 4)
-	var focus = _make_box(Color(0,0,0,0), GOLD_BRIGHT, BORDER_THICK, RADIUS_SMALL, 8, 4)
-	return [normal, hover, pressed, disabled, focus]
+	var styles = []
+	styles.append(_make_box(Color("#0E1620"), BORDER_DARK, BORDER_THIN, RADIUS_SMALL, 8, 4))
+	styles.append(_make_box(BG_MEDIUM, GOLD, BORDER_THIN, RADIUS_SMALL, 8, 4))
+	styles.append(_make_box(BG_LIGHT, GOLD_BRIGHT, BORDER_THIN, RADIUS_SMALL, 8, 4))
+	styles.append(_make_box(Color("#06080A"), Color("#1A222A"), BORDER_THIN, RADIUS_SMALL, 8, 4))
+	styles.append(_make_box(Color(0,0,0,0), GOLD_BRIGHT, BORDER_THICK, RADIUS_SMALL, 8, 4))
+	return styles
 
-func _make_tab_styles(active_bg: Color = null, active_border: Color = null) -> Array[StyleBoxFlat]:
-	var normal = _make_box(Color("#1A1A2E"), Color("#3A3A5A"), BORDER_THIN, RADIUS_SMALL, 12, 4)
-	var hover = _make_box(Color("#222242"), Color("#4A4A7A"), BORDER_THIN, RADIUS_SMALL, 12, 4)
-	var pressed = _make_box(active_bg ?? Color("#2A2A4A"), active_border ?? Color("#4A4A8A"), BORDER_THIN, RADIUS_SMALL, 12, 4)
-	var disabled = _make_box(Color("#12121A"), Color("#2A2A3A"), BORDER_THIN, RADIUS_SMALL, 12, 4)
-	var focus = _make_box(Color(0,0,0,0), GOLD_BRIGHT, BORDER_THICK, RADIUS_SMALL, 12, 4)
-	return [normal, hover, pressed, disabled, focus]
+func _make_tab_styles(active_bg = null, active_border = null) -> Array[StyleBoxFlat]:
+	var styles = []
+	styles.append(_make_box(Color("#1A1A2E"), Color("#3A3A5A"), BORDER_THIN, RADIUS_SMALL, 12, 4))
+	styles.append(_make_box(Color("#222242"), Color("#4A4A7A"), BORDER_THIN, RADIUS_SMALL, 12, 4))
+	styles.append(_make_box(active_bg if active_bg else Color("#2A2A4A"), active_border if active_border else Color("#4A4A8A"), BORDER_THIN, RADIUS_SMALL, 12, 4))
+	styles.append(_make_box(Color("#12121A"), Color("#2A2A3A"), BORDER_THIN, RADIUS_SMALL, 12, 4))
+	styles.append(_make_box(Color(0,0,0,0), GOLD_BRIGHT, BORDER_THICK, RADIUS_SMALL, 12, 4))
+	return styles
 
 func _make_input_styles() -> Array[StyleBoxFlat]:
-	var normal = _make_box(BG_INPUT, BORDER_DARK, BORDER_THIN, RADIUS_NORMAL)
-	var focus = _make_box(BG_INPUT, GOLD, BORDER_THIN, RADIUS_NORMAL)
-	var readonly = _make_box(BG_INPUT, BORDER_DARK, BORDER_THIN, RADIUS_NORMAL)
-	return [normal, focus, readonly]
+	var styles = []
+	styles.append(_make_box(BG_INPUT, BORDER_DARK, BORDER_THIN, RADIUS_NORMAL))
+	styles.append(_make_box(BG_INPUT, GOLD, BORDER_THIN, RADIUS_NORMAL))
+	styles.append(_make_box(BG_INPUT, BORDER_DARK, BORDER_THIN, RADIUS_NORMAL))
+	return styles
 
 func _make_scrollbar_styles() -> Array[StyleBoxFlat]:
-	var track = _make_box(Color(0,0,0,0), BORDER_DARK, BORDER_NONE, RADIUS_FULL)
-	var grabber = _make_box(GOLD, GOLD, BORDER_NONE, RADIUS_FULL)
-	var grabber_hi = _make_box(GOLD_BRIGHT, GOLD_BRIGHT, BORDER_NONE, RADIUS_FULL)
-	var grabber_pressed = _make_box(GOLD_BRIGHT, GOLD_BRIGHT, BORDER_NONE, RADIUS_FULL)
-	return [track, grabber, grabber_hi, grabber_pressed]
+	var styles = []
+	styles.append(_make_box(Color(0,0,0,0), BORDER_DARK, BORDER_NONE, RADIUS_FULL))
+	styles.append(_make_box(GOLD, GOLD, BORDER_NONE, RADIUS_FULL))
+	styles.append(_make_box(GOLD_BRIGHT, GOLD_BRIGHT, BORDER_NONE, RADIUS_FULL))
+	styles.append(_make_box(GOLD_BRIGHT, GOLD_BRIGHT, BORDER_NONE, RADIUS_FULL))
+	return styles
 
-func _make_progress_bar_styles(fill_color: Color = null) -> Array[StyleBoxFlat]:
-	var bg = _make_box(Color("#1A2A3A"), BORDER_DARK, BORDER_NONE, RADIUS_NORMAL)
-	var fill = _make_box(fill_color ?? GOLD, fill_color ?? GOLD, BORDER_NONE, RADIUS_NORMAL)
-	return [bg, fill]
+func _make_progress_bar_styles(fill_color = null) -> Array[StyleBoxFlat]:
+	var styles = []
+	styles.append(_make_box(Color("#1A2A3A"), BORDER_DARK, BORDER_NONE, RADIUS_NORMAL))
+	styles.append(_make_box(fill_color if fill_color else GOLD, fill_color if fill_color else GOLD, BORDER_NONE, RADIUS_NORMAL))
+	return styles
 
-func _make_separator(color: Color = null, thickness: int = 1) -> StyleBoxFlat:
+func _make_separator(color = null, thickness: int = 1) -> StyleBoxFlat:
 	var box = StyleBoxFlat.new()
-	box.bg_color = color ?? BORDER_MEDIUM
+	box.bg_color = color if color else BORDER_MEDIUM
 	box.set_border_width_all(BORDER_NONE)
 	box.set_corner_radius_all(BORDER_NONE)
 	box.content_margin_top = thickness
@@ -433,21 +438,21 @@ func _make_tooltip_style() -> StyleBoxFlat:
 	box.shadow_offset = Vector2(0, 4)
 	return box
 
-## Helper methods for runtime use
+## Helper methods for runtime use (static - can be called as UITheme.style_button())
 
-func style_button(button: Button, toolbar: bool = false, hover_scale: float = 1.05) -> void:
+static func style_button(button: Button, toolbar: bool = false, hover_scale: float = 1.05) -> void:
 	if toolbar:
 		button.theme_type_variation = "ToolbarButton"
 	if hover_scale > 1.0:
 		_add_hover_scale(button, hover_scale)
 
-func style_label(label: Label, color: Color = null, font_size: int = null, alignment: int = HORIZONTAL_ALIGNMENT_LEFT) -> void:
-	label.add_theme_color_override("font_color", color ?? TEXT_PRIMARY)
+static func style_label(label: Label, color = null, font_size = null, alignment: int = HORIZONTAL_ALIGNMENT_LEFT) -> void:
+	label.add_theme_color_override("font_color", color if color else TEXT_PRIMARY)
 	if font_size:
 		label.add_theme_font_size_override("font_size", font_size)
 	label.horizontal_alignment = alignment
 
-func _add_hover_scale(control: Control, target_scale: float = 1.05, duration: float = 0.08) -> void:
+static func _add_hover_scale(control: Control, target_scale: float = 1.05, duration: float = 0.08) -> void:
 	control.mouse_entered.connect(func():
 		var tween = control.create_tween()
 		tween.tween_property(control, "scale", Vector2(target_scale, target_scale), duration)
@@ -459,7 +464,7 @@ func _add_hover_scale(control: Control, target_scale: float = 1.05, duration: fl
 		tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	)
 
-func fade_in(control: Control, duration: float = 0.12) -> Tween:
+static func fade_in(control: Control, duration: float = 0.12) -> Tween:
 	control.modulate = Color(1, 1, 1, 0)
 	control.show()
 	var tween = control.create_tween()
@@ -467,7 +472,7 @@ func fade_in(control: Control, duration: float = 0.12) -> Tween:
 	tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	return tween
 
-func fade_out(control: Control, duration: float = 0.1, on_complete: Callable = null) -> Tween:
+static func fade_out(control: Control, duration: float = 0.1, on_complete = null) -> Tween:
 	var tween = control.create_tween()
 	tween.tween_property(control, "modulate:a", 0.0, duration)
 	tween.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
@@ -475,7 +480,7 @@ func fade_out(control: Control, duration: float = 0.1, on_complete: Callable = n
 		tween.tween_callback(on_complete)
 	return tween
 
-func pop_in(control: Control, duration: float = 0.15) -> void:
+static func pop_in(control: Control, duration: float = 0.15) -> void:
 	control.modulate = Color(1, 1, 1, 0)
 	control.scale = Vector2(0.96, 0.96)
 	control.show()
@@ -484,7 +489,7 @@ func pop_in(control: Control, duration: float = 0.15) -> void:
 	tween.tween_property(control, "modulate:a", 1.0, duration).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 	tween.tween_property(control, "scale", Vector2.ONE, duration).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 
-func pop_out(control: Control, duration: float = 0.1, on_complete: Callable = null) -> void:
+static func pop_out(control: Control, duration: float = 0.1, on_complete = null) -> void:
 	var tween = control.create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(control, "modulate:a", 0.0, duration).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
@@ -492,7 +497,7 @@ func pop_out(control: Control, duration: float = 0.1, on_complete: Callable = nu
 	if on_complete:
 		tween.chain().tween_callback(on_complete)
 
-func get_status_color(status: String) -> Color:
+static func get_status_color(status: String) -> Color:
 	match status.to_lower():
 		"positive", "success", "good": return GREEN
 		"negative", "danger", "bad": return RED
@@ -502,7 +507,7 @@ func get_status_color(status: String) -> Color:
 		"active", "progress": return ORANGE
 		_: return TEXT_MUTED
 
-func get_category_color(category: String) -> Color:
+static func get_category_color(category: String) -> Color:
 	match category:
 		"Economy": return GREEN
 		"Military": return RED
@@ -511,3 +516,14 @@ func get_category_color(category: String) -> Color:
 		"Technology": return ORANGE
 		"General": return TEXT_MUTED
 		_: return TEXT_MUTED
+
+static func set_dark_mode(enabled: bool) -> void:
+	# Dark mode is handled by the theme colors - already dark by default
+	pass
+
+static func set_scale(scale: float) -> void:
+	# Scale is handled by individual controls
+	pass
+
+static func apply_theme(control: Control) -> void:
+	control.theme = get_theme()

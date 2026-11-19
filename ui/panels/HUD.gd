@@ -57,7 +57,8 @@ func _on_speed_pressed(speed: int) -> void:
 	speed_changed.emit(speed)
 
 func _update_speed_visual() -> void:
-	for i, btn in enumerate(speed_buttons):
+	for i in range(speed_buttons.size()):
+		var btn = speed_buttons[i]
 		var target_speed = i + 1
 		btn.disabled = (target_speed == current_speed)
 		if target_speed == current_speed:
@@ -131,3 +132,38 @@ func _get_status_color(value: float) -> Color:
 ## Test helper - simulates resource change for unit testing
 func simulate_resource_change(resources: Dictionary) -> void:
 	update_resources(resources)
+
+## Notification helper
+func show_notification(message: String, color = null) -> void:
+	# Simple notification via a temporary label on the HUD
+	var notif_label = Label.new()
+	notif_label.text = message
+	notif_label.add_theme_color_override("font_color", color if color else UITheme.GOLD)
+	notif_label.add_theme_font_size_override("font_size", UITheme.FONT_MEDIUM)
+	notif_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	notif_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Add to HUD (assuming there's a notification container or we add to root)
+	var notification_layer = get_viewport().get_canvas_layer(10)  # High layer
+	if not notification_layer:
+		notification_layer = CanvasLayer.new()
+		notification_layer.layer = 10
+		get_viewport().add_child(notification_layer)
+
+	var container = VBoxContainer.new()
+	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	container.size_flags_vertical = Control.SIZE_SHRINK_END
+	container.add_child(notif_label)
+	notification_layer.add_child(container)
+
+	# Auto-remove after 3 seconds
+	var timer = Timer.new()
+	timer.wait_time = 3.0
+	timer.one_shot = true
+	timer.timeout.connect(func():
+		container.queue_free()
+		if notification_layer.get_child_count() == 0:
+			notification_layer.queue_free()
+	)
+	timer.start()
+	notification_layer.add_child(timer)

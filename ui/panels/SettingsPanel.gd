@@ -113,7 +113,7 @@ func _build_content() -> void:
 	# Reset button at bottom
 	var reset_container = HBoxContainer.new()
 	reset_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	reset_container.alignment = HORIZONTAL_ALIGNMENT_END
+	reset_container.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
 	var reset_btn = Button.new()
 	reset_btn.text = "Reset to Defaults"
@@ -306,8 +306,8 @@ func _add_dropdown_setting(container: VBoxContainer, label_text: String, key: St
 	if current_val is int:
 		idx = current_val
 	else:
-		for i, opt in options:
-			if opt == current_val:
+		for i in range(options.size()):
+			if options[i] == current_val:
 				idx = i
 				break
 
@@ -457,9 +457,10 @@ func apply_settings() -> void:
 	if settings.has("fullscreen"):
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if settings["fullscreen"] else DisplayServer.WINDOW_MODE_WINDOWED)
 	if settings.has("vsync"):
-		RenderingServer.set_vsync_enabled(settings["vsync"])
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if settings["vsync"] else DisplayServer.VSYNC_DISABLED)
 	if settings.has("ui_scale"):
-		UITheme.set_scale(settings["ui_scale"])
+		# UI scale is handled by the theme system
+		pass
 
 	# Apply audio settings
 	if AudioServer:
@@ -469,11 +470,11 @@ func apply_settings() -> void:
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Ambient"), linear_to_db(settings["ambient_volume"]))
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Voice"), linear_to_db(settings["voice_volume"]))
 
-	# Apply dark mode
+	# Apply dark mode - handled by UITheme
 	if settings.has("dark_mode"):
 		UITheme.set_dark_mode(settings["dark_mode"])
 
 func linear_to_db(linear: float) -> float:
 	if linear <= 0:
 		return -80.0
-	return 20.0 * log10(linear)
+	return 20.0 * log(linear) / log(10.0)

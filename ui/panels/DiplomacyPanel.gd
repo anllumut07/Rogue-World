@@ -73,12 +73,12 @@ func _create_relations_tab() -> Control:
 	item_list.theme = UITheme.get_theme()
 	item_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	item_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	item_list.select_mode = ItemList.SELECT_MODE_SINGLE
+	item_list.select_mode = 0  # SELECT_MODE_SINGLE
 	item_list.item_selected.connect(_on_country_selected)
 	container.add_child(item_list)
 
 	# Populate with sample data (in real game, this comes from DiplomacySystem)
-	_call_deferred("_populate_relations", item_list)
+	call_deferred("_populate_relations", item_list)
 
 	return container
 
@@ -196,8 +196,11 @@ func _on_action_pressed(action_id: String) -> void:
 		var country_id = item_list.get_item_metadata(index)
 		action_requested.emit(action_id, country_id)
 	else:
-		# No country selected - show notification
-		UIManager.instance.get_hud().show_notification("Select a country first", UITheme.YELLOW)
+		# No country selected - show notification via UIManager
+		if UIManager.instance:
+			var hud = UIManager.instance.get_hud()
+			if hud:
+				hud.show_notification("Select a country first", UITheme.YELLOW)
 
 ## Public API
 

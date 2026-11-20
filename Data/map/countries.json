@@ -1,1 +1,2615 @@
-[{"iso3":"IDN","name":"Indonesia","sovereign":"Indonesia","area_km2":1545471.7,"bbox":[95.013,-10.923,140.978,5.91],"lod":{}},{"iso3":"MYS","name":"Malaysia","sovereign":"Malaysia","area_km2":269568.2,"bbox":[99.645,0.851,119.278,7.356],"lod":{}},{"iso3":"CHL","name":"Chile","sovereign":"Chile","area_km2":705846.0,"bbox":[-109.454,-55.919,-66.421,-17.507],"lod":{}},{"iso3":"BOL","name":"Bolivia","sovereign":"Bolivia","area_km2":919728.7,"bbox":[-69.666,-22.897,-57.466,-9.68],"lod":{}},{"iso3":"PER","name":"Peru","sovereign":"Peru","area_km2":1070185.9,"bbox":[-81.338,-18.338,-68.684,-0.029],"lod":{}},{"iso3":"ARG","name":"Argentina","sovereign":"Argentina","area_km2":2620856.3,"bbox":[-73.573,-55.052,-53.662,-21.787],"lod":{}},{"iso3":"ESB","name":"Dhekelia","sovereign":"United Kingdom","area_km2":119.7,"bbox":[33.674,34.938,33.921,35.119],"lod":{}},{"iso3":"CYP","name":"Cyprus","sovereign":"Cyprus","area_km2":5066.5,"bbox":[32.272,34.625,34.099,35.187],"lod":{}},{"iso3":"IND","name":"India","sovereign":"India","area_km2":2746076.3,"bbox":[68.143,6.746,97.362,35.495],"lod":{}},{"iso3":"CHN","name":"China","sovereign":"China","area_km2":8907215.1,"bbox":[73.602,15.775,134.773,53.569],"lod":{}},{"iso3":"ISR","name":"Israel","sovereign":"Israel","area_km2":20250.4,"bbox":[34.248,29.49,35.888,33.407],"lod":{}},{"iso3":"PSX","name":"Palestine","sovereign":"Israel","area_km2":5583.9,"bbox":[34.2,31.211,35.573,32.543],"lod":{}},{"iso3":"LBN","name":"Lebanon","sovereign":"Lebanon","area_km2":9327.8,"bbox":[35.1,33.056,36.604,34.688],"lod":{}},{"iso3":"ETH","name":"Ethiopia","sovereign":"Ethiopia","area_km2":933178.5,"bbox":[32.99,3.403,47.979,14.88],"lod":{}},{"iso3":"SDS","name":"S. Sudan","sovereign":"South Sudan","area_km2":517488.1,"bbox":[24.122,3.49,35.921,12.216],"lod":{}},{"iso3":"SOM","name":"Somalia","sovereign":"Somalia","area_km2":388559.9,"bbox":[40.965,-1.696,51.417,11.989],"lod":{}},{"iso3":"KEN","name":"Kenya","sovereign":"Kenya","area_km2":481017.3,"bbox":[33.89,-4.678,41.885,5.03],"lod":{}},{"iso3":"MWI","name":"Malawi","sovereign":"Malawi","area_km2":99861.9,"bbox":[32.663,-17.135,35.904,-9.381],"lod":{}},{"iso3":"TZA","name":"Tanzania","sovereign":"United Republic of Tanzania","area_km2":776452.2,"bbox":[29.321,-11.731,40.449,-0.986],"lod":{}},{"iso3":"SYR","name":"Syria","sovereign":"Syria","area_km2":174761.6,"bbox":[35.723,32.313,42.377,37.325],"lod":{}},{"iso3":"SOL","name":"Somaliland","sovereign":"Somaliland","area_km2":138775.0,"bbox":[42.647,7.997,48.939,11.499],"lod":{}},{"iso3":"FRA","name":"France","sovereign":"France","area_km2":637573.8,"bbox":[-61.798,-21.371,55.855,51.088],"lod":{}},{"iso3":"SUR","name":"Suriname","sovereign":"Suriname","area_km2":119328.2,"bbox":[-58.068,1.834,-53.986,6.012],"lod":{}},{"iso3":"GUY","name":"Guyana","sovereign":"Guyana","area_km2":173819.5,"bbox":[-61.397,1.186,-56.482,8.558],"lod":{}},{"iso3":"KOR","name":"South Korea","sovereign":"South Korea","area_km2":93548.2,"bbox":[124.614,33.198,131.863,38.624],"lod":{}},{"iso3":"PRK","name":"North Korea","sovereign":"North Korea","area_km2":119548.0,"bbox":[124.211,37.676,130.7,43.01],"lod":{}},{"iso3":"MAR","name":"Morocco","sovereign":"Morocco","area_km2":536561.3,"bbox":[-17.014,21.42,-1.032,35.927],"lod":{}},{"iso3":"SAH","name":"W. Sahara","sovereign":"Western Sahara","area_km2":79236.5,"bbox":[-17.105,20.767,-8.681,27.661],"lod":{}},{"iso3":"CRI","name":"Costa Rica","sovereign":"Costa Rica","area_km2":42423.9,"bbox":[-87.118,5.515,-82.563,11.21],"lod":{}},{"iso3":"NIC","name":"Nicaragua","sovereign":"Nicaragua","area_km2":107491.2,"bbox":[-87.686,10.713,-82.726,15.031],"lod":{}},{"iso3":"COG","name":"Congo","sovereign":"Republic of the Congo","area_km2":283269.0,"bbox":[11.114,-5.02,18.642,3.708],"lod":{}},{"iso3":"COD","name":"Dem. Rep. Congo","sovereign":"Democratic Republic of the Congo","area_km2":1913934.0,"bbox":[12.211,-13.458,31.28,5.375],"lod":{}},{"iso3":"BTN","name":"Bhutan","sovereign":"Bhutan","area_km2":36054.3,"bbox":[88.73,26.696,92.089,28.358],"lod":{}},{"iso3":"UKR","name":"Ukraine","sovereign":"Ukraine","area_km2":603506.1,"bbox":[22.133,45.214,40.16,52.369],"lod":{}},{"iso3":"BLR","name":"Belarus","sovereign":"Belarus","area_km2":228541.9,"bbox":[23.166,51.235,32.72,56.157],"lod":{}},{"iso3":"NAM","name":"Namibia","sovereign":"Namibia","area_km2":712834.8,"bbox":[11.718,-28.959,25.26,-16.951],"lod":{}},{"iso3":"ZAF","name":"South Africa","sovereign":"South Africa","area_km2":1099673.1,"bbox":[16.47,-46.966,37.978,-22.126],"lod":{}},{"iso3":"MAF","name":"St-Martin","sovereign":"France","area_km2":58.0,"bbox":[-63.147,18.033,-63.011,18.122],"lod":{}},{"iso3":"SXM","name":"Sint Maarten","sovereign":"Netherlands","area_km2":19.8,"bbox":[-63.119,18.019,-63.018,18.062],"lod":{}},{"iso3":"OMN","name":"Oman","sovereign":"Oman","area_km2":267497.3,"bbox":[51.979,16.642,59.845,26.386],"lod":{}},{"iso3":"UZB","name":"Uzbekistan","sovereign":"Uzbekistan","area_km2":442989.8,"bbox":[55.976,37.185,73.149,45.559],"lod":{}},{"iso3":"KAZ","name":"Kazakhstan","sovereign":"Kazakhstan","area_km2":2836222.7,"bbox":[46.478,40.585,87.324,55.435],"lod":{}},{"iso3":"TJK","name":"Tajikistan","sovereign":"Tajikistan","area_km2":137238.5,"bbox":[67.343,36.679,75.164,41.04],"lod":{}},{"iso3":"LTU","name":"Lithuania","sovereign":"Lithuania","area_km2":72909.0,"bbox":[20.925,53.887,26.801,56.443],"lod":{}},{"iso3":"BRA","name":"Brazil","sovereign":"Brazil","area_km2":7087030.0,"bbox":[-74.018,-33.742,-28.877,5.267],"lod":{}},{"iso3":"URY","name":"Uruguay","sovereign":"Uruguay","area_km2":164034.8,"bbox":[-58.439,-34.973,-53.111,-30.097],"lod":{}},{"iso3":"MNG","name":"Mongolia","sovereign":"Mongolia","area_km2":1615599.9,"bbox":[87.736,41.586,119.907,52.13],"lod":{}},{"iso3":"RUS","name":"Russia","sovereign":"Russia","area_km2":20747911.0,"bbox":[-180.0,41.193,180.0,81.859],"lod":{}},{"iso3":"CZE","name":"Czechia","sovereign":"Czechia","area_km2":83559.1,"bbox":[12.076,48.558,18.837,51.04],"lod":{}},{"iso3":"DEU","name":"Germany","sovereign":"Germany","area_km2":384432.7,"bbox":[5.852,47.271,15.022,55.065],"lod":{}},{"iso3":"EST","name":"Estonia","sovereign":"Estonia","area_km2":53514.9,"bbox":[21.832,57.516,28.186,59.671],"lod":{}},{"iso3":"LVA","name":"Latvia","sovereign":"Latvia","area_km2":73767.7,"bbox":[20.969,55.667,28.217,58.075],"lod":{}},{"iso3":"NOR","name":"Norway","sovereign":"Norway","area_km2":524013.6,"bbox":[-9.117,-54.462,33.64,80.77],"lod":{}},{"iso3":"SWE","name":"Sweden","sovereign":"Sweden","area_km2":552228.0,"bbox":[11.108,55.343,24.163,69.036],"lod":{}},{"iso3":"FIN","name":"Finland","sovereign":"Finland","area_km2":423900.8,"bbox":[20.623,59.811,31.57,70.075],"lod":{}},{"iso3":"VNM","name":"Vietnam","sovereign":"Vietnam","area_km2":278645.8,"bbox":[102.119,8.566,109.472,23.366],"lod":{}},{"iso3":"KHM","name":"Cambodia","sovereign":"Cambodia","area_km2":151185.9,"bbox":[102.313,10.416,107.611,14.705],"lod":{}},{"iso3":"LUX","name":"Luxembourg","sovereign":"Luxembourg","area_km2":2768.4,"bbox":[5.715,49.441,6.503,50.175],"lod":{}},{"iso3":"ARE","name":"United Arab Emirates","sovereign":"United Arab Emirates","area_km2":62113.6,"bbox":[51.569,22.621,56.384,26.075],"lod":{}},{"iso3":"BEL","name":"Belgium","sovereign":"Belgium","area_km2":32821.6,"bbox":[2.522,49.495,6.375,51.496],"lod":{}},{"iso3":"GEO","name":"Georgia","sovereign":"Georgia","area_km2":69046.4,"bbox":[39.986,41.044,46.695,43.576],"lod":{}},{"iso3":"MKD","name":"North Macedonia","sovereign":"North Macedonia","area_km2":25079.4,"bbox":[20.444,40.849,23.01,42.37],"lod":{}},{"iso3":"ALB","name":"Albania","sovereign":"Albania","area_km2":27895.1,"bbox":[19.272,39.637,21.037,42.655],"lod":{}},{"iso3":"AZE","name":"Azerbaijan","sovereign":"Azerbaijan","area_km2":84347.4,"bbox":[44.775,38.393,50.626,41.89],"lod":{}},{"iso3":"KOS","name":"Kosovo","sovereign":"Kosovo","area_km2":10866.0,"bbox":[20.025,41.844,21.773,43.263],"lod":{}},{"iso3":"TUR","name":"Turkey","sovereign":"Turkey","area_km2":755670.6,"bbox":[25.663,35.82,44.807,42.099],"lod":{}},{"iso3":"ESP","name":"Spain","sovereign":"Spain","area_km2":495398.8,"bbox":[-18.167,27.642,4.337,43.793],"lod":{}},{"iso3":"LAO","name":"Laos","sovereign":"Laos","area_km2":194285.6,"bbox":[100.097,13.915,107.664,22.496],"lod":{}},{"iso3":"KGZ","name":"Kyrgyzstan","sovereign":"Kyrgyzstan","area_km2":196385.5,"bbox":[69.226,39.189,80.258,43.262],"lod":{}},{"iso3":"ARM","name":"Armenia","sovereign":"Armenia","area_km2":28935.6,"bbox":[43.436,38.864,46.603,41.29],"lod":{}},{"iso3":"DNK","name":"Denmark","sovereign":"Denmark","area_km2":48278.8,"bbox":[8.094,54.569,15.151,57.751],"lod":{}},{"iso3":"LBY","name":"Libya","sovereign":"Libya","area_km2":1445814.5,"bbox":[9.287,19.496,25.156,33.181],"lod":{}},{"iso3":"TUN","name":"Tunisia","sovereign":"Tunisia","area_km2":146234.1,"bbox":[7.48,30.229,11.564,37.345],"lod":{}},{"iso3":"ROU","name":"Romania","sovereign":"Romania","area_km2":241985.1,"bbox":[20.243,43.65,29.7,48.275],"lod":{}},{"iso3":"HUN","name":"Hungary","sovereign":"Hungary","area_km2":96544.1,"bbox":[16.094,45.741,22.878,48.569],"lod":{}},{"iso3":"SVK","name":"Slovakia","sovereign":"Slovakia","area_km2":50916.6,"bbox":[16.844,47.75,22.54,49.602],"lod":{}},{"iso3":"POL","name":"Poland","sovereign":"Poland","area_km2":340305.4,"bbox":[14.124,48.994,24.143,54.838],"lod":{}},{"iso3":"IRL","name":"Ireland","sovereign":"Ireland","area_km2":76210.7,"bbox":[-10.478,51.446,-5.994,55.386],"lod":{}},{"iso3":"GBR","name":"United Kingdom","sovereign":"United Kingdom","area_km2":270219.0,"bbox":[-13.691,49.91,1.771,60.848],"lod":{}},{"iso3":"GRC","name":"Greece","sovereign":"Greece","area_km2":127229.5,"bbox":[19.626,34.815,28.24,41.75],"lod":{}},{"iso3":"ZMB","name":"Zambia","sovereign":"Zambia","area_km2":629425.5,"bbox":[21.98,-18.069,33.674,-8.194],"lod":{}},{"iso3":"SLE","name":"Sierra Leone","sovereign":"Sierra Leone","area_km2":59226.5,"bbox":[-13.301,6.919,-10.282,9.996],"lod":{}},{"iso3":"GIN","name":"Guinea","sovereign":"Guinea","area_km2":202845.8,"bbox":[-15.081,7.19,-7.662,12.673],"lod":{}},{"iso3":"LBR","name":"Liberia","sovereign":"Liberia","area_km2":78553.9,"bbox":[-11.476,4.347,-7.384,8.565],"lod":{}},{"iso3":"CAF","name":"Central African Rep.","sovereign":"Central African Republic","area_km2":509580.9,"bbox":[14.387,2.236,27.441,11.001],"lod":{}},{"iso3":"SDN","name":"Sudan","sovereign":"Sudan","area_km2":1566790.3,"bbox":[21.809,8.682,38.604,22.227],"lod":{}},{"iso3":"DJI","name":"Djibouti","sovereign":"Djibouti","area_km2":18195.2,"bbox":[41.749,10.93,43.419,12.708],"lod":{}},{"iso3":"ERI","name":"Eritrea","sovereign":"Eritrea","area_km2":103137.7,"bbox":[36.424,12.36,43.124,18.005],"lod":{}},{"iso3":"AUT","name":"Austria","sovereign":"Austria","area_km2":87343.2,"bbox":[9.521,46.379,17.148,49.01],"lod":{}},{"iso3":"IRQ","name":"Iraq","sovereign":"Iraq","area_km2":405236.8,"bbox":[38.775,29.063,48.559,37.375],"lod":{}},{"iso3":"ITA","name":"Italy","sovereign":"Italy","area_km2":300410.8,"bbox":[6.603,35.489,18.517,47.085],"lod":{}},{"iso3":"CHE","name":"Switzerland","sovereign":"Switzerland","area_km2":42780.7,"bbox":[5.955,45.821,10.467,47.801],"lod":{}},{"iso3":"IRN","name":"Iran","sovereign":"Iran","area_km2":1498424.1,"bbox":[44.015,25.059,63.32,39.772],"lod":{}},{"iso3":"NLD","name":"Netherlands","sovereign":"Netherlands","area_km2":40590.6,"bbox":[-68.417,12.022,7.199,53.558],"lod":{}},{"iso3":"LIE","name":"Liechtenstein","sovereign":"Liechtenstein","area_km2":142.1,"bbox":[9.476,47.052,9.616,47.263],"lod":{}},{"iso3":"CIV","name":"C\u00c3\u00b4te d'Ivoire","sovereign":"Ivory Coast","area_km2":264836.5,"bbox":[-8.619,4.344,-2.506,10.726],"lod":{}},{"iso3":"SRB","name":"Serbia","sovereign":"Republic of Serbia","area_km2":78355.2,"bbox":[18.845,42.235,22.985,46.174],"lod":{}},{"iso3":"MLI","name":"Mali","sovereign":"Mali","area_km2":1063033.3,"bbox":[-12.264,10.14,4.236,24.995],"lod":{}},{"iso3":"SEN","name":"Senegal","sovereign":"Senegal","area_km2":164639.2,"bbox":[-17.536,12.306,-11.378,16.691],"lod":{}},{"iso3":"NGA","name":"Nigeria","sovereign":"Nigeria","area_km2":752448.9,"bbox":[2.671,4.272,14.67,13.88],"lod":{}},{"iso3":"BEN","name":"Benin","sovereign":"Benin","area_km2":96254.6,"bbox":[0.76,6.214,3.837,12.399],"lod":{}},{"iso3":"AGO","name":"Angola","sovereign":"Angola","area_km2":1039062.8,"bbox":[11.669,-18.031,24.062,-4.391],"lod":{}},{"iso3":"HRV","name":"Croatia","sovereign":"Croatia","area_km2":55942.4,"bbox":[13.501,42.416,19.408,46.547],"lod":{}},{"iso3":"SVN","name":"Slovenia","sovereign":"Slovenia","area_km2":20858.5,"bbox":[13.365,45.424,16.515,46.864],"lod":{}},{"iso3":"QAT","name":"Qatar","sovereign":"Qatar","area_km2":9820.3,"bbox":[50.751,24.56,51.617,26.16],"lod":{}},{"iso3":"SAU","name":"Saudi Arabia","sovereign":"Saudi Arabia","area_km2":1682967.4,"bbox":[34.573,16.371,55.638,32.121],"lod":{}},{"iso3":"BWA","name":"Botswana","sovereign":"Botswana","area_km2":501551.4,"bbox":[19.978,-26.892,29.35,-17.782],"lod":{}},{"iso3":"ZWE","name":"Zimbabwe","sovereign":"Zimbabwe","area_km2":332215.6,"bbox":[25.219,-22.397,33.043,-15.615],"lod":{}},{"iso3":"PAK","name":"Pakistan","sovereign":"Pakistan","area_km2":791865.9,"bbox":[60.844,23.695,77.049,37.054],"lod":{}},{"iso3":"BGR","name":"Bulgaria","sovereign":"Bulgaria","area_km2":112451.8,"bbox":[22.345,41.238,28.604,44.228],"lod":{}},{"iso3":"THA","name":"Thailand","sovereign":"Thailand","area_km2":433076.0,"bbox":[97.351,5.63,105.651,20.445],"lod":{}},{"iso3":"SMR","name":"San Marino","sovereign":"San Marino","area_km2":60.7,"bbox":[12.386,43.892,12.492,43.983],"lod":{}},{"iso3":"HTI","name":"Haiti","sovereign":"Haiti","area_km2":22933.0,"bbox":[-74.489,18.026,-71.639,20.09],"lod":{}},{"iso3":"DOM","name":"Dominican Rep.","sovereign":"Dominican Republic","area_km2":41301.7,"bbox":[-72.01,17.546,-68.329,19.938],"lod":{}},{"iso3":"TCD","name":"Chad","sovereign":"Chad","area_km2":1067207.5,"bbox":[13.449,7.456,23.984,23.445],"lod":{}},{"iso3":"KWT","name":"Kuwait","sovereign":"Kuwait","area_km2":15780.7,"bbox":[46.532,28.534,48.433,30.098],"lod":{}},{"iso3":"SLV","name":"El Salvador","sovereign":"El Salvador","area_km2":17198.7,"bbox":[-90.115,13.159,-87.693,14.445],"lod":{}},{"iso3":"GTM","name":"Guatemala","sovereign":"Guatemala","area_km2":91684.4,"bbox":[-92.246,13.731,-88.221,17.816],"lod":{}},{"iso3":"TLS","name":"Timor-Leste","sovereign":"East Timor","area_km2":12479.2,"bbox":[124.03,-9.501,127.313,-8.135],"lod":{}},{"iso3":"BRN","name":"Brunei","sovereign":"Brunei","area_km2":4701.5,"bbox":[113.999,4.017,115.361,5.057],"lod":{}},{"iso3":"MCO","name":"Monaco","sovereign":"Monaco","area_km2":18.9,"bbox":[7.366,43.718,7.437,43.764],"lod":{}},{"iso3":"DZA","name":"Algeria","sovereign":"Algeria","area_km2":2071052.8,"bbox":[-8.682,18.976,11.969,37.094],"lod":{}},{"iso3":"MOZ","name":"Mozambique","sovereign":"Mozambique","area_km2":669197.5,"bbox":[30.214,-26.86,40.848,-10.469],"lod":{}},{"iso3":"SWZ","name":"eSwatini","sovereign":"eSwatini","area_km2":15182.6,"bbox":[30.783,-27.316,32.117,-25.736],"lod":{}},{"iso3":"BDI","name":"Burundi","sovereign":"Burundi","area_km2":22220.6,"bbox":[28.987,-4.463,30.834,-2.303],"lod":{}},{"iso3":"RWA","name":"Rwanda","sovereign":"Rwanda","area_km2":20780.0,"bbox":[28.857,-2.827,30.888,-1.059],"lod":{}},{"iso3":"MMR","name":"Myanmar","sovereign":"Myanmar","area_km2":572076.1,"bbox":[92.175,9.791,101.174,28.538],"lod":{}},{"iso3":"BGD","name":"Bangladesh","sovereign":"Bangladesh","area_km2":119594.2,"bbox":[88.022,20.739,92.643,26.624],"lod":{}},{"iso3":"AND","name":"Andorra","sovereign":"Andorra","area_km2":450.2,"bbox":[1.406,42.429,1.765,42.649],"lod":{}},{"iso3":"AFG","name":"Afghanistan","sovereign":"Afghanistan","area_km2":598399.0,"bbox":[60.487,29.387,74.892,38.474],"lod":{}},{"iso3":"MNE","name":"Montenegro","sovereign":"Montenegro","area_km2":13691.8,"bbox":[18.434,41.852,20.355,43.548],"lod":{}},{"iso3":"BIH","name":"Bosnia and Herz.","sovereign":"Bosnia and Herzegovina","area_km2":52288.5,"bbox":[15.716,42.559,19.619,45.285],"lod":{}},{"iso3":"UGA","name":"Uganda","sovereign":"Uganda","area_km2":198597.1,"bbox":[29.548,-1.475,35.006,4.22],"lod":{}},{"iso3":"USG","name":"USNB Guantanamo Bay","sovereign":"Cuba","area_km2":56.0,"bbox":[-75.233,19.891,-75.095,19.972],"lod":{}},{"iso3":"CUB","name":"Cuba","sovereign":"Cuba","area_km2":94916.7,"bbox":[-84.95,19.828,-74.133,23.266],"lod":{}},{"iso3":"HND","name":"Honduras","sovereign":"Honduras","area_km2":94296.0,"bbox":[-89.364,12.98,-83.13,17.419],"lod":{}},{"iso3":"ECU","name":"Ecuador","sovereign":"Ecuador","area_km2":209411.3,"bbox":[-92.012,-5.011,-75.227,1.664],"lod":{}},{"iso3":"COL","name":"Colombia","sovereign":"Colombia","area_km2":934191.1,"bbox":[-81.724,-4.236,-66.875,13.578],"lod":{}},{"iso3":"PRY","name":"Paraguay","sovereign":"Paraguay","area_km2":348260.9,"bbox":[-62.65,-27.587,-54.245,-19.287],"lod":{}},{"iso3":"BRI","name":"Brazilian I.","sovereign":"Brazilian Island","area_km2":2.6,"bbox":[-57.642,-30.193,-57.603,-30.183],"lod":{}},{"iso3":"PRT","name":"Portugal","sovereign":"Portugal","area_km2":88887.1,"bbox":[-31.285,30.029,-6.206,42.154],"lod":{}},{"iso3":"MDA","name":"Moldova","sovereign":"Moldova","area_km2":34407.6,"bbox":[26.618,45.462,30.132,48.486],"lod":{}},{"iso3":"TKM","name":"Turkmenistan","sovereign":"Turkmenistan","area_km2":456297.2,"bbox":[52.438,35.141,66.646,42.791],"lod":{}},{"iso3":"JOR","name":"Jordan","sovereign":"Jordan","area_km2":81306.0,"bbox":[34.949,29.19,39.292,33.372],"lod":{}},{"iso3":"NPL","name":"Nepal","sovereign":"Nepal","area_km2":131910.0,"bbox":[80.03,26.344,88.169,30.417],"lod":{}},{"iso3":"LSO","name":"Lesotho","sovereign":"Lesotho","area_km2":27233.4,"bbox":[27.002,-30.659,29.436,-28.571],"lod":{}},{"iso3":"CMR","name":"Cameroon","sovereign":"Cameroon","area_km2":382596.2,"bbox":[8.505,1.655,16.208,13.081],"lod":{}},{"iso3":"GAB","name":"Gabon","sovereign":"Gabon","area_km2":213446.7,"bbox":[8.696,-3.937,14.499,2.322],"lod":{}},{"iso3":"NER","name":"Niger","sovereign":"Niger","area_km2":1002209.7,"bbox":[0.153,11.696,15.97,23.517],"lod":{}},{"iso3":"BFA","name":"Burkina Faso","sovereign":"Burkina Faso","area_km2":227500.8,"bbox":[-5.523,9.392,2.39,15.08],"lod":{}},{"iso3":"TGO","name":"Togo","sovereign":"Togo","area_km2":47032.4,"bbox":[-0.166,6.1,1.782,11.135],"lod":{}},{"iso3":"GHA","name":"Ghana","sovereign":"Ghana","area_km2":197228.1,"bbox":[-3.263,4.737,1.188,11.163],"lod":{}},{"iso3":"GNB","name":"Guinea-Bissau","sovereign":"Guinea-Bissau","area_km2":27360.2,"bbox":[-16.728,10.928,-13.661,12.679],"lod":{}},{"iso3":"GIB","name":"Gibraltar","sovereign":"United Kingdom","area_km2":3.5,"bbox":[-5.358,36.111,-5.339,36.141],"lod":{}},{"iso3":"USA","name":"United States of America","sovereign":"United States of America","area_km2":9639499.3,"bbox":[-179.144,18.906,179.781,71.413],"lod":{}},{"iso3":"CAN","name":"Canada","sovereign":"Canada","area_km2":12010489.9,"bbox":[-141.006,41.669,-52.617,83.117],"lod":{}},{"iso3":"MEX","name":"Mexico","sovereign":"Mexico","area_km2":1714221.9,"bbox":[-118.369,14.546,-86.701,32.713],"lod":{}},{"iso3":"BLZ","name":"Belize","sovereign":"Belize","area_km2":18887.6,"bbox":[-89.237,15.88,-87.783,18.491],"lod":{}},{"iso3":"PAN","name":"Panama","sovereign":"Panama","area_km2":61633.5,"bbox":[-83.053,7.206,-77.163,9.629],"lod":{}},{"iso3":"VEN","name":"Venezuela","sovereign":"Venezuela","area_km2":753514.3,"bbox":[-73.391,0.649,-59.816,15.703],"lod":{}},{"iso3":"PNG","name":"Papua New Guinea","sovereign":"Papua New Guinea","area_km2":383540.1,"bbox":[140.849,-11.636,155.968,-1.346],"lod":{}},{"iso3":"EGY","name":"Egypt","sovereign":"Egypt","area_km2":888329.0,"bbox":[24.688,21.994,36.899,31.656],"lod":{}},{"iso3":"YEM","name":"Yemen","sovereign":"Yemen","area_km2":382066.1,"bbox":[42.546,12.111,54.54,18.996],"lod":{}},{"iso3":"MRT","name":"Mauritania","sovereign":"Mauritania","area_km2":889855.6,"bbox":[-17.081,14.734,-4.822,27.285],"lod":{}},{"iso3":"GNQ","name":"Eq. Guinea","sovereign":"Equatorial Guinea","area_km2":21900.6,"bbox":[5.612,-1.476,11.336,3.772],"lod":{}},{"iso3":"GMB","name":"Gambia","sovereign":"Gambia","area_km2":8785.8,"bbox":[-16.83,13.065,-13.819,13.82],"lod":{}},{"iso3":"HKG","name":"Hong Kong","sovereign":"China","area_km2":898.1,"bbox":[113.837,22.177,114.401,22.564],"lod":{}},{"iso3":"VAT","name":"Vatican","sovereign":"Vatican","area_km2":0.0,"bbox":[12.453,41.903,12.454,41.904],"lod":{}},{"iso3":"CYN","name":"N. Cyprus","sovereign":"Northern Cyprus","area_km2":3125.7,"bbox":[32.602,35.003,34.593,35.692],"lod":{}},{"iso3":"CNM","name":"Cyprus U.N. Buffer Zone","sovereign":"Cyprus No Mans Area","area_km2":320.7,"bbox":[32.585,34.978,34.022,35.199],"lod":{}},{"iso3":"KAS","name":"Siachen Glacier","sovereign":"Kashmir","area_km2":1967.4,"bbox":[76.777,35.11,77.8,35.648],"lod":{}},{"iso3":"KAB","name":"Baikonur","sovereign":"Kazakhstan","area_km2":6663.3,"bbox":[62.801,45.566,63.967,46.391],"lod":{}},{"iso3":"WSB","name":"Akrotiri","sovereign":"United Kingdom","area_km2":92.5,"bbox":[32.76,34.569,33.03,34.701],"lod":{}},{"iso3":"SPI","name":"Southern Patagonian Ice Field","sovereign":"Southern Patagonian Ice Field","area_km2":1491.7,"bbox":[-73.588,-49.76,-73.057,-49.273],"lod":{}},{"iso3":"BRT","name":"Bir Tawil","sovereign":"Bir Tawil","area_km2":1745.6,"bbox":[33.181,21.711,34.084,21.995],"lod":{}},{"iso3":"ATA","name":"Antarctica","sovereign":"Antarctica","area_km2":23704764.9,"bbox":[-180.0,-90.0,180.0,-60.516],"lod":{}},{"iso3":"AUS","name":"Australia","sovereign":"Australia","area_km2":6809644.8,"bbox":[112.919,-54.75,159.106,-9.24],"lod":{}},{"iso3":"GRL","name":"Greenland","sovereign":"Denmark","area_km2":3443364.6,"bbox":[-73.057,59.793,-11.377,83.634],"lod":{}},{"iso3":"FJI","name":"Fiji","sovereign":"Fiji","area_km2":16048.7,"bbox":[-180.0,-21.711,180.0,-12.475],"lod":{}},{"iso3":"NZL","name":"New Zealand","sovereign":"New Zealand","area_km2":265735.1,"bbox":[-177.958,-52.6,178.844,-8.543],"lod":{}},{"iso3":"NCL","name":"New Caledonia","sovereign":"France","area_km2":16241.2,"bbox":[163.616,-22.671,171.344,-19.624],"lod":{}},{"iso3":"MDG","name":"Madagascar","sovereign":"Madagascar","area_km2":507257.5,"bbox":[43.223,-25.599,50.504,-11.944],"lod":{}},{"iso3":"PHL","name":"Philippines","sovereign":"Philippines","area_km2":244601.7,"bbox":[116.955,4.656,126.618,21.122],"lod":{}},{"iso3":"LKA","name":"Sri Lanka","sovereign":"Sri Lanka","area_km2":54738.1,"bbox":[79.656,5.924,81.89,9.83],"lod":{}},{"iso3":"CUW","name":"Cura\u00c3\u00a7ao","sovereign":"Netherlands","area_km2":386.2,"bbox":[-69.172,12.041,-68.74,12.392],"lod":{}},{"iso3":"ABW","name":"Aruba","sovereign":"Netherlands","area_km2":141.7,"bbox":[-70.062,12.418,-69.877,12.632],"lod":{}},{"iso3":"BHS","name":"Bahamas","sovereign":"The Bahamas","area_km2":11034.7,"bbox":[-79.594,20.912,-72.746,26.928],"lod":{}},{"iso3":"TCA","name":"Turks and Caicos Is.","sovereign":"United Kingdom","area_km2":384.7,"bbox":[-72.481,21.29,-71.129,21.959],"lod":{}},{"iso3":"TWN","name":"Taiwan","sovereign":"Taiwan","area_km2":31602.9,"bbox":[118.28,21.905,122.005,25.287],"lod":{}},{"iso3":"JPN","name":"Japan","sovereign":"Japan","area_km2":357569.7,"bbox":[122.938,24.212,153.986,45.52],"lod":{}},{"iso3":"SPM","name":"St. Pierre and Miquelon","sovereign":"France","area_km2":250.9,"bbox":[-56.397,46.753,-56.145,47.141],"lod":{}},{"iso3":"ISL","name":"Iceland","sovereign":"Iceland","area_km2":131481.3,"bbox":[-24.54,63.397,-13.503,66.564],"lod":{}},{"iso3":"PCN","name":"Pitcairn Is.","sovereign":"United Kingdom","area_km2":37.3,"bbox":[-130.753,-25.077,-124.778,-23.924],"lod":{}},{"iso3":"PYF","name":"Fr. Polynesia","sovereign":"France","area_km2":2811.6,"bbox":[-154.537,-27.641,-134.943,-7.95],"lod":{}},{"iso3":"ATF","name":"Fr. S. Antarctic Lands","sovereign":"France","area_km2":7675.2,"bbox":[39.728,-49.722,77.585,-11.551],"lod":{}},{"iso3":"SYC","name":"Seychelles","sovereign":"Seychelles","area_km2":359.3,"bbox":[46.207,-9.756,56.287,-3.791],"lod":{}},{"iso3":"KIR","name":"Kiribati","sovereign":"Kiribati","area_km2":780.4,"bbox":[-174.543,-11.461,176.851,4.723],"lod":{}},{"iso3":"MHL","name":"Marshall Is.","sovereign":"Marshall Islands","area_km2":136.0,"bbox":[165.282,4.574,172.03,14.611],"lod":{}},{"iso3":"TTO","name":"Trinidad and Tobago","sovereign":"Trinidad and Tobago","area_km2":4253.4,"bbox":[-61.929,10.042,-60.522,11.351],"lod":{}},{"iso3":"GRD","name":"Grenada","sovereign":"Grenada","area_km2":289.5,"bbox":[-61.791,12.003,-61.422,12.53],"lod":{}},{"iso3":"VCT","name":"St. Vin. and Gren.","sovereign":"Saint Vincent and the Grenadines","area_km2":307.5,"bbox":[-61.46,12.585,-61.124,13.381],"lod":{}},{"iso3":"BRB","name":"Barbados","sovereign":"Barbados","area_km2":371.4,"bbox":[-59.654,13.051,-59.427,13.345],"lod":{}},{"iso3":"LCA","name":"Saint Lucia","sovereign":"Saint Lucia","area_km2":507.0,"bbox":[-61.079,13.715,-60.883,14.112],"lod":{}},{"iso3":"DMA","name":"Dominica","sovereign":"Dominica","area_km2":614.8,"bbox":[-61.489,15.202,-61.249,15.634],"lod":{}},{"iso3":"UMI","name":"U.S. Minor Outlying Is.","sovereign":"United States of America","area_km2":23.6,"bbox":[-177.39,-0.389,166.652,28.215],"lod":{}},{"iso3":"MSR","name":"Montserrat","sovereign":"United Kingdom","area_km2":84.2,"bbox":[-62.23,16.675,-62.141,16.819],"lod":{}},{"iso3":"ATG","name":"Antigua and Barb.","sovereign":"Antigua and Barbuda","area_km2":382.8,"bbox":[-62.348,16.932,-61.668,17.728],"lod":{}},{"iso3":"KNA","name":"St. Kitts and Nevis","sovereign":"Saint Kitts and Nevis","area_km2":223.8,"bbox":[-62.861,17.101,-62.537,17.416],"lod":{}},{"iso3":"VIR","name":"U.S. Virgin Is.","sovereign":"United States of America","area_km2":301.4,"bbox":[-65.041,17.683,-64.559,18.387],"lod":{}},{"iso3":"BLM","name":"St-Barth\u00c3\u00a9lemy","sovereign":"France","area_km2":20.7,"bbox":[-62.867,17.882,-62.792,17.929],"lod":{}},{"iso3":"PRI","name":"Puerto Rico","sovereign":"United States of America","area_km2":7657.7,"bbox":[-67.938,17.923,-65.245,18.523],"lod":{}},{"iso3":"AIA","name":"Anguilla","sovereign":"United Kingdom","area_km2":74.3,"bbox":[-63.429,18.169,-62.926,18.601],"lod":{}},{"iso3":"VGB","name":"British Virgin Is.","sovereign":"United Kingdom","area_km2":123.4,"bbox":[-64.774,18.335,-64.271,18.746],"lod":{}},{"iso3":"JAM","name":"Jamaica","sovereign":"Jamaica","area_km2":9378.6,"bbox":[-78.375,17.703,-76.188,18.525],"lod":{}},{"iso3":"CYM","name":"Cayman Is.","sovereign":"United Kingdom","area_km2":264.2,"bbox":[-81.417,19.264,-79.727,19.758],"lod":{}},{"iso3":"BMU","name":"Bermuda","sovereign":"United Kingdom","area_km2":57.4,"bbox":[-64.886,32.248,-64.648,32.389],"lod":{}},{"iso3":"HMD","name":"Heard I. and McDonald Is.","sovereign":"Australia","area_km2":432.9,"bbox":[73.236,-53.193,73.812,-52.962],"lod":{}},{"iso3":"SHN","name":"Saint Helena","sovereign":"United Kingdom","area_km2":326.4,"bbox":[-14.418,-40.398,-5.65,-7.878],"lod":{}},{"iso3":"MUS","name":"Mauritius","sovereign":"Mauritius","area_km2":1727.4,"bbox":[56.524,-20.517,63.494,-10.324],"lod":{}},{"iso3":"COM","name":"Comoros","sovereign":"Comoros","area_km2":1393.1,"bbox":[43.213,-12.38,44.529,-11.361],"lod":{}},{"iso3":"STP","name":"S\u00c3\u00a3o Tom\u00c3\u00a9 and Principe","sovereign":"S\u00c3\u00a3o Tom\u00c3\u00a9 and Principe","area_km2":851.4,"bbox":[6.462,0.024,7.463,1.7],"lod":{}},{"iso3":"CPV","name":"Cabo Verde","sovereign":"Cabo Verde","area_km2":3311.3,"bbox":[-25.36,14.804,-22.667,17.197],"lod":{}},{"iso3":"MLT","name":"Malta","sovereign":"Malta","area_km2":308.1,"bbox":[14.184,35.801,14.567,36.076],"lod":{}},{"iso3":"JEY","name":"Jersey","sovereign":"United Kingdom","area_km2":125.7,"bbox":[-2.242,49.171,-2.008,49.267],"lod":{}},{"iso3":"GGY","name":"Guernsey","sovereign":"United Kingdom","area_km2":78.3,"bbox":[-2.673,49.412,-2.17,49.731],"lod":{}},{"iso3":"IMN","name":"Isle of Man","sovereign":"United Kingdom","area_km2":637.8,"bbox":[-4.79,54.057,-4.312,54.419],"lod":{}},{"iso3":"ALD","name":"\u00c3\u2026land","sovereign":"Finland","area_km2":1122.5,"bbox":[19.513,59.904,21.097,60.481],"lod":{}},{"iso3":"FRO","name":"Faeroe Is.","sovereign":"Denmark","area_km2":1626.4,"bbox":[-7.644,61.394,-6.276,62.399],"lod":{}},{"iso3":"IOA","name":"Indian Ocean Ter.","sovereign":"Australia","area_km2":93.0,"bbox":[96.822,-12.2,105.715,-10.431],"lod":{}},{"iso3":"IOT","name":"Br. Indian Ocean Ter.","sovereign":"United Kingdom","area_km2":40.5,"bbox":[71.261,-7.432,72.495,-5.227],"lod":{}},{"iso3":"SGP","name":"Singapore","sovereign":"Singapore","area_km2":419.1,"bbox":[103.64,1.264,104.003,1.449],"lod":{}},{"iso3":"NFK","name":"Norfolk Island","sovereign":"Australia","area_km2":37.1,"bbox":[167.912,-29.08,167.996,-28.997],"lod":{}},{"iso3":"COK","name":"Cook Is.","sovereign":"New Zealand","area_km2":163.8,"bbox":[-165.825,-21.939,-157.313,-8.947],"lod":{}},{"iso3":"TON","name":"Tonga","sovereign":"Tonga","area_km2":517.0,"bbox":[-176.219,-22.339,-173.914,-15.56],"lod":{}},{"iso3":"WLF","name":"Wallis and Futuna Is.","sovereign":"France","area_km2":116.7,"bbox":[-178.186,-14.319,-176.126,-13.209],"lod":{}},{"iso3":"WSM","name":"Samoa","sovereign":"Samoa","area_km2":2328.3,"bbox":[-172.783,-14.053,-171.438,-13.463],"lod":{}},{"iso3":"SLB","name":"Solomon Is.","sovereign":"Solomon Islands","area_km2":22511.8,"bbox":[155.508,-12.291,168.826,-6.6],"lod":{}},{"iso3":"TUV","name":"Tuvalu","sovereign":"Tuvalu","area_km2":19.0,"bbox":[176.125,-9.421,179.907,-5.678],"lod":{}},{"iso3":"MDV","name":"Maldives","sovereign":"Maldives","area_km2":89.4,"bbox":[72.685,-0.689,73.753,7.107],"lod":{}},{"iso3":"NRU","name":"Nauru","sovereign":"Nauru","area_km2":23.6,"bbox":[166.907,-0.552,166.958,-0.49],"lod":{}},{"iso3":"FSM","name":"Micronesia","sovereign":"Federated States of Micronesia","area_km2":522.9,"bbox":[138.064,0.918,163.047,9.776],"lod":{}},{"iso3":"SGS","name":"S. Geo. and the Is.","sovereign":"United Kingdom","area_km2":4371.8,"bbox":[-38.087,-59.473,-26.239,-53.972],"lod":{}},{"iso3":"FLK","name":"Falkland Is.","sovereign":"United Kingdom","area_km2":12544.2,"bbox":[-61.318,-52.407,-57.734,-51.028],"lod":{}},{"iso3":"VUT","name":"Vanuatu","sovereign":"Vanuatu","area_km2":10380.3,"bbox":[166.521,-20.253,169.899,-13.065],"lod":{}},{"iso3":"NIU","name":"Niue","sovereign":"New Zealand","area_km2":188.2,"bbox":[-169.95,-19.143,-169.783,-18.964],"lod":{}},{"iso3":"ASM","name":"American Samoa","sovereign":"United States of America","area_km2":151.2,"bbox":[-171.087,-14.533,-168.16,-11.051],"lod":{}},{"iso3":"PLW","name":"Palau","sovereign":"Palau","area_km2":405.9,"bbox":[131.131,2.949,134.727,8.097],"lod":{}},{"iso3":"GUM","name":"Guam","sovereign":"United States of America","area_km2":472.0,"bbox":[144.624,13.241,144.952,13.654],"lod":{}},{"iso3":"MNP","name":"N. Mariana Is.","sovereign":"United States of America","area_km2":489.2,"bbox":[144.902,14.111,145.869,20.555],"lod":{}},{"iso3":"BHR","name":"Bahrain","sovereign":"Bahrain","area_km2":608.6,"bbox":[50.381,25.58,50.82,26.287],"lod":{}},{"iso3":"CSI","name":"Coral Sea Is.","sovereign":"Australia","area_km2":0.0,"bbox":[154.389,-21.03,154.391,-21.029],"lod":{}},{"iso3":"PGA","name":"Spratly Is.","sovereign":"Spratly Islands","area_km2":9.9,"bbox":[114.028,9.68,115.849,11.118],"lod":{}},{"iso3":"CLP","name":"Clipperton I.","sovereign":"France","area_km2":4.2,"bbox":[-109.234,10.282,-109.21,10.311],"lod":{}},{"iso3":"MAC","name":"Macao","sovereign":"China","area_km2":26.0,"bbox":[113.52,22.105,113.587,22.221],"lod":{}},{"iso3":"ATC","name":"Ashmore and Cartier Is.","sovereign":"Australia","area_km2":2.2,"bbox":[123.575,-12.439,123.598,-12.427],"lod":{}},{"iso3":"BJN","name":"Bajo Nuevo Bank","sovereign":"Bajo Nuevo Bank (Petrel Is.)","area_km2":0.0,"bbox":[-79.989,15.794,-79.986,15.796],"lod":{}},{"iso3":"SER","name":"Serranilla Bank","sovereign":"Serranilla Bank","area_km2":0.1,"bbox":[-78.64,15.862,-78.637,15.867],"lod":{}},{"iso3":"SCR","name":"Scarborough Reef","sovereign":"Scarborough Reef","area_km2":0.1,"bbox":[117.752,15.15,117.756,15.154],"lod":{}}]
+[
+  {
+    "iso3": "ZWE",
+    "name": "Zimbabwe",
+    "sovereign": "Zimbabwe",
+    "area_km2": 389083.1,
+    "bbox": [
+      25.224,
+      -22.402,
+      33.007,
+      -15.643
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ZMB",
+    "name": "Zambia",
+    "sovereign": "Zambia",
+    "area_km2": 749579.7,
+    "bbox": [
+      21.979,
+      -18.042,
+      33.662,
+      -8.194
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "YEM",
+    "name": "Yemen",
+    "sovereign": "Yemen",
+    "area_km2": 453958.4,
+    "bbox": [
+      42.549,
+      12.319,
+      54.511,
+      18.996
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "VNM",
+    "name": "Vietnam",
+    "sovereign": "Vietnam",
+    "area_km2": 318755.0,
+    "bbox": [
+      102.127,
+      8.583,
+      109.445,
+      23.345
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "VEN",
+    "name": "Venezuela",
+    "sovereign": "Venezuela",
+    "area_km2": 911749.1,
+    "bbox": [
+      -73.366,
+      0.688,
+      -59.829,
+      12.178
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "VUT",
+    "name": "Vanuatu",
+    "sovereign": "Vanuatu",
+    "area_km2": 11262.0,
+    "bbox": [
+      166.526,
+      -20.242,
+      169.896,
+      -13.709
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "UZB",
+    "name": "Uzbekistan",
+    "sovereign": "Uzbekistan",
+    "area_km2": 446295.5,
+    "bbox": [
+      55.976,
+      37.172,
+      73.137,
+      45.555
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "URY",
+    "name": "Uruguay",
+    "sovereign": "Uruguay",
+    "area_km2": 176683.7,
+    "bbox": [
+      -58.438,
+      -34.933,
+      -53.126,
+      -30.101
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "FSM",
+    "name": "Micronesia",
+    "sovereign": "Federated States of Micronesia",
+    "area_km2": 513.0,
+    "bbox": [
+      138.062,
+      5.277,
+      162.993,
+      9.593
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MHL",
+    "name": "Marshall Is.",
+    "sovereign": "Marshall Islands",
+    "area_km2": 217.5,
+    "bbox": [
+      166.845,
+      5.8,
+      171.757,
+      11.169
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "USA",
+    "name": "United States of America",
+    "sovereign": "United States of America",
+    "area_km2": 10595235.3,
+    "bbox": [
+      -178.195,
+      18.964,
+      179.78,
+      71.408
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "JEY",
+    "name": "Jersey",
+    "sovereign": "United Kingdom",
+    "area_km2": 129.2,
+    "bbox": [
+      -2.236,
+      49.17,
+      -2.01,
+      49.266
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GGY",
+    "name": "Guernsey",
+    "sovereign": "United Kingdom",
+    "area_km2": 44.5,
+    "bbox": [
+      -2.646,
+      49.429,
+      -2.512,
+      49.507
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "IMN",
+    "name": "Isle of Man",
+    "sovereign": "United Kingdom",
+    "area_km2": 552.9,
+    "bbox": [
+      -4.785,
+      54.059,
+      -4.338,
+      54.407
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GBR",
+    "name": "United Kingdom",
+    "sovereign": "United Kingdom",
+    "area_km2": 237200.9,
+    "bbox": [
+      -8.145,
+      50.021,
+      1.747,
+      60.832
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ARE",
+    "name": "United Arab Emirates",
+    "sovereign": "United Arab Emirates",
+    "area_km2": 71218.2,
+    "bbox": [
+      51.568,
+      22.621,
+      56.388,
+      26.068
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "UKR",
+    "name": "Ukraine",
+    "sovereign": "Ukraine",
+    "area_km2": 561888.2,
+    "bbox": [
+      22.132,
+      45.234,
+      40.128,
+      52.354
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "UGA",
+    "name": "Uganda",
+    "sovereign": "Uganda",
+    "area_km2": 241495.5,
+    "bbox": [
+      29.562,
+      -1.47,
+      34.978,
+      4.22
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "TKM",
+    "name": "Turkmenistan",
+    "sovereign": "Turkmenistan",
+    "area_km2": 464160.0,
+    "bbox": [
+      52.494,
+      35.171,
+      66.629,
+      42.778
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "TUR",
+    "name": "Turkey",
+    "sovereign": "Turkey",
+    "area_km2": 774239.4,
+    "bbox": [
+      25.669,
+      35.831,
+      44.817,
+      42.093
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "TUN",
+    "name": "Tunisia",
+    "sovereign": "Tunisia",
+    "area_km2": 156942.0,
+    "bbox": [
+      7.496,
+      30.229,
+      11.536,
+      37.34
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "TTO",
+    "name": "Trinidad and Tobago",
+    "sovereign": "Trinidad and Tobago",
+    "area_km2": 5046.1,
+    "bbox": [
+      -61.906,
+      10.065,
+      -60.525,
+      11.325
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "TON",
+    "name": "Tonga",
+    "sovereign": "Tonga",
+    "area_km2": 427.8,
+    "bbox": [
+      -175.362,
+      -21.451,
+      -173.922,
+      -18.565
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "TGO",
+    "name": "Togo",
+    "sovereign": "Togo",
+    "area_km2": 56965.1,
+    "bbox": [
+      -0.09,
+      6.089,
+      1.778,
+      11.116
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "TLS",
+    "name": "Timor-Leste",
+    "sovereign": "East Timor",
+    "area_km2": 15000.2,
+    "bbox": [
+      124.036,
+      -9.512,
+      127.296,
+      -8.14
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "THA",
+    "name": "Thailand",
+    "sovereign": "Thailand",
+    "area_km2": 513900.5,
+    "bbox": [
+      97.374,
+      5.637,
+      105.641,
+      20.424
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "TZA",
+    "name": "Tanzania",
+    "sovereign": "United Republic of Tanzania",
+    "area_km2": 944040.9,
+    "bbox": [
+      29.323,
+      -11.716,
+      40.464,
+      -0.995
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "TJK",
+    "name": "Tajikistan",
+    "sovereign": "Tajikistan",
+    "area_km2": 142497.7,
+    "bbox": [
+      67.35,
+      36.684,
+      75.119,
+      41.035
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "TWN",
+    "name": "Taiwan",
+    "sovereign": "Taiwan",
+    "area_km2": 35836.3,
+    "bbox": [
+      118.287,
+      21.925,
+      121.929,
+      25.277
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SYR",
+    "name": "Syria",
+    "sovereign": "Syria",
+    "area_km2": 185452.0,
+    "bbox": [
+      35.764,
+      32.317,
+      42.359,
+      37.297
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "CHE",
+    "name": "Switzerland",
+    "sovereign": "Switzerland",
+    "area_km2": 41140.5,
+    "bbox": [
+      5.97,
+      45.83,
+      10.455,
+      47.776
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SWE",
+    "name": "Sweden",
+    "sovereign": "Sweden",
+    "area_km2": 395383.6,
+    "bbox": [
+      11.147,
+      55.346,
+      24.155,
+      69.037
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SWZ",
+    "name": "eSwatini",
+    "sovereign": "eSwatini",
+    "area_km2": 16936.2,
+    "bbox": [
+      30.788,
+      -27.31,
+      32.113,
+      -25.743
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SUR",
+    "name": "Suriname",
+    "sovereign": "Suriname",
+    "area_km2": 145110.4,
+    "bbox": [
+      -58.054,
+      1.842,
+      -53.99,
+      5.993
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SSD",
+    "name": "S. Sudan",
+    "sovereign": "South Sudan",
+    "area_km2": 622280.3,
+    "bbox": [
+      24.147,
+      3.491,
+      35.268,
+      12.223
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SDN",
+    "name": "Sudan",
+    "sovereign": "Sudan",
+    "area_km2": 1856681.9,
+    "bbox": [
+      21.825,
+      8.666,
+      38.609,
+      22.202
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "LKA",
+    "name": "Sri Lanka",
+    "sovereign": "Sri Lanka",
+    "area_km2": 65852.0,
+    "bbox": [
+      79.708,
+      5.949,
+      81.877,
+      9.813
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ESP",
+    "name": "Spain",
+    "sovereign": "Spain",
+    "area_km2": 505879.8,
+    "bbox": [
+      -18.161,
+      27.646,
+      4.322,
+      43.765
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "KOR",
+    "name": "South Korea",
+    "sovereign": "South Korea",
+    "area_km2": 96803.9,
+    "bbox": [
+      126.008,
+      33.202,
+      130.934,
+      38.623
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ZAF",
+    "name": "South Africa",
+    "sovereign": "South Africa",
+    "area_km2": 1210545.4,
+    "bbox": [
+      16.448,
+      -46.963,
+      37.888,
+      -22.146
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SOM",
+    "name": "Somalia",
+    "sovereign": "Somalia",
+    "area_km2": 473366.5,
+    "bbox": [
+      40.964,
+      -1.695,
+      51.39,
+      11.984
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SLB",
+    "name": "Solomon Is.",
+    "sovereign": "Solomon Islands",
+    "area_km2": 25597.7,
+    "bbox": [
+      155.678,
+      -11.832,
+      166.929,
+      -6.609
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SVK",
+    "name": "Slovakia",
+    "sovereign": "Slovakia",
+    "area_km2": 48194.6,
+    "bbox": [
+      16.863,
+      47.763,
+      22.539,
+      49.598
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SVN",
+    "name": "Slovenia",
+    "sovereign": "Slovenia",
+    "area_km2": 20137.5,
+    "bbox": [
+      13.378,
+      45.428,
+      16.516,
+      46.863
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SGP",
+    "name": "Singapore",
+    "sovereign": "Singapore",
+    "area_km2": 468.1,
+    "bbox": [
+      103.65,
+      1.265,
+      103.996,
+      1.447
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SLE",
+    "name": "Sierra Leone",
+    "sovereign": "Sierra Leone",
+    "area_km2": 71703.8,
+    "bbox": [
+      -13.293,
+      6.907,
+      -10.283,
+      9.997
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SYC",
+    "name": "Seychelles",
+    "sovereign": "Seychelles",
+    "area_km2": 166.7,
+    "bbox": [
+      55.383,
+      -4.786,
+      55.543,
+      -4.559
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SRB",
+    "name": "Serbia",
+    "sovereign": "Republic of Serbia",
+    "area_km2": 77251.5,
+    "bbox": [
+      18.839,
+      42.242,
+      22.977,
+      46.169
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SEN",
+    "name": "Senegal",
+    "sovereign": "Senegal",
+    "area_km2": 196036.3,
+    "bbox": [
+      -17.536,
+      12.328,
+      -11.382,
+      16.679
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SAU",
+    "name": "Saudi Arabia",
+    "sovereign": "Saudi Arabia",
+    "area_km2": 1927625.7,
+    "bbox": [
+      34.616,
+      16.372,
+      55.641,
+      32.125
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "STP",
+    "name": "São Tomé and Principe",
+    "sovereign": "São Tomé and Principe",
+    "area_km2": 974.7,
+    "bbox": [
+      6.468,
+      0.047,
+      7.452,
+      1.699
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SMR",
+    "name": "San Marino",
+    "sovereign": "San Marino",
+    "area_km2": 68.0,
+    "bbox": [
+      12.397,
+      43.894,
+      12.515,
+      43.99
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "WSM",
+    "name": "Samoa",
+    "sovereign": "Samoa",
+    "area_km2": 2693.6,
+    "bbox": [
+      -172.779,
+      -14.047,
+      -171.45,
+      -13.465
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "VCT",
+    "name": "St. Vin. and Gren.",
+    "sovereign": "Saint Vincent and the Grenadines",
+    "area_km2": 293.2,
+    "bbox": [
+      -61.354,
+      12.695,
+      -61.124,
+      13.359
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "LCA",
+    "name": "Saint Lucia",
+    "sovereign": "Saint Lucia",
+    "area_km2": 542.3,
+    "bbox": [
+      -61.073,
+      13.718,
+      -60.887,
+      14.093
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "KNA",
+    "name": "St. Kitts and Nevis",
+    "sovereign": "Saint Kitts and Nevis",
+    "area_km2": 236.4,
+    "bbox": [
+      -62.84,
+      17.101,
+      -62.532,
+      17.403
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "RWA",
+    "name": "Rwanda",
+    "sovereign": "Rwanda",
+    "area_km2": 25276.0,
+    "bbox": [
+      28.858,
+      -2.809,
+      30.877,
+      -1.063
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "RUS",
+    "name": "Russia",
+    "sovereign": "Russia",
+    "area_km2": 18979919.8,
+    "bbox": [
+      -180.0,
+      41.199,
+      180.0,
+      81.854
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ROU",
+    "name": "Romania",
+    "sovereign": "Romania",
+    "area_km2": 235498.2,
+    "bbox": [
+      20.242,
+      43.671,
+      29.706,
+      48.263
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "QAT",
+    "name": "Qatar",
+    "sovereign": "Qatar",
+    "area_km2": 11034.6,
+    "bbox": [
+      50.755,
+      24.565,
+      51.609,
+      26.153
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "PRT",
+    "name": "Portugal",
+    "sovereign": "Portugal",
+    "area_km2": 90439.8,
+    "bbox": [
+      -31.283,
+      32.648,
+      -6.212,
+      42.137
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "POL",
+    "name": "Poland",
+    "sovereign": "Poland",
+    "area_km2": 312508.6,
+    "bbox": [
+      14.129,
+      49.021,
+      24.106,
+      54.838
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "PHL",
+    "name": "Philippines",
+    "sovereign": "Philippines",
+    "area_km2": 290266.5,
+    "bbox": [
+      116.97,
+      5.06,
+      126.593,
+      20.841
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "PER",
+    "name": "Peru",
+    "sovereign": "Peru",
+    "area_km2": 1278895.5,
+    "bbox": [
+      -81.337,
+      -18.346,
+      -68.685,
+      -0.042
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "PRY",
+    "name": "Paraguay",
+    "sovereign": "Paraguay",
+    "area_km2": 404408.8,
+    "bbox": [
+      -62.651,
+      -27.554,
+      -54.242,
+      -19.286
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "PNG",
+    "name": "Papua New Guinea",
+    "sovereign": "Papua New Guinea",
+    "area_km2": 463379.6,
+    "bbox": [
+      140.862,
+      -11.631,
+      155.958,
+      -1.353
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "PAN",
+    "name": "Panama",
+    "sovereign": "Panama",
+    "area_km2": 73978.4,
+    "bbox": [
+      -83.027,
+      7.22,
+      -77.196,
+      9.598
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "PLW",
+    "name": "Palau",
+    "sovereign": "Palau",
+    "area_km2": 336.0,
+    "bbox": [
+      131.135,
+      3.022,
+      134.66,
+      7.712
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "PAK",
+    "name": "Pakistan",
+    "sovereign": "Pakistan",
+    "area_km2": 877696.0,
+    "bbox": [
+      60.843,
+      23.753,
+      77.049,
+      37.037
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "OMN",
+    "name": "Oman",
+    "sovereign": "Oman",
+    "area_km2": 307895.7,
+    "bbox": [
+      51.978,
+      16.648,
+      59.838,
+      26.356
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "PRK",
+    "name": "North Korea",
+    "sovereign": "North Korea",
+    "area_km2": 122520.7,
+    "bbox": [
+      124.349,
+      37.719,
+      130.687,
+      42.998
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "NGA",
+    "name": "Nigeria",
+    "sovereign": "Nigeria",
+    "area_km2": 909360.9,
+    "bbox": [
+      2.686,
+      4.277,
+      14.627,
+      13.873
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "NER",
+    "name": "Niger",
+    "sovereign": "Niger",
+    "area_km2": 1182097.1,
+    "bbox": [
+      0.164,
+      11.696,
+      15.963,
+      23.518
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "NIC",
+    "name": "Nicaragua",
+    "sovereign": "Nicaragua",
+    "area_km2": 128871.1,
+    "bbox": [
+      -87.67,
+      10.735,
+      -83.158,
+      15.008
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "NZL",
+    "name": "New Zealand",
+    "sovereign": "New Zealand",
+    "area_km2": 274699.9,
+    "bbox": [
+      -176.848,
+      -52.57,
+      178.536,
+      -8.546
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "NLD",
+    "name": "Netherlands",
+    "sovereign": "Netherlands",
+    "area_km2": 36725.1,
+    "bbox": [
+      -68.371,
+      12.032,
+      7.197,
+      53.625
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ABW",
+    "name": "Aruba",
+    "sovereign": "Netherlands",
+    "area_km2": 155.7,
+    "bbox": [
+      -70.066,
+      12.423,
+      -69.896,
+      12.614
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "CUW",
+    "name": "Curaçao",
+    "sovereign": "Netherlands",
+    "area_km2": 428.3,
+    "bbox": [
+      -69.159,
+      12.045,
+      -68.751,
+      12.38
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "NPL",
+    "name": "Nepal",
+    "sovereign": "Nepal",
+    "area_km2": 146541.7,
+    "bbox": [
+      80.052,
+      26.36,
+      88.162,
+      30.387
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "NRU",
+    "name": "Nauru",
+    "sovereign": "Nauru",
+    "area_km2": 25.8,
+    "bbox": [
+      166.907,
+      -0.551,
+      166.958,
+      -0.489
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "NAM",
+    "name": "Namibia",
+    "sovereign": "Namibia",
+    "area_km2": 831538.2,
+    "bbox": [
+      11.722,
+      -28.939,
+      25.259,
+      -16.968
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MOZ",
+    "name": "Mozambique",
+    "sovereign": "Mozambique",
+    "area_km2": 802889.8,
+    "bbox": [
+      30.222,
+      -26.862,
+      40.845,
+      -10.464
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MAR",
+    "name": "Morocco",
+    "sovereign": "Morocco",
+    "area_km2": 570781.8,
+    "bbox": [
+      -17.003,
+      21.421,
+      -1.066,
+      35.93
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ESH",
+    "name": "W. Sahara",
+    "sovereign": "Western Sahara",
+    "area_km2": 90618.1,
+    "bbox": [
+      -17.099,
+      20.806,
+      -8.682,
+      27.656
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MNE",
+    "name": "Montenegro",
+    "sovereign": "Montenegro",
+    "area_km2": 13586.4,
+    "bbox": [
+      18.436,
+      41.869,
+      20.348,
+      43.542
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MNG",
+    "name": "Mongolia",
+    "sovereign": "Mongolia",
+    "area_km2": 1579865.4,
+    "bbox": [
+      87.743,
+      41.596,
+      119.898,
+      52.117
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MDA",
+    "name": "Moldova",
+    "sovereign": "Moldova",
+    "area_km2": 32862.2,
+    "bbox": [
+      26.619,
+      45.45,
+      30.131,
+      48.478
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MCO",
+    "name": "Monaco",
+    "sovereign": "Monaco",
+    "area_km2": 9.7,
+    "bbox": [
+      7.378,
+      43.732,
+      7.439,
+      43.771
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MEX",
+    "name": "Mexico",
+    "sovereign": "Mexico",
+    "area_km2": 1962111.4,
+    "bbox": [
+      -118.401,
+      14.545,
+      -86.696,
+      32.715
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MUS",
+    "name": "Mauritius",
+    "sovereign": "Mauritius",
+    "area_km2": 1868.6,
+    "bbox": [
+      57.318,
+      -20.513,
+      57.792,
+      -19.99
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MRT",
+    "name": "Mauritania",
+    "sovereign": "Mauritania",
+    "area_km2": 1040525.8,
+    "bbox": [
+      -17.064,
+      14.745,
+      -4.823,
+      27.286
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MLT",
+    "name": "Malta",
+    "sovereign": "Malta",
+    "area_km2": 270.9,
+    "bbox": [
+      14.18,
+      35.82,
+      14.566,
+      36.076
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MLI",
+    "name": "Mali",
+    "sovereign": "Mali",
+    "area_km2": 1246471.4,
+    "bbox": [
+      -12.281,
+      10.143,
+      4.235,
+      24.996
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MDV",
+    "name": "Maldives",
+    "sovereign": "Maldives",
+    "area_km2": 53.5,
+    "bbox": [
+      73.382,
+      3.229,
+      73.528,
+      4.248
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MYS",
+    "name": "Malaysia",
+    "sovereign": "Malaysia",
+    "area_km2": 326981.8,
+    "bbox": [
+      99.646,
+      0.862,
+      119.266,
+      7.352
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MWI",
+    "name": "Malawi",
+    "sovereign": "Malawi",
+    "area_km2": 119369.1,
+    "bbox": [
+      32.67,
+      -17.131,
+      35.893,
+      -9.395
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MDG",
+    "name": "Madagascar",
+    "sovereign": "Madagascar",
+    "area_km2": 596030.5,
+    "bbox": [
+      43.257,
+      -25.571,
+      50.483,
+      -12.08
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MKD",
+    "name": "North Macedonia",
+    "sovereign": "North Macedonia",
+    "area_km2": 25317.8,
+    "bbox": [
+      20.449,
+      40.85,
+      23.006,
+      42.358
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "LUX",
+    "name": "Luxembourg",
+    "sovereign": "Luxembourg",
+    "area_km2": 2615.3,
+    "bbox": [
+      5.725,
+      49.445,
+      6.494,
+      50.167
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "LTU",
+    "name": "Lithuania",
+    "sovereign": "Lithuania",
+    "area_km2": 64633.3,
+    "bbox": [
+      20.9,
+      53.893,
+      26.776,
+      56.411
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "LIE",
+    "name": "Liechtenstein",
+    "sovereign": "Liechtenstein",
+    "area_km2": 134.2,
+    "bbox": [
+      9.479,
+      47.057,
+      9.611,
+      47.271
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "LBY",
+    "name": "Libya",
+    "sovereign": "Libya",
+    "area_km2": 1628734.0,
+    "bbox": [
+      9.31,
+      19.497,
+      25.15,
+      33.182
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "LBR",
+    "name": "Liberia",
+    "sovereign": "Liberia",
+    "area_km2": 95380.2,
+    "bbox": [
+      -11.508,
+      4.351,
+      -7.4,
+      8.538
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "LSO",
+    "name": "Lesotho",
+    "sovereign": "Lesotho",
+    "area_km2": 29924.0,
+    "bbox": [
+      27.052,
+      -30.642,
+      29.391,
+      -28.582
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "LBN",
+    "name": "Lebanon",
+    "sovereign": "Lebanon",
+    "area_km2": 9970.5,
+    "bbox": [
+      35.109,
+      33.076,
+      36.585,
+      34.679
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "LVA",
+    "name": "Latvia",
+    "sovereign": "Latvia",
+    "area_km2": 63648.3,
+    "bbox": [
+      21.015,
+      55.668,
+      28.202,
+      58.063
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "LAO",
+    "name": "Laos",
+    "sovereign": "Laos",
+    "area_km2": 227110.8,
+    "bbox": [
+      100.115,
+      13.921,
+      107.653,
+      22.495
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "KGZ",
+    "name": "Kyrgyzstan",
+    "sovereign": "Kyrgyzstan",
+    "area_km2": 197375.6,
+    "bbox": [
+      69.229,
+      39.208,
+      80.246,
+      43.24
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "KWT",
+    "name": "Kuwait",
+    "sovereign": "Kuwait",
+    "area_km2": 17233.5,
+    "bbox": [
+      46.531,
+      28.533,
+      48.442,
+      30.097
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "KIR",
+    "name": "Kiribati",
+    "sovereign": "Kiribati",
+    "area_km2": 879.4,
+    "bbox": [
+      -174.541,
+      -11.457,
+      174.779,
+      3.924
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "KEN",
+    "name": "Kenya",
+    "sovereign": "Kenya",
+    "area_km2": 593106.5,
+    "bbox": [
+      33.9,
+      -4.692,
+      41.884,
+      5.492
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "JOR",
+    "name": "Jordan",
+    "sovereign": "Jordan",
+    "area_km2": 88880.7,
+    "bbox": [
+      34.951,
+      29.19,
+      39.293,
+      33.372
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "JPN",
+    "name": "Japan",
+    "sovereign": "Japan",
+    "area_km2": 376851.4,
+    "bbox": [
+      123.68,
+      24.266,
+      145.833,
+      45.51
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "JAM",
+    "name": "Jamaica",
+    "sovereign": "Jamaica",
+    "area_km2": 10862.0,
+    "bbox": [
+      -78.34,
+      17.715,
+      -76.211,
+      18.522
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ITA",
+    "name": "Italy",
+    "sovereign": "Italy",
+    "area_km2": 289988.3,
+    "bbox": [
+      6.628,
+      36.688,
+      18.486,
+      47.082
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "PSE",
+    "name": "Palestine",
+    "sovereign": "Israel",
+    "area_km2": 6283.5,
+    "bbox": [
+      34.198,
+      31.208,
+      35.572,
+      32.534
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "IRL",
+    "name": "Ireland",
+    "sovereign": "Ireland",
+    "area_km2": 68618.1,
+    "bbox": [
+      -10.39,
+      51.474,
+      -6.027,
+      55.366
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "IRQ",
+    "name": "Iraq",
+    "sovereign": "Iraq",
+    "area_km2": 435915.6,
+    "bbox": [
+      38.774,
+      29.064,
+      48.546,
+      37.372
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "IRN",
+    "name": "Iran",
+    "sovereign": "Iran",
+    "area_km2": 1627467.1,
+    "bbox": [
+      44.023,
+      25.102,
+      63.305,
+      39.769
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "IDN",
+    "name": "Indonesia",
+    "sovereign": "Indonesia",
+    "area_km2": 1869303.1,
+    "bbox": [
+      95.207,
+      -10.91,
+      140.976,
+      5.907
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "IND",
+    "name": "India",
+    "sovereign": "India",
+    "area_km2": 3164127.1,
+    "bbox": [
+      68.165,
+      6.749,
+      97.344,
+      35.496
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ISL",
+    "name": "Iceland",
+    "sovereign": "Iceland",
+    "area_km2": 101583.4,
+    "bbox": [
+      -24.476,
+      63.407,
+      -13.556,
+      66.526
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "HUN",
+    "name": "Hungary",
+    "sovereign": "Hungary",
+    "area_km2": 92713.5,
+    "bbox": [
+      16.093,
+      45.753,
+      22.877,
+      48.553
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "HND",
+    "name": "Honduras",
+    "sovereign": "Honduras",
+    "area_km2": 113229.0,
+    "bbox": [
+      -89.363,
+      12.979,
+      -83.158,
+      16.514
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "HTI",
+    "name": "Haiti",
+    "sovereign": "Haiti",
+    "area_km2": 26612.6,
+    "bbox": [
+      -74.478,
+      18.039,
+      -71.645,
+      20.094
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GUY",
+    "name": "Guyana",
+    "sovereign": "Guyana",
+    "area_km2": 211106.1,
+    "bbox": [
+      -61.391,
+      1.201,
+      -56.483,
+      8.549
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GNB",
+    "name": "Guinea-Bissau",
+    "sovereign": "Guinea-Bissau",
+    "area_km2": 31878.2,
+    "bbox": [
+      -16.712,
+      10.94,
+      -13.674,
+      12.68
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GIN",
+    "name": "Guinea",
+    "sovereign": "Guinea",
+    "area_km2": 243849.0,
+    "bbox": [
+      -15.051,
+      7.216,
+      -7.681,
+      12.674
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GTM",
+    "name": "Guatemala",
+    "sovereign": "Guatemala",
+    "area_km2": 108412.7,
+    "bbox": [
+      -92.235,
+      13.737,
+      -88.228,
+      17.816
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GRD",
+    "name": "Grenada",
+    "sovereign": "Grenada",
+    "area_km2": 285.0,
+    "bbox": [
+      -61.782,
+      12.008,
+      -61.607,
+      12.237
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GRC",
+    "name": "Greece",
+    "sovereign": "Greece",
+    "area_km2": 128902.0,
+    "bbox": [
+      19.646,
+      34.934,
+      28.232,
+      41.744
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GHA",
+    "name": "Ghana",
+    "sovereign": "Ghana",
+    "area_km2": 238904.8,
+    "bbox": [
+      -3.244,
+      4.762,
+      1.187,
+      11.167
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "DEU",
+    "name": "Germany",
+    "sovereign": "Germany",
+    "area_km2": 356192.0,
+    "bbox": [
+      5.858,
+      47.279,
+      15.017,
+      55.059
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GEO",
+    "name": "Georgia",
+    "sovereign": "Georgia",
+    "area_km2": 69415.7,
+    "bbox": [
+      39.978,
+      41.07,
+      46.673,
+      43.57
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GMB",
+    "name": "Gambia",
+    "sovereign": "Gambia",
+    "area_km2": 10292.8,
+    "bbox": [
+      -16.825,
+      13.064,
+      -13.827,
+      13.812
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GAB",
+    "name": "Gabon",
+    "sovereign": "Gabon",
+    "area_km2": 259758.9,
+    "bbox": [
+      8.703,
+      -3.916,
+      14.481,
+      2.302
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ALA",
+    "name": "Åland",
+    "sovereign": "Finland",
+    "area_km2": 753.8,
+    "bbox": [
+      19.519,
+      60.012,
+      20.611,
+      60.406
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "FIN",
+    "name": "Finland",
+    "sovereign": "Finland",
+    "area_km2": 344702.2,
+    "bbox": [
+      20.622,
+      59.816,
+      31.537,
+      70.065
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "FJI",
+    "name": "Fiji",
+    "sovereign": "Fiji",
+    "area_km2": 18276.4,
+    "bbox": [
+      -180.0,
+      -21.706,
+      180.0,
+      -12.477
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ETH",
+    "name": "Ethiopia",
+    "sovereign": "Ethiopia",
+    "area_km2": 1130994.6,
+    "bbox": [
+      32.999,
+      3.456,
+      47.978,
+      14.852
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "EST",
+    "name": "Estonia",
+    "sovereign": "Estonia",
+    "area_km2": 45221.5,
+    "bbox": [
+      21.854,
+      57.525,
+      28.151,
+      59.639
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ERI",
+    "name": "Eritrea",
+    "sovereign": "Eritrea",
+    "area_km2": 122955.5,
+    "bbox": [
+      36.427,
+      12.377,
+      43.117,
+      18.005
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GNQ",
+    "name": "Eq. Guinea",
+    "sovereign": "Equatorial Guinea",
+    "area_km2": 26512.7,
+    "bbox": [
+      8.434,
+      0.96,
+      11.335,
+      3.758
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SLV",
+    "name": "El Salvador",
+    "sovereign": "El Salvador",
+    "area_km2": 20263.5,
+    "bbox": [
+      -90.106,
+      13.164,
+      -87.715,
+      14.431
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "EGY",
+    "name": "Egypt",
+    "sovereign": "Egypt",
+    "area_km2": 1003783.6,
+    "bbox": [
+      24.703,
+      21.995,
+      36.871,
+      31.655
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ECU",
+    "name": "Ecuador",
+    "sovereign": "Ecuador",
+    "area_km2": 254814.0,
+    "bbox": [
+      -91.654,
+      -4.991,
+      -75.25,
+      1.455
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "DOM",
+    "name": "Dominican Rep.",
+    "sovereign": "Dominican Republic",
+    "area_km2": 48382.1,
+    "bbox": [
+      -72.0,
+      17.636,
+      -68.339,
+      19.914
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "DMA",
+    "name": "Dominica",
+    "sovereign": "Dominica",
+    "area_km2": 691.8,
+    "bbox": [
+      -61.481,
+      15.227,
+      -61.251,
+      15.633
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "DJI",
+    "name": "Djibouti",
+    "sovereign": "Djibouti",
+    "area_km2": 21605.7,
+    "bbox": [
+      41.765,
+      10.941,
+      43.41,
+      12.709
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "GRL",
+    "name": "Greenland",
+    "sovereign": "Denmark",
+    "area_km2": 2211020.6,
+    "bbox": [
+      -72.818,
+      59.815,
+      -11.426,
+      83.6
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "DNK",
+    "name": "Denmark",
+    "sovereign": "Denmark",
+    "area_km2": 42189.6,
+    "bbox": [
+      8.121,
+      54.629,
+      15.137,
+      57.737
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "CZE",
+    "name": "Czechia",
+    "sovereign": "Czechia",
+    "area_km2": 77969.6,
+    "bbox": [
+      12.09,
+      48.576,
+      18.832,
+      51.038
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "CYP",
+    "name": "Cyprus",
+    "sovereign": "Cyprus",
+    "area_km2": 5645.9,
+    "bbox": [
+      32.301,
+      34.57,
+      34.05,
+      35.183
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "HRV",
+    "name": "Croatia",
+    "sovereign": "Croatia",
+    "area_km2": 53497.5,
+    "bbox": [
+      13.517,
+      42.433,
+      19.401,
+      46.535
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "CIV",
+    "name": "Côte d'Ivoire",
+    "sovereign": "Ivory Coast",
+    "area_km2": 321472.9,
+    "bbox": [
+      -8.604,
+      4.351,
+      -2.506,
+      10.724
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "CRI",
+    "name": "Costa Rica",
+    "sovereign": "Costa Rica",
+    "area_km2": 51334.5,
+    "bbox": [
+      -85.908,
+      8.071,
+      -82.564,
+      11.189
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "COD",
+    "name": "Dem. Rep. Congo",
+    "sovereign": "Democratic Republic of the Congo",
+    "area_km2": 2335077.2,
+    "bbox": [
+      12.214,
+      -13.454,
+      31.274,
+      5.312
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "COG",
+    "name": "Congo",
+    "sovereign": "Republic of the Congo",
+    "area_km2": 345914.1,
+    "bbox": [
+      11.13,
+      -5.004,
+      18.622,
+      3.687
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "COM",
+    "name": "Comoros",
+    "sovereign": "Comoros",
+    "area_km2": 1562.0,
+    "bbox": [
+      43.227,
+      -12.368,
+      44.527,
+      -11.368
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "COL",
+    "name": "Colombia",
+    "sovereign": "Colombia",
+    "area_km2": 1137957.9,
+    "bbox": [
+      -79.025,
+      -4.236,
+      -66.876,
+      12.434
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "CHN",
+    "name": "China",
+    "sovereign": "China",
+    "area_km2": 9882265.0,
+    "bbox": [
+      73.607,
+      18.218,
+      134.752,
+      53.556
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MAC",
+    "name": "Macao",
+    "sovereign": "China",
+    "area_km2": 20.7,
+    "bbox": [
+      113.479,
+      22.196,
+      113.548,
+      22.246
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "HKG",
+    "name": "Hong Kong",
+    "sovereign": "China",
+    "area_km2": 1030.5,
+    "bbox": [
+      113.839,
+      22.195,
+      114.335,
+      22.565
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "CHL",
+    "name": "Chile",
+    "sovereign": "Chile",
+    "area_km2": 744325.7,
+    "bbox": [
+      -109.434,
+      -55.892,
+      -66.436,
+      -17.506
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "TCD",
+    "name": "Chad",
+    "sovereign": "Chad",
+    "area_km2": 1270480.5,
+    "bbox": [
+      13.448,
+      7.475,
+      23.983,
+      23.445
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "CAF",
+    "name": "Central African Rep.",
+    "sovereign": "Central African Republic",
+    "area_km2": 618461.7,
+    "bbox": [
+      14.431,
+      2.27,
+      27.403,
+      10.996
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "CPV",
+    "name": "Cabo Verde",
+    "sovereign": "Cabo Verde",
+    "area_km2": 3579.1,
+    "bbox": [
+      -25.342,
+      14.818,
+      -22.682,
+      17.194
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "CAN",
+    "name": "Canada",
+    "sovereign": "Canada",
+    "area_km2": 10289788.6,
+    "bbox": [
+      -141.002,
+      41.675,
+      -52.654,
+      83.116
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "CMR",
+    "name": "Cameroon",
+    "sovereign": "Cameroon",
+    "area_km2": 465588.8,
+    "bbox": [
+      8.533,
+      1.676,
+      16.183,
+      13.079
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "KHM",
+    "name": "Cambodia",
+    "sovereign": "Cambodia",
+    "area_km2": 180825.3,
+    "bbox": [
+      102.32,
+      10.411,
+      107.605,
+      14.705
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "MMR",
+    "name": "Myanmar",
+    "sovereign": "Myanmar",
+    "area_km2": 659874.6,
+    "bbox": [
+      92.18,
+      9.875,
+      101.147,
+      28.517
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BDI",
+    "name": "Burundi",
+    "sovereign": "Burundi",
+    "area_km2": 27180.4,
+    "bbox": [
+      29.014,
+      -4.456,
+      30.811,
+      -2.313
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BFA",
+    "name": "Burkina Faso",
+    "sovereign": "Burkina Faso",
+    "area_km2": 272418.3,
+    "bbox": [
+      -5.524,
+      9.425,
+      2.389,
+      15.078
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BGR",
+    "name": "Bulgaria",
+    "sovereign": "Bulgaria",
+    "area_km2": 112479.5,
+    "bbox": [
+      22.344,
+      41.244,
+      28.585,
+      44.238
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BRN",
+    "name": "Brunei",
+    "sovereign": "Brunei",
+    "area_km2": 5626.7,
+    "bbox": [
+      114.064,
+      4.024,
+      115.327,
+      5.022
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BRA",
+    "name": "Brazil",
+    "sovereign": "Brazil",
+    "area_km2": 8513625.0,
+    "bbox": [
+      -74.002,
+      -33.742,
+      -34.805,
+      5.258
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BWA",
+    "name": "Botswana",
+    "sovereign": "Botswana",
+    "area_km2": 579399.9,
+    "bbox": [
+      19.977,
+      -26.854,
+      29.365,
+      -17.788
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BIH",
+    "name": "Bosnia and Herz.",
+    "sovereign": "Bosnia and Herzegovina",
+    "area_km2": 51572.2,
+    "bbox": [
+      15.737,
+      42.56,
+      19.584,
+      45.277
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BOL",
+    "name": "Bolivia",
+    "sovereign": "Bolivia",
+    "area_km2": 1087906.2,
+    "bbox": [
+      -69.646,
+      -22.892,
+      -57.496,
+      -9.71
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BTN",
+    "name": "Bhutan",
+    "sovereign": "Bhutan",
+    "area_km2": 39701.9,
+    "bbox": [
+      88.739,
+      26.702,
+      92.083,
+      28.311
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BEN",
+    "name": "Benin",
+    "sovereign": "Benin",
+    "area_km2": 115942.7,
+    "bbox": [
+      0.763,
+      6.217,
+      3.834,
+      12.384
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BLZ",
+    "name": "Belize",
+    "sovereign": "Belize",
+    "area_km2": 22726.4,
+    "bbox": [
+      -89.237,
+      15.889,
+      -87.789,
+      18.482
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BEL",
+    "name": "Belgium",
+    "sovereign": "Belgium",
+    "area_km2": 30425.7,
+    "bbox": [
+      2.525,
+      49.511,
+      6.364,
+      51.491
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BLR",
+    "name": "Belarus",
+    "sovereign": "Belarus",
+    "area_km2": 204606.4,
+    "bbox": [
+      23.175,
+      51.265,
+      32.71,
+      56.146
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BRB",
+    "name": "Barbados",
+    "sovereign": "Barbados",
+    "area_km2": 383.6,
+    "bbox": [
+      -59.647,
+      13.062,
+      -59.428,
+      13.318
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BGD",
+    "name": "Bangladesh",
+    "sovereign": "Bangladesh",
+    "area_km2": 134738.1,
+    "bbox": [
+      88.023,
+      20.79,
+      92.632,
+      26.572
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BHR",
+    "name": "Bahrain",
+    "sovereign": "Bahrain",
+    "area_km2": 539.5,
+    "bbox": [
+      50.452,
+      25.807,
+      50.617,
+      26.246
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "BHS",
+    "name": "Bahamas",
+    "sovereign": "The Bahamas",
+    "area_km2": 12367.1,
+    "bbox": [
+      -78.986,
+      20.937,
+      -72.747,
+      26.94
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "AZE",
+    "name": "Azerbaijan",
+    "sovereign": "Azerbaijan",
+    "area_km2": 85945.7,
+    "bbox": [
+      44.768,
+      38.399,
+      50.366,
+      41.891
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "AUT",
+    "name": "Austria",
+    "sovereign": "Austria",
+    "area_km2": 83701.0,
+    "bbox": [
+      9.524,
+      46.4,
+      17.147,
+      49.001
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "AUS",
+    "name": "Australia",
+    "sovereign": "Australia",
+    "area_km2": 7825368.5,
+    "bbox": [
+      112.908,
+      -54.749,
+      158.959,
+      -10.052
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ARM",
+    "name": "Armenia",
+    "sovereign": "Armenia",
+    "area_km2": 29421.7,
+    "bbox": [
+      43.439,
+      38.869,
+      46.585,
+      41.291
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ARG",
+    "name": "Argentina",
+    "sovereign": "Argentina",
+    "area_km2": 2861012.8,
+    "bbox": [
+      -73.576,
+      -55.032,
+      -53.669,
+      -21.803
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ATG",
+    "name": "Antigua and Barb.",
+    "sovereign": "Antigua and Barbuda",
+    "area_km2": 437.4,
+    "bbox": [
+      -61.887,
+      16.997,
+      -61.686,
+      17.714
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "AGO",
+    "name": "Angola",
+    "sovereign": "Angola",
+    "area_km2": 1247696.1,
+    "bbox": [
+      11.743,
+      -18.02,
+      24.047,
+      -4.429
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "AND",
+    "name": "Andorra",
+    "sovereign": "Andorra",
+    "area_km2": 433.3,
+    "bbox": [
+      1.415,
+      42.434,
+      1.74,
+      42.643
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "DZA",
+    "name": "Algeria",
+    "sovereign": "Algeria",
+    "area_km2": 2337471.8,
+    "bbox": [
+      -8.683,
+      18.987,
+      11.968,
+      37.092
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ALB",
+    "name": "Albania",
+    "sovereign": "Albania",
+    "area_km2": 28466.5,
+    "bbox": [
+      19.281,
+      39.654,
+      21.031,
+      42.648
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "AFG",
+    "name": "Afghanistan",
+    "sovereign": "Afghanistan",
+    "area_km2": 637531.6,
+    "bbox": [
+      60.486,
+      29.392,
+      74.891,
+      38.456
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "ATA",
+    "name": "Antarctica",
+    "sovereign": "Antarctica",
+    "area_km2": 13142311.7,
+    "bbox": [
+      -180.0,
+      -89.999,
+      180.0,
+      -60.521
+    ],
+    "lod": {}
+  },
+  {
+    "iso3": "SXM",
+    "name": "Sint Maarten",
+    "sovereign": "Netherlands",
+    "area_km2": 35.8,
+    "bbox": [
+      -63.125,
+      18.019,
+      -63.011,
+      18.069
+    ],
+    "lod": {}
+  }
+]

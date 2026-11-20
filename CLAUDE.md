@@ -97,3 +97,12 @@ After every completed task:
 - **Multi-step work:** `npx ruflo@latest task create` for each step, `npx ruflo@latest agent spawn -t coder|tester|reviewer` to delegate. Prefer Ruflo agents over native Task tool.
 - **After task passes build + tests:** `npx ruflo@latest memory store --namespace patterns` with what worked, then update `PROJECT_STATE.md`.
 - **Never** run `init --force`, clean, or anything that deletes `.claude/` without asking user first.
+
+# Harita Görsel Kuralları
+- Hedef: Hearts of Iron 4 tarzı stratejik harita (referans: /reference/)
+- Her görsel değişiklikten sonra oyunu çalıştır, ekran görüntüsü al,
+  referansla yan yana karşılaştır ve farkları listele.
+- Hedefe ulaşılmadan "bitti" deme. Kabul kriterlerini tek tek işaretle.
+- HoI4'ün telifli dosyalarını kullanma, sadece tarzı taklit et.
+- Kullanılan her asset için CREDITS.md'ye kaynak ve lisans yaz.
+- Oyun mantığına (ülke seçimi, diplomasi, tıklama) dokunma.

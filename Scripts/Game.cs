@@ -229,8 +229,27 @@ public partial class Game : Control
         mapV5Instance.TestIndex = 0;
         mapV5Instance.TestPhase = 0; // 0=send click, 1=check result, 2=deselect, 3=delay
         mapV5Instance.TestTimer = 0f;
-        
+
         GD.Print("[Test] Test mode enabled, will run in _Process");
+    }
+
+    private void CaptureTestScreenshot(WorldMapV5 mapV5Instance, string testName)
+    {
+        // Capture screenshot for this test
+        var viewport = mapV5Instance.GetViewport();
+        var tex = viewport.GetTexture();
+        var img = tex.GetImage();
+        if (img != null && img.GetWidth() > 100 && img.GetHeight() > 100)
+        {
+            var dir = DirAccess.Open("user://");
+            if (dir != null)
+            {
+                dir.MakeDirRecursive("test-logs/v5");
+            }
+            var path = $"user://test-logs/v5/sel_{testName}.png";
+            img.SavePng(path);
+            GD.Print($"[Test] Screenshot saved: {path}");
+        }
     }
 
     private void OnCountrySelected(string countryId, string countryName)

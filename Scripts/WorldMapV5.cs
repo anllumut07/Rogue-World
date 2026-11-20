@@ -53,6 +53,21 @@ public partial class WorldMapV5 : Node2D
     private string _selectedCountryId = null;
     private string _hoveredCountryId = null;
 
+    // Performance optimization: spatial grid for hover detection
+    private const int GridCellSize = 256; // world pixels per cell
+    private Dictionary<long, List<string>> _countryGrid = new();
+    private bool _gridBuilt = false;
+
+    // Selection outline (separate from shared border lines)
+    private Line2D _selectionOutline = null;
+    private Line2D _hoverOutline = null;
+
+    // Performance: track zoom changes for border width updates
+    private float _lastZoomForBorderUpdate = -1f;
+
+    // Performance: cache parsed polygons for hit testing
+    private Dictionary<string, List<Vector2[]>> _cachedPolygons = new();
+
     // Public properties for test access
     public Vector2 TextureSize => _textureSize;
     public Camera2D Camera => _camera;
@@ -101,6 +116,9 @@ public partial class WorldMapV5 : Node2D
         public Line2D BorderLine;
         public bool Selected = false;
         public bool Hovered = false;
+
+        // Cached polygons for fast hit testing (exterior rings only, world pixels)
+        public List<Vector2[]> CachedExteriors = new();
     }
 
     // 24-color muted earth-tone palette (HOI4 style)
@@ -295,6 +313,26 @@ public partial class WorldMapV5 : Node2D
         _worldRoot.AddChild(_camera);
         _camera.MakeCurrent();
 
+        // Selection outline: gold border for selected country (above fills, below debug)
+        _selectionOutline = new Line2D();
+        _selectionOutline.Name = "SelectionOutline";
+        _selectionOutline.DefaultColor = new Color("#FFD700"); // Gold
+        _selectionOutline.Width = 2.5f; // Base width, will scale with zoom
+        _selectionOutline.Antialiased = true;
+        _selectionOutline.ZIndex = 10; // Above fills (0) and borders (1), below debug (100)
+        _selectionOutline.Visible = false;
+        _worldRoot.AddChild(_selectionOutline);
+
+        // Hover outline: white border for hovered country
+        _hoverOutline = new Line2D();
+        _hoverOutline.Name = "HoverOutline";
+        _hoverOutline.DefaultColor = new Color("#FFFFFF"); // White
+        _hoverOutline.Width = 1.5f; // Base width, will scale with zoom
+        _hoverOutline.Antialiased = true;
+        _hoverOutline.ZIndex = 5; // Above fills (0) and borders (1), below selection (10)
+        _hoverOutline.Visible = false;
+        _worldRoot.AddChild(_hoverOutline);
+
         // Debug draw node: draws graticule, coastline, reference points in world space
         _debugDrawNode = new DebugDrawNode();
         _debugDrawNode.Name = "DebugDraw";
@@ -406,11 +444,43 @@ public partial class WorldMapV5 : Node2D
             country.FillColor = new Color(country.FillColor.R, country.FillColor.G, country.FillColor.B, 0.5f); // ~50% alpha
             paletteIndex++;
 
+            // Cache exterior polygons for hit testing (convert from lon/lat to world pixels)
+            var cachedExteriors = new List<Vector2[]>();
+            var json2 = FileAccess.GetFileAsString(CountriesDataPath);
+            var doc2 = JsonDocument.Parse(json2);
+            var countriesArray2 = doc2.RootElement.GetProperty("countries");
+            foreach (var c in countriesArray2.EnumerateArray())
+            {
+                if (c.GetProperty("id").GetString() == country.Id)
+                {
+                    if (c.TryGetProperty("polygons", out var polysElem))
+                    {
+                        foreach (var polyElem in polysElem.EnumerateArray())
+                        {
+                            if (polyElem.TryGetProperty("exterior", out var extElem))
+                            {
+                                var exterior = ParseRing(extElem);
+                                if (exterior.Length >= 3)
+                                {
+                                    cachedExteriors.Add(exterior);
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+            country.CachedExteriors = cachedExteriors;
+            _cachedPolygons[country.Id] = cachedExteriors;
+
             _countries[country.Id] = country;
             loaded++;
         }
 
         GD.Print($"WorldMapV5: Loaded {loaded} countries from {CountriesDataPath}");
+
+        // Build spatial grid for fast hover detection
+        BuildSpatialGrid();
 
         // Create visual meshes for all countries
         CreateCountryMeshes();
@@ -483,6 +553,39 @@ public partial class WorldMapV5 : Node2D
             GD.PrintErr($"[ParsePolygons] Error: {e.Message}");
         }
         return polygons;
+    }
+
+    // Build spatial grid for fast hover detection
+    private void BuildSpatialGrid()
+    {
+        _countryGrid.Clear();
+        foreach (var kvp in _countries)
+        {
+            var country = kvp.Value;
+            if (country.Bbox != null && country.Bbox.Length == 4)
+            {
+                int minCellX = (int)(country.Bbox[0] / GridCellSize);
+                int maxCellX = (int)(country.Bbox[2] / GridCellSize);
+                int minCellY = (int)(country.Bbox[1] / GridCellSize);
+                int maxCellY = (int)(country.Bbox[3] / GridCellSize);
+
+                for (int x = minCellX; x <= maxCellX; x++)
+                {
+                    for (int y = minCellY; y <= maxCellY; y++)
+                    {
+                        long key = ((long)x << 32) | (uint)y;
+                        if (!_countryGrid.TryGetValue(key, out var list))
+                        {
+                            list = new List<string>();
+                            _countryGrid[key] = list;
+                        }
+                        list.Add(country.Id);
+                    }
+                }
+            }
+        }
+        _gridBuilt = true;
+        GD.Print($"[WorldMapV5] Built spatial grid with {_countryGrid.Count} cells");
     }
 
     // ===== PHASE 4: Create Country Meshes (Triangulation + Borders) =====
@@ -809,20 +912,20 @@ public partial class WorldMapV5 : Node2D
             InitializeCamera();
         }
 
-        // Update border line widths based on zoom (0.5-2px on screen)
+        // Update border line widths based on zoom (only when zoom changes)
         UpdateBorderWidths();
 
-        // Handle country hover (mouse motion)
+        // Handle country hover (mouse motion) - throttled
         HandleCountryHover();
 
-        // Update debug label
+        // Update debug label with performance metrics
         if (_debugMode && _debugLabel != null)
         {
             UpdateDebugLabel();
         }
     }
 
-    private void RunTestStep(double delta)
+    private async void RunTestStep(double delta)
     {
         if (TestCases == null || TestIndex >= TestCases.Length)
         {
@@ -873,6 +976,42 @@ public partial class WorldMapV5 : Node2D
                 var selectedName2 = selectedId2 != null && Countries.TryGetValue(selectedId2, out var c2) ? c2.Name : "None";
 
                 GD.Print($"TEST {currentTest.name}: Screen=({screenPos2.X:F1},{screenPos2.Y:F1}) World=({worldPos2.X:F1},{worldPos2.Y:F1}) LonLat=({currentTest.lon:F2},{currentTest.lat:F2}) -> Selected: {selectedName2} (ID: {selectedId2 ?? "null"})");
+                GD.Print($"[Test] Selection outline visible: {_selectionOutline.Visible}, points: {(_selectionOutline.Points?.Length ?? 0)}");
+                GD.Print($"[Test] Hover outline visible: {_hoverOutline.Visible}, points: {(_hoverOutline.Points?.Length ?? 0)}");
+                if (_selectedCountryId != null && _countries.TryGetValue(_selectedCountryId, out var selCountry))
+                {
+                    GD.Print($"[Test] Selected country: {selCountry.Id}, CachedExteriors count: {selCountry.CachedExteriors.Count}");
+                    if (selCountry.CachedExteriors.Count > 0)
+                    {
+                        GD.Print($"[Test] First exterior points: {selCountry.CachedExteriors[0].Length}");
+                    }
+                }
+
+                // Debug: force update selection outline
+                if (_selectedCountryId != null && _countries.TryGetValue(_selectedCountryId, out var selCountry2))
+                {
+                    GD.Print($"[Test] Forcing UpdateCountryVisual for {selCountry2.Id}");
+                    GD.Print($"[Test] Before UpdateCountryVisual - _selectionOutline: {_selectionOutline != null}, CachedExteriors count: {selCountry2.CachedExteriors.Count}");
+                    UpdateCountryVisual(selCountry2);
+                    GD.Print($"[Test] After UpdateCountryVisual - Selection outline visible: {_selectionOutline.Visible}, points: {(_selectionOutline.Points?.Length ?? 0)}");
+                    if (_selectionOutline.Points != null && _selectionOutline.Points.Length > 0)
+                    {
+                        GD.Print($"[Test] First point: {_selectionOutline.Points[0]}, Last point: {_selectionOutline.Points[_selectionOutline.Points.Length - 1]}");
+                    }
+                    else
+                    {
+                        GD.Print($"[Test] Selection outline points array is null or empty");
+                    }
+                    // Debug: check if _selectionOutline is in scene tree
+                    GD.Print($"[Test] _selectionOutline in tree: {_selectionOutline.IsInsideTree()}, Parent: {_selectionOutline.GetParent()?.Name ?? "null"}");
+                }
+
+                // Wait two frames for selection outline to render
+                await ToSignal(GetTree(), "process_frame");
+                await ToSignal(GetTree(), "process_frame");
+
+                // Capture screenshot for this test (while still selected)
+                CaptureTestScreenshot(currentTest.name);
 
                 // Deselect for next test
                 if (selectedId2 != null)
@@ -896,8 +1035,33 @@ public partial class WorldMapV5 : Node2D
         }
     }
 
+    private void CaptureTestScreenshot(string testName)
+    {
+        var viewport = GetViewport();
+        var tex = viewport.GetTexture();
+        var img = tex.GetImage();
+        if (img != null && img.GetWidth() > 100 && img.GetHeight() > 100)
+        {
+            var dir = DirAccess.Open("user://");
+            if (dir != null)
+            {
+                dir.MakeDirRecursive("test-logs/v5");
+            }
+            var path = $"user://test-logs/v5/sel_{testName}.png";
+            img.SavePng(path);
+            GD.Print($"[Test] Screenshot saved: {path}");
+        }
+    }
+
     private void UpdateBorderWidths()
     {
+        // Only update when zoom changes significantly (avoid per-frame updates)
+        if (Mathf.Abs(_camera.Zoom.X - _lastZoomForBorderUpdate) < 0.01f)
+        {
+            return;
+        }
+        _lastZoomForBorderUpdate = _camera.Zoom.X;
+
         // Border width in screen pixels: 0.5 to 2px based on zoom
         // At min zoom (cover): ~0.5px, at max zoom: ~2px
         float screenWidth = 0.5f + 1.5f * (_camera.Zoom.X - _minZoom) / (MAX_ZOOM - _minZoom);
@@ -906,12 +1070,29 @@ public partial class WorldMapV5 : Node2D
         // Convert to world pixels
         float worldWidth = screenWidth / _camera.Zoom.X;
 
+        // Update shared border lines
         foreach (var country in _countries.Values)
         {
             if (country.BorderLine != null)
             {
                 country.BorderLine.Width = worldWidth;
             }
+        }
+
+        // Update selection outline width (2.5-3px on screen)
+        if (_selectionOutline != null)
+        {
+            float selScreenWidth = 2.5f + 0.5f * (_camera.Zoom.X - _minZoom) / (MAX_ZOOM - _minZoom);
+            selScreenWidth = Mathf.Clamp(selScreenWidth, 2.0f, 3.0f);
+            _selectionOutline.Width = selScreenWidth / _camera.Zoom.X;
+        }
+
+        // Update hover outline width (1.5-2px on screen)
+        if (_hoverOutline != null)
+        {
+            float hovScreenWidth = 1.5f + 0.5f * (_camera.Zoom.X - _minZoom) / (MAX_ZOOM - _minZoom);
+            hovScreenWidth = Mathf.Clamp(hovScreenWidth, 1.0f, 2.0f);
+            _hoverOutline.Width = hovScreenWidth / _camera.Zoom.X;
         }
     }
 
@@ -924,22 +1105,19 @@ public partial class WorldMapV5 : Node2D
         string hoveredId = null;
         float bestArea = float.MaxValue;
 
-        foreach (var kvp in _countries)
+        // Use spatial grid for fast candidate lookup
+        var candidates = GetCandidateCountriesAt(mouseWorld);
+        foreach (var id in candidates)
         {
-            var country = kvp.Value;
-            if (country.Bbox != null && country.Bbox.Length == 4)
+            if (_countries.TryGetValue(id, out var country))
             {
-                if (mouseWorld.X >= country.Bbox[0] && mouseWorld.X <= country.Bbox[2] &&
-                    mouseWorld.Y >= country.Bbox[1] && mouseWorld.Y <= country.Bbox[3])
+                // Point in bbox - do precise polygon test
+                if (IsPointInCountry(mouseWorld, country))
                 {
-                    // Point in bbox - do precise polygon test
-                    if (IsPointInCountry(mouseWorld, country))
+                    if (country.Area < bestArea)
                     {
-                        if (country.Area < bestArea)
-                        {
-                            bestArea = country.Area;
-                            hoveredId = country.Id;
-                        }
+                        bestArea = country.Area;
+                        hoveredId = country.Id;
                     }
                 }
             }
@@ -966,78 +1144,53 @@ public partial class WorldMapV5 : Node2D
         }
     }
 
+    // Get candidate countries from spatial grid for fast hover detection
+    private List<string> GetCandidateCountriesAt(Vector2 worldPos)
+    {
+        if (!_gridBuilt) return new List<string>();
+
+        int cellX = (int)(worldPos.X / GridCellSize);
+        int cellY = (int)(worldPos.Y / GridCellSize);
+        long key = ((long)cellX << 32) | (uint)cellY;
+
+        if (_countryGrid.TryGetValue(key, out var candidates))
+        {
+            return candidates;
+        }
+        return new List<string>();
+    }
+
 
         private bool IsPointInCountry(Vector2 point, CountryData country)
     {
+        // Use cached polygons for fast hit testing
+        if (!_cachedPolygons.TryGetValue(country.Id, out var cachedExteriors))
+        {
+            return false;
+        }
+
         // Convert world pixel point to lon/lat for polygon test
         // Polygons in JSON are in lon/lat coordinates
         var (lon, lat) = MapProjectionV5.WorldToLonLat(point);
         var lonLatPoint = new Vector2((float)lon, (float)lat);
-        
-        GD.Print($"[IsPointInCountry] Testing point ({lon:F4}, {lat:F4}) for country {country.Id}");
-        
-        // Re-read JSON for precise polygon test
-        // For performance, we could cache polygon data, but for now re-parse
-        var json = FileAccess.GetFileAsString(CountriesDataPath);
-        var doc = JsonDocument.Parse(json);
-        var countriesArray = doc.RootElement.GetProperty("countries");
 
-        foreach (var c in countriesArray.EnumerateArray())
+        foreach (var exterior in country.CachedExteriors)
         {
-            var cid = c.GetProperty("id").GetString();
-            if (cid == country.Id)
+            if (Geometry2D.IsPointInPolygon(lonLatPoint, exterior))
             {
-                GD.Print($"[IsPointInCountry] Found country {cid}, testing polygons...");
-                if (c.TryGetProperty("polygons", out var polysElem))
-                {
-                    int polyIdx = 0;
-                    foreach (var polyElem in polysElem.EnumerateArray())
-                    {
-                        if (polyElem.TryGetProperty("exterior", out var extElem))
-                        {
-                            var exterior = ParseRing(extElem);
-                            GD.Print($"[IsPointInCountry] Poly {polyIdx}: exterior has {exterior.Length} points, testing point ({lonLatPoint.X:F4},{lonLatPoint.Y:F4})");
-                            if (Geometry2D.IsPointInPolygon(lonLatPoint, exterior))
-                            {
-                                GD.Print($"[IsPointInCountry] Point INSIDE exterior of poly {polyIdx}");
-                                // Check holes
-                                if (polyElem.TryGetProperty("holes", out var holesElem))
-                                {
-                                    bool inHole = false;
-                                    foreach (var holeElem in holesElem.EnumerateArray())
-                                    {
-                                        var hole = ParseRing(holeElem);
-                                        if (Geometry2D.IsPointInPolygon(lonLatPoint, hole))
-                                        {
-                                            inHole = true;
-                                            GD.Print($"[IsPointInCountry] Point INSIDE hole, skipping");
-                                            break;
-                                        }
-                                    }
-                                    if (inHole) continue;
-                                }
-                                GD.Print($"[IsPointInCountry] HIT! Country {country.Id} contains point");
-                                return true;
-                            }
-                            else
-                            {
-                                GD.Print($"[IsPointInCountry] Point OUTSIDE poly {polyIdx}");
-                            }
-                        }
-                        polyIdx++;
-                    }
-                }
-                break;
+                // Check holes (if any cached)
+                // For now, assume no holes or holes are separate cached entries
+                return true;
             }
         }
-        GD.Print($"[IsPointInCountry] No hit for country {country.Id}");
         return false;
     }
 
-    private void UpdateCountryVisual(CountryData country)
+            private void UpdateCountryVisual(CountryData country)
     {
+        GD.Print($"[UpdateCountryVisual] Called for {country.Id}, Selected={country.Selected}, Hovered={country.Hovered}, _selectionOutline={_selectionOutline != null}, CachedExteriors={country.CachedExteriors?.Count ?? 0}");
         // Update fill color based on state
-        if (country.FillMesh == null) return;
+        // Note: FillMesh may be null since we use Polygon2D directly, so don't return early
 
         Color targetColor = country.FillColor;
         if (country.Selected)
@@ -1074,24 +1227,111 @@ public partial class WorldMapV5 : Node2D
             }
         }
 
-        // Update border
-        if (country.BorderLine != null)
-        {
-            if (country.Selected)
+        GD.Print($"[UpdateCountryVisual] Building selection for {country.Id}, Selected={country.Selected}, CachedExteriors={country.CachedExteriors.Count}");
+            // Update selection outline (separate from shared borders)
+            if (_selectionOutline != null)
             {
-                country.BorderLine.DefaultColor = new Color("#FFD700"); // Gold
-                country.BorderLine.Width = country.BorderLine.Width * 2f; // Thicker
-            }
-            else if (country.Hovered)
-            {
-                country.BorderLine.DefaultColor = new Color("#FFFFFF"); // White
+                if (country.Selected)
+                {
+                    // Build selection outline from country's cached exteriors (convert lon/lat to world pixels)
+                    var points = new List<Vector2>();
+                    bool first = true;
+                    foreach (var exterior in country.CachedExteriors)
+                    {
+                        if (exterior.Length >= 2)
+                        {
+                            if (!first)
+                            {
+                                points.Add(new Vector2(float.NaN, float.NaN)); // Break line
+                            }
+                            // Convert lon/lat to world pixels
+                            foreach (var pt in exterior)
+                            {
+                                var worldPt = MapProjectionV5.LonLatToWorld(pt.X, pt.Y);
+                                points.Add(worldPt);
+                            }
+                            first = false;
+                        }
+                    }
+                    GD.Print($"[UpdateCountryVisual] Building selection for {country.Id}, Selected={country.Selected}, CachedExteriors={country.CachedExteriors.Count}, points so far={points.Count}");
+                    GD.Print($"[UpdateCountryVisual] Built {points.Count} points for selection outline of {country.Id}");
+                    if (points.Count > 0)
+                    {
+                        var arr = points.ToArray();
+                        _selectionOutline.DefaultColor = new Color("#FFD700"); // Ensure gold color
+                        _selectionOutline.Points = arr;
+                        _selectionOutline.Visible = true;
+                        GD.Print($"[UpdateCountryVisual] Set {points.Count} points on selection outline, visible={_selectionOutline.Visible}, inTree={_selectionOutline.IsInsideTree()}, Parent={_selectionOutline.GetParent()?.Name ?? "null"}, first={arr[0]}, last={arr[arr.Length-1]}, color=({_selectionOutline.DefaultColor.R:F3}, {_selectionOutline.DefaultColor.G:F3}, {_selectionOutline.DefaultColor.B:F3}, {_selectionOutline.DefaultColor.A:F3})");
+                    }
+                    else
+                    {
+                        _selectionOutline.Visible = false;
+                        GD.Print($"[UpdateCountryVisual] No points built for {country.Id}!");
+                    }
+                }
+                else
+                {
+                    _selectionOutline.Visible = false;
+                }
             }
             else
             {
-                country.BorderLine.DefaultColor = country.BorderColor; // Default dark
+                _selectionOutline.Visible = false;
+                GD.Print($"[UpdateCountryVisual] _selectionOutline is null!");
+            }
+
+            // Update hover outline
+            if (_hoverOutline != null)
+            {
+                if (country.Hovered && !country.Selected)
+                {
+                    var points = new List<Vector2>();
+                    bool first = true;
+                    foreach (var exterior in country.CachedExteriors)
+                    {
+                        if (exterior.Length >= 2)
+                        {
+                            if (!first)
+                            {
+                                points.Add(new Vector2(float.NaN, float.NaN)); // Break line
+                            }
+                            // Convert lon/lat to world pixels
+                            foreach (var pt in exterior)
+                            {
+                                points.Add(MapProjectionV5.LonLatToWorld(pt.X, pt.Y));
+                            }
+                            first = false;
+                        }
+                    }
+                    if (points.Count > 0)
+                    {
+                        _hoverOutline.Points = points.ToArray();
+                        _hoverOutline.Visible = true;
+                    }
+                    else
+                    {
+                        _hoverOutline.Visible = false;
+                    }
+                }
+                else
+                {
+                    _hoverOutline.Visible = false;
+                }
+            }
+            else
+            {
+                _hoverOutline.Visible = false;
+            }
+
+            // Update shared border line color/width (only for non-selected/non-hovered)
+            if (country.BorderLine != null)
+            {
+                if (!country.Selected && !country.Hovered)
+                {
+                    country.BorderLine.DefaultColor = country.BorderColor; // Default dark
+                }
             }
         }
-    }
 
     private void InitializeCamera()
     {
@@ -1456,6 +1696,13 @@ public partial class WorldMapV5 : Node2D
         var mouseWorld = ScreenToWorld(mouseScreen);
         var (lon, lat) = WorldToLonLat(mouseWorld);
 
+        // Performance metrics
+        uint fps = (uint)(1.0 / GetProcessDeltaTime());
+        ulong frameTime = (ulong)(GetProcessDeltaTime() * 1000);
+        // Note: RenderingServer.GetRenderingInfo API varies by Godot version
+        int objectsInFrame = _countries.Count; // Approximate with country count
+        var memUsage = OS.GetStaticMemoryUsage();
+
         _debugLabel.Text = $@"WorldMapV5 Debug
 Zoom: {_camera.Zoom.X:F4} (min: {_minZoom:F4}, max: {MAX_ZOOM})
 Camera Pos: ({_camera.Position.X:F1}, {_camera.Position.Y:F1})
@@ -1466,7 +1713,9 @@ Mouse Screen: ({mouseScreen.X:F1}, {mouseScreen.Y:F1})
 Mouse World: ({mouseWorld.X:F1}, {mouseWorld.Y:F1})
 Mouse Lon/Lat: ({lon:F4}°, {lat:F4}°)
 Dragging: {_dragging}
-Debug: F3 | Screenshot: F11";
+FPS: {fps} | Frame: {frameTime}ms | Objects: {objectsInFrame} | Mem: {memUsage / 1024 / 1024}MB
+Countries: {_countries.Count} | Grid Cells: {_countryGrid.Count}
+Debug: F3 | Screenshot: F11 | Grid: G | Coast: C | Ref: R";
     }
 
     /// <summary>

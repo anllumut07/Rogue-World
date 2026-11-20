@@ -10,7 +10,7 @@ All Natural Earth data is in the public domain. The authors (Tom Patterson and N
 **Datasets used:**
 - Admin-0 Countries (1:10m, v5.1.1) — 258 country polygons
 - Admin-1 States/Provinces (1:10m, v5.1.1) — 4,500+ admin-1 units
-- Populated Places (1:10m, v5.1.2) — 7,000+ city points with population
+- Populated Places (1:10m, v5.1.2) — 7,000+ city points with population (processed via tools/process_cities.py to cities_runtime.json with country validation)
 - Shaded Relief Grayscale (1:10m, v3.2.0) — SRTM+-derived hillshade
 
 **License:** Public Domain (CC0 equivalent) — https://www.naturalearthdata.com/about/terms-of-use/

@@ -1,11 +1,12 @@
 using Godot;
 using System;
 
-// Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMap/WorldMapV2/WorldMapV3/WorldMapV4, ülke bilgi paneli, HUD.
+// Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMap/WorldMapV2/WorldMapV3/WorldMapV4/WorldMapV5, ülke bilgi paneli, HUD.
 // M11: Harita TAM EKRAN (MapViewportFrame FullRect). HUD ve CountryInfoPanel overlay.
 // Stage B: --map-v2 flag enables WorldMapV2 (Natural Earth data pipeline)
 // Stage C: --map-v3 flag enables WorldMapV3 (HOI4-style LOD, paper texture, cities)
 // Stage D: --map-v4 flag enables WorldMapV4 (Full HOI4-style: shaded relief, semi-transparent countries, cities, LOD)
+// Stage E: --map-v5 flag enables WorldMapV5 (Visual-reference map from scratch)
 public partial class Game : Control
 {
     private MapViewportFrame _mapFrame;
@@ -13,19 +14,20 @@ public partial class Game : Control
     private CountryMiniCard _miniCard; // M15.1: kilitli oyundaki küçük ülke kartı
     private GameHud _hud;
     private MiniMapPanel _miniMap; // M32.4: sağ-alt köşede mini harita
-    private Node2D _worldMap; // WorldMap, WorldMapV2, WorldMapV3, or WorldMapV4 - X/ESC kapatma isteğinde ClearSelection() için
+    private Node2D _worldMap; // WorldMap, WorldMapV2, WorldMapV3, WorldMapV4, or WorldMapV5 - X/ESC kapatma isteğinde ClearSelection() için
     private bool _isNewGame; // M24.1: yeni oyun mu yoksa yükleme mi?
     private bool _useMapV2; // Stage B: use WorldMapV2 instead of WorldMap
     private bool _useMapV3; // Stage C: use WorldMapV3 instead of WorldMap/V2
     private bool _useMapV4; // Stage D: use WorldMapV4 instead of WorldMap/V2/V3
+    private bool _useMapV5; // Stage E: use WorldMapV5 instead of WorldMap/V2/V3/V4
 
     public const int HudHeight = 64; // HUD yüksekliği (görsel ölçüm) — info panel bundan sonra başlar
 
     public override void _Ready()
-    {
-        _mapFrame = new MapViewportFrame();
-        _mapFrame.Ready += OnMapFrameReady;
-        AddChild(_mapFrame);
+        {
+            _mapFrame = new MapViewportFrame();
+            _mapFrame.Ready += OnMapFrameReady;
+            AddChild(_mapFrame);
 
         // M12: Ana menüden LOAD seçildiyse — pending slot'u yükle.
         // PendingLoadSlot: -1=yok, 0=auto-save, 1-10=slot.
@@ -77,7 +79,12 @@ public partial class Game : Control
         if (_useMapV4)
             GD.Print("Game: Using WorldMapV4 (Full HOI4-style: shaded relief, semi-transparent countries, cities, LOD)");
 
-        // --- Merkez: SubViewport içinde WorldMap/WorldMapV2/WorldMapV3/WorldMapV4 ---
+        // Stage E: Check for --map-v5 flag
+        _useMapV5 = GameManager.UseMapV5;
+        if (_useMapV5)
+            GD.Print("Game: Using WorldMapV5 (Visual-reference map from scratch)");
+
+        // --- Merkez: SubViewport içinde WorldMap/WorldMapV2/WorldMapV3/WorldMapV4/WorldMapV5 ---
         var subViewport = new SubViewport();
         // DÜZELTME (eski projeden öğrenildi): HandleInputLocally=true olmalı,
         // yoksa input SubViewport yerine parent'a gider.
@@ -88,8 +95,14 @@ public partial class Game : Control
         var winSize = GetViewportRect().Size;
         subViewport.Size = new Vector2I(System.Math.Max(64, (int)winSize.X), System.Math.Max(64, (int)winSize.Y));
 
-        // Create WorldMap, WorldMapV2, WorldMapV3, or WorldMapV4 based on flag
-        if (_useMapV4)
+        // Create WorldMap, WorldMapV2, WorldMapV3, WorldMapV4, or WorldMapV5 based on flag
+        if (_useMapV5)
+        {
+            var mapV5 = new WorldMapV5();
+            _worldMap = mapV5;
+            subViewport.AddChild(mapV5);
+        }
+        else if (_useMapV4)
         {
             var mapV4 = new WorldMapV4();
             _worldMap = mapV4;
@@ -128,11 +141,12 @@ public partial class Game : Control
             var containerRect = viewportContainer.GetGlobalRect();
             GD.Print($"[Teşhis] SubViewport={subViewport.Size}, konteyner={containerRect}, " +
                      $"Stretch={viewportContainer.Stretch}, görünür={viewportContainer.IsVisibleInTree()}");
-            // Ensure camera is current for WorldMap, WorldMapV2, and WorldMapV3
+            // Ensure camera is current for all map versions
             if (_worldMap is WorldMap wm) wm.EnsureCameraCurrent();
             else if (_worldMap is WorldMapV2 wmv2) wmv2.EnsureCameraCurrent();
             else if (_worldMap is WorldMapV3 wmv3) wmv3.EnsureCameraCurrent();
             else if (_worldMap is WorldMapV4 wmv4) wmv4.EnsureCameraCurrent();
+            else if (_worldMap is WorldMapV5 wmv5) wmv5.EnsureCameraCurrent();
         }).CallDeferred();
 
         // --- Sol panel: ülke bilgi paneli (overlay — HUD altında, genişlik sınırlı) ---
@@ -179,7 +193,44 @@ public partial class Game : Control
             if (arg.StartsWith("--mapshot="))
                 SetupMapshot(arg.Substring("--mapshot=".Length), subViewport, viewportContainer);
 
+        // --- Render teşhisi: --v5-shot=<name> ile PNG kaydet ve çık (WorldMapV5 test modu) ---
+        // Kullanım: godot --path . res://Scenes/game.tscn -- --map-v5 --v5-shot=world --quit-after=1
+        if (GameManager.V5ShotName != null && _useMapV5)
+        {
+            SetupV5Shot(GameManager.V5ShotName, subViewport, viewportContainer);
+        }
+
+        // Phase 5: Country Selection Test
+        if (GameManager.CountrySelectTest && _useMapV5 && _worldMap is WorldMapV5 mapV5Instance)
+        {
+            SetupCountrySelectTest(mapV5Instance);
+        }
+
         GD.Print("Game: harita + paneller hazır");
+    }
+
+        private void SetupCountrySelectTest(WorldMapV5 mapV5Instance)
+    {
+        GD.Print("=== Country Selection Test Started (Sync Mode) ===");
+
+        var testCases = new[]
+        {
+            ("Turkey", 35.0, 39.0),
+            ("Germany", 10.0, 51.0),
+            ("Brazil", -50.0, -15.0),
+            ("Egypt", 31.0, 26.0),
+            ("Japan", 139.0, 35.0),
+            ("Ocean", -100.0, 0.0),
+        };
+
+        // Store test state for sync execution in _Process
+        mapV5Instance.TestMode = true;
+        mapV5Instance.TestCases = testCases;
+        mapV5Instance.TestIndex = 0;
+        mapV5Instance.TestPhase = 0; // 0=send click, 1=check result, 2=deselect, 3=delay
+        mapV5Instance.TestTimer = 0f;
+        
+        GD.Print("[Test] Test mode enabled, will run in _Process");
     }
 
     private void OnCountrySelected(string countryId, string countryName)
@@ -359,31 +410,108 @@ public partial class Game : Control
     //  - İkisi de gri → SubViewport içi (kamera/ülke) sorunu
     private void SetupMapshot(string basePath, SubViewport subViewport, SubViewportContainer container)
     {
+        // Set explicit size for headless mode
+        subViewport.Size = new Vector2I(1152, 648);
+
         int frame = 0;
         var tree = GetTree();
         tree.ProcessFrame += () =>
         {
             frame++;
-            if (frame != 30) return;
+            // Wait longer for layout to settle in headless mode
+            if (frame < 60) return;
 
             var containerRect = container.GetGlobalRect();
-            GD.Print($"[Mapshot] Kare 30: SubViewport={subViewport.Size}, konteyner={containerRect}");
+            GD.Print($"[Mapshot] Kare {frame}: SubViewport={subViewport.Size}, konteyner={containerRect}");
 
             try
             {
                 var sub = subViewport.GetTexture().GetImage();
-                sub.SavePng(basePath + "_sub.png");
-                GD.Print($"[Mapshot] SubViewport: {basePath}_sub.png ({sub.GetWidth()}x{sub.GetHeight()})");
+                if (sub != null && sub.GetWidth() > 64 && sub.GetHeight() > 64)
+                {
+                    sub.SavePng(basePath + "_sub.png");
+                    GD.Print($"[Mapshot] SubViewport: {basePath}_sub.png ({sub.GetWidth()}x{sub.GetHeight()})");
 
-                var win = GetViewport().GetTexture().GetImage();
-                win.SavePng(basePath + "_win.png");
-                GD.Print($"[Mapshot] Pencere: {basePath}_win.png ({win.GetWidth()}x{win.GetHeight()})");
+                    var win = GetViewport().GetTexture().GetImage();
+                    win.SavePng(basePath + "_win.png");
+                    GD.Print($"[Mapshot] Pencere: {basePath}_win.png ({win.GetWidth()}x{win.GetHeight()})");
+                }
+                else
+                {
+                    GD.PrintErr($"[Mapshot] SubViewport still too small: {sub?.GetWidth()}x{sub?.GetHeight()}, waiting...");
+                    return; // Keep waiting
+                }
             }
             catch (System.Exception e)
             {
                 GD.PrintErr($"[Mapshot] HATA: {e.Message}");
             }
             tree.Quit();
+        };
+    }
+
+    // WorldMapV5 test modu: --v5-shot=<name> ile ekran görüntüsü al ve çık
+    // Pencere modunda çalışır (headless'ta SubViewport 64x64 dummy verir)
+    // Pencere boyutunu kodla ayarlar, FramePostDraw bekler, test-logs/v5/ altına kaydeder
+    private void SetupV5Shot(string shotName, SubViewport subViewport, SubViewportContainer container)
+    {
+        // Ensure test-logs/v5 directory exists
+        var dir = DirAccess.Open("user://");
+        if (dir != null)
+        {
+            dir.MakeDirRecursive("test-logs/v5");
+        }
+
+        int frame = 0;
+        int captureFrame = -1;
+        var tree = GetTree();
+        tree.ProcessFrame += () =>
+        {
+            frame++;
+            // Wait for layout and initial render (at least 15 frames)
+            if (frame < 15) return;
+
+            // Schedule capture for next frame (after FramePostDraw)
+            if (captureFrame == -1)
+            {
+                captureFrame = frame + 1;
+                return;
+            }
+
+            // Capture on the scheduled frame
+            if (frame == captureFrame)
+            {
+                try
+                {
+                    var viewport = GetViewport();
+                    var tex = viewport.GetTexture();
+                    var img = tex.GetImage();
+
+                    if (img != null && img.GetWidth() > 100 && img.GetHeight() > 100)
+                    {
+                        var path = $"user://test-logs/v5/{shotName}.png";
+                        var absPath = ProjectSettings.GlobalizePath(path);
+                        img.SavePng(path);
+                        GD.Print($"[V5Shot] Saved: {path} -> {absPath} ({img.GetWidth()}x{img.GetHeight()})");
+
+                        // Also log camera state if WorldMapV5
+                        if (_worldMap is WorldMapV5 wmv5)
+                        {
+                            wmv5.LogCameraState(shotName);
+                        }
+                    }
+                    else
+                    {
+                        GD.PrintErr($"[V5Shot] Image too small: {img?.GetWidth()}x{img?.GetHeight()}");
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    GD.PrintErr($"[V5Shot] ERROR: {e.Message}");
+                }
+
+                tree.Quit();
+            }
         };
     }
 }

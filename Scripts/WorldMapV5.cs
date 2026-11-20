@@ -1,0 +1,1535 @@
+using Godot;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using FileAccess = Godot.FileAccess;
+
+/// <summary>
+/// WorldMapV5 — Visual-reference world map built from scratch for HOI4-style appearance.
+/// Phase 1: Fixed background + Camera with proper zoom/pan.
+/// All map content under single WorldRoot Node2D, single Camera2D.
+/// UI only in CanvasLayer (debug overlay).
+/// </summary>
+public partial class WorldMapV5 : Node2D
+{
+    [Signal] public delegate void CountrySelectedEventHandler(string countryId, string countryName);
+    [Signal] public delegate void CountryDeselectedEventHandler();
+
+    public static WorldMapV5 Instance { get; private set; }
+
+    // Background texture path - using natural_earth_2.png (Natural Earth II, 10800x5400 PNG)
+    // This is the converted PNG version of NE2_50M_SR_W.tif
+    private const string BackgroundTexturePath = "res://Assets/map_textures/natural_earth_2.png";
+
+    // Camera settings
+    private const float MIN_ZOOM_COVER = 0f; // Calculated at runtime: max(viewportW/imgW, viewportH/imgH)
+    private const float MAX_ZOOM = 8f;
+    private const float ZOOM_SPEED = 1.2f; // Wheel zoom factor
+    private const float PAN_SPEED_KEYBOARD = 900f; // WASD pan speed (world pixels/sec at zoom 1)
+
+    // Node references
+    private Node2D _worldRoot;      // Single parent for all world-space content
+    private Sprite2D _background;   // Background texture
+    private Camera2D _camera;       // Single camera for map
+    private CanvasLayer _uiCanvas;  // Debug overlay only
+    private Label _debugLabel;      // Debug info display
+
+    // State
+    private Vector2 _textureSize;   // Background texture pixel size
+    private float _minZoom;         // Calculated cover zoom
+    private Vector2 _lastMousePos;  // For RMB drag
+    private bool _dragging = false;
+    private bool _debugMode = true; // Toggle with F3
+
+    // Debug visualization (Phase 3)
+    private Node2D _debugDrawNode;  // Draws graticule, coastline, reference points
+    private bool _showGraticule = true;
+    private bool _showCoastline = true;
+    private bool _showReferencePoints = true;
+
+    // Phase 5: Selection state
+    private string _selectedCountryId = null;
+    private string _hoveredCountryId = null;
+
+    // Public properties for test access
+    public Vector2 TextureSize => _textureSize;
+    public Camera2D Camera => _camera;
+    public string SelectedCountryId => _selectedCountryId;
+    public IReadOnlyDictionary<string, CountryData> Countries => _countries;
+    public string HoveredCountryId => _hoveredCountryId;
+
+    // Test mode fields (Phase 5)
+    public bool TestMode { get; set; } = false;
+    public (string name, double lon, double lat)[] TestCases { get; set; }
+    public int TestIndex { get; set; } = 0;
+    public int TestPhase { get; set; } = 0; // 0=send click, 1=check result, 2=deselect, 3=delay
+    public float TestTimer { get; set; } = 0f;
+
+    // 12 Reference points for alignment verification
+    private static readonly (string name, double lon, double lat)[] ReferencePoints =
+    {
+        ("Istanbul", 28.97, 41.01),
+        ("London", -0.13, 51.51),
+        ("Cairo", 31.24, 30.04),
+        ("Cape Town", 18.42, -33.92),
+        ("Tokyo", 139.69, 35.69),
+        ("Sydney", 151.21, -33.87),
+        ("Rio", -43.17, -22.91),
+        ("New York", -74.00, 40.71),
+        ("Moscow", 37.62, 55.75),
+        ("Singapore", 103.85, 1.29),
+        ("Reykjavik", -21.90, 64.15),
+        ("Panama City", -79.52, 8.98),
+    };
+
+    // ===== PHASE 4: Country Fills & Borders =====
+    // Country data structure
+    public sealed class CountryData
+    {
+        public string Id;
+        public string Name;
+        public float[] Bbox; // [minX, minY, maxX, maxY] in texture pixels
+        public List<List<float[]>> Polygons; // Each polygon: list of [x,y] points (exterior + holes flattened)
+        public List<int> PolygonSizes; // Number of points per polygon (for reconstruction)
+        public Vector2 LabelPoint;
+        public float Area;
+        public Color FillColor;
+        public Color BorderColor = new Color("#0E141B");
+        public MeshInstance2D FillMesh;
+        public Line2D BorderLine;
+        public bool Selected = false;
+        public bool Hovered = false;
+    }
+
+    // 24-color muted earth-tone palette (HOI4 style)
+    private static readonly Color[] CountryPalette = new Color[]
+    {
+        new Color("#8B7355"), new Color("#7A8A6D"), new Color("#9A7B5E"), new Color("#7D5F4D"),
+        new Color("#6B8A9C"), new Color("#8A6E8C"), new Color("#5D9A7A"), new Color("#8A9A5E"),
+        new Color("#6B7BA8"), new Color("#9A7C5E"), new Color("#7A8F6E"), new Color("#8F6E5F"),
+        new Color("#5C7A8F"), new Color("#9A8E6B"), new Color("#6E6B8F"), new Color("#8F7A6B"),
+        new Color("#4F6E5A"), new Color("#7A6E8F"), new Color("#8E8A7A"), new Color("#6E8F8A"),
+        new Color("#9C6B5A"), new Color("#5C8F6B"), new Color("#8F8A6E"), new Color("#6B5E52"),
+    };
+
+    private const string CountriesDataPath = "res://Data/map/v5/countries_lonlat.json";
+    private readonly Dictionary<string, CountryData> _countries = new();
+    private int _drawnCountryCount = 0;
+    private int _skippedRingCount = 0;
+
+    // Input handling
+    private const float DRAG_THRESHOLD = 5f; // Pixels to distinguish click from drag
+
+    public override void _Ready()
+    {
+        Instance = this;
+
+        // Set window size for screenshot tests (must be done early)
+        ApplyWindowSizeForShot();
+
+        // Create node hierarchy
+        CreateSceneTree();
+
+        // Load background texture
+        LoadBackground();
+
+        // Setup camera
+        SetupCamera();
+
+        // Setup UI canvas (debug overlay)
+        SetupUICanvas();
+
+        // Input handling
+        Input.MouseMode = Input.MouseModeEnum.Visible;
+
+        GD.Print("WorldMapV5: Ready");
+    }
+
+    private void ApplyWindowSizeForShot()
+    {
+        string shotName = GameManager.V5ShotName;
+        if (shotName == null) return;
+
+        // Extract size suffix (e.g., "1143x672", "1280x720", "1920x1080") from shot name
+        Vector2I size = new Vector2I(1280, 720); // Default
+        var parts = shotName.Split('_');
+        string sizePart = parts[parts.Length - 1]; // Last part after last underscore
+        if (sizePart.Contains('x'))
+        {
+            var wh = sizePart.Split('x');
+            if (wh.Length == 2 && int.TryParse(wh[0], out int w) && int.TryParse(wh[1], out int h))
+            {
+                size = new Vector2I(w, h);
+            }
+        }
+
+        DisplayServer.WindowSetSize(size);
+        GD.Print($"WorldMapV5: Window size set to {size.X}x{size.Y} for shot: {shotName}");
+
+        // Set camera position and zoom for specific scenarios
+        SetupCameraForShot(shotName);
+    }
+
+    private void SetupCameraForShot(string shotName)
+    {
+        // Camera setup will be applied in InitializeCamera after texture loads
+        // Store the shot name for later use
+        _pendingShotName = shotName;
+    }
+
+    private string _pendingShotName = null;
+
+    private void ApplyShotCameraSettings()
+    {
+        if (string.IsNullOrEmpty(_pendingShotName)) return;
+
+        var viewport = GetViewport();
+        var viewportSize = viewport.GetVisibleRect().Size;
+
+        string shotName = _pendingShotName;
+
+        if (shotName.StartsWith("world_"))
+        {
+            // Full world - already centered at cover zoom
+        }
+        else if (shotName.StartsWith("cover_"))
+        {
+            // Handle corner panning for cover tests: cover_tl_WxH, cover_tr_WxH, cover_bl_WxH, cover_br_WxH
+            // Also handle centered: cover_WxH
+            string afterCover = shotName.Substring(6); // e.g., "tl_1280x720" or "1280x720"
+            string corner = "center";
+            if (afterCover.Length >= 3 && afterCover[2] == '_')
+            {
+                corner = afterCover.Substring(0, 2); // tl, tr, bl, br
+            }
+
+            var vp = GetViewport();
+            var vpSize = vp.GetVisibleRect().Size;
+            Vector2 visibleWorld = vpSize / _camera.Zoom.X;
+            float halfW = visibleWorld.X / 2f;
+            float halfH = visibleWorld.Y / 2f;
+
+            float targetX, targetY;
+            switch (corner)
+            {
+                case "tl": // Top-left
+                    targetX = halfW;
+                    targetY = halfH;
+                    break;
+                case "tr": // Top-right
+                    targetX = _textureSize.X - halfW;
+                    targetY = halfH;
+                    break;
+                case "bl": // Bottom-left
+                    targetX = halfW;
+                    targetY = _textureSize.Y - halfH;
+                    break;
+                case "br": // Bottom-right
+                    targetX = _textureSize.X - halfW;
+                    targetY = _textureSize.Y - halfH;
+                    break;
+                default: // center
+                    targetX = _textureSize.X / 2f;
+                    targetY = _textureSize.Y / 2f;
+                    break;
+            }
+            _camera.Position = new Vector2(targetX, targetY);
+            GD.Print($"Cover corner pan: {corner} -> Pos=({targetX:F1},{targetY:F1})");
+        }
+        else if (shotName.StartsWith("europe_"))
+        {
+            // Europe/Middle East: center around (30°E, 45°N), zoom ~0.5
+            _camera.Position = MapProjectionV5.LonLatToWorld(30, 45);
+            _camera.Zoom = new Vector2(0.5f, 0.5f);
+        }
+        else if (shotName.StartsWith("istanbul_"))
+        {
+            // Istanbul/Bosporus: center around (29°E, 41°N), zoom ~1.5
+            _camera.Position = MapProjectionV5.LonLatToWorld(29, 41);
+            _camera.Zoom = new Vector2(1.5f, 1.5f);
+        }
+        else if (shotName.StartsWith("uk_"))
+        {
+            // UK: center around (0°, 54°N), zoom ~1.0
+            _camera.Position = MapProjectionV5.LonLatToWorld(0, 54);
+            _camera.Zoom = new Vector2(1.0f, 1.0f);
+        }
+        else if (shotName.StartsWith("japan_"))
+        {
+            // Japan: center around (137°E, 36°N), zoom ~1.0
+            _camera.Position = MapProjectionV5.LonLatToWorld(137, 36);
+            _camera.Zoom = new Vector2(1.0f, 1.0f);
+        }
+
+        // Clamp zoom to valid range
+        float clampedZoom = Mathf.Clamp(_camera.Zoom.X, _minZoom, MAX_ZOOM);
+        _camera.Zoom = new Vector2(clampedZoom, clampedZoom);
+
+        UpdateCameraLimits();
+        ClampCamera();
+
+        GD.Print($"WorldMapV5: Shot camera applied for {_pendingShotName}: Pos={_camera.Position}, Zoom={_camera.Zoom.X:F4}");
+        _pendingShotName = null;
+    }
+
+    private void CreateSceneTree()
+    {
+        // WorldRoot: single Node2D containing ALL world-space content
+        _worldRoot = new Node2D();
+        _worldRoot.Name = "WorldRoot";
+        AddChild(_worldRoot);
+
+        // Background sprite (will be added to WorldRoot after texture loads)
+        _background = new Sprite2D();
+        _background.Name = "Background";
+        _background.Centered = false; // Top-left at (0,0)
+        _background.Position = Vector2.Zero;
+        _background.Scale = Vector2.One;
+
+        // Camera2D for map navigation
+        _camera = new Camera2D();
+        _camera.Name = "MapCamera";
+        _camera.Zoom = Vector2.One;
+        _worldRoot.AddChild(_camera);
+        _camera.MakeCurrent();
+
+        // Debug draw node: draws graticule, coastline, reference points in world space
+        _debugDrawNode = new DebugDrawNode();
+        _debugDrawNode.Name = "DebugDraw";
+        _worldRoot.AddChild(_debugDrawNode);
+        (_debugDrawNode as DebugDrawNode).Initialize(this);
+
+        // UI CanvasLayer: ONLY for debug overlay, NOT for map content
+        _uiCanvas = new CanvasLayer();
+        _uiCanvas.Name = "UICanvas";
+        _uiCanvas.Layer = 100; // Above everything
+        AddChild(_uiCanvas);
+    }
+
+    private void LoadBackground()
+    {
+        var texture = GD.Load<Texture2D>(BackgroundTexturePath);
+        if (texture == null)
+        {
+            GD.PrintErr($"WorldMapV5: CRITICAL - Failed to load background texture: {BackgroundTexturePath}");
+            // Create placeholder size
+            _textureSize = new Vector2(10800, 5400);
+            return;
+        }
+
+        _background.Texture = texture;
+        _textureSize = new Vector2(texture.GetWidth(), texture.GetHeight());
+        _worldRoot.AddChild(_background);
+
+        GD.Print($"WorldMapV5: Background loaded: {_textureSize.X}x{_textureSize.Y}");
+
+        // Initialize MapProjectionV5 with measured texture bounds
+        MapProjectionV5.Initialize((int)_textureSize.X, (int)_textureSize.Y);
+
+        GD.Print("[WorldMapV5] Starting LoadCountries...");
+        LoadCountries();
+        GD.Print($"[WorldMapV5] LoadCountries completed. Countries count: {_countries.Count}");
+
+        // Calculate min zoom (cover mode) after we know viewport size
+        // This will be finalized in _Process after first frame
+    }
+
+    // ===== PHASE 4: Load Countries from JSON =====
+    private void LoadCountries()
+    {
+        if (!ResourceLoader.Exists(CountriesDataPath))
+        {
+            GD.PrintErr($"WorldMapV5: Countries data not found at {CountriesDataPath}");
+            return;
+        }
+
+        var json = FileAccess.GetFileAsString(CountriesDataPath);
+        if (string.IsNullOrEmpty(json))
+        {
+            GD.PrintErr("WorldMapV5: Empty countries JSON");
+            return;
+        }
+
+        var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        if (!root.TryGetProperty("countries", out var countriesArray))
+        {
+            GD.PrintErr("WorldMapV5: No 'countries' array in JSON");
+            return;
+        }
+
+        int loaded = 0;
+        int paletteIndex = 0;
+
+        foreach (var countryElem in countriesArray.EnumerateArray())
+        {
+            var bboxLonLat = ParseFloatArray(countryElem.GetProperty("bbox")); // [minLon, minLat, maxLon, maxLat]
+            
+            // Convert bbox from lon/lat to world pixels
+            // MapProjectionV5.LonLatToWorld: lon [-180,180] -> x [0, imgW], lat [90,-90] -> y [0, imgH]
+            // So minLat (more south) -> larger Y, maxLat (more north) -> smaller Y
+            var bottomLeft = MapProjectionV5.LonLatToWorld(bboxLonLat[0], bboxLonLat[1]); // minLon, minLat -> maxY
+            var topRight = MapProjectionV5.LonLatToWorld(bboxLonLat[2], bboxLonLat[3]);   // maxLon, maxLat -> minY
+            
+            // World pixels: minX, minY, maxX, maxY
+            var bboxWorld = new float[] { 
+                bottomLeft.X,    // minX
+                topRight.Y,      // minY (north = smaller Y)
+                topRight.X,      // maxX
+                bottomLeft.Y     // maxY (south = larger Y)
+            }; 
+            
+            // Debug first few countries
+            if (loaded < 5)
+            {
+                GD.Print($"[BBox] {countryElem.GetProperty("id").GetString()}: LonLat=[{bboxLonLat[0]:F2},{bboxLonLat[1]:F2},{bboxLonLat[2]:F2},{bboxLonLat[3]:F2}] -> World=[{bboxWorld[0]:F1},{bboxWorld[1]:F1},{bboxWorld[2]:F1},{bboxWorld[3]:F1}]");
+            }
+            
+            var country = new CountryData
+            {
+                Id = countryElem.GetProperty("id").GetString() ?? "?",
+                Name = countryElem.GetProperty("name").GetString() ?? "?",
+                Bbox = bboxWorld, // Now in world pixels: [minX, minY, maxX, maxY]
+                Polygons = ParsePolygons(countryElem.GetProperty("polygons")),
+                LabelPoint = new Vector2(
+                    countryElem.GetProperty("label_point")[0].GetSingle(),
+                    countryElem.GetProperty("label_point")[1].GetSingle()
+                ),
+                Area = countryElem.GetProperty("area").GetSingle(),
+            };
+
+            // Assign palette color (hash-based for consistency)
+            country.FillColor = CountryPalette[paletteIndex % CountryPalette.Length];
+            country.FillColor = new Color(country.FillColor.R, country.FillColor.G, country.FillColor.B, 0.5f); // ~50% alpha
+            paletteIndex++;
+
+            _countries[country.Id] = country;
+            loaded++;
+        }
+
+        GD.Print($"WorldMapV5: Loaded {loaded} countries from {CountriesDataPath}");
+
+        // Create visual meshes for all countries
+        CreateCountryMeshes();
+    }
+
+    private float[] ParseFloatArray(JsonElement elem)
+    {
+        var arr = new float[elem.GetArrayLength()];
+        int i = 0;
+        foreach (var v in elem.EnumerateArray())
+        {
+            arr[i++] = v.GetSingle();
+        }
+        return arr;
+    }
+
+    private List<List<float[]>> ParsePolygons(JsonElement elem)
+    {
+        var polygons = new List<List<float[]>>();
+        try
+        {
+            foreach (var polyElem in elem.EnumerateArray())
+            {
+                // Handle both formats:
+                // 1. Array of rings (flat): [[x,y], [x,y], ...]
+                // 2. Polygon feature with exterior/holes: {exterior: [...], holes: [...]}
+                if (polyElem.ValueKind == JsonValueKind.Array)
+                {
+                    // Format 1: flat ring
+                    var ring = new List<float[]>();
+                    foreach (var pointElem in polyElem.EnumerateArray())
+                    {
+                        var coords = pointElem.EnumerateArray().ToArray();
+                        ring.Add(new float[] { coords[0].GetSingle(), coords[1].GetSingle() });
+                    }
+                    polygons.Add(ring);
+                }
+                else if (polyElem.ValueKind == JsonValueKind.Object)
+                {
+                    // Format 2: polygon feature with exterior/holes
+                    if (polyElem.TryGetProperty("exterior", out var extElem))
+                    {
+                        var extRing = new List<float[]>();
+                        foreach (var pointElem in extElem.EnumerateArray())
+                        {
+                            var coords = pointElem.EnumerateArray().ToArray();
+                            extRing.Add(new float[] { coords[0].GetSingle(), coords[1].GetSingle() });
+                        }
+                        polygons.Add(extRing);
+                    }
+                    // Also add holes
+                    if (polyElem.TryGetProperty("holes", out var holesElem))
+                    {
+                        foreach (var holeElem in holesElem.EnumerateArray())
+                        {
+                            var holeRing = new List<float[]>();
+                            foreach (var pointElem in holeElem.EnumerateArray())
+                            {
+                                var coords = pointElem.EnumerateArray().ToArray();
+                                holeRing.Add(new float[] { coords[0].GetSingle(), coords[1].GetSingle() });
+                            }
+                            polygons.Add(holeRing);
+                        }
+                    }
+                }
+            }
+        }
+        catch (System.Exception e)
+        {
+            GD.PrintErr($"[ParsePolygons] Error: {e.Message}");
+        }
+        return polygons;
+    }
+
+    // ===== PHASE 4: Create Country Meshes (Triangulation + Borders) =====
+    private void CreateCountryMeshes()
+    {
+        _drawnCountryCount = 0;
+        _skippedRingCount = 0;
+
+        foreach (var kvp in _countries)
+        {
+            var country = kvp.Value;
+            try
+            {
+                CreateCountryFillMesh(country);
+                CreateCountryBorderLine(country);
+                _drawnCountryCount++;
+            }
+            catch (System.Exception e)
+            {
+                GD.PrintErr($"WorldMapV5: Failed to create mesh for {country.Id}: {e.Message}");
+            }
+        }
+
+        GD.Print($"WorldMapV5: Created meshes for {_drawnCountryCount} countries, skipped {_skippedRingCount} rings");
+    }
+
+    private void CreateCountryFillMesh(CountryData country)
+    {
+        // We'll use Polygon2D for fill (simpler than ArrayMesh for this use case)
+        // Each polygon (exterior + holes) becomes a separate Polygon2D
+        // For holes, we use the Polygon2D's ability to handle holes via inverse winding
+
+        var fillNode = new Node2D();
+        fillNode.Name = $"Fill_{country.Id}";
+        _worldRoot.AddChild(fillNode);
+
+        // For countries with multiple polygons (e.g., islands), we create one Polygon2D per polygon
+        // Each polygon entry in the JSON has exterior and holes combined in PolygonSizes
+        // The JSON structure: polygons array where each item is a flat list of [x,y,x,y,...]
+        // First polygonSizes[0] points = exterior, then holes follow
+        // Actually, the JSON format from v5_export.py is: polygons[ {exterior: [...], holes: [...]} ]
+
+        // Re-parse the polygons from the stored data
+        // Since we stored as List<List<float[]>>, each inner list is a flat ring of points
+        // But we need to know which are exteriors vs holes
+
+        // For simplicity, let's re-load the raw polygon data from JSON
+        // Actually, we can reconstruct from the stored Polygons list
+        // Each entry in Polygons is a ring (exterior or hole)
+        // The original JSON has exterior + holes per polygon feature
+
+        // Better approach: re-read the JSON for this country
+        var json = FileAccess.GetFileAsString(CountriesDataPath);
+        var doc = JsonDocument.Parse(json);
+        var countriesArray = doc.RootElement.GetProperty("countries");
+
+        foreach (var c in countriesArray.EnumerateArray())
+        {
+            if (c.GetProperty("id").GetString() == country.Id)
+            {
+                if (c.TryGetProperty("polygons", out var polysElem))
+                {
+                    int polyIdx = 0;
+                    foreach (var polyElem in polysElem.EnumerateArray())
+                    {
+                        // Each polygon feature has exterior and holes
+                        if (polyElem.TryGetProperty("exterior", out var extElem) &&
+                            polyElem.TryGetProperty("holes", out var holesElem))
+                        {
+                            var exterior = ParseRing(extElem);
+                            var holes = new List<Vector2[]>();
+                            foreach (var holeElem in holesElem.EnumerateArray())
+                            {
+                                holes.Add(ParseRing(holeElem));
+                            }
+
+                            // Use exterior directly with Polygon2D (Godot handles concave polygons internally)
+                            var fillPoly = new Polygon2D();
+                            fillPoly.Polygon = exterior;
+                            fillPoly.Color = country.FillColor;
+                            fillNode.AddChild(fillPoly);
+
+                            // Add holes as separate Polygon2D with inverse winding
+                            if (holes.Count > 0)
+                            {
+                                foreach (var hole in holes)
+                                {
+                                    var holePoly = new Polygon2D();
+                                    holePoly.Polygon = hole;
+                                    holePoly.Color = country.FillColor;
+                                    fillNode.AddChild(holePoly);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Fallback: treat as simple polygon
+                            var ring = ParseRing(polyElem);
+                            if (ring.Length >= 3)
+                            {
+                                var poly2D = new Polygon2D();
+                                poly2D.Polygon = ring;
+                                poly2D.Color = country.FillColor;
+                                fillNode.AddChild(poly2D);
+                            }
+                        }
+                        polyIdx++;
+                    }
+                }
+                break; // Found our country
+            }
+        }
+    }
+
+    private Vector2[] ParseRing(JsonElement elem)
+    {
+        var points = new List<Vector2>();
+        foreach (var pointElem in elem.EnumerateArray())
+        {
+            var coords = pointElem.EnumerateArray().ToArray();
+            points.Add(new Vector2(coords[0].GetSingle(), coords[1].GetSingle()));
+        }
+        return points.ToArray();
+    }
+
+    private void CreateCountryBorderLine(CountryData country)
+    {
+        var borderNode = new Line2D();
+        borderNode.Name = $"Border_{country.Id}";
+        borderNode.DefaultColor = country.BorderColor;
+        borderNode.Width = 1.0f; // Base width, will be scaled by zoom in _Process
+        borderNode.Antialiased = true;
+        borderNode.ZIndex = 1; // Above fills
+        _worldRoot.AddChild(borderNode);
+        country.BorderLine = borderNode;
+
+        // Re-read JSON for this country's exterior rings
+        var json = FileAccess.GetFileAsString(CountriesDataPath);
+        var doc = JsonDocument.Parse(json);
+        var countriesArray = doc.RootElement.GetProperty("countries");
+
+        foreach (var c in countriesArray.EnumerateArray())
+        {
+            if (c.GetProperty("id").GetString() == country.Id)
+            {
+                if (c.TryGetProperty("polygons", out var polysElem))
+                {
+                    var allPoints = new List<Vector2>();
+                    bool first = true;
+                    foreach (var polyElem in polysElem.EnumerateArray())
+                    {
+                        if (polyElem.TryGetProperty("exterior", out var extElem))
+                        {
+                            var exterior = ParseRing(extElem);
+                            if (exterior.Length >= 2)
+                            {
+                                if (!first)
+                                {
+                                    allPoints.Add(new Vector2(float.NaN, float.NaN)); // Break line
+                                }
+                                allPoints.AddRange(exterior);
+                                first = false;
+                            }
+                        }
+                    }
+                    if (allPoints.Count > 0)
+                    {
+                        borderNode.Points = allPoints.ToArray();
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    // Debug visualization drawing (Phase 3)
+    private void QueueDebugRedraw()
+    {
+        if (_debugDrawNode != null)
+        {
+            _debugDrawNode.QueueRedraw();
+        }
+    }
+
+    // Called by debug draw node to draw graticule, coastline, reference points
+    private void DrawDebugOverlay()
+    {
+        if (_debugDrawNode == null) return;
+
+        // Only draw if debug mode is on and at least one layer is enabled
+        if (!_debugMode || (!_showGraticule && !_showCoastline && !_showReferencePoints))
+            return;
+
+        var draw = _debugDrawNode;
+        var texW = _textureSize.X;
+        var texH = _textureSize.Y;
+
+        // Colors
+        Color graticuleColor = new Color(1.0f, 1.0f, 1.0f, 0.15f);  // White, semi-transparent
+        Color graticuleMajorColor = new Color(1.0f, 1.0f, 1.0f, 0.25f); // Major lines (0, ±30, ±60, ±90)
+        Color coastlineColor = new Color(1.0f, 0.3f, 0.3f, 0.6f);  // Red for coastline
+        Color refPointColor = new Color(1.0f, 0.0f, 0.0f, 1.0f);   // Red for reference points
+        Color refLabelColor = new Color(1.0f, 1.0f, 1.0f, 0.9f);   // White for labels
+
+        // Line widths (in world pixels, will scale with zoom)
+        float graticuleWidth = 0.5f;
+        float graticuleMajorWidth = 1.0f;
+        float coastlineWidth = 1.0f;
+        float refPointRadius = 4.0f;
+
+        // ===== GRATICULE (30° grid) =====
+        if (_showGraticule)
+        {
+            // Meridians (longitude lines) every 30°
+            for (double lon = -180; lon <= 180; lon += 30)
+            {
+                bool isMajor = (lon == 0 || lon == 180 || lon == -180 || lon == 90 || lon == -90 || lon == 60 || lon == -60 || lon == 120 || lon == -120);
+                var color = isMajor ? graticuleMajorColor : graticuleColor;
+                float width = isMajor ? graticuleMajorWidth : graticuleWidth;
+
+                Vector2 p1 = MapProjectionV5.LonLatToWorld(lon, 90);
+                Vector2 p2 = MapProjectionV5.LonLatToWorld(lon, -90);
+                draw.DrawLine(p1, p2, color, width);
+            }
+
+            // Parallels (latitude lines) every 30°
+            for (double lat = -90; lat <= 90; lat += 30)
+            {
+                bool isMajor = (lat == 0 || lat == 90 || lat == -90 || lat == 60 || lat == -60 || lat == 30 || lat == -30);
+                var color = isMajor ? graticuleMajorColor : graticuleColor;
+                float width = isMajor ? graticuleMajorWidth : graticuleWidth;
+
+                Vector2 p1 = MapProjectionV5.LonLatToWorld(-180, lat);
+                Vector2 p2 = MapProjectionV5.LonLatToWorld(180, lat);
+                draw.DrawLine(p1, p2, color, width);
+            }
+        }
+
+        // ===== COASTLINE OVERLAY =====
+        if (_showCoastline)
+        {
+            // Draw country borders as coastline approximation
+            // This uses the country polygons from countries_lonlat.json if available
+            // For now, draw a simple coast outline from the texture edge detection
+            // TODO: Load actual coastline from NE coastline data
+            // Placeholder: draw texture border as reference
+            draw.DrawRect(new Rect2(0, 0, texW, texH), coastlineColor, false, coastlineWidth);
+        }
+
+        // ===== REFERENCE POINTS =====
+        if (_showReferencePoints)
+        {
+            foreach (var (name, lon, lat) in ReferencePoints)
+            {
+                Vector2 pos = MapProjectionV5.LonLatToWorld(lon, lat);
+
+                // Draw red dot
+                draw.DrawCircle(pos, refPointRadius, refPointColor);
+
+                // Draw crosshair
+                float crossSize = refPointRadius * 2;
+                draw.DrawLine(pos + new Vector2(-crossSize, 0), pos + new Vector2(crossSize, 0), refPointColor, 1.5f);
+                draw.DrawLine(pos + new Vector2(0, -crossSize), pos + new Vector2(0, crossSize), refPointColor, 1.5f);
+
+                // Draw label (name + coordinates)
+                string label = $"{name} ({lon:F2}°, {lat:F2}°)";
+                // Note: Drawing text in _Draw requires font - skip for now, use debug label instead
+            }
+        }
+    }
+
+    private void SetupCamera()
+    {
+        // Camera limits will be set in UpdateCameraLimits() after we know viewport size
+        _camera.LimitLeft = 0;
+        _camera.LimitTop = 0;
+        _camera.LimitRight = (int)_textureSize.X;
+        _camera.LimitBottom = (int)_textureSize.Y;
+    }
+
+    private void SetupUICanvas()
+    {
+        // Debug label
+        _debugLabel = new Label();
+        _debugLabel.Name = "DebugLabel";
+        _debugLabel.HorizontalAlignment = HorizontalAlignment.Left;
+        _debugLabel.VerticalAlignment = VerticalAlignment.Top;
+        _debugLabel.Position = new Vector2(10, 10);
+        _debugLabel.Size = new Vector2(400, 200);
+        _debugLabel.AddThemeColorOverride("font_color", Colors.White);
+        _debugLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
+        _debugLabel.AddThemeConstantOverride("outline_size", 2);
+        _debugLabel.Text = "WorldMapV5 Debug\nWaiting for viewport...";
+        _debugLabel.Visible = _debugMode;
+        _uiCanvas.AddChild(_debugLabel);
+
+        // Instructions label
+        var instructions = new Label();
+        instructions.Name = "Instructions";
+        instructions.HorizontalAlignment = HorizontalAlignment.Left;
+        instructions.VerticalAlignment = VerticalAlignment.Bottom;
+        instructions.Position = new Vector2(10, -120);
+        instructions.Size = new Vector2(500, 100);
+        instructions.AddThemeColorOverride("font_color", Colors.LightGray);
+        instructions.AddThemeColorOverride("font_outline_color", Colors.Black);
+        instructions.AddThemeConstantOverride("outline_size", 1);
+        instructions.Text = "Controls: Wheel=Zoom (cursor-anchored) | RMB Drag=Pan | WASD/Arrows=Pan | F3=Toggle Debug | F11=Screenshot";
+        instructions.Visible = _debugMode;
+        _uiCanvas.AddChild(instructions);
+    }
+
+    public override void _Process(double delta)
+    {
+        // Test mode execution (Phase 5)
+        if (TestMode)
+        {
+            RunTestStep(delta);
+            return;
+        }
+
+        // On first frame, calculate min zoom and center camera
+        if (_minZoom == 0f && _textureSize.X > 0)
+        {
+            InitializeCamera();
+        }
+
+        // Update border line widths based on zoom (0.5-2px on screen)
+        UpdateBorderWidths();
+
+        // Handle country hover (mouse motion)
+        HandleCountryHover();
+
+        // Update debug label
+        if (_debugMode && _debugLabel != null)
+        {
+            UpdateDebugLabel();
+        }
+    }
+
+    private void RunTestStep(double delta)
+    {
+        if (TestCases == null || TestIndex >= TestCases.Length)
+        {
+            GD.Print("=== Country Selection Test Complete ===");
+            TestMode = false;
+            GetTree().Quit();
+            return;
+        }
+
+        var currentTest = TestCases[TestIndex];
+        var viewport = GetViewport();
+        var viewportSize = viewport.GetVisibleRect().Size;
+        var worldPos = MapProjectionV5.LonLatToWorld(currentTest.lon, currentTest.lat);
+        var screenPos = MapProjectionV5.WorldToScreen(worldPos, Camera, viewportSize);
+
+        switch (TestPhase)
+        {
+            case 0: // Send click event
+                GD.Print($"[Test] Running test {TestIndex + 1}/{TestCases.Length}: {currentTest.name}");
+
+                var inputEvent = new InputEventMouseButton
+                {
+                    Position = new Vector2((float)screenPos.X, (float)screenPos.Y),
+                    ButtonIndex = MouseButton.Left,
+                    Pressed = true
+                };
+                _UnhandledInput(new InputEventMouseButton
+                {
+                    Position = new Vector2((float)screenPos.X, (float)screenPos.Y),
+                    ButtonIndex = MouseButton.Left,
+                    Pressed = true
+                });
+                GD.Print($"[Test] Sending click event for {currentTest.name} at screen=({screenPos.X:F1},{screenPos.Y:F1})");
+                TestPhase = 1;
+                break;
+
+            case 1: // Check result
+            {
+                var selectedId = SelectedCountryId;
+                var selectedName = selectedId != null && Countries.TryGetValue(selectedId, out var c) ? c.Name : "None";
+
+                var viewport2 = GetViewport();
+                var viewportSize2 = viewport2.GetVisibleRect().Size;
+                var worldPos2 = MapProjectionV5.LonLatToWorld(currentTest.lon, currentTest.lat);
+                var screenPos2 = MapProjectionV5.WorldToScreen(worldPos2, Camera, viewportSize2);
+
+                var selectedId2 = SelectedCountryId;
+                var selectedName2 = selectedId2 != null && Countries.TryGetValue(selectedId2, out var c2) ? c2.Name : "None";
+
+                GD.Print($"TEST {currentTest.name}: Screen=({screenPos2.X:F1},{screenPos2.Y:F1}) World=({worldPos2.X:F1},{worldPos2.Y:F1}) LonLat=({currentTest.lon:F2},{currentTest.lat:F2}) -> Selected: {selectedName2} (ID: {selectedId2 ?? "null"})");
+
+                // Deselect for next test
+                if (selectedId2 != null)
+                {
+                    _UnhandledInput(new InputEventMouseButton
+                    {
+                        Position = new Vector2(-100, -100),
+                        ButtonIndex = MouseButton.Left,
+                        Pressed = true
+                    });
+                    GD.Print($"[Test] Sent deselect event");
+                }
+                TestPhase = 2;
+                break;
+            }
+
+            case 2: // Delay before next test
+                TestPhase = 0;
+                TestIndex++;
+                break;
+        }
+    }
+
+    private void UpdateBorderWidths()
+    {
+        // Border width in screen pixels: 0.5 to 2px based on zoom
+        // At min zoom (cover): ~0.5px, at max zoom: ~2px
+        float screenWidth = 0.5f + 1.5f * (_camera.Zoom.X - _minZoom) / (MAX_ZOOM - _minZoom);
+        screenWidth = Mathf.Clamp(screenWidth, 0.5f, 2.0f);
+
+        // Convert to world pixels
+        float worldWidth = screenWidth / _camera.Zoom.X;
+
+        foreach (var country in _countries.Values)
+        {
+            if (country.BorderLine != null)
+            {
+                country.BorderLine.Width = worldWidth;
+            }
+        }
+    }
+
+    private void HandleCountryHover()
+    {
+        var mouseScreen = GetViewport().GetMousePosition();
+        var mouseWorld = ScreenToWorld(mouseScreen);
+
+        // Quick bbox check first
+        string hoveredId = null;
+        float bestArea = float.MaxValue;
+
+        foreach (var kvp in _countries)
+        {
+            var country = kvp.Value;
+            if (country.Bbox != null && country.Bbox.Length == 4)
+            {
+                if (mouseWorld.X >= country.Bbox[0] && mouseWorld.X <= country.Bbox[2] &&
+                    mouseWorld.Y >= country.Bbox[1] && mouseWorld.Y <= country.Bbox[3])
+                {
+                    // Point in bbox - do precise polygon test
+                    if (IsPointInCountry(mouseWorld, country))
+                    {
+                        if (country.Area < bestArea)
+                        {
+                            bestArea = country.Area;
+                            hoveredId = country.Id;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Update hover state
+        if (hoveredId != _hoveredCountryId)
+        {
+            // Clear previous hover
+            if (_hoveredCountryId != null && _countries.TryGetValue(_hoveredCountryId, out var prevCountry))
+            {
+                prevCountry.Hovered = false;
+                UpdateCountryVisual(prevCountry);
+            }
+
+            _hoveredCountryId = hoveredId;
+
+            // Set new hover
+            if (_hoveredCountryId != null && _countries.TryGetValue(_hoveredCountryId, out var newCountry))
+            {
+                newCountry.Hovered = true;
+                UpdateCountryVisual(newCountry);
+            }
+        }
+    }
+
+
+        private bool IsPointInCountry(Vector2 point, CountryData country)
+    {
+        // Convert world pixel point to lon/lat for polygon test
+        // Polygons in JSON are in lon/lat coordinates
+        var (lon, lat) = MapProjectionV5.WorldToLonLat(point);
+        var lonLatPoint = new Vector2((float)lon, (float)lat);
+        
+        GD.Print($"[IsPointInCountry] Testing point ({lon:F4}, {lat:F4}) for country {country.Id}");
+        
+        // Re-read JSON for precise polygon test
+        // For performance, we could cache polygon data, but for now re-parse
+        var json = FileAccess.GetFileAsString(CountriesDataPath);
+        var doc = JsonDocument.Parse(json);
+        var countriesArray = doc.RootElement.GetProperty("countries");
+
+        foreach (var c in countriesArray.EnumerateArray())
+        {
+            var cid = c.GetProperty("id").GetString();
+            if (cid == country.Id)
+            {
+                GD.Print($"[IsPointInCountry] Found country {cid}, testing polygons...");
+                if (c.TryGetProperty("polygons", out var polysElem))
+                {
+                    int polyIdx = 0;
+                    foreach (var polyElem in polysElem.EnumerateArray())
+                    {
+                        if (polyElem.TryGetProperty("exterior", out var extElem))
+                        {
+                            var exterior = ParseRing(extElem);
+                            GD.Print($"[IsPointInCountry] Poly {polyIdx}: exterior has {exterior.Length} points, testing point ({lonLatPoint.X:F4},{lonLatPoint.Y:F4})");
+                            if (Geometry2D.IsPointInPolygon(lonLatPoint, exterior))
+                            {
+                                GD.Print($"[IsPointInCountry] Point INSIDE exterior of poly {polyIdx}");
+                                // Check holes
+                                if (polyElem.TryGetProperty("holes", out var holesElem))
+                                {
+                                    bool inHole = false;
+                                    foreach (var holeElem in holesElem.EnumerateArray())
+                                    {
+                                        var hole = ParseRing(holeElem);
+                                        if (Geometry2D.IsPointInPolygon(lonLatPoint, hole))
+                                        {
+                                            inHole = true;
+                                            GD.Print($"[IsPointInCountry] Point INSIDE hole, skipping");
+                                            break;
+                                        }
+                                    }
+                                    if (inHole) continue;
+                                }
+                                GD.Print($"[IsPointInCountry] HIT! Country {country.Id} contains point");
+                                return true;
+                            }
+                            else
+                            {
+                                GD.Print($"[IsPointInCountry] Point OUTSIDE poly {polyIdx}");
+                            }
+                        }
+                        polyIdx++;
+                    }
+                }
+                break;
+            }
+        }
+        GD.Print($"[IsPointInCountry] No hit for country {country.Id}");
+        return false;
+    }
+
+    private void UpdateCountryVisual(CountryData country)
+    {
+        // Update fill color based on state
+        if (country.FillMesh == null) return;
+
+        Color targetColor = country.FillColor;
+        if (country.Selected)
+        {
+            // Selected: brighter, more opaque
+            targetColor = new Color(
+                Mathf.Min(1.0f, country.FillColor.R * 1.3f),
+                Mathf.Min(1.0f, country.FillColor.G * 1.3f),
+                Mathf.Min(1.0f, country.FillColor.B * 1.3f),
+                0.7f
+            );
+        }
+        else if (country.Hovered)
+        {
+            // Hovered: slightly brighter
+            targetColor = new Color(
+                Mathf.Min(1.0f, country.FillColor.R * 1.15f),
+                Mathf.Min(1.0f, country.FillColor.G * 1.15f),
+                Mathf.Min(1.0f, country.FillColor.B * 1.15f),
+                0.6f
+            );
+        }
+
+        // Apply to all fill Polygon2D children
+        var fillNode = _worldRoot.GetNodeOrNull<Node2D>($"Fill_{country.Id}");
+        if (fillNode != null)
+        {
+            foreach (var child in fillNode.GetChildren())
+            {
+                if (child is Polygon2D poly)
+                {
+                    poly.Color = targetColor;
+                }
+            }
+        }
+
+        // Update border
+        if (country.BorderLine != null)
+        {
+            if (country.Selected)
+            {
+                country.BorderLine.DefaultColor = new Color("#FFD700"); // Gold
+                country.BorderLine.Width = country.BorderLine.Width * 2f; // Thicker
+            }
+            else if (country.Hovered)
+            {
+                country.BorderLine.DefaultColor = new Color("#FFFFFF"); // White
+            }
+            else
+            {
+                country.BorderLine.DefaultColor = country.BorderColor; // Default dark
+            }
+        }
+    }
+
+    private void InitializeCamera()
+    {
+        var viewport = GetViewport();
+        var viewportSize = viewport.GetVisibleRect().Size;
+
+        // Calculate cover zoom: map must FILL viewport (no gray bars)
+        float zoomX = viewportSize.X / _textureSize.X;
+        float zoomY = viewportSize.Y / _textureSize.Y;
+        _minZoom = Math.Max(zoomX, zoomY);
+
+        GD.Print($"WorldMapV5: Viewport={viewportSize}, Texture={_textureSize}, MinZoom(cover)={_minZoom:F4}");
+
+        // Set camera zoom to cover
+        _camera.Zoom = new Vector2(_minZoom, _minZoom);
+
+        // Center camera on world
+        _camera.Position = _textureSize / 2f;
+
+        // Update camera limits for this zoom level
+        UpdateCameraLimits();
+
+        // Force camera to respect limits
+        ClampCamera();
+
+        // Apply shot-specific camera settings
+        ApplyShotCameraSettings();
+    }
+
+    private void UpdateCameraLimits()
+    {
+        var viewport = GetViewport();
+        var viewportSize = viewport.GetVisibleRect().Size;
+
+        // Visible world rect at current zoom
+        Vector2 visibleWorld = viewportSize / _camera.Zoom.X;
+
+        // Camera position is center of visible area
+        // Limits: camera center cannot go beyond half visible world from edges
+        float halfW = visibleWorld.X / 2f;
+        float halfH = visibleWorld.Y / 2f;
+
+        // FIX: If visible world dimension > texture dimension, fix camera at texture center
+        // (texture fills viewport with overflow hidden, no gray bars possible)
+        float limitLeft, limitRight, limitTop, limitBottom;
+
+        if (visibleWorld.X >= _textureSize.X)
+        {
+            // Texture fits horizontally with overflow - fix camera at center
+            limitLeft = limitRight = _textureSize.X / 2f;
+        }
+        else
+        {
+            // Texture wider than viewport - camera can pan
+            limitLeft = halfW;
+            limitRight = _textureSize.X - halfW;
+        }
+
+        if (visibleWorld.Y >= _textureSize.Y)
+        {
+            // Texture fits vertically with overflow - fix camera at center
+            limitTop = limitBottom = _textureSize.Y / 2f;
+        }
+        else
+        {
+            // Texture taller than viewport - camera can pan
+            limitTop = halfH;
+            limitBottom = _textureSize.Y - halfH;
+        }
+
+        _camera.LimitLeft = (int)limitLeft;
+        _camera.LimitRight = (int)limitRight;
+        _camera.LimitTop = (int)limitTop;
+        _camera.LimitBottom = (int)limitBottom;
+
+        GD.Print($"[CamLimits] VisibleWorld={visibleWorld}, Tex={_textureSize}, Limits: L{limitLeft:F1} R{limitRight:F1} T{limitTop:F1} B{limitBottom:F1}");
+    }
+
+    private void ClampCamera()
+    {
+        Vector2 pos = _camera.Position;
+        pos.X = Mathf.Clamp(pos.X, _camera.LimitLeft, _camera.LimitRight);
+        pos.Y = Mathf.Clamp(pos.Y, _camera.LimitTop, _camera.LimitBottom);
+        _camera.Position = pos;
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        // UI Controls consume input first (MouseFilter.Stop on panels)
+        // Only handle input if not consumed by UI
+
+        // Wheel zoom (cursor-anchored)
+        if (@event is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.WheelUp && mb.Pressed)
+        {
+            HandleWheelZoom(1f / ZOOM_SPEED, mb.Position);
+            GetViewport().SetInputAsHandled();
+        }
+        else if (@event is InputEventMouseButton mb2 && mb2.ButtonIndex == MouseButton.WheelDown && mb2.Pressed)
+        {
+            HandleWheelZoom(ZOOM_SPEED, mb2.Position);
+            GetViewport().SetInputAsHandled();
+        }
+
+        // RMB drag pan
+        if (@event is InputEventMouseButton mb3 && mb3.ButtonIndex == MouseButton.Right)
+        {
+            if (mb3.Pressed)
+            {
+                _dragging = true;
+                _lastMousePos = mb3.Position;
+                GetViewport().SetInputAsHandled();
+            }
+            else
+            {
+                _dragging = false;
+            }
+        }
+
+        if (_dragging && @event is InputEventMouseMotion mm)
+        {
+            Vector2 delta = mm.Position - _lastMousePos;
+            if (delta.Length() > DRAG_THRESHOLD || _dragging)
+            {
+                // Convert screen delta to world delta (inverse of zoom)
+                Vector2 worldDelta = -delta / _camera.Zoom.X;
+                _camera.Position += worldDelta;
+                ClampCamera();
+                _lastMousePos = mm.Position;
+            }
+            GetViewport().SetInputAsHandled();
+        }
+
+        // LMB click - country selection
+        if (@event is InputEventMouseButton mb4 && mb4.ButtonIndex == MouseButton.Left && mb4.Pressed)
+        {
+            // Check if click is on UI (UI should have MouseFilter.Stop)
+            // Only handle if not over UI
+            var mouseScreen = mb4.Position;
+            var mouseWorld = ScreenToWorld(mouseScreen);
+            GD.Print($"[Click] Mouse world pos: ({mouseWorld.X:F1}, {mouseWorld.Y:F1})");
+
+            // Debug: check countries dict size
+            GD.Print($"[Click] Countries dict count: {_countries.Count}");
+
+            // Debug: check Turkey specifically
+            GD.Print($"[Click] Contains TUR: {_countries.ContainsKey("TUR")}");
+            if (_countries.TryGetValue("TUR", out var turkey))
+            {
+                GD.Print($"[Click] Turkey bbox: [{turkey.Bbox[0]:F1},{turkey.Bbox[1]:F1},{turkey.Bbox[2]:F1},{turkey.Bbox[3]:F1}]");
+                GD.Print($"[Click] Turkey contains point: X={mouseWorld.X:F1} in [{turkey.Bbox[0]:F1},{turkey.Bbox[2]:F1}]={mouseWorld.X >= turkey.Bbox[0] && mouseWorld.X <= turkey.Bbox[2]}, Y={mouseWorld.Y:F1} in [{turkey.Bbox[1]:F1},{turkey.Bbox[3]:F1}]={mouseWorld.Y >= turkey.Bbox[1] && mouseWorld.Y <= turkey.Bbox[3]}");
+            }
+            else
+            {
+                GD.Print($"[Click] TUR NOT FOUND in dictionary!");
+            }
+
+            // Find clicked country
+            string clickedId = null;
+            float bestArea = float.MaxValue;
+            int bboxHits = 0;
+
+            foreach (var kvp in _countries)
+            {
+                var country = kvp.Value;
+                if (country.Bbox != null && country.Bbox.Length == 4)
+                {
+                    if (mouseWorld.X >= country.Bbox[0] && mouseWorld.X <= country.Bbox[2] &&
+                        mouseWorld.Y >= country.Bbox[1] && mouseWorld.Y <= country.Bbox[3])
+                    {
+                        bboxHits++;
+                        GD.Print($"[Click] BBox hit: {country.Id} ({country.Bbox[0]:F1},{country.Bbox[1]:F1})-({country.Bbox[2]:F1},{country.Bbox[3]:F1})");
+                        if (IsPointInCountry(mouseWorld, country))
+                        {
+                            if (country.Area < bestArea)
+                            {
+                                bestArea = country.Area;
+                                clickedId = country.Id;
+                            }
+                        }
+                    }
+                }
+            }
+            GD.Print($"[Click] Total bbox hits: {bboxHits}, clicked: {clickedId ?? "none"}");
+
+            // Update selection
+            if (clickedId != _selectedCountryId)
+            {
+                // Clear previous selection
+                if (_selectedCountryId != null && _countries.TryGetValue(_selectedCountryId, out var prevCountry))
+                {
+                    prevCountry.Selected = false;
+                    UpdateCountryVisual(prevCountry);
+                }
+
+                _selectedCountryId = clickedId;
+
+                // Set new selection
+                if (_selectedCountryId != null && _countries.TryGetValue(_selectedCountryId, out var newCountry))
+                {
+                    newCountry.Selected = true;
+                    UpdateCountryVisual(newCountry);
+
+                    // Emit signal for UI integration
+                    EmitSignal(SignalName.CountrySelected, newCountry.Id, newCountry.Name);
+                    GD.Print($"WorldMapV5: Country selected: {newCountry.Name} ({newCountry.Id})");
+                }
+                else
+                {
+                    // Clicked on ocean/empty - deselect
+                    _selectedCountryId = null;
+                    EmitSignal(SignalName.CountryDeselected);
+                    GD.Print("WorldMapV5: Country deselected (clicked on ocean)");
+                }
+            }
+            else
+            {
+                // Clicked on same country - deselect
+                _selectedCountryId = null;
+                EmitSignal(SignalName.CountryDeselected);
+                GD.Print("WorldMapV5: Country deselected (clicked on same country)");
+            }
+
+            GetViewport().SetInputAsHandled();
+        }
+
+        // Keyboard pan (WASD / Arrow keys)
+        if (@event is InputEventKey key && key.Pressed && !key.Echo)
+        {
+            Vector2 dir = Vector2.Zero;
+            switch (key.Keycode)
+            {
+                case Key.W: case Key.Up: dir.Y = -1; break;
+                case Key.S: case Key.Down: dir.Y = 1; break;
+                case Key.A: case Key.Left: dir.X = -1; break;
+                case Key.D: case Key.Right: dir.X = 1; break;
+            }
+
+            if (dir != Vector2.Zero)
+            {
+                // Pan speed in world pixels per frame (adjusted for zoom)
+                float speed = PAN_SPEED_KEYBOARD * (float)GetProcessDeltaTime() / _camera.Zoom.X;
+                _camera.Position += dir * speed;
+                ClampCamera();
+                GetViewport().SetInputAsHandled();
+            }
+
+            // F3: Toggle debug mode
+            if (key.Keycode == Key.F3)
+            {
+                _debugMode = !_debugMode;
+                if (_debugLabel != null) _debugLabel.Visible = _debugMode;
+                var instructions = _uiCanvas.GetNodeOrNull<Label>("Instructions");
+                if (instructions != null) instructions.Visible = _debugMode;
+                QueueDebugRedraw();
+                GetViewport().SetInputAsHandled();
+            }
+
+            // G: Toggle graticule
+            if (key.Keycode == Key.G)
+            {
+                _showGraticule = !_showGraticule;
+                GD.Print($"Debug: Graticule = {_showGraticule}");
+                QueueDebugRedraw();
+                GetViewport().SetInputAsHandled();
+            }
+
+            // C: Toggle coastline
+            if (key.Keycode == Key.C)
+            {
+                _showCoastline = !_showCoastline;
+                GD.Print($"Debug: Coastline = {_showCoastline}");
+                QueueDebugRedraw();
+                GetViewport().SetInputAsHandled();
+            }
+
+            // R: Toggle reference points
+            if (key.Keycode == Key.R)
+            {
+                _showReferencePoints = !_showReferencePoints;
+                GD.Print($"Debug: Reference Points = {_showReferencePoints}");
+                QueueDebugRedraw();
+                GetViewport().SetInputAsHandled();
+            }
+
+            // F11: Screenshot (for manual testing)
+            if (key.Keycode == Key.F11)
+            {
+                RequestScreenshot("manual_f11");
+                GetViewport().SetInputAsHandled();
+            }
+        }
+    }
+
+    public override void _Notification(int what)
+    {
+        if (what == NotificationWMSizeChanged)
+        {
+            CallDeferred(nameof(OnViewportResized));
+        }
+    }
+
+    private void HandleWheelZoom(float zoomFactor, Vector2 screenPos)
+    {
+        // Get world position under cursor BEFORE zoom
+        Vector2 worldBefore = ScreenToWorld(screenPos);
+
+        // Apply zoom
+        float newZoom = _camera.Zoom.X * zoomFactor;
+        newZoom = Mathf.Clamp(newZoom, _minZoom, MAX_ZOOM);
+        _camera.Zoom = new Vector2(newZoom, newZoom);
+
+        // Update camera limits for new zoom
+        UpdateCameraLimits();
+
+        // Get world position under cursor AFTER zoom (same screen pos)
+        Vector2 worldAfter = ScreenToWorld(screenPos);
+
+        // Adjust camera so the same world point stays under cursor
+        _camera.Position += worldBefore - worldAfter;
+
+        // Clamp
+        ClampCamera();
+    }
+
+    private Vector2 ScreenToWorld(Vector2 screenPos)
+    {
+        var viewport = GetViewport();
+        var viewportSize = viewport.GetVisibleRect().Size;
+        return _camera.Position + (screenPos - viewportSize / 2f) / _camera.Zoom.X;
+    }
+
+    private void OnViewportResized()
+    {
+        if (_textureSize.X > 0)
+        {
+            // Recalculate min zoom (cover)
+            var viewport = GetViewport();
+            var viewportSize = viewport.GetVisibleRect().Size;
+
+            float zoomX = viewportSize.X / _textureSize.X;
+            float zoomY = viewportSize.Y / _textureSize.Y;
+            _minZoom = Math.Max(zoomX, zoomY);
+
+            // Clamp current zoom to new min
+            if (_camera.Zoom.X < _minZoom)
+            {
+                _camera.Zoom = new Vector2(_minZoom, _minZoom);
+            }
+
+            UpdateCameraLimits();
+            ClampCamera();
+
+            GD.Print($"WorldMapV5: Resized - Viewport={viewportSize}, MinZoom={_minZoom:F4}, Zoom={_camera.Zoom.X:F4}");
+        }
+    }
+
+    private void UpdateDebugLabel()
+    {
+        var viewport = GetViewport();
+        var viewportSize = viewport.GetVisibleRect().Size;
+        var mouseScreen = GetViewport().GetMousePosition();
+        var mouseWorld = ScreenToWorld(mouseScreen);
+        var (lon, lat) = WorldToLonLat(mouseWorld);
+
+        _debugLabel.Text = $@"WorldMapV5 Debug
+Zoom: {_camera.Zoom.X:F4} (min: {_minZoom:F4}, max: {MAX_ZOOM})
+Camera Pos: ({_camera.Position.X:F1}, {_camera.Position.Y:F1})
+Camera Limits: L{_camera.LimitLeft} T{_camera.LimitTop} R{_camera.LimitRight} B{_camera.LimitBottom}
+Viewport: {viewportSize.X}x{viewportSize.Y}
+Texture: {_textureSize.X}x{_textureSize.Y}
+Mouse Screen: ({mouseScreen.X:F1}, {mouseScreen.Y:F1})
+Mouse World: ({mouseWorld.X:F1}, {mouseWorld.Y:F1})
+Mouse Lon/Lat: ({lon:F4}°, {lat:F4}°)
+Dragging: {_dragging}
+Debug: F3 | Screenshot: F11";
+    }
+
+    /// <summary>
+    /// Convert world space coordinates to longitude/latitude.
+    /// Based on texture being full-world equirectangular: 360° x 180°
+    /// </summary>
+    public static (double lon, double lat) WorldToLonLat(Vector2 worldPos, Vector2? textureSize = null)
+    {
+        Vector2 texSize = textureSize ?? Instance?._textureSize ?? new Vector2(10800, 5400);
+        double lon = -180.0 + (worldPos.X / texSize.X) * 360.0;
+        double lat = 90.0 - (worldPos.Y / texSize.Y) * 180.0;
+        return (lon, lat);
+    }
+
+    /// <summary>
+    /// Convert longitude/latitude to world space coordinates.
+    /// </summary>
+    public static Vector2 LonLatToWorld(double lon, double lat, Vector2? textureSize = null)
+    {
+        Vector2 texSize = textureSize ?? Instance?._textureSize ?? new Vector2(10800, 5400);
+        float x = (float)((lon + 180.0) / 360.0 * texSize.X);
+        float y = (float)((90.0 - lat) / 180.0 * texSize.Y);
+        return new Vector2(x, y);
+    }
+
+    public void EnsureCameraCurrent()
+    {
+        if (!_camera.IsCurrent())
+            _camera.MakeCurrent();
+        GD.Print("WorldMapV5: Camera set as current");
+    }
+
+    // Screenshot support for --v5-shot
+    public void LogCameraState(string shotName)
+    {
+        var viewport = GetViewport();
+        var viewportSize = viewport.GetVisibleRect().Size;
+        GD.Print($"[V5Shot:{shotName}] Zoom={_camera.Zoom.X:F4} Pos=({_camera.Position.X:F1},{_camera.Position.Y:F1}) Viewport={viewportSize.X}x{viewportSize.Y}");
+    }
+
+    public void RequestScreenshot(string shotName)
+    {
+        // This is called from Game.SetupV5Shot via CallDeferred
+        LogCameraState(shotName);
+    }
+
+    /// <summary>
+    /// DebugDrawNode - Handles drawing of graticule, coastline, reference points in world space.
+    /// Attached to _debugDrawNode under WorldRoot.
+    /// </summary>
+    private partial class DebugDrawNode : Node2D
+    {
+        private WorldMapV5 _parent;
+
+        public void Initialize(WorldMapV5 parent)
+        {
+            _parent = parent;
+        }
+
+        public override void _Draw()
+        {
+            if (_parent == null) return;
+            _parent.DrawDebugOverlay();
+        }
+    }
+}

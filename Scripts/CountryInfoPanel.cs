@@ -149,7 +149,7 @@ public partial class CountryInfoPanel : PanelContainer
         // Overlay panel: positioned by _Process, hidden initially
         SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin;
         SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
-        MouseFilter = Control.MouseFilterEnum.Stop; // allow button clicks
+        MouseFilter = Control.MouseFilterEnum.Ignore; // hidden initially, ignore input
         AddThemeStyleboxOverride("normal", GameTheme.CardBox());
 
         var scroll = new ScrollContainer();
@@ -508,6 +508,9 @@ public partial class CountryInfoPanel : PanelContainer
         _capitalLabel.Text = $"Capital: {data.Capital}";
         _ideologyLabel.Text = $"Ideology: {data.Ideology}";
 
+        // Enable mouse input when panel is shown
+        MouseFilter = Control.MouseFilterEnum.Stop;
+
         _detailNoteLabel.Text = data.IsDetailed ? "" : "No detailed data — shown values are estimates";
 
         _stabilityLabel.Text = $"Stability: {data.StabilityPercent:N0}%";
@@ -579,6 +582,9 @@ public partial class CountryInfoPanel : PanelContainer
     public void HidePanel()
     {
         _fadeTween?.Kill();
-        _fadeTween = UITheme.FadeOut(this, 0.08f, () => Hide());
+        _fadeTween = UITheme.FadeOut(this, 0.08f, () => {
+            Hide();
+            MouseFilter = Control.MouseFilterEnum.Ignore;
+        });
     }
 }

@@ -9,11 +9,9 @@ public partial class MapViewportFrame : Control
 
     public override void _Ready()
     {
-        MouseFilter = Control.MouseFilterEnum.Pass;
-
         // Merkez viewport: TAM EKRAN (FullRect)
         CenterViewport = new SubViewportContainer();
-        CenterViewport.MouseFilter = Control.MouseFilterEnum.Pass;
+        CenterViewport.MouseFilter = Control.MouseFilterEnum.Pass; // Pass input to SubViewport when Stretch=true
         CenterViewport.Stretch = true; // SubViewport boyutunu container yönetsin
         AddChild(CenterViewport);
 

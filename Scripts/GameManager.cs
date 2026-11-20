@@ -20,6 +20,12 @@ public partial class GameManager : Node
     public static bool UseMapV3 { get; private set; }
     // Stage D: --map-v4 flag to enable WorldMapV4 (Full HOI4-style with shaded relief terrain)
     public static bool UseMapV4 { get; private set; }
+    // Stage E: --map-v5 flag to enable WorldMapV5 (Visual-reference map from scratch)
+    public static bool UseMapV5 { get; private set; }
+    // Stage E: --v5-shot=<name> flag for automated screenshot capture
+    public static string V5ShotName { get; private set; }
+    // Phase 5: --country-select-test flag for automated country selection test
+    public static bool CountrySelectTest { get; private set; }
 
     // --- Sinyaller ---
     [Signal] public delegate void DateChangedEventHandler(string dateText);
@@ -216,9 +222,12 @@ public partial class GameManager : Node
         bool climateTest = false;            // M55: iklim sistemi testi (--climate-test)
         bool migrationTest = false;          // M56: göç ve mülteci krizleri testi (--migration-test)
         bool uiTest = false;              // M-UI: UI sistemi testi (--ui-test)
+        bool countrySelectTest = false;   // Phase 5: ülke seçimi testi (--country-select-test)
         bool useMapV2 = false;           // Stage B: --map-v2 — use new WorldMapV2 with Natural Earth data
         bool useMapV3 = false;           // Stage C: --map-v3 — use new WorldMapV3 with HOI4-style LOD, paper texture, cities
         bool useMapV4 = false;           // Stage D: --map-v4 — use new WorldMapV4 with full HOI4-style terrain
+        bool useMapV5 = false;           // Stage E: --map-v5 — use new WorldMapV5 (visual-reference map)
+        string v5ShotName = null;        // --v5-shot=<name> — capture screenshot and quit
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--speed=") && int.TryParse(arg.Substring(8), out var s))
@@ -433,12 +442,18 @@ public partial class GameManager : Node
                 settingsTest = true;
             else if (arg == "--ui-test")
                 uiTest = true;
+            else if (arg == "--country-select-test")
+                countrySelectTest = true;
             else if (arg == "--map-v2")
                 useMapV2 = true;
             else if (arg == "--map-v3")
                 useMapV3 = true;
             else if (arg == "--map-v4")
                 useMapV4 = true;
+            else if (arg == "--map-v5")
+                useMapV5 = true;
+            else if (arg.StartsWith("--v5-shot="))
+                v5ShotName = arg.Substring(10);
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
                 loadSlot = Mathf.Clamp(ls, 0, SaveSystem.MaxSlots);
         }
@@ -515,6 +530,21 @@ public partial class GameManager : Node
         UseMapV4 = useMapV4;
         if (UseMapV4)
             GD.Print("Stage D: WorldMapV4 ENABLED via --map-v4 flag (Full HOI4-style: shaded relief, semi-transparent countries, cities, LOD)");
+
+        // Stage E: Set static UseMapV5 flag for WorldMapV5 selection
+        UseMapV5 = useMapV5;
+        if (UseMapV5)
+            GD.Print("Stage E: WorldMapV5 ENABLED via --map-v5 flag (Visual-reference map from scratch)");
+
+        // Stage E: Set static V5ShotName for automated screenshot capture
+        V5ShotName = v5ShotName;
+        if (V5ShotName != null)
+            GD.Print($"Stage E: V5 Screenshot mode ENABLED — will save as test-logs/v5/{V5ShotName}.png and quit");
+
+        // Phase 5: Set static CountrySelectTest flag
+        CountrySelectTest = countrySelectTest;
+        if (CountrySelectTest)
+            GD.Print("Phase 5: Country Selection Test ENABLED via --country-select-test flag");
 
         // M17.1: aktif senaryoyu başta logla
         GD.Print($"Senaryo: {ScenarioSystem.ActiveId} — {ScenarioSystem.ActiveName} | Başlangıç: {ScenarioSystem.ActiveStartDate:yyyy-MM-dd} | Placeholder: {ScenarioSystem.ActiveIsPlaceholder}");

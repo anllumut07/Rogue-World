@@ -130,6 +130,17 @@ public partial class Game : Control
         _hud = new GameHud();
         AddChild(_hud);
 
+        // Update WorldMapV5 with actual HUD height for camera vertical clamp
+        if (_worldMap is WorldMapV5 wmv5)
+        {
+            // HUD needs one frame to calculate its size, so defer
+            Callable.From(() =>
+            {
+                float hudHeight = _hud.TopBarHeight;
+                wmv5.UpdateHudTopHeight(hudHeight);
+            }).CallDeferred();
+        }
+
         // --- M32.4: Mini harita (her zaman görünür, sağ-alt köşe) ---
         _miniMap = new MiniMapPanel();
         AddChild(_miniMap);

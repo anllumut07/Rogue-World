@@ -45,7 +45,16 @@ public partial class GameHud : CanvasLayer
     private Label _tungstenLabel;
     private Label _chromiumLabel;
 
+    // Layout containers for responsive design
+    private PanelContainer _topBarPanel;
+    private HBoxContainer _resourceBox;
+    private HBoxContainer _topBarCenterSection;
+    private HBoxContainer _topBarRightSection;
+
     private GameManager GM => GameManager.Instance;
+
+    /// <summary>Actual top bar height (for camera vertical clamp calculation)</summary>
+    public float TopBarHeight => _topBarPanel?.Size.Y ?? 50f;
 
     public override void _Ready()
     {
@@ -62,6 +71,9 @@ public partial class GameHud : CanvasLayer
         RefreshCountryLabel();
         RefreshDataLabels();
         RefreshResourceLabels();
+
+        // Validate button visibility on first frame
+        CallDeferred(nameof(ValidateAllButtonsVisible));
     }
 
     public override void _ExitTree()
@@ -103,21 +115,40 @@ public partial class GameHud : CanvasLayer
     {
         Layer = 10;
 
-        var topMargin = new MarginContainer();
-        topMargin.SetAnchorsPreset(Control.LayoutPreset.TopWide);
-        topMargin.AddThemeConstantOverride("margin_top", 4);
-        topMargin.AddThemeConstantOverride("margin_right", 8);
-        topMargin.AddThemeConstantOverride("margin_left", 8);
-        topMargin.MouseFilter = Control.MouseFilterEnum.Ignore;
-        UITheme.ApplyTheme(topMargin);
+        // --- Top bar background panel (semi-transparent dark, blocks input) ---
+        _topBarPanel = new PanelContainer
+        {
+            ThemeTypeVariation = "InnerPanel", // No border, just bg
+            MouseFilter = Control.MouseFilterEnum.Stop, // Block input from reaching map
+            Name = "TopBarPanel"
+        };
+        _topBarPanel.SetAnchorsPreset(Control.LayoutPreset.TopWide);
+        _topBarPanel.AddThemeConstantOverride("margin_top", 4);
+        _topBarPanel.AddThemeConstantOverride("margin_right", 8);
+        _topBarPanel.AddThemeConstantOverride("margin_left", 8);
+        // Style: dark semi-transparent bg, thin bottom border
+        var panelStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(0.08f, 0.09f, 0.11f, 0.92f),
+            BorderColor = new Color(0.2f, 0.25f, 0.3f, 1f),
+            ContentMarginLeft = 12,
+            ContentMarginRight = 12,
+            ContentMarginTop = 6,
+            ContentMarginBottom = 6,
+        };
+        panelStyle.SetBorderWidthAll(0);
+        panelStyle.SetBorderWidth(Side.Bottom, 1);
+        _topBarPanel.AddThemeStyleboxOverride("panel", panelStyle);
+        UITheme.ApplyTheme(_topBarPanel);
 
         var topBar = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Begin };
         topBar.AddThemeConstantOverride("separation", 8);
-        topMargin.AddChild(topBar);
+        _topBarPanel.AddChild(topBar);
 
         // ===== LEFT: Country Flag + Name =====
         var leftSection = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Begin };
         leftSection.AddThemeConstantOverride("separation", 6);
+        leftSection.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd; // Don't expand
         topBar.AddChild(leftSection);
 
         _flagBox = new FlagBox { CustomMinimumSize = new Vector2(32, 20) };
@@ -128,32 +159,33 @@ public partial class GameHud : CanvasLayer
         _countryLabel.AddThemeColorOverride("font_color", UITheme.Gold);
         _countryLabel.TooltipText = "Player country";
         _countryLabel.HorizontalAlignment = HorizontalAlignment.Left;
+        _countryLabel.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
         leftSection.AddChild(_countryLabel);
 
         // ===== CENTER: Date + Speed Controls (HoI4 style) =====
-        var centerSection = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
-        centerSection.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        centerSection.AddThemeConstantOverride("separation", 16);
-        topBar.AddChild(centerSection);
+        _topBarCenterSection = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        _topBarCenterSection.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _topBarCenterSection.AddThemeConstantOverride("separation", 16);
+        topBar.AddChild(_topBarCenterSection);
 
         // Date (large, prominent)
         _dateLabel = new Label();
         _dateLabel.AddThemeFontSizeOverride("font_size", 22);
         _dateLabel.AddThemeColorOverride("font_color", UITheme.TextMain);
         _dateLabel.TooltipText = "Game date";
-        centerSection.AddChild(_dateLabel);
+        _topBarCenterSection.AddChild(_dateLabel);
 
         _stateLabel = new Label();
         _stateLabel.AddThemeFontSizeOverride("font_size", 20);
         _stateLabel.AddThemeColorOverride("font_color", Colors.OrangeRed);
         _stateLabel.TooltipText = "Game paused";
-        centerSection.AddChild(_stateLabel);
+        _topBarCenterSection.AddChild(_stateLabel);
 
         // Speed buttons (HoI4 style: 1x 2x 3x 4x 5x + Pause)
         _speedButtons = new Button[5];
         var speedBox = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         speedBox.AddThemeConstantOverride("separation", 4);
-        centerSection.AddChild(speedBox);
+        _topBarCenterSection.AddChild(speedBox);
 
         for (int i = 0; i < 5; i++)
         {
@@ -164,7 +196,8 @@ public partial class GameHud : CanvasLayer
                 ToggleMode = true,
                 FocusMode = Control.FocusModeEnum.None,
                 ThemeTypeVariation = "ToolbarButton",
-                TooltipText = $"Game speed: {speed}x"
+                TooltipText = $"Game speed: {speed}x",
+                SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd
             };
             b.Pressed += () =>
             {
@@ -184,22 +217,24 @@ public partial class GameHud : CanvasLayer
             FocusMode = Control.FocusModeEnum.None,
             ThemeTypeVariation = "ToolbarButton",
             TooltipText = "Pause/Resume (Space)",
-            CustomMinimumSize = new Vector2(100, 32)
+            CustomMinimumSize = new Vector2(100, 32),
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd
         };
         _pauseButton.Pressed += () => GM.TogglePause();
-        centerSection.AddChild(_pauseButton);
+        _topBarCenterSection.AddChild(_pauseButton);
         UITheme.AddHoverScale(_pauseButton, 1.08f);
 
         // ===== RIGHT: Resources + Panel Buttons =====
-        var rightSection = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
-        rightSection.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        rightSection.AddThemeConstantOverride("separation", 12);
-        topBar.AddChild(rightSection);
+        _topBarRightSection = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
+        _topBarRightSection.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _topBarRightSection.AddThemeConstantOverride("separation", 12);
+        topBar.AddChild(_topBarRightSection);
 
-        // --- Resource icons with labels (HoI4 style) ---
-        var resourceBox = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
-        resourceBox.AddThemeConstantOverride("separation", 10);
-        rightSection.AddChild(resourceBox);
+        // --- Resource icons with labels (HoI4 style) - responsive: can wrap to second row ---
+        _resourceBox = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
+        _resourceBox.AddThemeConstantOverride("separation", 8);
+        _resourceBox.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd; // Don't steal space from buttons
+        _topBarRightSection.AddChild(_resourceBox);
 
         // Create resource labels with icons
         var resources = new (string key, string icon, string color)[]
@@ -221,6 +256,7 @@ public partial class GameHud : CanvasLayer
         {
             var container = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
             container.AddThemeConstantOverride("separation", 2);
+            container.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
 
             var iconLabel = new Label { Text = icon };
             iconLabel.AddThemeFontSizeOverride("font_size", 14);
@@ -230,6 +266,7 @@ public partial class GameHud : CanvasLayer
             valueLabel.AddThemeFontSizeOverride("font_size", 12);
             valueLabel.AddThemeColorOverride("font_color", new Color($"#{color}"));
             valueLabel.TooltipText = key;
+            valueLabel.SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd;
             container.AddChild(valueLabel);
 
             // Store references for updating
@@ -248,13 +285,14 @@ public partial class GameHud : CanvasLayer
                 case "CHR": _chromiumLabel = valueLabel; break;
             }
 
-            resourceBox.AddChild(container);
+            _resourceBox.AddChild(container);
         }
 
-        // --- Panel Buttons Row (HoI4 style: Research, Production, Army, Navy, Air, Diplomacy, Focus, Decisions, Logistics) ---
+        // --- Panel Buttons Row (HoI4 style) ---
         _panelButtonRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         _panelButtonRow.AddThemeConstantOverride("separation", 4);
-        rightSection.AddChild(_panelButtonRow);
+        _panelButtonRow.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; // Takes remaining space
+        _topBarRightSection.AddChild(_panelButtonRow);
 
         var panelButtons = new (string Text, string Tooltip, Action Action)[]
         {
@@ -281,7 +319,8 @@ public partial class GameHud : CanvasLayer
                 Text = text,
                 FocusMode = Control.FocusModeEnum.None,
                 ThemeTypeVariation = "ToolbarButton",
-                TooltipText = tooltip
+                TooltipText = tooltip,
+                SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd
             };
             btn.Pressed += action;
             _panelButtonRow.AddChild(btn);
@@ -294,11 +333,12 @@ public partial class GameHud : CanvasLayer
             Text = "MORE ▾",
             FocusMode = Control.FocusModeEnum.None,
             TooltipText = "More panels",
-            Visible = false
+            Visible = false,
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd
         };
         _morePopup = _moreBtn.GetPopup();
         _morePopup.IdPressed += OnMoreItemPressed;
-        rightSection.AddChild(_moreBtn);
+        _topBarRightSection.AddChild(_moreBtn);
 
         // NEXT EVENT button
         _nextEventBtn = new Button
@@ -306,7 +346,8 @@ public partial class GameHud : CanvasLayer
             Text = "⚑ NEXT EVENT",
             FocusMode = Control.FocusModeEnum.None,
             ThemeTypeVariation = "ToolbarButton",
-            TooltipText = "Process next pending notification"
+            TooltipText = "Process next pending notification",
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd
         };
         _nextEventBtn.Pressed += () =>
         {
@@ -314,13 +355,13 @@ public partial class GameHud : CanvasLayer
             _nextEventBtn.Hide();
         };
         _nextEventBtn.Hide();
-        rightSection.AddChild(_nextEventBtn);
+        _topBarRightSection.AddChild(_nextEventBtn);
         UITheme.AddHoverScale(_nextEventBtn);
 
         // Window resize handling
         GetTree().Root.SizeChanged += ReflowPanels;
 
-        AddChild(topMargin);
+        AddChild(_topBarPanel);
     }
 
     // ============================================================
@@ -452,23 +493,137 @@ public partial class GameHud : CanvasLayer
             _speedButtons[i].SetPressedNoSignal(i + 1 == GM.Speed);
     }
 
-    // Window resize - reflow panel buttons
+    // Window resize - reflow panel buttons and resources responsively
     private void ReflowPanels()
     {
-        if (_panelButtonRow == null) return;
+        if (_panelButtonRow == null || _resourceBox == null || _topBarRightSection == null) return;
 
-        float viewportW = _panelButtonRow.GetViewportRect().Size.X;
-        // Estimate available space after resources
-        const float resourceWidth = 600f;
-        const float buttonWidth = 80f;
-        const float padding = 100f;
-        float available = Mathf.Max(0f, viewportW - resourceWidth - padding);
-        int maxButtons = Mathf.Max(1, (int)(available / buttonWidth));
+        float viewportW = GetViewport().GetVisibleRect().Size.X;
+        // Account for left + center sections (approximate)
+        const float leftCenterWidth = 500f; // flag + name + date + speed controls + pause
+        float rightSectionStart = leftCenterWidth;
+        float availableForRight = viewportW - rightSectionStart - 40f; // margins
 
-        for (int i = 0; i < _panelButtonRow.GetChildCount(); i++)
+        if (availableForRight <= 0) return;
+
+        // Calculate resource box width
+        float resourceWidth = 0f;
+        foreach (Node child in _resourceBox.GetChildren())
         {
-            if (_panelButtonRow.GetChild(i) is Button btn)
-                btn.Visible = i < maxButtons;
+            if (child is HBoxContainer container)
+                resourceWidth += container.GetMinimumSize().X + 8f; // separation
+        }
+
+        // Calculate button widths
+        float buttonWidth = 0f;
+        int buttonCount = 0;
+        foreach (Node child in _panelButtonRow.GetChildren())
+        {
+            if (child is Button btn)
+            {
+                buttonWidth += btn.GetMinimumSize().X + 4f; // separation
+                buttonCount++;
+            }
+        }
+
+        float totalNeeded = resourceWidth + buttonWidth + 24f; // extra padding
+        float available = availableForRight;
+
+        if (totalNeeded <= available)
+        {
+            // Everything fits - show all
+            foreach (Node child in _panelButtonRow.GetChildren())
+                if (child is Button btn) btn.Visible = true;
+            foreach (Node child in _resourceBox.GetChildren())
+                if (child is Control ctrl) ctrl.Visible = true;
+        }
+        else if (resourceWidth < available * 0.6f)
+        {
+            // Resources fit, hide some buttons
+            float buttonsAvailable = available - resourceWidth - 12f;
+            float accWidth = 0f;
+            int visibleButtons = 0;
+            foreach (Node child in _panelButtonRow.GetChildren())
+            {
+                if (child is Button btn)
+                {
+                    accWidth += btn.GetMinimumSize().X + 4f;
+                    if (accWidth <= buttonsAvailable)
+                    {
+                        btn.Visible = true;
+                        visibleButtons++;
+                    }
+                    else
+                    {
+                        btn.Visible = false;
+                    }
+                }
+            }
+            // If too many hidden, show MORE button
+            _moreBtn.Visible = visibleButtons < buttonCount;
+        }
+        else
+        {
+            // Not enough space even for resources - compact resources (icon only)
+            foreach (Node child in _resourceBox.GetChildren())
+            {
+                if (child is HBoxContainer container && container.GetChildCount() == 2)
+                {
+                    // Hide value label, keep only icon
+                    if (container.GetChild(1) is Label valueLabel)
+                        valueLabel.Visible = false;
+                }
+            }
+            // Recalculate and try again
+            CallDeferred(nameof(ReflowPanels));
+        }
+
+        // Log validation
+        ValidateAllButtonsVisible();
+    }
+
+    /// <summary>Validate all HUD buttons are within viewport bounds</summary>
+    private void ValidateAllButtonsVisible()
+    {
+        if (!IsInsideTree()) return;
+
+        var viewportRect = GetViewport().GetVisibleRect();
+        var hudRect = _topBarPanel.GetGlobalRect();
+
+        // Check top bar panel
+        if (hudRect.End.X > viewportRect.Size.X || hudRect.End.Y > viewportRect.Size.Y)
+        {
+            GD.PrintErr($"[HUD] TopBarPanel exceeds viewport: rect={hudRect}, viewport={viewportRect.Size}");
+        }
+
+        // Check panel buttons
+        int offScreenCount = 0;
+        foreach (Node child in _panelButtonRow.GetChildren())
+        {
+            if (child is Button btn && btn.Visible)
+            {
+                var globalRect = btn.GetGlobalRect();
+                if (globalRect.End.X > viewportRect.Size.X || globalRect.Position.X < 0)
+                {
+                    offScreenCount++;
+                    GD.PrintErr($"[HUD] Button off-screen: {btn.Text} rect={globalRect}");
+                }
+            }
+        }
+        if (offScreenCount > 0)
+            GD.PrintErr($"[HUD] {offScreenCount} button(s) off-screen!");
+
+        // Check resource labels
+        foreach (Node child in _resourceBox.GetChildren())
+        {
+            if (child is HBoxContainer container)
+            {
+                var globalRect = container.GetGlobalRect();
+                if (globalRect.End.X > viewportRect.Size.X || globalRect.Position.X < 0)
+                {
+                    GD.PrintErr($"[HUD] Resource container off-screen: rect={globalRect}");
+                }
+            }
         }
     }
 

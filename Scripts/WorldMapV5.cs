@@ -32,8 +32,8 @@ public partial class WorldMapV5 : Node2D
     private const float WORLD_HEIGHT = 5400f;  // Texture height
     private const float WRAP_MARGIN = 100f;    // Margin for smooth wrapping
 
-    // HUD height offset (top bar) for vertical coverage calculation
-    private const float HUD_TOP_HEIGHT = 50f; // Approximate HUD top bar height in pixels
+    // HUD height offset (top bar) for vertical coverage calculation - updated dynamically
+    private float _hudTopHeight = 50f; // Default fallback, updated from GameHud
 
     // Node references
     private Node2D _worldRoot;       // Single parent for all world-space content
@@ -856,6 +856,22 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         }
     }
 
+    /// <summary>
+    /// Update HUD top bar height from GameHud (called by Game.cs after HUD is created)
+    /// </summary>
+    public void UpdateHudTopHeight(float height)
+    {
+        _hudTopHeight = Mathf.Max(40f, height); // Minimum 40px
+        GD.Print($"[WorldMapV5] HUD top height updated: {_hudTopHeight:F1}px");
+
+        // Recalculate camera limits with new HUD height
+        if (_textureSize.X > 0 && _camera != null)
+        {
+            UpdateCameraLimits();
+            ClampCamera();
+        }
+    }
+
     private void SetupCamera()
     {
         // Camera limits will be set in UpdateCameraLimits() after we know viewport size
@@ -867,21 +883,37 @@ private bool _dragStarted = false; // Track if drag has actually started moving
 
     private void SetupUICanvas()
     {
-        // Debug label
+        // Debug panel (toggleable with F3, default hidden, positioned below HUD)
+        var debugPanel = new PanelContainer
+        {
+            Name = "DebugPanel",
+            ThemeTypeVariation = "InnerPanel",
+            MouseFilter = Control.MouseFilterEnum.Stop, // Block input when debug panel is open
+            Visible = false // Default hidden, toggled with F3
+        };
+        debugPanel.SetAnchorsPreset(Control.LayoutPreset.TopWide);
+        debugPanel.AddThemeConstantOverride("margin_top", 10); // Will be updated with HUD height
+        debugPanel.AddThemeConstantOverride("margin_left", 10);
+        debugPanel.AddThemeConstantOverride("margin_right", 10);
+        debugPanel.SizeFlagsVertical = Control.SizeFlags.ShrinkEnd;
+        _uiCanvas.AddChild(debugPanel);
+
+        var debugVBox = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        debugVBox.AddThemeConstantOverride("separation", 4);
+        debugPanel.AddChild(debugVBox);
+
         _debugLabel = new Label();
         _debugLabel.Name = "DebugLabel";
         _debugLabel.HorizontalAlignment = HorizontalAlignment.Left;
         _debugLabel.VerticalAlignment = VerticalAlignment.Top;
-        _debugLabel.Position = new Vector2(10, 10);
-        _debugLabel.Size = new Vector2(400, 200);
+        _debugLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         _debugLabel.AddThemeColorOverride("font_color", Colors.White);
         _debugLabel.AddThemeColorOverride("font_outline_color", Colors.Black);
         _debugLabel.AddThemeConstantOverride("outline_size", 2);
         _debugLabel.Text = "WorldMapV5 Debug\nWaiting for viewport...";
-        _debugLabel.Visible = _debugMode;
-        _uiCanvas.AddChild(_debugLabel);
+        debugVBox.AddChild(_debugLabel);
 
-        // Instructions label
+        // Instructions label (always visible at bottom)
         var instructions = new Label();
         instructions.Name = "Instructions";
         instructions.HorizontalAlignment = HorizontalAlignment.Left;
@@ -894,7 +926,23 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         instructions.Text = "Controls: Wheel=Zoom (cursor-anchored) | RMB Drag=Pan | WASD/Arrows=Pan | F3=Toggle Debug | F11=Screenshot";
         instructions.Visible = _debugMode;
         _uiCanvas.AddChild(instructions);
+
+        // Store reference for toggle
+        _debugPanel = debugPanel;
+
+        // Update debug panel top margin after HUD height is known
+        CallDeferred(nameof(UpdateDebugPanelPosition));
     }
+
+    private void UpdateDebugPanelPosition()
+    {
+        if (_debugPanel != null && _hudTopHeight > 0)
+        {
+            _debugPanel.AddThemeConstantOverride("margin_top", (int)_hudTopHeight + 10);
+        }
+    }
+
+    private PanelContainer _debugPanel;
 
     public override void _Process(double delta)
     {
@@ -1326,11 +1374,11 @@ private bool _dragStarted = false; // Track if drag has actually started moving
 
         // Calculate cover zoom: VERTICAL only (horizontal wraps infinitely)
         // Account for HUD top bar reducing visible map area
-        float effectiveViewportHeight = viewportSize.Y - HUD_TOP_HEIGHT;
+        float effectiveViewportHeight = viewportSize.Y - _hudTopHeight;
         float zoomY = effectiveViewportHeight / _textureSize.Y;
         _minZoom = Math.Max(zoomY, MIN_ZOOM_CLAMP); // Don't go below absolute minimum
 
-        GD.Print($"WorldMapV5: Viewport={viewportSize}, EffectiveH={effectiveViewportHeight:F1}, Texture={_textureSize}, MinZoom(vertical)={_minZoom:F4} (clamp={MIN_ZOOM_CLAMP})");
+        GD.Print($"WorldMapV5: Viewport={viewportSize}, EffectiveH={effectiveViewportHeight:F1} (HUD={_hudTopHeight:F1}), Texture={_textureSize}, MinZoom(vertical)={_minZoom:F4} (clamp={MIN_ZOOM_CLAMP})");
 
         // Set camera zoom to cover
         _camera.Zoom = new Vector2(_minZoom, _minZoom);
@@ -1362,7 +1410,7 @@ private bool _dragStarted = false; // Track if drag has actually started moving
 
         // VERTICAL LIMITS (no wrapping vertically - clamp to world bounds)
         // Account for HUD top bar offset
-        float effectiveViewportHeight = viewportSize.Y - HUD_TOP_HEIGHT;
+        float effectiveViewportHeight = viewportSize.Y - _hudTopHeight;
         float effectiveHalfH = (effectiveViewportHeight / _camera.Zoom.X) / 2f;
 
         float limitTop, limitBottom;
@@ -1374,7 +1422,7 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         {
             // Camera center Y must stay within [effectiveHalfH, textureHeight - effectiveHalfH]
             // But with HUD at top, the top limit is slightly lower
-            limitTop = effectiveHalfH + HUD_TOP_HEIGHT / _camera.Zoom.X;
+            limitTop = effectiveHalfH + _hudTopHeight / _camera.Zoom.X;
             limitBottom = _textureSize.Y - effectiveHalfH;
         }
 
@@ -1460,8 +1508,31 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         return (worldPos - _camera.Position) * _camera.Zoom.X + viewportSize / 2f;
     }
 
+    /// <summary>
+    /// Check if mouse is over any GUI element (HUD, panels, minimap, debug panel)
+    /// Returns true if map input should be BLOCKED (GUI has focus)
+    /// </summary>
+    private bool IsMouseOverGui()
+    {
+        // Check if any Control is under mouse (excluding the map's own debug/instruction labels)
+        var hovered = GetViewport().GuiGetHoveredControl();
+        if (hovered != null)
+        {
+            // Allow map input if hovered control is our debug/instruction labels (they're just info)
+            if (hovered.Name == "DebugLabel" || hovered.Name == "Instructions" || hovered.Name == "DebugPanel")
+                return false;
+            // Block map input for all other GUI elements (HUD, panels, minimap, etc.)
+            return true;
+        }
+        return false;
+    }
+
     public override void _UnhandledInput(InputEvent @event)
     {
+        // Block map input if mouse is over GUI (HUD, panels, minimap, debug panel)
+        if (IsMouseOverGui())
+            return;
+
         // UI Controls consume input first (MouseFilter.Stop on panels)
         // Only handle input if not consumed by UI
 
@@ -1606,14 +1677,20 @@ private bool _dragStarted = false; // Track if drag has actually started moving
                 GetViewport().SetInputAsHandled();
             }
 
-            // F3: Toggle debug mode
+            // F3: Toggle debug mode (and debug panel)
             if (key.Keycode == Key.F3)
             {
                 _debugMode = !_debugMode;
+                // Toggle debug panel visibility
+                if (_debugPanel != null)
+                {
+                    _debugPanel.Visible = _debugMode;
+                }
                 if (_debugLabel != null) _debugLabel.Visible = _debugMode;
                 var instructions = _uiCanvas.GetNodeOrNull<Label>("Instructions");
                 if (instructions != null) instructions.Visible = _debugMode;
                 QueueDebugRedraw();
+                GD.Print($"[WorldMapV5] Debug mode: {(_debugMode ? "ON" : "OFF")}");
                 GetViewport().SetInputAsHandled();
             }
 
@@ -1710,7 +1787,7 @@ private bool _dragStarted = false; // Track if drag has actually started moving
             var viewport = GetViewport();
             var viewportSize = viewport.GetVisibleRect().Size;
 
-            float effectiveViewportHeight = viewportSize.Y - HUD_TOP_HEIGHT;
+            float effectiveViewportHeight = viewportSize.Y - _hudTopHeight;
             float zoomY = effectiveViewportHeight / _textureSize.Y;
             _minZoom = Math.Max(zoomY, MIN_ZOOM_CLAMP);
 

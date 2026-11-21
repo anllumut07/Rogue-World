@@ -65,3 +65,6 @@ litellm_config.yaml
 tools/map_data/raw/
 tools/map_data/.venv/
 tools/map_data/__pycache__/
+
+# Map textures — large binary assets (generated at runtime, not committed)
+Assets/map_textures/

@@ -2,40 +2,55 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-// Üst HUD: sol=ülke+bayrak, orta=tarih+hız göstergesi, sağ=PP/Stability/WarSupport.
-// Alt çubuk: seçim bilgisi, oyun hızı metni.
-// Tüm elemanlarda tooltip; tema UITheme üzerinden.
+/// <summary>
+/// HoI4-Style HUD — Top bar (country, date, speed, resources),
+/// Top-right panel buttons, Bottom bar (selection info).
+/// Fully integrated with map, no blocking panels.
+/// </summary>
 public partial class GameHud : CanvasLayer
 {
+    // === TOP BAR ===
     private Label _dateLabel;
     private Label _countryLabel;
+    private FlagBox _flagBox;
     private Label _ppLabel;
     private Label _stabilityLabel;
     private Label _warSupportLabel;
     private Label _stateLabel;
     private Button _pauseButton;
     private Button[] _speedButtons;
-    private Button _nextEventBtn; // M16.4: NEXT EVENT butonu
+    private Button _nextEventBtn;
 
-    // Alt çubuk
+    // === TOP RIGHT PANEL BUTTONS ===
+    private HBoxContainer _panelButtonRow;
+    private MenuButton _moreBtn;
+    private PopupMenu _morePopup;
+    private readonly List<(string Text, string Tooltip, Action Open)> _panelSections = new();
+    private readonly List<Button> _panelButtons = new();
+    private readonly List<Action> _moreActions = new();
+
+    // === BOTTOM BAR ===
     private Label _selectedLabel;
     private Label _speedTextLabel;
 
-    // Üst bar panel düğmeleri: sığdığı kadarını satırda gösterir, kalanını
-    // "MORE ▾" açılır menüsüne taşır. (Kullanıcı şikayeti: sağ taraftaki uzun
-    // düğme listesi 1152x648'de pencereden taşıyordu.)
-    private HBoxContainer _sectionRow;
-    private MenuButton _moreBtn;
-    private PopupMenu _morePopup;
-    private readonly List<(string Text, string Tooltip, Action Open)> _sections = new();
-    private readonly List<Button> _sectionBtns = new();
-    private readonly List<Action> _moreActions = new();
+    // === RESOURCE ICONS (HoI4 style) ===
+    private Label _manpowerLabel;
+    private Label _civFactoryLabel;
+    private Label _milFactoryLabel;
+    private Label _dockyardLabel;
+    private Label _oilLabel;
+    private Label _rubberLabel;
+    private Label _steelLabel;
+    private Label _aluminumLabel;
+    private Label _tungstenLabel;
+    private Label _chromiumLabel;
 
     private GameManager GM => GameManager.Instance;
 
     public override void _Ready()
     {
-        BuildUi();
+        BuildTopBar();
+        BuildBottomBar();
 
         GM.DateChanged += OnDateChanged;
         GM.SpeedChanged += OnSpeedChanged;
@@ -46,6 +61,7 @@ public partial class GameHud : CanvasLayer
         OnSpeedChanged(GM.Speed);
         RefreshCountryLabel();
         RefreshDataLabels();
+        RefreshResourceLabels();
     }
 
     public override void _ExitTree()
@@ -61,82 +77,84 @@ public partial class GameHud : CanvasLayer
     {
         if (!GameManager.IsAvailable || !GameManager.Instance.HasPlayer) return;
 
-        // M16.3: Aylık rapor bekliyorsa panel otomatik aç (zaten açıksa tekrar açma)
+        // M16.3: Monthly report auto-open
         if (TimeTempoSystem.IsMonthlyReportPending && !MonthlyReportPanel.IsOpen)
         {
             GD.Print("[GameHud] Monthly report pending — opening MonthlyReportPanel");
             MonthlyReportPanel.OpenUnder(this);
         }
 
-        // M16.4: NEXT EVENT butonu — bekleyen bildirim varsa göster
+        // M16.4: NEXT EVENT button
         if (_nextEventBtn != null)
         {
             bool hasNotifications = TimeTempoSystem.HasPendingNotifications;
-            if (hasNotifications && !_nextEventBtn.Visible)
-                _nextEventBtn.Show();
-            else if (!hasNotifications && _nextEventBtn.Visible)
-                _nextEventBtn.Hide();
+            if (hasNotifications && !_nextEventBtn.Visible) _nextEventBtn.Show();
+            else if (!hasNotifications && _nextEventBtn.Visible) _nextEventBtn.Hide();
         }
+
+        // Update resource labels every frame (they change with trade/production)
+        RefreshResourceLabels();
     }
 
-    private void BuildUi()
+    // ============================================================
+    // TOP BAR BUILD
+    // ============================================================
+    private void BuildTopBar()
     {
         Layer = 10;
 
-        // === ÜST BAR ===
-        var margin = new MarginContainer();
-        margin.SetAnchorsPreset(Control.LayoutPreset.TopWide);
-        margin.AddThemeConstantOverride("margin_top", 10);
-        margin.AddThemeConstantOverride("margin_right", 20);
-        margin.AddThemeConstantOverride("margin_left", 20);
-        margin.MouseFilter = Control.MouseFilterEnum.Ignore;
+        var topMargin = new MarginContainer();
+        topMargin.SetAnchorsPreset(Control.LayoutPreset.TopWide);
+        topMargin.AddThemeConstantOverride("margin_top", 4);
+        topMargin.AddThemeConstantOverride("margin_right", 8);
+        topMargin.AddThemeConstantOverride("margin_left", 8);
+        topMargin.MouseFilter = Control.MouseFilterEnum.Ignore;
+        UITheme.ApplyTheme(topMargin);
 
-        UITheme.ApplyTheme(margin);
+        var topBar = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Begin };
+        topBar.AddThemeConstantOverride("separation", 8);
+        topMargin.AddChild(topBar);
 
-        var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Begin };
-        margin.AddChild(row);
-
-        var panel = new PanelContainer();
-        panel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        row.AddChild(panel);
-
-        var bar = new HBoxContainer();
-        bar.AddThemeConstantOverride("separation", 16);
-        panel.AddChild(bar);
-
-        // --- SOL: Ülke bayrağı + isim ---
+        // ===== LEFT: Country Flag + Name =====
         var leftSection = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Begin };
-        leftSection.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        leftSection.AddThemeConstantOverride("separation", 8);
-        bar.AddChild(leftSection);
+        leftSection.AddThemeConstantOverride("separation", 6);
+        topBar.AddChild(leftSection);
 
-        var flagBox = new FlagBox { CustomMinimumSize = new Vector2(28, 18) };
-        leftSection.AddChild(flagBox);
+        _flagBox = new FlagBox { CustomMinimumSize = new Vector2(32, 20) };
+        leftSection.AddChild(_flagBox);
 
         _countryLabel = new Label();
-        _countryLabel.AddThemeFontSizeOverride("font_size", 20);
-        _countryLabel.AddThemeColorOverride("font_color", new Color(0.85f, 0.66f, 0.22f));
+        _countryLabel.AddThemeFontSizeOverride("font_size", 18);
+        _countryLabel.AddThemeColorOverride("font_color", UITheme.Gold);
         _countryLabel.TooltipText = "Player country";
+        _countryLabel.HorizontalAlignment = HorizontalAlignment.Left;
         leftSection.AddChild(_countryLabel);
 
-        // --- ORTA: Tarih + Hız göstergesi (butonlar) ---
+        // ===== CENTER: Date + Speed Controls (HoI4 style) =====
         var centerSection = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         centerSection.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        centerSection.AddThemeConstantOverride("separation", 12);
-        bar.AddChild(centerSection);
+        centerSection.AddThemeConstantOverride("separation", 16);
+        topBar.AddChild(centerSection);
 
+        // Date (large, prominent)
         _dateLabel = new Label();
-        _dateLabel.AddThemeFontSizeOverride("font_size", 20);
+        _dateLabel.AddThemeFontSizeOverride("font_size", 22);
+        _dateLabel.AddThemeColorOverride("font_color", UITheme.TextMain);
         _dateLabel.TooltipText = "Game date";
         centerSection.AddChild(_dateLabel);
 
         _stateLabel = new Label();
         _stateLabel.AddThemeFontSizeOverride("font_size", 20);
         _stateLabel.AddThemeColorOverride("font_color", Colors.OrangeRed);
+        _stateLabel.TooltipText = "Game paused";
         centerSection.AddChild(_stateLabel);
 
-        // Hız butonları (kompakt toolbar varyantı)
+        // Speed buttons (HoI4 style: 1x 2x 3x 4x 5x + Pause)
         _speedButtons = new Button[5];
+        var speedBox = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        speedBox.AddThemeConstantOverride("separation", 4);
+        centerSection.AddChild(speedBox);
+
         for (int i = 0; i < 5; i++)
         {
             int speed = i + 1;
@@ -146,342 +164,225 @@ public partial class GameHud : CanvasLayer
                 ToggleMode = true,
                 FocusMode = Control.FocusModeEnum.None,
                 ThemeTypeVariation = "ToolbarButton",
-                TooltipText = $"Oyun hızı: {speed}x"
+                TooltipText = $"Game speed: {speed}x"
             };
             b.Pressed += () =>
             {
                 GM.SetSpeed(speed);
                 SyncSpeedButtons();
             };
-            centerSection.AddChild(b);
+            speedBox.AddChild(b);
             _speedButtons[i] = b;
             UITheme.AddHoverScale(b, 1.08f);
         }
 
-        // --- SAĞ: PP | Stability | War Support | panel düğmeleri | MORE | NEXT EVENT | Pause ---
+        // Pause button (large, prominent)
+        _pauseButton = new Button
+        {
+            Text = "⏸ PAUSE",
+            ToggleMode = true,
+            FocusMode = Control.FocusModeEnum.None,
+            ThemeTypeVariation = "ToolbarButton",
+            TooltipText = "Pause/Resume (Space)",
+            CustomMinimumSize = new Vector2(100, 32)
+        };
+        _pauseButton.Pressed += () => GM.TogglePause();
+        centerSection.AddChild(_pauseButton);
+        UITheme.AddHoverScale(_pauseButton, 1.08f);
+
+        // ===== RIGHT: Resources + Panel Buttons =====
         var rightSection = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         rightSection.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         rightSection.AddThemeConstantOverride("separation", 12);
-        bar.AddChild(rightSection);
+        topBar.AddChild(rightSection);
 
-        _ppLabel = new Label();
-        _ppLabel.AddThemeFontSizeOverride("font_size", 18);
-        _ppLabel.AddThemeColorOverride("font_color", new Color(0.5f, 0.9f, 0.5f));
-        _ppLabel.TooltipText = "Political Power (daily +1.5)";
-        rightSection.AddChild(_ppLabel);
+        // --- Resource icons with labels (HoI4 style) ---
+        var resourceBox = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
+        resourceBox.AddThemeConstantOverride("separation", 10);
+        rightSection.AddChild(resourceBox);
 
-        _stabilityLabel = new Label();
-        _stabilityLabel.AddThemeFontSizeOverride("font_size", 18);
-        _stabilityLabel.AddThemeColorOverride("font_color", new Color(0.5f, 0.8f, 1f));
-        _stabilityLabel.TooltipText = "Stability % (low means resistance risk)";
-        rightSection.AddChild(_stabilityLabel);
+        // Create resource labels with icons
+        var resources = new (string key, string icon, string color)[]
+        {
+            ("PP", "💰", "C9A227"),           // Political Power - Gold
+            ("MAN", "👥", "8FD400"),          // Manpower - Green
+            ("CIV", "🏭", "FFB800"),          // Civilian Factory - Amber
+            ("MIL", "🏭", "FF6B00"),          // Military Factory - Orange
+            ("DOCK", "⚓", "4DB8FF"),         // Dockyard - Blue
+            ("OIL", "🛢️", "8B4513"),         // Oil - Brown
+            ("RUB", "🟢", "00AA00"),          // Rubber - Green
+            ("STL", "⚙️", "AAAAAA"),          // Steel - Gray
+            ("ALU", "⬜", "DDDDDD"),          // Aluminum - Light Gray
+            ("TUN", "🟤", "8B7355"),         // Tungsten - Brown
+            ("CHR", "🔷", "00FFFF")           // Chromium - Cyan
+        };
 
-        _warSupportLabel = new Label();
-        _warSupportLabel.AddThemeFontSizeOverride("font_size", 18);
-        _warSupportLabel.AddThemeColorOverride("font_color", new Color(1f, 0.6f, 0.4f));
-        _warSupportLabel.TooltipText = "War Support % (affects war performance)";
-        rightSection.AddChild(_warSupportLabel);
+        foreach (var (key, icon, color) in resources)
+        {
+            var container = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
+            container.AddThemeConstantOverride("separation", 2);
 
-        // Panel düğmeleri satırı: sığdığı kadarını gösterir, kalanı MORE menüsüne taşır.
-        _sectionRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
-        _sectionRow.AddThemeConstantOverride("separation", 10);
-        rightSection.AddChild(_sectionRow);
+            var iconLabel = new Label { Text = icon };
+            iconLabel.AddThemeFontSizeOverride("font_size", 14);
+            container.AddChild(iconLabel);
 
-        // RESEARCH
-        AddSection("RESEARCH", "Technology tree (research slots, progress)",
-            () => ResearchPanel.OpenUnder(this));
+            var valueLabel = new Label { Text = $"{key}: 0" };
+            valueLabel.AddThemeFontSizeOverride("font_size", 12);
+            valueLabel.AddThemeColorOverride("font_color", new Color($"#{color}"));
+            valueLabel.TooltipText = key;
+            container.AddChild(valueLabel);
 
-        // ECONOMY
-        AddSection("ECONOMY", "Economy panel (build queue, factories, resources)",
-            () => EconomyPanel.OpenUnder(this));
-
-        // PRODUCTION
-        AddSection("PRODUCTION", "Production lines, equipment, variant designer",
-            () => ProductionPanel.OpenUnder(this));
-
-        // ARMY
-        AddSection("ARMY", "Army panel (divisions, templates, training, wars)",
-            () => ArmyPanel.OpenUnder(this));
-
-        // DIPLOMACY (M8)
-        AddSection("DIPLOMACY", "Diplomacy panel (relations, factions, guarantees, peace)",
-            () => DiplomacyPanel.OpenUnder(this));
-
-        // FOCUS (M9)
-        AddSection("FOCUS", "National focus tree (country-specific goals)",
-            () => FocusPanel.OpenUnder(this));
-
-        // DECISIONS (M10.2)
-        AddSection("DECISIONS", "Decisions panel (available decisions, active progress, cooldowns)",
-            () =>
+            // Store references for updating
+            switch (key)
             {
-                GD.Print("[GameHud] DECISIONS butonu basıldı — DecisionPanel.OpenUnder çağrılıyor");
-                DecisionPanel.OpenUnder(this);
-            });
+                case "PP": _ppLabel = valueLabel; break;
+                case "MAN": _manpowerLabel = valueLabel; break;
+                case "CIV": _civFactoryLabel = valueLabel; break;
+                case "MIL": _milFactoryLabel = valueLabel; break;
+                case "DOCK": _dockyardLabel = valueLabel; break;
+                case "OIL": _oilLabel = valueLabel; break;
+                case "RUB": _rubberLabel = valueLabel; break;
+                case "STL": _steelLabel = valueLabel; break;
+                case "ALU": _aluminumLabel = valueLabel; break;
+                case "TUN": _tungstenLabel = valueLabel; break;
+                case "CHR": _chromiumLabel = valueLabel; break;
+            }
 
-        // LIBRARY (M15.2)
-        AddSection("LIBRARY", "Country encyclopedia and library",
-            () => LibraryPanel.OpenUnder(this));
+            resourceBox.AddChild(container);
+        }
 
-        // AGENDA (M16): haftalık ajanda — slotlar + aksiyonlar
-        AddSection("AGENDA", "Weekly agenda — leader's actions (meetings, rallies, summits)",
-            () =>
+        // --- Panel Buttons Row (HoI4 style: Research, Production, Army, Navy, Air, Diplomacy, Focus, Decisions, Logistics) ---
+        _panelButtonRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
+        _panelButtonRow.AddThemeConstantOverride("separation", 4);
+        rightSection.AddChild(_panelButtonRow);
+
+        var panelButtons = new (string Text, string Tooltip, Action Action)[]
+        {
+            ("RESEARCH", "Technology tree (R)", () => ResearchPanel.OpenUnder(this)),
+            ("PRODUCTION", "Production lines & equipment (P)", () => ProductionPanel.OpenUnder(this)),
+            ("ARMY", "Army, divisions & templates (A)", () => ArmyPanel.OpenUnder(this)),
+            ("NAVY", "Navy, fleets & ship designer (N)", () => {/* TODO: NavyPanel */}),
+            ("AIR", "Air force, wings & air bases", () => {/* TODO: AirPanel */}),
+            ("DIPLOMACY", "Diplomacy, relations & factions (D)", () => DiplomacyPanel.OpenUnder(this)),
+            ("FOCUS", "National focus tree (F)", () => FocusPanel.OpenUnder(this)),
+            ("DECISIONS", "Decisions & political actions", () => DecisionPanel.OpenUnder(this)),
+            ("LOGISTICS", "Supply, railways & convoys", () => {/* TODO: LogisticsPanel */}),
+            ("STATISTICS", "Country statistics & budget", () => StatisticsPanel.OpenUnder(this)),
+            ("ORGANIZATIONS", "International organizations (M37)", () => OrganizationPanel.OpenUnder(this)),
+            ("ADVISORS", "Advisors & advice history (M53)", () => AdvisorPanel.OpenUnder(this)),
+            ("CLIMATE", "Climate, emissions & policies (M55)", () => ClimatePanel.OpenUnder(this)),
+            ("MIGRATION", "Migration & refugee crises (M56)", () => MigrationPanel.OpenUnder(this)),
+        };
+
+        foreach (var (text, tooltip, action) in panelButtons)
+        {
+            var btn = new Button
             {
-                GD.Print("[GameHud] AGENDA butonu basıldı — AgendaPanel.OpenUnder çağrılıyor");
-                AgendaPanel.OpenUnder(this);
-            });
+                Text = text,
+                FocusMode = Control.FocusModeEnum.None,
+                ThemeTypeVariation = "ToolbarButton",
+                TooltipText = tooltip
+            };
+            btn.Pressed += action;
+            _panelButtonRow.AddChild(btn);
+            UITheme.AddHoverScale(btn, 1.06f);
+        }
 
-        // STATISTICS (M20.1): ülke istatistik & bütçe göstergeleri
-        AddSection("STATISTICS", "Statistics & budget indicators (GDP, inflation, unemployment, corruption, ...)",
-            () =>
-            {
-                GD.Print("[GameHud] STATISTICS butonu basıldı — StatisticsPanel.OpenUnder çağrılıyor");
-                StatisticsPanel.OpenUnder(this);
-            });
-
-        // SEA ZONES (M43.5): deniz hakimiyeti, konvoy riski ve müttefik koruması
-        AddSection("SEA ZONES", "Sea zones — supremacy, convoy raid risk and allied escort assignment",
-            () =>
-            {
-                GD.Print("[GameHud] SEA ZONES butonu basıldı — SeaZonePanel.OpenUnder çağrılıyor");
-                SeaZonePanel.OpenUnder(this);
-            });
-
-        // FORMABLE (M44.5): kurgu ülke kurma — kültür haritası ve kurma eylemi
-        AddSection("FORMABLE", "Formable nations — culture map, formation conditions and founding",
-            () =>
-            {
-                GD.Print("[GameHud] FORMABLE butonu basıldı — FormablePanel.OpenUnder çağrılıyor");
-                FormablePanel.OpenUnder(this);
-            });
-
-        // SUBJECTS (M45.1): ilhak edilen / kukla ülkeleri serbest bırakma
-        AddSection("SUBJECTS", "Subjects — release annexed or puppet nations",
-            () =>
-            {
-                GD.Print("[GameHud] SUBJECTS butonu basıldı — ReleasablePanel.OpenUnder çağrılıyor");
-                ReleasablePanel.OpenUnder(this);
-            });
-
-        // CABINET (M21.1): bakanlık atamaları ve bakanlık listesi
-        AddSection("CABINET", "Cabinet — ministries and minister assignments",
-            () =>
-            {
-                GD.Print("[GameHud] CABINET butonu basıldı — CabinetPanel.OpenUnder çağrılıyor");
-                CabinetPanel.OpenUnder(this);
-            });
-
-        // ORGANIZATIONS (M37.5): uluslararası örgütler (NATO, AB, BM...) üyelik + gündem + oy
-        AddSection("ORGANIZATIONS", "Organizations — memberships, agenda and voting (M37.5)",
-            () =>
-            {
-                GD.Print("[GameHud] ORGANIZATIONS butonu basıldı — OrganizationPanel.OpenUnder çağrılıyor");
-                OrganizationPanel.OpenUnder(this);
-            });
-
-        // ADVISORS (M53): danışman ekibi — işe alma, tavsiye, geçmiş
-        AddSection("ADVISORS", "Advisors — hire economy/security/media advisors, request advice, view history",
-            () =>
-            {
-                GD.Print("[GameHud] ADVISORS butonu basıldı — AdvisorPanel.OpenUnder çağrılıyor");
-                AdvisorPanel.OpenUnder(this);
-            });
-
-        // DECISIONS (M10.2): kararlar paneli — kategori sekmeli, arama, filtreleme
-        AddSection("DECISIONS", "Decisions — categorized decisions with search and filters (HOI4-style)",
-            () =>
-            {
-                GD.Print("[GameHud] DECISIONS butonu basıldı — DecisionPanel.OpenUnder çağrılıyor");
-                DecisionPanel.OpenUnder(this);
-            });
-
-        // CLIMATE (M55.3): iklim, çevre ve enerji geçişi paneli
-        AddSection("CLIMATE", "Climate panel — global warming, emissions, policies and agreements",
-            () =>
-            {
-                GD.Print("[GameHud] CLIMATE butonu basıldı — ClimatePanel.OpenUnder çağrılıyor");
-                ClimatePanel.OpenUnder(this);
-            });
-
-        // MIGRATION (M56): göç ve mülteci krizleri paneli
-        AddSection("MIGRATION", "Migration panel — refugee crises, border policies, aid packages",
-            () =>
-            {
-                GD.Print("[GameHud] MIGRATION butonu basıldı — MigrationPanel.OpenUnder çağrılıyor");
-                MigrationPanel.OpenUnder(this);
-            });
-
-        // ELECTION (M23.1): seçim takvimi + oy tahmini paneli
-        AddSection("ELECTION", "Elections — calendar and vote prediction",
-            () =>
-            {
-                GD.Print("[GameHud] ELECTION butonu basıldı — ElectionPanel.OpenUnder çağrılıyor");
-                ElectionPanel.OpenUnder(this);
-            });
-
-        // "MORE ▾": satıra sığmayan panel düğmeleri bu açılır menüde toplanır.
+        // MORE button for overflow (not needed now but kept for future)
         _moreBtn = new MenuButton
         {
             Text = "MORE ▾",
             FocusMode = Control.FocusModeEnum.None,
-            TooltipText = "More panels (did not fit in the bar)",
+            TooltipText = "More panels",
             Visible = false
         };
         _morePopup = _moreBtn.GetPopup();
         _morePopup.IdPressed += OnMoreItemPressed;
         rightSection.AddChild(_moreBtn);
 
-        // NEXT EVENT butonu (M16.4): bekleyen bildirim varsa görünür
+        // NEXT EVENT button
         _nextEventBtn = new Button
         {
             Text = "⚑ NEXT EVENT",
             FocusMode = Control.FocusModeEnum.None,
-            TooltipText = "Process next pending notification (auto-pause was triggered)"
+            ThemeTypeVariation = "ToolbarButton",
+            TooltipText = "Process next pending notification"
         };
         _nextEventBtn.Pressed += () =>
         {
-            GD.Print("[GameHud] NEXT EVENT butonu basıldı");
             TimeTempoSystem.ProcessNextNotification();
             _nextEventBtn.Hide();
         };
-        _nextEventBtn.Hide(); // kuyruk boşken gizli
+        _nextEventBtn.Hide();
         rightSection.AddChild(_nextEventBtn);
         UITheme.AddHoverScale(_nextEventBtn);
 
-        // Pause/Play butonu (en sağda)
-        _pauseButton = new Button { FocusMode = Control.FocusModeEnum.None, TooltipText = "Pause/Resume (Space)" };
-        _pauseButton.Pressed += () => GM.TogglePause();
-        rightSection.AddChild(_pauseButton);
-        UITheme.AddHoverScale(_pauseButton, 1.08f);
+        // Window resize handling
+        GetTree().Root.SizeChanged += ReflowPanels;
 
-        // Üst barı sahneye ekle (BuildBottomBar alt barı ekler).
-        AddChild(margin);
-
-        // Pencere boyutu değişince düğme dağılımını yeniden hesapla.
-        GetTree().Root.SizeChanged += ReflowSections;
-        ReflowSections();
-        // İlk yerleşim tamamlandıktan sonra bir kez daha hesapla: ağaç dışındayken
-        // ölçülen viewport genişliği 0 olur ve tüm düğmeler MORE menüsüne taşınırdı.
-        Callable.From(ReflowSections).CallDeferred();
-
-        BuildBottomBar();
+        AddChild(topMargin);
     }
 
-    // Üst bara bir panel düğmesi ekler. Düğme hemen oluşturulur ama görünürlüğü
-    // ReflowSections() tarafından pencere genişliğine göre ayarlanır.
-    private void AddSection(string text, string tooltip, Action open)
-    {
-        var btn = new Button
-        {
-            Text = text,
-            FocusMode = Control.FocusModeEnum.None,
-            TooltipText = tooltip
-        };
-        btn.Pressed += open;
-        UITheme.AddHoverScale(btn);
-        _sectionRow.AddChild(btn);
-        _sections.Add((text, tooltip, open));
-        _sectionBtns.Add(btn);
-    }
-
-    // Pencere genişliğine göre kaç panel düğmesinin satırda gösterileceğini hesaplar;
-    // kalanları "MORE ▾" açılır menüsüne taşır. Ölçüler tema bağımsız kabaca
-    // yazı uzunluğu + dolgu tahminidir (butonların gerçek min boyutu bu tahmine
-    // göre bir miktar büyük olabilir, bu yüzden güvenli pay bırakılır).
-    private void ReflowSections()
-    {
-        if (_sectionRow == null || _moreBtn == null || _morePopup == null) return;
-
-        float viewportW = _sectionRow.GetViewportRect().Size.X;
-        // Sabit alanlar: kenar boşlukları, sol bölüm (bayrak + ülke adı),
-        // orta bölüm (tarih + durum + 5 hız butonu), PP/Stability/WarSupport
-        // etiketleri, NEXT EVENT ve Pause.
-        const float fixedW = 40f + 210f + 270f + 250f + 100f + 46f;
-        const float moreW = 92f;
-        const float sepW = 10f;
-        const float charW = 7.6f;
-        const float btnPad = 30f;
-
-        float budget = Mathf.Max(0f, viewportW - fixedW - moreW);
-        _morePopup.Clear();
-        _moreActions.Clear();
-
-        float used = 0f;
-        int shown = 0;
-        for (int i = 0; i < _sectionBtns.Count; i++)
-        {
-            float w = _sections[i].Text.Length * charW + btnPad;
-            if (used + w + sepW > budget) break;
-            used += w + sepW;
-            shown++;
-        }
-
-        for (int i = 0; i < _sectionBtns.Count; i++)
-        {
-            bool visible = i < shown;
-            _sectionBtns[i].Visible = visible;
-            if (!visible)
-            {
-                int id = _morePopup.ItemCount;
-                _morePopup.AddItem(_sections[i].Text, id);
-                _moreActions.Add(_sections[i].Open);
-            }
-        }
-        _moreBtn.Visible = shown < _sectionBtns.Count;
-    }
-
-    // "MORE ▾" menüsünden bir panel seçildiğde ilgili paneli açar.
-    private void OnMoreItemPressed(long id)
-    {
-        if (id < 0 || id >= _moreActions.Count) return;
-        _moreActions[(int)id]();
-        _morePopup.Hide();
-    }
-
+    // ============================================================
+    // BOTTOM BAR BUILD
+    // ============================================================
     private void BuildBottomBar()
     {
-        // === ALT ÇUBUK ===
         var bottomMargin = new MarginContainer();
         bottomMargin.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
-        bottomMargin.AddThemeConstantOverride("margin_bottom", 8);
-        bottomMargin.AddThemeConstantOverride("margin_left", 20);
-        bottomMargin.AddThemeConstantOverride("margin_right", 20);
+        bottomMargin.AddThemeConstantOverride("margin_bottom", 4);
+        bottomMargin.AddThemeConstantOverride("margin_left", 8);
+        bottomMargin.AddThemeConstantOverride("margin_right", 8);
         bottomMargin.MouseFilter = Control.MouseFilterEnum.Ignore;
         UITheme.ApplyTheme(bottomMargin);
 
         var bottomBar = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Begin };
-        bottomBar.AddThemeConstantOverride("separation", 24);
+        bottomBar.AddThemeConstantOverride("separation", 20);
         bottomMargin.AddChild(bottomBar);
 
+        // Left: Selected country/unit info
         var leftBottom = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Begin };
         leftBottom.AddThemeConstantOverride("separation", 12);
         bottomBar.AddChild(leftBottom);
 
         _selectedLabel = new Label();
-        _selectedLabel.AddThemeFontSizeOverride("font_size", 16);
-        _selectedLabel.TooltipText = "Selected country";
+        _selectedLabel.AddThemeFontSizeOverride("font_size", 14);
+        _selectedLabel.AddThemeColorOverride("font_color", UITheme.Gold);
+        _selectedLabel.TooltipText = "Selected country or unit";
         leftBottom.AddChild(_selectedLabel);
 
+        // Center: Construction queue summary (HoI4 style)
+        var centerBottom = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        centerBottom.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        bottomBar.AddChild(centerBottom);
+
+        // Right: Speed indicator
         var rightBottom = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         rightBottom.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
         rightBottom.AddThemeConstantOverride("separation", 12);
         bottomBar.AddChild(rightBottom);
 
         _speedTextLabel = new Label();
-        _speedTextLabel.AddThemeFontSizeOverride("font_size", 16);
-        _speedTextLabel.AddThemeColorOverride("font_color", Colors.Gray);
+        _speedTextLabel.AddThemeFontSizeOverride("font_size", 14);
+        _speedTextLabel.AddThemeColorOverride("font_color", UITheme.TextMuted);
         _speedTextLabel.TooltipText = "Current game speed";
         rightBottom.AddChild(_speedTextLabel);
 
-        // HUD'u sahneye ekle (üst ve alt margin)
         AddChild(bottomMargin);
     }
 
+    // ============================================================
+    // EVENT HANDLERS
+    // ============================================================
     private void OnDateChanged(string text) => _dateLabel.Text = text;
 
     private void OnPlayerCountryChanged(string id) => RefreshCountryLabel();
 
-    private void OnPlayerCountryDataChanged() => RefreshDataLabels();
+    private void OnPlayerCountryDataChanged()
+    {
+        RefreshDataLabels();
+        RefreshResourceLabels();
+    }
 
     private void RefreshCountryLabel()
     {
@@ -489,13 +390,12 @@ public partial class GameHud : CanvasLayer
         {
             var d = GM.PlayerCountryData;
             _countryLabel.Text = d.Name;
-            // Bayrak: FlagLibrary (PNG / yedek)
-            var flagBox = _countryLabel.GetParent().GetChild(0) as FlagBox;
-            flagBox?.SetCountry(d.Id);
+            _flagBox?.SetCountry(d.Id);
         }
         else
         {
-            _countryLabel.Text = "Rogue World";
+            _countryLabel.Text = "ROGUE WORLD";
+            _flagBox?.SetCountry("XXX");
         }
     }
 
@@ -510,16 +410,37 @@ public partial class GameHud : CanvasLayer
         }
         else
         {
-            _ppLabel.Text = "";
-            _stabilityLabel.Text = "";
-            _warSupportLabel.Text = "";
+            _ppLabel.Text = "PP: 0";
+            _stabilityLabel.Text = "STA: 0%";
+            _warSupportLabel.Text = "WS: 0%";
         }
+    }
+
+    private void RefreshResourceLabels()
+    {
+        if (!GM.HasPlayer || GM.PlayerCountryData == null) return;
+
+        var d = GM.PlayerCountryData;
+        var stockpiles = EconomySystem.Stockpiles;
+        int freeCiv = EconomySystem.FreeCivFactories;
+
+        if (_manpowerLabel != null) _manpowerLabel.Text = $"MAN: {d.ManpowerPool:N0}";
+        if (_civFactoryLabel != null) _civFactoryLabel.Text = $"CIV: {d.CivFactories} ({freeCiv} free)";
+        if (_milFactoryLabel != null) _milFactoryLabel.Text = $"MIL: {d.MilFactories}";
+        if (_dockyardLabel != null) _dockyardLabel.Text = $"DOCK: {d.Dockyards}";
+        if (_oilLabel != null) _oilLabel.Text = $"OIL: {stockpiles.GetValueOrDefault("Oil", 0):N0}";
+        if (_rubberLabel != null) _rubberLabel.Text = $"RUB: {stockpiles.GetValueOrDefault("Rubber", 0):N0}";
+        if (_steelLabel != null) _steelLabel.Text = $"STL: {stockpiles.GetValueOrDefault("Steel", 0):N0}";
+        if (_aluminumLabel != null) _aluminumLabel.Text = $"ALU: {stockpiles.GetValueOrDefault("Aluminum", 0):N0}";
+        if (_tungstenLabel != null) _tungstenLabel.Text = $"TUN: {stockpiles.GetValueOrDefault("Tungsten", 0):N0}";
+        if (_chromiumLabel != null) _chromiumLabel.Text = $"CHR: {stockpiles.GetValueOrDefault("Chromium", 0):N0}";
     }
 
     private void OnSpeedChanged(int speed)
     {
         bool paused = speed == 0;
-        _pauseButton.Text = paused ? "PLAY" : "PAUSE";
+        _pauseButton.Text = paused ? "▶ PLAY" : "⏸ PAUSE";
+        _pauseButton.ButtonPressed = paused;
         _stateLabel.Text = paused ? "PAUSED" : "";
         SyncSpeedButtons();
         _speedTextLabel.Text = paused ? "Speed: Pause" : $"Speed: {speed}x";
@@ -531,7 +452,35 @@ public partial class GameHud : CanvasLayer
             _speedButtons[i].SetPressedNoSignal(i + 1 == GM.Speed);
     }
 
-    // WorldMap'ten seçim sinyali için public hook
+    // Window resize - reflow panel buttons
+    private void ReflowPanels()
+    {
+        if (_panelButtonRow == null) return;
+
+        float viewportW = _panelButtonRow.GetViewportRect().Size.X;
+        // Estimate available space after resources
+        const float resourceWidth = 600f;
+        const float buttonWidth = 80f;
+        const float padding = 100f;
+        float available = Mathf.Max(0f, viewportW - resourceWidth - padding);
+        int maxButtons = Mathf.Max(1, (int)(available / buttonWidth));
+
+        for (int i = 0; i < _panelButtonRow.GetChildCount(); i++)
+        {
+            if (_panelButtonRow.GetChild(i) is Button btn)
+                btn.Visible = i < maxButtons;
+        }
+    }
+
+    // MORE menu handler
+    private void OnMoreItemPressed(long id)
+    {
+        if (id < 0 || id >= _moreActions.Count) return;
+        _moreActions[(int)id]();
+        _morePopup.Hide();
+    }
+
+    // WorldMap selection signals
     public void OnCountrySelected(string name)
     {
         _selectedLabel.Text = $"Selected: {name}";

@@ -8,9 +8,7 @@ using FileAccess = Godot.FileAccess;
 
 /// <summary>
 /// WorldMapV5 — Visual-reference world map built from scratch for HOI4-style appearance.
-/// Phase 1: Fixed background + Camera with proper zoom/pan.
-/// All map content under single WorldRoot Node2D, single Camera2D.
-/// UI only in CanvasLayer (debug overlay).
+/// Features: Infinite horizontal wrapping, HOI4-style camera, integrated HUD support.
 /// </summary>
 public partial class WorldMapV5 : Node2D
 {
@@ -20,31 +18,44 @@ public partial class WorldMapV5 : Node2D
     public static WorldMapV5 Instance { get; private set; }
 
     // Background texture path - using natural_earth_2.png (Natural Earth II, 10800x5400 PNG)
-    // This is the converted PNG version of NE2_50M_SR_W.tif
     private const string BackgroundTexturePath = "res://Assets/map_textures/natural_earth_2.png";
 
-    // Camera settings
-    private const float MIN_ZOOM_COVER = 0f; // Calculated at runtime: max(viewportW/imgW, viewportH/imgH)
-    private const float MAX_ZOOM = 8f;
-    private const float ZOOM_SPEED = 1.2f; // Wheel zoom factor
-    private const float PAN_SPEED_KEYBOARD = 900f; // WASD pan speed (world pixels/sec at zoom 1)
+    // Camera settings - HOI4 style
+    private const float MIN_ZOOM_COVER = 0f; // Calculated at runtime
+    private const float MAX_ZOOM = 10f;      // HOI4 goes to ~10x
+    private const float ZOOM_SPEED = 1.15f;  // Smoother zoom
+    private const float PAN_SPEED_KEYBOARD = 1200f; // WASD pan speed
+    private const float MIN_ZOOM_CLAMP = 0.3f; // Don't zoom out past world coverage
+
+    // Map wrapping - HOI4 style infinite horizontal
+    private const float WORLD_WIDTH = 10800f;  // Texture width in world pixels
+    private const float WORLD_HEIGHT = 5400f;  // Texture height
+    private const float WRAP_MARGIN = 100f;    // Margin for smooth wrapping
+
+    // HUD height offset (top bar) for vertical coverage calculation
+    private const float HUD_TOP_HEIGHT = 50f; // Approximate HUD top bar height in pixels
 
     // Node references
-    private Node2D _worldRoot;      // Single parent for all world-space content
-    private Sprite2D _background;   // Background texture
-    private Camera2D _camera;       // Single camera for map
-    private CanvasLayer _uiCanvas;  // Debug overlay only
-    private Label _debugLabel;      // Debug info display
+    private Node2D _worldRoot;       // Single parent for all world-space content
+    private Node2D _backgroundRoot;  // Root for wrapped backgrounds
+    private Camera2D _camera;        // Single camera for map
+    private CanvasLayer _uiCanvas;   // Debug overlay only
+    private Label _debugLabel;       // Debug info display
 
     // State
-    private Vector2 _textureSize;   // Background texture pixel size
-    private float _minZoom;         // Calculated cover zoom
-    private Vector2 _lastMousePos;  // For RMB drag
+    private Vector2 _textureSize;    // Background texture pixel size
+    private float _minZoom;          // Calculated cover zoom
+    private Vector2 _lastMousePos;   // For RMB drag
     private bool _dragging = false;
-    private bool _debugMode = true; // Toggle with F3
+    private bool _debugMode = true;  // Toggle with F3
 
-    // Debug visualization (Phase 3)
-    private Node2D _debugDrawNode;  // Draws graticule, coastline, reference points
+    // Background sprites for wrapping (3 copies: center, left, right)
+    private Sprite2D _bgCenter;
+    private Sprite2D _bgLeft;
+    private Sprite2D _bgRight;
+
+    // Debug visualization
+    private Node2D _debugDrawNode;
     private bool _showGraticule = true;
     private bool _showCoastline = true;
     private bool _showReferencePoints = true;
@@ -54,11 +65,11 @@ public partial class WorldMapV5 : Node2D
     private string _hoveredCountryId = null;
 
     // Performance optimization: spatial grid for hover detection
-    private const int GridCellSize = 256; // world pixels per cell
+    private const int GridCellSize = 256;
     private Dictionary<long, List<string>> _countryGrid = new();
     private bool _gridBuilt = false;
 
-    // Selection outline (separate from shared border lines) - now handled by V5SelectionOutline node
+    // Selection outline
     private V5SelectionOutline _selectionOutlineNode = null;
     private Line2D _hoverOutline = null;
 
@@ -79,7 +90,7 @@ public partial class WorldMapV5 : Node2D
     public bool TestMode { get; set; } = false;
     public (string name, double lon, double lat)[] TestCases { get; set; }
     public int TestIndex { get; set; } = 0;
-    public int TestPhase { get; set; } = 0; // 0=send click, 1=check result, 2=deselect, 3=delay
+    public int TestPhase { get; set; } = 0;
     public float TestTimer { get; set; } = 0f;
     private bool _testStepRunning = false;
 
@@ -101,14 +112,13 @@ public partial class WorldMapV5 : Node2D
     };
 
     // ===== PHASE 4: Country Fills & Borders =====
-    // Country data structure
     public sealed class CountryData
     {
         public string Id;
         public string Name;
-        public float[] Bbox; // [minX, minY, maxX, maxY] in texture pixels
-        public List<List<float[]>> Polygons; // Each polygon: list of [x,y] points (exterior + holes flattened)
-        public List<int> PolygonSizes; // Number of points per polygon (for reconstruction)
+        public float[] Bbox;
+        public List<List<float[]>> Polygons;
+        public List<int> PolygonSizes;
         public Vector2 LabelPoint;
         public float Area;
         public Color FillColor;
@@ -117,8 +127,6 @@ public partial class WorldMapV5 : Node2D
         public Line2D BorderLine;
         public bool Selected = false;
         public bool Hovered = false;
-
-        // Cached polygons for fast hit testing (exterior rings only, world pixels)
         public List<Vector2[]> CachedExteriors = new();
     }
 
@@ -139,31 +147,21 @@ public partial class WorldMapV5 : Node2D
     private int _skippedRingCount = 0;
 
     // Input handling
-    private const float DRAG_THRESHOLD = 5f; // Pixels to distinguish click from drag
+    private const float DRAG_THRESHOLD = 3f; // Lower threshold for more responsive drag start
+private bool _dragStarted = false; // Track if drag has actually started moving
 
     public override void _Ready()
     {
         Instance = this;
 
-        // Set window size for screenshot tests (must be done early)
         ApplyWindowSizeForShot();
-
-        // Create node hierarchy
         CreateSceneTree();
-
-        // Load background texture
         LoadBackground();
-
-        // Setup camera
         SetupCamera();
-
-        // Setup UI canvas (debug overlay)
         SetupUICanvas();
 
-        // Input handling
         Input.MouseMode = Input.MouseModeEnum.Visible;
-
-        GD.Print("WorldMapV5: Ready");
+        GD.Print("WorldMapV5: Ready (Infinite wrapping enabled)");
     }
 
     private void ApplyWindowSizeForShot()
@@ -300,14 +298,17 @@ public partial class WorldMapV5 : Node2D
         _worldRoot.Name = "WorldRoot";
         AddChild(_worldRoot);
 
-        // Background sprite (will be added to WorldRoot after texture loads)
-        _background = new Sprite2D();
-        _background.Name = "Background";
-        _background.Centered = false; // Top-left at (0,0)
-        _background.Position = Vector2.Zero;
-        _background.Scale = Vector2.One;
+        // Background root for wrapping (3 copies: left, center, right)
+        _backgroundRoot = new Node2D();
+        _backgroundRoot.Name = "BackgroundRoot";
+        _worldRoot.AddChild(_backgroundRoot);
 
-        // Camera2D for map navigation
+        // Background sprites for infinite horizontal wrapping (HOI4 style)
+        _bgCenter = CreateBackgroundSprite("BackgroundCenter", Vector2.Zero);
+        _bgLeft = CreateBackgroundSprite("BackgroundLeft", new Vector2(-WORLD_WIDTH, 0));
+        _bgRight = CreateBackgroundSprite("BackgroundRight", new Vector2(WORLD_WIDTH, 0));
+
+        // Camera2D for map navigation - HOI4 style
         _camera = new Camera2D();
         _camera.Name = "MapCamera";
         _camera.Zoom = Vector2.One;
@@ -343,22 +344,36 @@ public partial class WorldMapV5 : Node2D
         AddChild(_uiCanvas);
     }
 
+    private Sprite2D CreateBackgroundSprite(string name, Vector2 position)
+    {
+        var sprite = new Sprite2D();
+        sprite.Name = name;
+        sprite.Centered = false;
+        sprite.Position = position;
+        sprite.Scale = Vector2.One;
+        sprite.ZIndex = -100; // Behind everything
+        _backgroundRoot.AddChild(sprite);
+        return sprite;
+    }
+
     private void LoadBackground()
     {
         var texture = GD.Load<Texture2D>(BackgroundTexturePath);
         if (texture == null)
         {
             GD.PrintErr($"WorldMapV5: CRITICAL - Failed to load background texture: {BackgroundTexturePath}");
-            // Create placeholder size
-            _textureSize = new Vector2(10800, 5400);
+            _textureSize = new Vector2(WORLD_WIDTH, WORLD_HEIGHT);
             return;
         }
 
-        _background.Texture = texture;
-        _textureSize = new Vector2(texture.GetWidth(), texture.GetHeight());
-        _worldRoot.AddChild(_background);
+        // Assign texture to all 3 background sprites
+        _bgCenter.Texture = texture;
+        _bgLeft.Texture = texture;
+        _bgRight.Texture = texture;
 
-        GD.Print($"WorldMapV5: Background loaded: {_textureSize.X}x{_textureSize.Y}");
+        _textureSize = new Vector2(texture.GetWidth(), texture.GetHeight());
+
+        GD.Print($"WorldMapV5: Background loaded: {_textureSize.X}x{_textureSize.Y} (wrapping: {WORLD_WIDTH}x{WORLD_HEIGHT})");
 
         // Initialize MapProjectionV5 with measured texture bounds
         MapProjectionV5.Initialize((int)_textureSize.X, (int)_textureSize.Y);
@@ -366,9 +381,6 @@ public partial class WorldMapV5 : Node2D
         GD.Print("[WorldMapV5] Starting LoadCountries...");
         LoadCountries();
         GD.Print($"[WorldMapV5] LoadCountries completed. Countries count: {_countries.Count}");
-
-        // Calculate min zoom (cover mode) after we know viewport size
-        // This will be finalized in _Process after first frame
     }
 
     // ===== PHASE 4: Load Countries from JSON =====
@@ -611,30 +623,10 @@ public partial class WorldMapV5 : Node2D
 
     private void CreateCountryFillMesh(CountryData country)
     {
-        // We'll use Polygon2D for fill (simpler than ArrayMesh for this use case)
-        // Each polygon (exterior + holes) becomes a separate Polygon2D
-        // For holes, we use the Polygon2D's ability to handle holes via inverse winding
-
         var fillNode = new Node2D();
         fillNode.Name = $"Fill_{country.Id}";
         _worldRoot.AddChild(fillNode);
 
-        // For countries with multiple polygons (e.g., islands), we create one Polygon2D per polygon
-        // Each polygon entry in the JSON has exterior and holes combined in PolygonSizes
-        // The JSON structure: polygons array where each item is a flat list of [x,y,x,y,...]
-        // First polygonSizes[0] points = exterior, then holes follow
-        // Actually, the JSON format from v5_export.py is: polygons[ {exterior: [...], holes: [...]} ]
-
-        // Re-parse the polygons from the stored data
-        // Since we stored as List<List<float[]>>, each inner list is a flat ring of points
-        // But we need to know which are exteriors vs holes
-
-        // For simplicity, let's re-load the raw polygon data from JSON
-        // Actually, we can reconstruct from the stored Polygons list
-        // Each entry in Polygons is a ring (exterior or hole)
-        // The original JSON has exterior + holes per polygon feature
-
-        // Better approach: re-read the JSON for this country
         var json = FileAccess.GetFileAsString(CountriesDataPath);
         var doc = JsonDocument.Parse(json);
         var countriesArray = doc.RootElement.GetProperty("countries");
@@ -645,42 +637,37 @@ public partial class WorldMapV5 : Node2D
             {
                 if (c.TryGetProperty("polygons", out var polysElem))
                 {
-                    int polyIdx = 0;
                     foreach (var polyElem in polysElem.EnumerateArray())
                     {
-                        // Each polygon feature has exterior and holes
                         if (polyElem.TryGetProperty("exterior", out var extElem) &&
                             polyElem.TryGetProperty("holes", out var holesElem))
                         {
-                            var exterior = ParseRing(extElem);
+                            // Convert lon/lat to world pixels for rendering
+                            var exterior = ParseRingToWorld(extElem);
                             var holes = new List<Vector2[]>();
                             foreach (var holeElem in holesElem.EnumerateArray())
                             {
-                                holes.Add(ParseRing(holeElem));
+                                holes.Add(ParseRingToWorld(holeElem));
                             }
 
-                            // Use exterior directly with Polygon2D (Godot handles concave polygons internally)
+                            // Exterior polygon
                             var fillPoly = new Polygon2D();
                             fillPoly.Polygon = exterior;
                             fillPoly.Color = country.FillColor;
                             fillNode.AddChild(fillPoly);
 
-                            // Add holes as separate Polygon2D with inverse winding
-                            if (holes.Count > 0)
+                            // Holes (inverse winding handled by Godot)
+                            foreach (var hole in holes)
                             {
-                                foreach (var hole in holes)
-                                {
-                                    var holePoly = new Polygon2D();
-                                    holePoly.Polygon = hole;
-                                    holePoly.Color = country.FillColor;
-                                    fillNode.AddChild(holePoly);
-                                }
+                                var holePoly = new Polygon2D();
+                                holePoly.Polygon = hole;
+                                holePoly.Color = country.FillColor;
+                                fillNode.AddChild(holePoly);
                             }
                         }
                         else
                         {
-                            // Fallback: treat as simple polygon
-                            var ring = ParseRing(polyElem);
+                            var ring = ParseRingToWorld(polyElem);
                             if (ring.Length >= 3)
                             {
                                 var poly2D = new Polygon2D();
@@ -689,14 +676,14 @@ public partial class WorldMapV5 : Node2D
                                 fillNode.AddChild(poly2D);
                             }
                         }
-                        polyIdx++;
                     }
                 }
-                break; // Found our country
+                break;
             }
         }
     }
 
+    // Parse ring as lon/lat (for hit-testing cache)
     private Vector2[] ParseRing(JsonElement elem)
     {
         var points = new List<Vector2>();
@@ -704,6 +691,21 @@ public partial class WorldMapV5 : Node2D
         {
             var coords = pointElem.EnumerateArray().ToArray();
             points.Add(new Vector2(coords[0].GetSingle(), coords[1].GetSingle()));
+        }
+        return points.ToArray();
+    }
+
+    // Parse ring and convert to WORLD PIXELS (for rendering)
+    private Vector2[] ParseRingToWorld(JsonElement elem)
+    {
+        var points = new List<Vector2>();
+        foreach (var pointElem in elem.EnumerateArray())
+        {
+            var coords = pointElem.EnumerateArray().ToArray();
+            double lon = coords[0].GetSingle();
+            double lat = coords[1].GetSingle();
+            var worldPos = MapProjectionV5.LonLatToWorld(lon, lat);
+            points.Add(worldPos);
         }
         return points.ToArray();
     }
@@ -719,7 +721,6 @@ public partial class WorldMapV5 : Node2D
         _worldRoot.AddChild(borderNode);
         country.BorderLine = borderNode;
 
-        // Re-read JSON for this country's exterior rings
         var json = FileAccess.GetFileAsString(CountriesDataPath);
         var doc = JsonDocument.Parse(json);
         var countriesArray = doc.RootElement.GetProperty("countries");
@@ -736,7 +737,8 @@ public partial class WorldMapV5 : Node2D
                     {
                         if (polyElem.TryGetProperty("exterior", out var extElem))
                         {
-                            var exterior = ParseRing(extElem);
+                            // Convert to world pixels for rendering
+                            var exterior = ParseRingToWorld(extElem);
                             if (exterior.Length >= 2)
                             {
                                 if (!first)
@@ -857,9 +859,9 @@ public partial class WorldMapV5 : Node2D
     private void SetupCamera()
     {
         // Camera limits will be set in UpdateCameraLimits() after we know viewport size
-        _camera.LimitLeft = 0;
+        // Don't set horizontal limits - infinite wrapping handled by ClampCamera()
+        // Only vertical limits will be set in UpdateCameraLimits()
         _camera.LimitTop = 0;
-        _camera.LimitRight = (int)_textureSize.X;
         _camera.LimitBottom = (int)_textureSize.Y;
     }
 
@@ -909,6 +911,9 @@ public partial class WorldMapV5 : Node2D
             InitializeCamera();
         }
 
+        // Handle continuous keyboard panning (WASD/Arrow keys) - HOI4 style
+        HandleKeyboardPan((float)delta);
+
         // Update border line widths based on zoom (only when zoom changes)
         UpdateBorderWidths();
 
@@ -919,6 +924,28 @@ public partial class WorldMapV5 : Node2D
         if (_debugMode && _debugLabel != null)
         {
             UpdateDebugLabel();
+        }
+    }
+
+    private void HandleKeyboardPan(float delta)
+    {
+        // Continuous panning with WASD/Arrow keys (checked every frame)
+        Vector2 dir = Vector2.Zero;
+        if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up))
+            dir.Y -= 1;
+        if (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down))
+            dir.Y += 1;
+        if (Input.IsKeyPressed(Key.A) || Input.IsKeyPressed(Key.Left))
+            dir.X -= 1;
+        if (Input.IsKeyPressed(Key.D) || Input.IsKeyPressed(Key.Right))
+            dir.X += 1;
+
+        if (dir != Vector2.Zero)
+        {
+            // Pan speed in world pixels per second (adjusted for zoom)
+            float speed = PAN_SPEED_KEYBOARD / _camera.Zoom.X;
+            _camera.Position += dir * speed * delta;
+            ClampCamera(); // Handles wrapping
         }
     }
 
@@ -1174,7 +1201,10 @@ public partial class WorldMapV5 : Node2D
 
         // Convert world pixel point to lon/lat for polygon test
         // Polygons in JSON are in lon/lat coordinates
-        var (lon, lat) = MapProjectionV5.WorldToLonLat(point);
+        // Use WorldToLonLat with bounds checking
+        var (lon, lat, inBounds) = WorldToLonLat(point);
+        if (!inBounds) return false;
+
         var lonLatPoint = new Vector2((float)lon, (float)lat);
 
         foreach (var exterior in country.CachedExteriors)
@@ -1294,12 +1324,13 @@ public partial class WorldMapV5 : Node2D
         var viewport = GetViewport();
         var viewportSize = viewport.GetVisibleRect().Size;
 
-        // Calculate cover zoom: map must FILL viewport (no gray bars)
-        float zoomX = viewportSize.X / _textureSize.X;
-        float zoomY = viewportSize.Y / _textureSize.Y;
-        _minZoom = Math.Max(zoomX, zoomY);
+        // Calculate cover zoom: VERTICAL only (horizontal wraps infinitely)
+        // Account for HUD top bar reducing visible map area
+        float effectiveViewportHeight = viewportSize.Y - HUD_TOP_HEIGHT;
+        float zoomY = effectiveViewportHeight / _textureSize.Y;
+        _minZoom = Math.Max(zoomY, MIN_ZOOM_CLAMP); // Don't go below absolute minimum
 
-        GD.Print($"WorldMapV5: Viewport={viewportSize}, Texture={_textureSize}, MinZoom(cover)={_minZoom:F4}");
+        GD.Print($"WorldMapV5: Viewport={viewportSize}, EffectiveH={effectiveViewportHeight:F1}, Texture={_textureSize}, MinZoom(vertical)={_minZoom:F4} (clamp={MIN_ZOOM_CLAMP})");
 
         // Set camera zoom to cover
         _camera.Zoom = new Vector2(_minZoom, _minZoom);
@@ -1307,14 +1338,14 @@ public partial class WorldMapV5 : Node2D
         // Center camera on world
         _camera.Position = _textureSize / 2f;
 
-        // Update camera limits for this zoom level
+        // Update camera limits for this zoom level (infinite horizontal wrapping)
         UpdateCameraLimits();
-
-        // Force camera to respect limits
-        ClampCamera();
 
         // Apply shot-specific camera settings
         ApplyShotCameraSettings();
+
+        // Ensure camera is current
+        _camera.MakeCurrent();
     }
 
     public void UpdateCameraLimits()
@@ -1326,52 +1357,107 @@ public partial class WorldMapV5 : Node2D
         Vector2 visibleWorld = viewportSize / _camera.Zoom.X;
 
         // Camera position is center of visible area
-        // Limits: camera center cannot go beyond half visible world from edges
         float halfW = visibleWorld.X / 2f;
         float halfH = visibleWorld.Y / 2f;
 
-        // FIX: If visible world dimension > texture dimension, fix camera at texture center
-        // (texture fills viewport with overflow hidden, no gray bars possible)
-        float limitLeft, limitRight, limitTop, limitBottom;
+        // VERTICAL LIMITS (no wrapping vertically - clamp to world bounds)
+        // Account for HUD top bar offset
+        float effectiveViewportHeight = viewportSize.Y - HUD_TOP_HEIGHT;
+        float effectiveHalfH = (effectiveViewportHeight / _camera.Zoom.X) / 2f;
 
-        if (visibleWorld.X >= _textureSize.X)
-        {
-            // Texture fits horizontally with overflow - fix camera at center
-            limitLeft = limitRight = _textureSize.X / 2f;
-        }
-        else
-        {
-            // Texture wider than viewport - camera can pan
-            limitLeft = halfW;
-            limitRight = _textureSize.X - halfW;
-        }
-
+        float limitTop, limitBottom;
         if (visibleWorld.Y >= _textureSize.Y)
         {
-            // Texture fits vertically with overflow - fix camera at center
             limitTop = limitBottom = _textureSize.Y / 2f;
         }
         else
         {
-            // Texture taller than viewport - camera can pan
-            limitTop = halfH;
-            limitBottom = _textureSize.Y - halfH;
+            // Camera center Y must stay within [effectiveHalfH, textureHeight - effectiveHalfH]
+            // But with HUD at top, the top limit is slightly lower
+            limitTop = effectiveHalfH + HUD_TOP_HEIGHT / _camera.Zoom.X;
+            limitBottom = _textureSize.Y - effectiveHalfH;
         }
 
-        _camera.LimitLeft = (int)limitLeft;
-        _camera.LimitRight = (int)limitRight;
-        _camera.LimitTop = (int)limitTop;
-        _camera.LimitBottom = (int)limitBottom;
+        // HORIZONTAL: Infinite wrapping - NO LIMITS (camera can go anywhere)
+        // We handle wrapping in ClampCamera() by shifting camera position
+        // Don't set horizontal limits - leave them disabled (default 0 = no limit)
+        // Only set vertical limits
+        _camera.LimitTop = (int)Mathf.Ceil(limitTop);
+        _camera.LimitBottom = (int)Mathf.Floor(limitBottom);
+        // Don't set LimitLeft/LimitRight - leave at default 0 (disabled) for infinite horizontal
 
-        GD.Print($"[CamLimits] VisibleWorld={visibleWorld}, Tex={_textureSize}, Limits: L{limitLeft:F1} R{limitRight:F1} T{limitTop:F1} B{limitBottom:F1}");
+        GD.Print($"[CamLimits] VisibleWorld={visibleWorld}, Tex={_textureSize}, Zoom={_camera.Zoom.X:F4}, HalfH={halfH:F1}, EffHalfH={effectiveHalfH:F1}, Vertical: T{limitTop:F1} B{limitBottom:F1} (range={limitBottom-limitTop:F1}), Horizontal: INFINITE WRAPPING");
     }
 
     public void ClampCamera()
     {
         Vector2 pos = _camera.Position;
-        pos.X = Mathf.Clamp(pos.X, _camera.LimitLeft, _camera.LimitRight);
+
+        // Horizontal wrapping (HOI4 style): wrap camera position seamlessly
+        float halfVisibleW = GetViewport().GetVisibleRect().Size.X / _camera.Zoom.X / 2f;
+        float worldWrapMin = -halfVisibleW;      // Left edge where we wrap right
+        float worldWrapMax = WORLD_WIDTH + halfVisibleW; // Right edge where we wrap left
+
+        // Wrap camera X position
+        if (pos.X < worldWrapMin)
+        {
+            pos.X += WORLD_WIDTH;
+            GD.Print($"[Wrap] Camera wrapped RIGHT: {pos.X - WORLD_WIDTH:F1} -> {pos.X:F1}");
+            UpdateBackgroundPositions();
+        }
+        else if (pos.X > worldWrapMax)
+        {
+            pos.X -= WORLD_WIDTH;
+            GD.Print($"[Wrap] Camera wrapped LEFT: {pos.X + WORLD_WIDTH:F1} -> {pos.X:F1}");
+            UpdateBackgroundPositions();
+        }
+
+        // Vertical clamping (no wrapping) - use camera limits directly
+        float oldY = pos.Y;
         pos.Y = Mathf.Clamp(pos.Y, _camera.LimitTop, _camera.LimitBottom);
+        if (Mathf.Abs(pos.Y - oldY) > 0.1f)
+        {
+            GD.Print($"[ClampY] Camera Y clamped: {oldY:F1} -> {pos.Y:F1} (limits T{_camera.LimitTop} B{_camera.LimitBottom})");
+        }
+
         _camera.Position = pos;
+    }
+
+    private void UpdateBackgroundPositions()
+    {
+        // Keep 3 backgrounds centered on camera for seamless wrapping
+        float camX = _camera.Position.X;
+
+        // Center background on camera's "tile"
+        float centerTileX = Mathf.Floor(camX / WORLD_WIDTH) * WORLD_WIDTH;
+
+        _bgCenter.Position = new Vector2(centerTileX, 0);
+        _bgLeft.Position = new Vector2(centerTileX - WORLD_WIDTH, 0);
+        _bgRight.Position = new Vector2(centerTileX + WORLD_WIDTH, 0);
+    }
+
+    public Vector2 ScreenToWorld(Vector2 screenPos)
+    {
+        // Convert screen position to world using camera transform
+        var viewport = GetViewport();
+        var viewportSize = viewport.GetVisibleRect().Size;
+
+        // Screen to world: camera position + (screen - viewport_center) / zoom
+        // Note: screenPos is in viewport coordinates (already accounts for CanvasLayer offsets)
+        Vector2 worldPos = _camera.Position + (screenPos - viewportSize / 2f) / _camera.Zoom.X;
+
+        // Wrap world X coordinate to [0, WORLD_WIDTH) for consistent hit-testing
+        worldPos.X = Mathf.PosMod(worldPos.X, WORLD_WIDTH);
+
+        return worldPos;
+    }
+
+    public Vector2 WorldToScreen(Vector2 worldPos)
+    {
+        // World to screen: (world - camera_pos) * zoom + viewport_center
+        var viewport = GetViewport();
+        var viewportSize = viewport.GetVisibleRect().Size;
+        return (worldPos - _camera.Position) * _camera.Zoom.X + viewportSize / 2f;
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -1391,86 +1477,72 @@ public partial class WorldMapV5 : Node2D
             GetViewport().SetInputAsHandled();
         }
 
-        // RMB drag pan
+        // RMB drag pan - responsive continuous panning
         if (@event is InputEventMouseButton mb3 && mb3.ButtonIndex == MouseButton.Right)
         {
             if (mb3.Pressed)
             {
                 _dragging = true;
+                _dragStarted = false;
                 _lastMousePos = mb3.Position;
                 GetViewport().SetInputAsHandled();
             }
             else
             {
                 _dragging = false;
+                _dragStarted = false;
             }
         }
 
         if (_dragging && @event is InputEventMouseMotion mm)
         {
             Vector2 delta = mm.Position - _lastMousePos;
-            if (delta.Length() > DRAG_THRESHOLD || _dragging)
+
+            // On first movement, require threshold to distinguish click from drag
+            // After drag starts, allow any movement for smooth panning
+            if (!_dragStarted)
             {
-                // Convert screen delta to world delta (inverse of zoom)
-                Vector2 worldDelta = -delta / _camera.Zoom.X;
-                _camera.Position += worldDelta;
-                ClampCamera();
-                _lastMousePos = mm.Position;
+                if (delta.Length() > DRAG_THRESHOLD)
+                {
+                    _dragStarted = true;
+                }
+                else
+                {
+                    GetViewport().SetInputAsHandled();
+                    return; // Wait for threshold to be exceeded
+                }
             }
+
+            // Convert screen delta to world delta (inverse of zoom) - continuous panning
+            Vector2 worldDelta = -delta / _camera.Zoom.X;
+            _camera.Position += worldDelta;
+            ClampCamera();
+            _lastMousePos = mm.Position;
             GetViewport().SetInputAsHandled();
         }
 
         // LMB click - country selection
         if (@event is InputEventMouseButton mb4 && mb4.ButtonIndex == MouseButton.Left && mb4.Pressed)
         {
-            // Check if click is on UI (UI should have MouseFilter.Stop)
-            // Only handle if not over UI
             var mouseScreen = mb4.Position;
-            var mouseWorld = ScreenToWorld(mouseScreen);
-            GD.Print($"[Click] Mouse world pos: ({mouseWorld.X:F1}, {mouseWorld.Y:F1})");
-
-            // Debug: check countries dict size
-            GD.Print($"[Click] Countries dict count: {_countries.Count}");
-
-            // Debug: check Turkey specifically
-            GD.Print($"[Click] Contains TUR: {_countries.ContainsKey("TUR")}");
-            if (_countries.TryGetValue("TUR", out var turkey))
-            {
-                GD.Print($"[Click] Turkey bbox: [{turkey.Bbox[0]:F1},{turkey.Bbox[1]:F1},{turkey.Bbox[2]:F1},{turkey.Bbox[3]:F1}]");
-                GD.Print($"[Click] Turkey contains point: X={mouseWorld.X:F1} in [{turkey.Bbox[0]:F1},{turkey.Bbox[2]:F1}]={mouseWorld.X >= turkey.Bbox[0] && mouseWorld.X <= turkey.Bbox[2]}, Y={mouseWorld.Y:F1} in [{turkey.Bbox[1]:F1},{turkey.Bbox[3]:F1}]={mouseWorld.Y >= turkey.Bbox[1] && mouseWorld.Y <= turkey.Bbox[3]}");
-            }
-            else
-            {
-                GD.Print($"[Click] TUR NOT FOUND in dictionary!");
-            }
+            var mouseWorld = ScreenToWorld(mouseScreen); // Handles wrapping
 
             // Find clicked country
             string clickedId = null;
             float bestArea = float.MaxValue;
-            int bboxHits = 0;
 
             foreach (var kvp in _countries)
             {
                 var country = kvp.Value;
-                if (country.Bbox != null && country.Bbox.Length == 4)
+                if (IsPointInCountry(mouseWorld, country))
                 {
-                    if (mouseWorld.X >= country.Bbox[0] && mouseWorld.X <= country.Bbox[2] &&
-                        mouseWorld.Y >= country.Bbox[1] && mouseWorld.Y <= country.Bbox[3])
+                    if (country.Area < bestArea)
                     {
-                        bboxHits++;
-                        GD.Print($"[Click] BBox hit: {country.Id} ({country.Bbox[0]:F1},{country.Bbox[1]:F1})-({country.Bbox[2]:F1},{country.Bbox[3]:F1})");
-                        if (IsPointInCountry(mouseWorld, country))
-                        {
-                            if (country.Area < bestArea)
-                            {
-                                bestArea = country.Area;
-                                clickedId = country.Id;
-                            }
-                        }
+                        bestArea = country.Area;
+                        clickedId = country.Id;
                     }
                 }
             }
-            GD.Print($"[Click] Total bbox hits: {bboxHits}, clicked: {clickedId ?? "none"}");
 
             // Update selection
             if (clickedId != _selectedCountryId)
@@ -1513,7 +1585,7 @@ public partial class WorldMapV5 : Node2D
             GetViewport().SetInputAsHandled();
         }
 
-        // Keyboard pan (WASD / Arrow keys)
+        // Keyboard pan (WASD / Arrow keys) - with wrapping
         if (@event is InputEventKey key && key.Pressed && !key.Echo)
         {
             Vector2 dir = Vector2.Zero;
@@ -1527,10 +1599,10 @@ public partial class WorldMapV5 : Node2D
 
             if (dir != Vector2.Zero)
             {
-                // Pan speed in world pixels per frame (adjusted for zoom)
-                float speed = PAN_SPEED_KEYBOARD * (float)GetProcessDeltaTime() / _camera.Zoom.X;
-                _camera.Position += dir * speed;
-                ClampCamera();
+                // Pan speed in world pixels per second (adjusted for zoom)
+                float speed = PAN_SPEED_KEYBOARD / _camera.Zoom.X;
+                _camera.Position += dir * speed * (float)GetProcessDeltaTime();
+                ClampCamera(); // Handles wrapping
                 GetViewport().SetInputAsHandled();
             }
 
@@ -1578,6 +1650,9 @@ public partial class WorldMapV5 : Node2D
                 RequestScreenshot("manual_f11");
                 GetViewport().SetInputAsHandled();
             }
+
+            // Note: WASD/Arrow key panning is now handled in _Process() for continuous movement
+            // using Input.IsKeyPressed() for smooth HOI4-style panning
         }
     }
 
@@ -1627,24 +1702,17 @@ public partial class WorldMapV5 : Node2D
         ClampCamera();
     }
 
-    private Vector2 ScreenToWorld(Vector2 screenPos)
-    {
-        var viewport = GetViewport();
-        var viewportSize = viewport.GetVisibleRect().Size;
-        return _camera.Position + (screenPos - viewportSize / 2f) / _camera.Zoom.X;
-    }
-
     private void OnViewportResized()
     {
         if (_textureSize.X > 0)
         {
-            // Recalculate min zoom (cover)
+            // Recalculate min zoom (vertical only - horizontal wraps)
             var viewport = GetViewport();
             var viewportSize = viewport.GetVisibleRect().Size;
 
-            float zoomX = viewportSize.X / _textureSize.X;
-            float zoomY = viewportSize.Y / _textureSize.Y;
-            _minZoom = Math.Max(zoomX, zoomY);
+            float effectiveViewportHeight = viewportSize.Y - HUD_TOP_HEIGHT;
+            float zoomY = effectiveViewportHeight / _textureSize.Y;
+            _minZoom = Math.Max(zoomY, MIN_ZOOM_CLAMP);
 
             // Clamp current zoom to new min
             if (_camera.Zoom.X < _minZoom)
@@ -1655,7 +1723,10 @@ public partial class WorldMapV5 : Node2D
             UpdateCameraLimits();
             ClampCamera();
 
-            GD.Print($"WorldMapV5: Resized - Viewport={viewportSize}, MinZoom={_minZoom:F4}, Zoom={_camera.Zoom.X:F4}");
+            // Ensure camera is current after resize
+            _camera.MakeCurrent();
+
+            GD.Print($"WorldMapV5: Resized - Viewport={viewportSize}, EffH={effectiveViewportHeight:F1}, MinZoom={_minZoom:F4}, Zoom={_camera.Zoom.X:F4}");
         }
     }
 
@@ -1665,7 +1736,7 @@ public partial class WorldMapV5 : Node2D
         var viewportSize = viewport.GetVisibleRect().Size;
         var mouseScreen = GetViewport().GetMousePosition();
         var mouseWorld = ScreenToWorld(mouseScreen);
-        var (lon, lat) = WorldToLonLat(mouseWorld);
+        var (lon, lat, inBounds) = WorldToLonLat(mouseWorld);
 
         // Performance metrics
         uint fps = (uint)(1.0 / GetProcessDeltaTime());
@@ -1674,14 +1745,21 @@ public partial class WorldMapV5 : Node2D
         int objectsInFrame = _countries.Count; // Approximate with country count
         var memUsage = OS.GetStaticMemoryUsage();
 
+        // Camera vertical clamp info
+        float halfViewH = (viewportSize.Y / _camera.Zoom.X) / 2f;
+        float minCamY = _camera.LimitTop;
+        float maxCamY = _camera.LimitBottom;
+        float mapCoverageH = _textureSize.Y * _camera.Zoom.X;
+
         _debugLabel.Text = $@"WorldMapV5 Debug
 Zoom: {_camera.Zoom.X:F4} (min: {_minZoom:F4}, max: {MAX_ZOOM})
 Camera Pos: ({_camera.Position.X:F1}, {_camera.Position.Y:F1})
 Camera Limits: L{_camera.LimitLeft} T{_camera.LimitTop} R{_camera.LimitRight} B{_camera.LimitBottom}
-Viewport: {viewportSize.X}x{viewportSize.Y}
+Cam Y Range: [{minCamY:F1} .. {maxCamY:F1}] (halfViewH={halfViewH:F1})
+Viewport: {viewportSize.X}x{viewportSize.Y} (map coverage H={mapCoverageH:F1} >= {viewportSize.Y}? {mapCoverageH >= viewportSize.Y})
 Texture: {_textureSize.X}x{_textureSize.Y}
 Mouse Screen: ({mouseScreen.X:F1}, {mouseScreen.Y:F1})
-Mouse World: ({mouseWorld.X:F1}, {mouseWorld.Y:F1})
+Mouse World: ({mouseWorld.X:F1}, {mouseWorld.Y:F1}) inBounds={inBounds}
 Mouse Lon/Lat: ({lon:F4}°, {lat:F4}°)
 Dragging: {_dragging}
 FPS: {fps} | Frame: {frameTime}ms | Objects: {objectsInFrame} | Mem: {memUsage / 1024 / 1024}MB
@@ -1692,13 +1770,26 @@ Debug: F3 | Screenshot: F11 | Grid: G | Coast: C | Ref: R";
     /// <summary>
     /// Convert world space coordinates to longitude/latitude.
     /// Based on texture being full-world equirectangular: 360° x 180°
+    /// Returns clamped lat/lon and a flag if position was out of bounds.
     /// </summary>
-    public static (double lon, double lat) WorldToLonLat(Vector2 worldPos, Vector2? textureSize = null)
+    public static (double lon, double lat, bool inBounds) WorldToLonLat(Vector2 worldPos, Vector2? textureSize = null)
     {
         Vector2 texSize = textureSize ?? Instance?._textureSize ?? new Vector2(10800, 5400);
-        double lon = -180.0 + (worldPos.X / texSize.X) * 360.0;
-        double lat = 90.0 - (worldPos.Y / texSize.Y) * 180.0;
-        return (lon, lat);
+
+        // Wrap X for longitude calculation (horizontal wrapping)
+        double wrappedX = Mathf.PosMod(worldPos.X, texSize.X);
+        double lon = -180.0 + (wrappedX / texSize.X) * 360.0;
+
+        // Clamp Y for latitude calculation (no vertical wrapping)
+        double clampedY = Mathf.Clamp(worldPos.Y, 0, texSize.Y);
+        bool inBounds = (worldPos.Y >= 0 && worldPos.Y <= texSize.Y);
+        double lat = 90.0 - (clampedY / texSize.Y) * 180.0;
+
+        // Clamp to valid ranges
+        lon = Mathf.Clamp(lon, -180.0, 180.0);
+        lat = Mathf.Clamp(lat, -90.0, 90.0);
+
+        return (lon, lat, inBounds);
     }
 
     /// <summary>
@@ -1739,7 +1830,8 @@ Debug: F3 | Screenshot: F11 | Grid: G | Coast: C | Ref: R";
     public string GetCountryAt(Vector2 worldPos)
     {
         // Convert world position to lon/lat
-        var (lon, lat) = WorldToLonLat(worldPos);
+        var (lon, lat, inBounds) = WorldToLonLat(worldPos);
+        if (!inBounds) return null;
         var lonLatPoint = new Vector2((float)lon, (float)lat);
 
         // Check each country's cached exteriors

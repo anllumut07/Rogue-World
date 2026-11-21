@@ -595,13 +595,14 @@ public partial class GameManager : Node
         MigrationSystem.LoadData();
 
         // HoI4 Map Mechanics Systems
+        TerrainSystem.Initialize();
         StrategicRegionSystem.Initialize();
         WeatherSystem.Initialize();
         ProvinceAdjacencySystem.Initialize();
         StraitCanalSystem.Initialize();
         RailwaySystem.Initialize();
         SupplyNodeSystem.Initialize();
-        BuildingSystem.Initialize();;
+        BuildingSystem.Initialize();
 
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)

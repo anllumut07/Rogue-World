@@ -92,7 +92,7 @@ public static class StraitCanalSystem
                         Name = jr.Name ?? "",
                         RequiredProvinces = jr.RequiredProvinces ?? new List<int>(),
                         Icon = jr.Icon,
-                        Offset = new Vector3(jr.Offset?.X ?? 0, jr.Offset?.Y ?? 0, jr.Offset?.Z ?? 0),
+                        Offset = ParseOffset(jr.Offset),
                         DisabledTooltip = jr.DisabledTooltip ?? ""
                     };
 
@@ -348,7 +348,7 @@ public static class StraitCanalSystem
         public JsonPermissions Neutral;
         public JsonDisableConditions IsDisabled;
         public int Icon;
-        public JsonVector3 Offset;
+        public JsonElement Offset; // Can be array or object
         public string DisabledTooltip;
     }
 
@@ -380,5 +380,25 @@ public static class StraitCanalSystem
     private class JsonVector3
     {
         public float X, Y, Z;
+    }
+
+    private static Vector3 ParseOffset(JsonElement offset)
+    {
+        if (offset.ValueKind == JsonValueKind.Array)
+        {
+            var arr = offset.EnumerateArray().ToArray();
+            float x = arr.Length > 0 ? arr[0].GetSingle() : 0f;
+            float y = arr.Length > 1 ? arr[1].GetSingle() : 0f;
+            float z = arr.Length > 2 ? arr[2].GetSingle() : 0f;
+            return new Vector3(x, y, z);
+        }
+        else if (offset.ValueKind == JsonValueKind.Object)
+        {
+            float x = offset.TryGetProperty("X", out var xProp) ? xProp.GetSingle() : 0f;
+            float y = offset.TryGetProperty("Y", out var yProp) ? yProp.GetSingle() : 0f;
+            float z = offset.TryGetProperty("Z", out var zProp) ? zProp.GetSingle() : 0f;
+            return new Vector3(x, y, z);
+        }
+        return Vector3.Zero;
     }
 }

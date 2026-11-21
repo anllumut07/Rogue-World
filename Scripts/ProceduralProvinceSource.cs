@@ -336,22 +336,73 @@ public class ProceduralProvinceSource : IProvinceSource
 
     /// <summary>
     /// Dünya koordinatından (0..MapSizeX, 0..MapSizeY) terrain palette index'ini alır.
+    /// terrain.bmp yoksa enlem tabanlı deterministik fallback kullanır.
     /// </summary>
     public static byte GetTerrainPaletteIndexAt(Vector2 worldPos)
     {
         LoadTerrainBitmap();
-        if (_terrainBitmapData == null) return 0;
+        if (_terrainBitmapData != null)
+        {
+            // World pos to bitmap UV (0..1)
+            float u = Mathf.Clamp(worldPos.X / MapSizeX, 0f, 0.999f);
+            float v = Mathf.Clamp(worldPos.Y / MapSizeY, 0f, 0.999f);
 
-        // World pos to bitmap UV (0..1)
-        float u = Mathf.Clamp(worldPos.X / MapSizeX, 0f, 0.999f);
-        float v = Mathf.Clamp(worldPos.Y / MapSizeY, 0f, 0.999f);
+            int x = (int)(u * _terrainWidth);
+            int y = (int)(v * _terrainHeight);
 
-        int x = (int)(u * _terrainWidth);
-        int y = (int)(v * _terrainHeight);
+            if (x < 0 || x >= _terrainWidth || y < 0 || y >= _terrainHeight) return 0;
 
-        if (x < 0 || x >= _terrainWidth || y < 0 || y >= _terrainHeight) return 0;
+            return _terrainBitmapData[y * _terrainWidth + x];
+        }
 
-        return _terrainBitmapData[y * _terrainWidth + x];
+        // Fallback: Enlem (latitude) tabanlı deterministik arazi ataması
+        // World Y -> latitude dönüşümü (Project fonksiyonunun tersi)
+        float usableH = MapSizeY - TopMargin * 2;
+        float lat = 90.0f - ((worldPos.Y - TopMargin) / usableH) * 180.0f;
+        lat = Mathf.Clamp(lat, -90f, 90f);
+
+        // Enlem dilimlerine göre arazi tipi (palette index)
+        // 0=Plains, 1=Forest, 2=Hills, 3=Desert, 6=Mountain, 9=Marsh, 13=Urban, 14=Lakes, 15=Ocean, 21=Jungle
+        float absLat = Math.Abs(lat);
+
+        // Kutup bölgeleri - Mountain (palette 6) veya Desert (polar desert, palette 3)
+        if (absLat >= 66.5f) // Arctic/Antarctic circle
+            return 6; // Mountain (snow-covered)
+
+        // Soğuk gemitेटik bölgeler - Forest/Taiga (palette 1)
+        if (absLat >= 50f)
+            return 1; // Forest
+
+        // Ilk ıshak bölgeler - Plains/Steppe (palette 0) veya Desert (palette 3)
+        if (absLat >= 35f)
+        {
+            // Deterministik: worldPos hash ile Plains/Desert kararı
+            int xInt = (int)(worldPos.X * 1000);
+            int yInt = (int)(worldPos.Y * 1000);
+            int hash = (xInt * 73856093 ^ yInt * 19349663) & 0x7FFFFFFF;
+            return (hash % 3 == 0) ? (byte)3 : (byte)0; // Desert or Plains
+        }
+
+        // Sıcak ılık bölgeler - Forest/Jungle (palette 1/21)
+        if (absLat >= 23.5f) // Tropics
+        {
+            int xInt = (int)(worldPos.X * 1000);
+            int yInt = (int)(worldPos.Y * 1000);
+            int hash = (xInt * 73856093 ^ yInt * 19349663) & 0x7FFFFFFF;
+            return (hash % 4 == 0) ? (byte)21 : (byte)1; // Jungle or Forest
+        }
+
+        // Tropik bölgeler - Jungle (palette 21) veya Forest (palette 1)
+        if (absLat >= 10f)
+        {
+            int xInt = (int)(worldPos.X * 1000);
+            int yInt = (int)(worldPos.Y * 1000);
+            int hash = (xInt * 73856093 ^ yInt * 19349663) & 0x7FFFFFFF;
+            return (hash % 3 == 0) ? (byte)21 : (byte)1; // Jungle or Forest
+        }
+
+        // Ekuvator - Jungle (palette 21)
+        return 21; // Jungle
     }
 
     /// <summary>

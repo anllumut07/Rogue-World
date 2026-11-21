@@ -82,8 +82,8 @@ public static class BuildingSystem
                 int id = 0;
                 foreach (var jb in buildingsList)
                 {
-                    // Skip if building type unknown
-                    if (!_buildingTypes.ContainsKey(jb.BuildingType))
+                    // Skip if building type is null/empty or unknown
+                    if (string.IsNullOrEmpty(jb.BuildingType) || !_buildingTypes.ContainsKey(jb.BuildingType))
                         continue;
 
                     var btype = _buildingTypes[jb.BuildingType];

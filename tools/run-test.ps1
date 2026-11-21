@@ -69,7 +69,9 @@ $Stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 $Process = Start-Process -FilePath $GodotExe -ArgumentList $GodotArgs -WorkingDirectory $RepoRoot `
     -RedirectStandardOutput $LogPath -RedirectStandardError $ErrPath -PassThru
 
-$Waited = $Process.WaitForExit(120000) # 120 sn
+# Longer timeout for save-load test (runs 200 days simulation + save/load)
+    $TimeoutMs = if ($TestFlag -eq "--save-load-test") { 900000 } else { 120000 } # 900 sn for save-load, 120 sn for others
+    $Waited = $Process.WaitForExit($TimeoutMs)
 $Stopwatch.Stop()
 
 if (-not $Waited) {

@@ -35,6 +35,9 @@ public partial class WorldMapV5 : Node2D
     // HUD height offset (top bar) for vertical coverage calculation - updated dynamically
     private float _hudTopHeight = 50f; // Default fallback, updated from GameHud
 
+    // Cache viewport for coordinate conversions (SubViewport inside SubViewportContainer)
+    private SubViewport _subViewport = null;
+
     // Node references
     private Node2D _worldRoot;       // Single parent for all world-space content
     private Node2D _backgroundRoot;  // Root for wrapped backgrounds
@@ -336,6 +339,21 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         _debugDrawNode.Name = "DebugDraw";
         _worldRoot.AddChild(_debugDrawNode);
         (_debugDrawNode as DebugDrawNode).Initialize(this);
+
+        // Cache SubViewport reference for coordinate conversions
+        // WorldMapV5 is child of SubViewport, so GetParent() should be SubViewport
+        _subViewport = GetParent() as SubViewport;
+        if (_subViewport == null)
+        {
+            // Fallback: search up the tree
+            Node p = GetParent();
+            while (p != null && _subViewport == null)
+            {
+                _subViewport = p as SubViewport;
+                p = p.GetParent();
+            }
+        }
+        GD.Print($"[WorldMapV5] SubViewport reference: {(_subViewport != null ? "FOUND" : "NOT FOUND - using GetViewport() fallback")}");
 
         // UI CanvasLayer: ONLY for debug overlay, NOT for map content
         _uiCanvas = new CanvasLayer();
@@ -737,7 +755,7 @@ private bool _dragStarted = false; // Track if drag has actually started moving
                     {
                         if (polyElem.TryGetProperty("exterior", out var extElem))
                         {
-                            // Convert to world pixels for rendering
+                            // Convert to world pixels for rendering using unified conversion
                             var exterior = ParseRingToWorld(extElem);
                             if (exterior.Length >= 2)
                             {
@@ -1247,10 +1265,9 @@ private bool _dragStarted = false; // Track if drag has actually started moving
             return false;
         }
 
-        // Convert world pixel point to lon/lat for polygon test
+        // Convert world pixel point to lon/lat for polygon test using unified conversion
         // Polygons in JSON are in lon/lat coordinates
-        // Use WorldToLonLat with bounds checking
-        var (lon, lat, inBounds) = WorldToLonLat(point);
+        var (lon, lat, inBounds) = WorldToLonLatUnified(point);
         if (!inBounds) return false;
 
         var lonLatPoint = new Vector2((float)lon, (float)lat);
@@ -1329,10 +1346,10 @@ private bool _dragStarted = false; // Track if drag has actually started moving
                             {
                                 points.Add(new Vector2(float.NaN, float.NaN)); // Break line
                             }
-                            // Convert lon/lat to world pixels
+                            // Convert lon/lat to world pixels using unified conversion
                             foreach (var pt in exterior)
                             {
-                                points.Add(MapProjectionV5.LonLatToWorld(pt.X, pt.Y));
+                                points.Add(LonLatToWorldUnified(pt.X, pt.Y));
                             }
                             first = false;
                         }
@@ -1375,6 +1392,7 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         // Calculate cover zoom: VERTICAL only (horizontal wraps infinitely)
         // Account for HUD top bar reducing visible map area
         float effectiveViewportHeight = viewportSize.Y - _hudTopHeight;
+        if (effectiveViewportHeight < 100f) effectiveViewportHeight = 100f;
         float zoomY = effectiveViewportHeight / _textureSize.Y;
         _minZoom = Math.Max(zoomY, MIN_ZOOM_CLAMP); // Don't go below absolute minimum
 
@@ -1401,26 +1419,40 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         var viewport = GetViewport();
         var viewportSize = viewport.GetVisibleRect().Size;
 
-        // Visible world rect at current zoom
-        Vector2 visibleWorld = viewportSize / _camera.Zoom.X;
+        // Effective viewport height accounts for HUD top bar
+        // The HUD is a CanvasLayer overlay that covers the top portion of the map
+        float effectiveViewportHeight = viewportSize.Y - _hudTopHeight;
+        if (effectiveViewportHeight < 100f) effectiveViewportHeight = 100f; // Safety minimum
+
+        // Visible world rect at current zoom (using effective height for vertical)
+        Vector2 visibleWorld = new Vector2(viewportSize.X / _camera.Zoom.X, effectiveViewportHeight / _camera.Zoom.X);
 
         // Camera position is center of visible area
         float halfW = visibleWorld.X / 2f;
         float halfH = visibleWorld.Y / 2f;
 
         // VERTICAL LIMITS (no wrapping vertically - clamp to world bounds)
-        // Camera can view the FULL texture (0 to textureSize.Y).
-        // The HUD is a separate CanvasLayer overlay - it does NOT restrict camera view.
         // Camera center Y must stay within [halfH, textureHeight - halfH]
+        // This ensures the visible world area always stays within texture bounds
         float limitTop, limitBottom;
         if (visibleWorld.Y >= _textureSize.Y)
         {
+            // Zoomed out enough that full texture fits vertically - center camera, no vertical movement needed
             limitTop = limitBottom = _textureSize.Y / 2f;
         }
         else
         {
             limitTop = halfH;
             limitBottom = _textureSize.Y - halfH;
+        }
+
+        // SAFETY: Ensure valid clamp range (min <= max)
+        // If min > max (can happen at extreme zoom or tiny viewport), center camera but don't block input
+        if (limitTop > limitBottom)
+        {
+            float centerY = _textureSize.Y / 2f;
+            limitTop = limitBottom = centerY;
+            GD.PrintErr($"[CamLimits] INVALID RANGE (min_y > max_y): T{limitTop:F1} B{limitBottom:F1} -> Forced to center {centerY:F1}. Camera movement still allowed via input handling.");
         }
 
         // HORIZONTAL: Infinite wrapping - NO LIMITS (camera can go anywhere)
@@ -1431,7 +1463,10 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         _camera.LimitBottom = (int)Mathf.Floor(limitBottom);
         // Don't set LimitLeft/LimitRight - leave at default 0 (disabled) for infinite horizontal
 
-        GD.Print($"[CamLimits] VisibleWorld={visibleWorld}, Tex={_textureSize}, Zoom={_camera.Zoom.X:F4}, HalfH={halfH:F1}, Vertical: T{limitTop:F1} B{limitBottom:F1} (range={limitBottom-limitTop:F1}), Horizontal: INFINITE WRAPPING");
+        // Debug logging for clamp range validation
+        bool clampValid = limitTop <= limitBottom;
+        float clampRange = limitBottom - limitTop;
+        GD.Print($"[CamLimits] VP={viewportSize.X}x{viewportSize.Y} (effH={effectiveViewportHeight:F1}), Zoom={_camera.Zoom.X:F4}, VisW={visibleWorld:F1}, HalfH={halfH:F1}, VLimits: T{limitTop:F1} B{limitBottom:F1} (Range={clampRange:F1}, Valid={clampValid}), HWrap=INFINITE");
     }
 
     public void ClampCamera()
@@ -1481,14 +1516,63 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         _bgRight.Position = new Vector2(centerTileX + WORLD_WIDTH, 0);
     }
 
+    /// <summary>
+    /// Get the SubViewport that contains this WorldMapV5, for accurate coordinate conversions.
+    /// Falls back to main viewport if SubViewport not found.
+    /// </summary>
+    private SubViewport GetSubViewport()
+    {
+        if (_subViewport != null && _subViewport.IsInsideTree())
+            return _subViewport;
+
+        // Try to find it again
+        Node p = GetParent();
+        while (p != null)
+        {
+            if (p is SubViewport sv) return sv;
+            p = p.GetParent();
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Get the viewport size for coordinate conversions.
+    /// Uses SubViewport size if available (for accurate mouse->world), otherwise main viewport.
+    /// </summary>
+    private Vector2 GetConversionViewportSize()
+    {
+        var sv = GetSubViewport();
+        if (sv != null)
+        {
+            // SubViewport size is the render target size
+            return new Vector2(sv.Size.X, sv.Size.Y);
+        }
+        var vp = GetViewport();
+        return vp.GetVisibleRect().Size;
+    }
+
+    /// <summary>
+    /// Get the mouse position in the coordinate space of the conversion viewport.
+    /// </summary>
+    private Vector2 GetConversionMousePosition()
+    {
+        var sv = GetSubViewport();
+        if (sv != null)
+        {
+            // Get mouse position relative to SubViewport
+            return sv.GetMousePosition();
+        }
+        return GetViewport().GetMousePosition();
+    }
+
     public Vector2 ScreenToWorld(Vector2 screenPos)
     {
         // Convert screen position to world using camera transform
-        var viewport = GetViewport();
-        var viewportSize = viewport.GetVisibleRect().Size;
+        // screenPos should be in SubViewport coordinates (or main viewport if no SubViewport)
+        var viewportSize = GetConversionViewportSize();
 
         // Screen to world: camera position + (screen - viewport_center) / zoom
-        // Note: screenPos is in viewport coordinates (already accounts for CanvasLayer offsets)
+        // Camera2D position is in world coordinates
         Vector2 worldPos = _camera.Position + (screenPos - viewportSize / 2f) / _camera.Zoom.X;
 
         // Wrap world X coordinate to [0, WORLD_WIDTH) for consistent hit-testing
@@ -1500,9 +1584,52 @@ private bool _dragStarted = false; // Track if drag has actually started moving
     public Vector2 WorldToScreen(Vector2 worldPos)
     {
         // World to screen: (world - camera_pos) * zoom + viewport_center
-        var viewport = GetViewport();
-        var viewportSize = viewport.GetVisibleRect().Size;
+        var viewportSize = GetConversionViewportSize();
         return (worldPos - _camera.Position) * _camera.Zoom.X + viewportSize / 2f;
+    }
+
+    /// <summary>
+    /// Convenience: get current mouse position in world coordinates.
+    /// </summary>
+    public Vector2 GetMouseWorldPosition()
+    {
+        return ScreenToWorld(GetConversionMousePosition());
+    }
+
+    /// <summary>
+    /// Unified coordinate conversion: World (pixels) -> Lon/Lat.
+    /// Single source of truth for all world->lonlat conversions.
+    /// </summary>
+    public static (double lon, double lat, bool inBounds) WorldToLonLatUnified(Vector2 worldPos, Vector2? textureSize = null)
+    {
+        Vector2 texSize = textureSize ?? Instance?._textureSize ?? new Vector2(10800, 5400);
+
+        // Wrap X for longitude calculation (horizontal wrapping)
+        double wrappedX = Mathf.PosMod(worldPos.X, texSize.X);
+        double lon = -180.0 + (wrappedX / texSize.X) * 360.0;
+
+        // Clamp Y for latitude calculation (no vertical wrapping)
+        double clampedY = Mathf.Clamp(worldPos.Y, 0, texSize.Y);
+        bool inBounds = (worldPos.Y >= 0 && worldPos.Y <= texSize.Y);
+        double lat = 90.0 - (clampedY / texSize.Y) * 180.0;
+
+        // Clamp to valid ranges
+        lon = Mathf.Clamp(lon, -180.0, 180.0);
+        lat = Mathf.Clamp(lat, -90.0, 90.0);
+
+        return (lon, lat, inBounds);
+    }
+
+    /// <summary>
+    /// Unified coordinate conversion: Lon/Lat -> World (pixels).
+    /// Single source of truth for all lonlat->world conversions.
+    /// </summary>
+    public static Vector2 LonLatToWorldUnified(double lon, double lat, Vector2? textureSize = null)
+    {
+        Vector2 texSize = textureSize ?? Instance?._textureSize ?? new Vector2(10800, 5400);
+        float x = (float)((lon + 180.0) / 360.0 * texSize.X);
+        float y = (float)((90.0 - lat) / 180.0 * texSize.Y);
+        return new Vector2(x, y);
     }
 
     /// <summary>
@@ -1785,6 +1912,7 @@ private bool _dragStarted = false; // Track if drag has actually started moving
             var viewportSize = viewport.GetVisibleRect().Size;
 
             float effectiveViewportHeight = viewportSize.Y - _hudTopHeight;
+            if (effectiveViewportHeight < 100f) effectiveViewportHeight = 100f;
             float zoomY = effectiveViewportHeight / _textureSize.Y;
             _minZoom = Math.Max(zoomY, MIN_ZOOM_CLAMP);
 
@@ -1808,73 +1936,78 @@ private bool _dragStarted = false; // Track if drag has actually started moving
     {
         var viewport = GetViewport();
         var viewportSize = viewport.GetVisibleRect().Size;
-        var mouseScreen = GetViewport().GetMousePosition();
+        var convViewportSize = GetConversionViewportSize();
+        var mouseScreen = GetConversionMousePosition();
         var mouseWorld = ScreenToWorld(mouseScreen);
-        var (lon, lat, inBounds) = WorldToLonLat(mouseWorld);
+        var (lon, lat, inBounds) = WorldToLonLatUnified(mouseWorld);
 
         // Performance metrics
         uint fps = (uint)(1.0 / GetProcessDeltaTime());
         ulong frameTime = (ulong)(GetProcessDeltaTime() * 1000);
-        // Note: RenderingServer.GetRenderingInfo API varies by Godot version
-        int objectsInFrame = _countries.Count; // Approximate with country count
+        int objectsInFrame = _countries.Count;
         var memUsage = OS.GetStaticMemoryUsage();
 
-        // Camera vertical clamp info
-        float halfViewH = (viewportSize.Y / _camera.Zoom.X) / 2f;
+        // Camera vertical clamp info (detailed)
+        float effectiveViewportHeight = viewportSize.Y - _hudTopHeight;
+        if (effectiveViewportHeight < 100f) effectiveViewportHeight = 100f;
+        float visibleWorldH = effectiveViewportHeight / _camera.Zoom.X;
+        float halfViewH = visibleWorldH / 2f;
         float minCamY = _camera.LimitTop;
         float maxCamY = _camera.LimitBottom;
+        float clampRange = maxCamY - minCamY;
+        bool clampValid = minCamY <= maxCamY;
         float mapCoverageH = _textureSize.Y * _camera.Zoom.X;
+
+        // Round-trip validation for known reference points (Turkey center ~35°E, 39°N)
+        var testLonLat = (35.0, 39.0); // Turkey approx center
+        var testWorld = LonLatToWorldUnified(testLonLat.Item1, testLonLat.Item2);
+        var testScreen = WorldToScreen(testWorld);
+        var testWorldBack = ScreenToWorld(testScreen);
+        var (lonBack, latBack, _) = WorldToLonLatUnified(testWorldBack);
+        double lonError = Math.Abs(lonBack - testLonLat.Item1);
+        double latError = Math.Abs(latBack - testLonLat.Item2);
+        double screenErrorPx = (testScreen - mouseScreen).Length(); // Not meaningful, just for reference
+        // World space error
+        double worldError = (testWorldBack - testWorld).Length();
 
         _debugLabel.Text = $@"WorldMapV5 Debug
 Zoom: {_camera.Zoom.X:F4} (min: {_minZoom:F4}, max: {MAX_ZOOM})
 Camera Pos: ({_camera.Position.X:F1}, {_camera.Position.Y:F1})
 Camera Limits: L{_camera.LimitLeft} T{_camera.LimitTop} R{_camera.LimitRight} B{_camera.LimitBottom}
-Cam Y Range: [{minCamY:F1} .. {maxCamY:F1}] (halfViewH={halfViewH:F1})
-Viewport: {viewportSize.X}x{viewportSize.Y} (map coverage H={mapCoverageH:F1} >= {viewportSize.Y}? {mapCoverageH >= viewportSize.Y})
+Cam Y Range: [{minCamY:F1} .. {maxCamY:F1}] (Range={clampRange:F1}, Valid={clampValid})
+HalfViewH: {halfViewH:F1} | EffVP_H: {effectiveViewportHeight:F1} | VisW_H: {visibleWorldH:F1}
+Viewport: {viewportSize.X}x{viewportSize.Y} | ConvVP: {convViewportSize.X}x{convViewportSize.Y} (mapCovH={mapCoverageH:F1})
 Texture: {_textureSize.X}x{_textureSize.Y}
-Mouse Screen: ({mouseScreen.X:F1}, {mouseScreen.Y:F1})
+Mouse Screen: ({mouseScreen.X:F1}, {mouseScreen.Y:F1}) [ConvVP]
 Mouse World: ({mouseWorld.X:F1}, {mouseWorld.Y:F1}) inBounds={inBounds}
 Mouse Lon/Lat: ({lon:F4}°, {lat:F4}°)
 Dragging: {_dragging}
 FPS: {fps} | Frame: {frameTime}ms | Objects: {objectsInFrame} | Mem: {memUsage / 1024 / 1024}MB
 Countries: {_countries.Count} | Grid Cells: {_countryGrid.Count}
-Debug: F3 | Screenshot: F11 | Grid: G | Coast: C | Ref: R";
+--- Round-trip Test (Turkey 35E,39N) ---
+World: ({testWorld.X:F1},{testWorld.Y:F1}) -> Screen: ({testScreen.X:F1},{testScreen.Y:F1}) -> World: ({testWorldBack.X:F1},{testWorldBack.Y:F1}) -> LonLat: ({lonBack:F4}°,{latBack:F4}°)
+LonErr: {lonError:F6}° | LatErr: {latError:F6}° | WorldErr: {worldError:F3}px
+Debug: F3 | Shot: F11 | Grid: G | Coast: C | Ref: R";
     }
 
     /// <summary>
     /// Convert world space coordinates to longitude/latitude.
     /// Based on texture being full-world equirectangular: 360° x 180°
     /// Returns clamped lat/lon and a flag if position was out of bounds.
+    /// DEPRECATED: Use WorldToLonLatUnified instead.
     /// </summary>
     public static (double lon, double lat, bool inBounds) WorldToLonLat(Vector2 worldPos, Vector2? textureSize = null)
     {
-        Vector2 texSize = textureSize ?? Instance?._textureSize ?? new Vector2(10800, 5400);
-
-        // Wrap X for longitude calculation (horizontal wrapping)
-        double wrappedX = Mathf.PosMod(worldPos.X, texSize.X);
-        double lon = -180.0 + (wrappedX / texSize.X) * 360.0;
-
-        // Clamp Y for latitude calculation (no vertical wrapping)
-        double clampedY = Mathf.Clamp(worldPos.Y, 0, texSize.Y);
-        bool inBounds = (worldPos.Y >= 0 && worldPos.Y <= texSize.Y);
-        double lat = 90.0 - (clampedY / texSize.Y) * 180.0;
-
-        // Clamp to valid ranges
-        lon = Mathf.Clamp(lon, -180.0, 180.0);
-        lat = Mathf.Clamp(lat, -90.0, 90.0);
-
-        return (lon, lat, inBounds);
+        return WorldToLonLatUnified(worldPos, textureSize);
     }
 
     /// <summary>
     /// Convert longitude/latitude to world space coordinates.
+    /// DEPRECATED: Use LonLatToWorldUnified instead.
     /// </summary>
     public static Vector2 LonLatToWorld(double lon, double lat, Vector2? textureSize = null)
     {
-        Vector2 texSize = textureSize ?? Instance?._textureSize ?? new Vector2(10800, 5400);
-        float x = (float)((lon + 180.0) / 360.0 * texSize.X);
-        float y = (float)((90.0 - lat) / 180.0 * texSize.Y);
-        return new Vector2(x, y);
+        return LonLatToWorldUnified(lon, lat, textureSize);
     }
 
     public void EnsureCameraCurrent()

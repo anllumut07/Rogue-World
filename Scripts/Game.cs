@@ -19,7 +19,7 @@ public partial class Game : Control
     public override void _Ready()
         {
             _mapFrame = new MapViewportFrame();
-            _mapFrame.Ready += OnMapFrameReady;
+            _mapFrame.MapFrameReady += OnMapFrameReady;
             AddChild(_mapFrame);
 
         // M12: Ana menüden LOAD seçildiyse — pending slot'u yükle.

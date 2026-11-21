@@ -64,12 +64,25 @@ public static class MapProjectionV5
 
     /// <summary>
     /// Convert WORLD SPACE coordinates back to longitude/latitude.
+    /// Uses full-world bounds (LonLeft..LonRight, LatTop..LatBottom).
     /// </summary>
     public static (double lon, double lat) WorldToLonLat(Vector2 worldPos)
     {
         double lon = LonLeft + (worldPos.X / ImgW) * _lonRange;
         double lat = LatTop - (worldPos.Y / ImgH) * _latRange;
         return (lon, lat);
+    }
+
+    /// <summary>
+    /// Convert WORLD SPACE coordinates to longitude/latitude with bounds checking.
+    /// Returns (lon, lat, inBounds) where inBounds=false if worldPos is outside texture.
+    /// </summary>
+    public static (double lon, double lat, bool inBounds) WorldToLonLatWithBounds(Vector2 worldPos)
+    {
+        double lon = LonLeft + (worldPos.X / ImgW) * _lonRange;
+        double lat = LatTop - (worldPos.Y / ImgH) * _latRange;
+        bool inBounds = worldPos.X >= 0 && worldPos.X <= ImgW && worldPos.Y >= 0 && worldPos.Y <= ImgH;
+        return (lon, lat, inBounds);
     }
 
     /// <summary>

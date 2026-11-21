@@ -1,10 +1,13 @@
 using Godot;
+using System;
 
 // Oyun ekranının yerleşimi: merkez (SubViewportContainer → WorldMap) TAM EKRAN.
 // HUD, CountryInfoPanel ve diğer paneller ayrı CanvasLayer/Control olarak overlay'dir.
 // SubViewportContainer Stretch=true ile pencere boyutunu tam doldurur.
 public partial class MapViewportFrame : Control
 {
+    [Signal] public delegate void MapFrameReadyEventHandler();
+
     public SubViewportContainer CenterViewport { get; private set; }
 
     public override void _Ready()
@@ -23,6 +26,9 @@ public partial class MapViewportFrame : Control
         GetTree().Root.SizeChanged += EnforceLayout;
 
         GD.Print("MapViewportFrame: hazır — CenterViewport FullRect + Stretch");
+
+        // Emit Ready signal for Game.cs to set up map content
+        EmitSignal(SignalName.MapFrameReady);
     }
 
     public override void _ExitTree()

@@ -21,14 +21,10 @@ public partial class GameHud : CanvasLayer
     private Button[] _speedButtons;
     private Button _nextEventBtn;
 
-    // === TOP RIGHT PANEL BUTTONS ===
-    private HBoxContainer _panelButtonRow;
-    private MenuButton _moreBtn;
-    private PopupMenu _morePopup;
-    private readonly List<(string Text, string Tooltip, Action Open)> _panelSections = new();
-    private readonly List<Button> _panelButtons = new();
-    private readonly List<Action> _moreActions = new();
-    private readonly Dictionary<Button, Action> _buttonActions = new(); // Button -> its action
+    // === TOP RIGHT MENU (single ☰ MENU button with PopupMenu) ===
+    private MenuButton _menuButton;
+    private PopupMenu _menuPopup;
+    private List<(string Text, string Tooltip, Action Open, string Shortcut)> _menuItems = new();
 
     // === BOTTOM BAR ===
     private Label _selectedLabel;
@@ -73,8 +69,8 @@ public partial class GameHud : CanvasLayer
         RefreshDataLabels();
         RefreshResourceLabels();
 
-        // Validate button visibility on first frame
-        CallDeferred(nameof(ValidateAllButtonsVisible));
+        // Validate HUD elements visibility on first frame
+        CallDeferred(nameof(ValidateAllElementsVisible));
     }
 
     public override void _ExitTree()
@@ -289,58 +285,54 @@ public partial class GameHud : CanvasLayer
             _resourceBox.AddChild(container);
         }
 
-        // --- Panel Buttons Row (HoI4 style) ---
-        _panelButtonRow = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
-        _panelButtonRow.AddThemeConstantOverride("separation", 4);
-        _panelButtonRow.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; // Takes remaining space
-        _topBarRightSection.AddChild(_panelButtonRow);
-
-        var panelButtons = new (string Text, string Tooltip, Action Action)[]
+        // --- Single MENU Button (☰) anchored to far right ---
+        // Define all menu items: (Text, Tooltip, Action, Shortcut)
+        _menuItems = new List<(string Text, string Tooltip, Action Open, string Shortcut)>
         {
-            ("RESEARCH", "Technology tree (R)", () => ResearchPanel.OpenUnder(this)),
-            ("PRODUCTION", "Production lines & equipment (P)", () => ProductionPanel.OpenUnder(this)),
-            ("ARMY", "Army, divisions & templates (A)", () => ArmyPanel.OpenUnder(this)),
-            ("NAVY", "Navy, fleets & ship designer (N)", () => {/* TODO: NavyPanel */}),
-            ("AIR", "Air force, wings & air bases", () => {/* TODO: AirPanel */}),
-            ("DIPLOMACY", "Diplomacy, relations & factions (D)", () => DiplomacyPanel.OpenUnder(this)),
-            ("FOCUS", "National focus tree (F)", () => FocusPanel.OpenUnder(this)),
-            ("DECISIONS", "Decisions & political actions", () => DecisionPanel.OpenUnder(this)),
-            ("LOGISTICS", "Supply, railways & convoys", () => {/* TODO: LogisticsPanel */}),
-            ("STATISTICS", "Country statistics & budget", () => StatisticsPanel.OpenUnder(this)),
-            ("ORGANIZATIONS", "International organizations (M37)", () => OrganizationPanel.OpenUnder(this)),
-            ("ADVISORS", "Advisors & advice history (M53)", () => AdvisorPanel.OpenUnder(this)),
-            ("CLIMATE", "Climate, emissions & policies (M55)", () => ClimatePanel.OpenUnder(this)),
-            ("MIGRATION", "Migration & refugee crises (M56)", () => MigrationPanel.OpenUnder(this)),
+            ("Research", "Technology tree", () => ResearchPanel.OpenUnder(this), "R"),
+            ("Production", "Production lines & equipment", () => ProductionPanel.OpenUnder(this), "P"),
+            ("Army", "Army, divisions & templates", () => ArmyPanel.OpenUnder(this), "A"),
+            ("Navy", "Navy, fleets & ship designer", () => {/* TODO: NavyPanel */}, "N"),
+            ("Air Force", "Air force, wings & air bases", () => {/* TODO: AirPanel */}, ""),
+            ("Diplomacy", "Diplomacy, relations & factions", () => DiplomacyPanel.OpenUnder(this), "D"),
+            ("Focus Tree", "National focus tree", () => FocusPanel.OpenUnder(this), "F"),
+            ("Decisions", "Decisions & political actions", () => DecisionPanel.OpenUnder(this), ""),
+            ("Logistics", "Supply, railways & convoys", () => {/* TODO: LogisticsPanel */}, ""),
+            ("Statistics", "Country statistics & budget", () => StatisticsPanel.OpenUnder(this), ""),
+            ("Organizations", "International organizations (M37)", () => OrganizationPanel.OpenUnder(this), ""),
+            ("Advisors", "Advisors & advice history (M53)", () => AdvisorPanel.OpenUnder(this), ""),
+            ("Climate", "Climate, emissions & policies (M55)", () => ClimatePanel.OpenUnder(this), ""),
+            ("Migration", "Migration & refugee crises (M56)", () => MigrationPanel.OpenUnder(this), ""),
         };
 
-        foreach (var (text, tooltip, action) in panelButtons)
+        _menuButton = new MenuButton
         {
-            var btn = new Button
-            {
-                Text = text,
-                FocusMode = Control.FocusModeEnum.None,
-                ThemeTypeVariation = "ToolbarButton",
-                TooltipText = tooltip,
-                SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd
-            };
-            btn.Pressed += action;
-            _panelButtonRow.AddChild(btn);
-            _buttonActions[btn] = action; // Store action for MORE menu
-            UITheme.AddHoverScale(btn, 1.06f);
+            Text = "☰ MENU",
+            FocusMode = Control.FocusModeEnum.None,
+            ThemeTypeVariation = "ToolbarButton",
+            TooltipText = "Open main menu (all panels)",
+            SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd,
+            CustomMinimumSize = new Vector2(100, 32)
+        };
+        _menuPopup = _menuButton.GetPopup();
+        _menuPopup.IdPressed += OnMenuItemPressed;
+
+        // Populate menu
+        for (int i = 0; i < _menuItems.Count; i++)
+        {
+            var item = _menuItems[i];
+            string displayText = item.Text;
+            if (!string.IsNullOrEmpty(item.Shortcut))
+                displayText += $"  [{item.Shortcut}]";
+            _menuPopup.AddItem(displayText, i);
+            _menuPopup.SetItemTooltip(i, item.Tooltip);
         }
 
-        // MORE button for overflow (not needed now but kept for future)
-        _moreBtn = new MenuButton
-        {
-            Text = "MORE ▾",
-            FocusMode = Control.FocusModeEnum.None,
-            TooltipText = "More panels",
-            Visible = false,
-            SizeFlagsHorizontal = Control.SizeFlags.ShrinkEnd
-        };
-        _morePopup = _moreBtn.GetPopup();
-        _morePopup.IdPressed += OnMoreItemPressed;
-        _topBarRightSection.AddChild(_moreBtn);
+        // Ensure popup stays within viewport
+        _menuPopup.AboutToPopup += OnMenuPopup;
+
+        _topBarRightSection.AddChild(_menuButton);
+        UITheme.AddHoverScale(_menuButton, 1.06f);
 
         // NEXT EVENT button
         _nextEventBtn = new Button
@@ -495,119 +487,17 @@ public partial class GameHud : CanvasLayer
             _speedButtons[i].SetPressedNoSignal(i + 1 == GM.Speed);
     }
 
-    // Window resize - reflow panel buttons and resources responsively
+    // Window resize - validate HUD elements stay within viewport
     private void ReflowPanels()
     {
-        if (_panelButtonRow == null || _resourceBox == null || _topBarRightSection == null) return;
+        if (_resourceBox == null || _topBarRightSection == null || _menuButton == null) return;
 
-        float viewportW = GetViewport().GetVisibleRect().Size.X;
-        // Account for left + center sections (approximate)
-        const float leftCenterWidth = 450f; // flag + name + date + speed controls + pause (reduced)
-        float rightSectionStart = leftCenterWidth;
-        float availableForRight = viewportW - rightSectionStart - 40f; // margins
-
-        if (availableForRight <= 0) return;
-
-        // Calculate resource box width
-        float resourceWidth = 0f;
-        foreach (Node child in _resourceBox.GetChildren())
-        {
-            if (child is HBoxContainer container)
-                resourceWidth += container.GetMinimumSize().X + 8f; // separation
-        }
-
-        // Calculate button widths
-        float buttonWidth = 0f;
-        int buttonCount = 0;
-        List<Button> allButtons = new();
-        foreach (Node child in _panelButtonRow.GetChildren())
-        {
-            if (child is Button btn)
-            {
-                buttonWidth += btn.GetMinimumSize().X + 4f; // separation
-                buttonCount++;
-                allButtons.Add(btn);
-            }
-        }
-
-        float totalNeeded = resourceWidth + buttonWidth + 24f; // extra padding
-        float available = availableForRight;
-
-        // Clear MORE popup
-        _morePopup.Clear();
-        _moreActions.Clear();
-
-        if (totalNeeded <= available)
-        {
-            // Everything fits - show all
-            foreach (var btn in allButtons) btn.Visible = true;
-            foreach (Node child in _resourceBox.GetChildren())
-                if (child is Control ctrl) ctrl.Visible = true;
-            _moreBtn.Visible = false;
-        }
-        else
-        {
-            // Not enough space - determine how many buttons fit
-            float buttonsAvailable = available - resourceWidth - 12f;
-            if (buttonsAvailable < 80f) buttonsAvailable = 80f; // At least 1 button
-
-            float accWidth = 0f;
-            int visibleButtons = 0;
-
-            foreach (var btn in allButtons)
-            {
-                float btnWidth = btn.GetMinimumSize().X + 4f;
-                if (accWidth + btnWidth <= buttonsAvailable || visibleButtons == 0)
-                {
-                    btn.Visible = true;
-                    accWidth += btnWidth;
-                    visibleButtons++;
-                }
-                else
-                {
-                    btn.Visible = false;
-                    // Add to MORE menu using stored action
-                    if (_buttonActions.TryGetValue(btn, out var action))
-                    {
-                        _moreActions.Add(action);
-                        _morePopup.AddItem(btn.Text, _moreActions.Count - 1);
-                        _morePopup.SetItemTooltip(_moreActions.Count - 1, btn.TooltipText);
-                    }
-                }
-            }
-
-            // Ensure at least 1 button visible
-            if (visibleButtons == 0 && allButtons.Count > 0)
-            {
-                allButtons[0].Visible = true;
-                visibleButtons = 1;
-            }
-
-            _moreBtn.Visible = visibleButtons < allButtons.Count;
-        }
-
-        // Compact resources if still too tight
-        float usedWidth = resourceWidth;
-        foreach (var btn in allButtons) if (btn.Visible) usedWidth += btn.GetMinimumSize().X + 4f;
-        if (usedWidth > available)
-        {
-            foreach (Node child in _resourceBox.GetChildren())
-            {
-                if (child is HBoxContainer container && container.GetChildCount() == 2)
-                {
-                    if (container.GetChild(1) is Label valueLabel)
-                        valueLabel.Visible = false;
-                }
-            }
-            CallDeferred(nameof(ReflowPanels));
-        }
-
-        // Log validation
-        ValidateAllButtonsVisible();
+        // Just validate that all HUD elements are within viewport bounds
+        ValidateAllElementsVisible();
     }
 
-    /// <summary>Validate all HUD buttons are within viewport bounds</summary>
-    private void ValidateAllButtonsVisible()
+    /// <summary>Validate all HUD elements are within viewport bounds</summary>
+    private void ValidateAllElementsVisible()
     {
         if (!IsInsideTree()) return;
 
@@ -620,22 +510,15 @@ public partial class GameHud : CanvasLayer
             GD.PrintErr($"[HUD] TopBarPanel exceeds viewport: rect={hudRect}, viewport={viewportRect.Size}");
         }
 
-        // Check panel buttons
-        int offScreenCount = 0;
-        foreach (Node child in _panelButtonRow.GetChildren())
+        // Check menu button
+        if (_menuButton != null && _menuButton.Visible)
         {
-            if (child is Button btn && btn.Visible)
+            var menuRect = _menuButton.GetGlobalRect();
+            if (menuRect.End.X > viewportRect.Size.X || menuRect.Position.X < 0)
             {
-                var globalRect = btn.GetGlobalRect();
-                if (globalRect.End.X > viewportRect.Size.X || globalRect.Position.X < 0)
-                {
-                    offScreenCount++;
-                    GD.PrintErr($"[HUD] Button off-screen: {btn.Text} rect={globalRect}");
-                }
+                GD.PrintErr($"[HUD] MenuButton off-screen: rect={menuRect}");
             }
         }
-        if (offScreenCount > 0)
-            GD.PrintErr($"[HUD] {offScreenCount} button(s) off-screen!");
 
         // Check resource labels
         foreach (Node child in _resourceBox.GetChildren())
@@ -649,14 +532,39 @@ public partial class GameHud : CanvasLayer
                 }
             }
         }
+
+        // Check NEXT EVENT button
+        if (_nextEventBtn != null && _nextEventBtn.Visible)
+        {
+            var nextRect = _nextEventBtn.GetGlobalRect();
+            if (nextRect.End.X > viewportRect.Size.X || nextRect.Position.X < 0)
+            {
+                GD.PrintErr($"[HUD] NextEventBtn off-screen: rect={nextRect}");
+            }
+        }
+
+        GD.Print($"[HUD] Viewport validation complete. Viewport={viewportRect.Size}, TopBar={hudRect.Size}");
     }
 
-    // MORE menu handler
-    private void OnMoreItemPressed(long id)
+    // MENU button popup handler - ensure popup stays within viewport
+    // Note: PopupMenu automatically positions itself within viewport bounds
+    // This handler can be used for custom positioning if needed
+    private void OnMenuPopup()
     {
-        if (id < 0 || id >= _moreActions.Count) return;
-        _moreActions[(int)id]();
-        _morePopup.Hide();
+        // PopupMenu handles viewport clamping automatically in Godot 4.x
+        // No manual intervention needed
+        GD.Print("[HUD] Menu popup opened");
+    }
+
+    // MENU item handler
+    private void OnMenuItemPressed(long id)
+    {
+        if (id < 0 || id >= _menuItems.Count) return;
+        _menuItems[(int)id].Open();
+        _menuPopup.Hide();
+
+        // Block map input briefly while menu action executes
+        // (Panels opened by menu items will handle their own input blocking)
     }
 
     // WorldMap selection signals

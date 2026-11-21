@@ -215,6 +215,7 @@ public partial class GameManager : Node
         bool aiFormableTest = false;         // M48.1: AI ulus kurma değerlendirmesi testi (--ai-formable-test)
         bool climateTest = false;            // M55: iklim sistemi testi (--climate-test)
         bool migrationTest = false;          // M56: göç ve mülteci krizleri testi (--migration-test)
+        bool weatherTest = false;            // WeatherSystem testi (--weather-test)
         bool uiTest = false;              // M-UI: UI sistemi testi (--ui-test)
         bool countrySelectTest = false;   // Phase 5: ülke seçimi testi (--country-select-test)
         string v5ShotName = null;        // --v5-shot=<name> — capture screenshot and quit
@@ -424,6 +425,8 @@ public partial class GameManager : Node
                     climateTest = true;
                 else if (arg == "--migration-test")
                     migrationTest = true;
+                else if (arg == "--weather-test")
+                    weatherTest = true;
             else if (arg == "--tooltip-test")
                 tooltipTest = true;
             else if (arg == "--map-mode-test")
@@ -477,6 +480,10 @@ public partial class GameManager : Node
         // M56: --migration-test verilmişse göç test modunu etkinleştirir.
         if (migrationTest)
             MigrationSystem.EnableTestMode();
+
+        // WeatherSystem test modu
+        if (weatherTest)
+            WeatherSystem.EnableTestMode();
 
         // M17.1: Aktif senaryoyu ayarla — veri yükleyicilerin yolları buradan gelir.
         // --scenario verilmezse ScenarioSystem varsayılanı (historical_1936) kullanılır.
@@ -586,6 +593,15 @@ public partial class GameManager : Node
 
         // M56: Göç ve Mülteci Krizleri sistemi.
         MigrationSystem.LoadData();
+
+        // HoI4 Map Mechanics Systems
+        StrategicRegionSystem.Initialize();
+        WeatherSystem.Initialize();
+        ProvinceAdjacencySystem.Initialize();
+        StraitCanalSystem.Initialize();
+        RailwaySystem.Initialize();
+        SupplyNodeSystem.Initialize();
+        BuildingSystem.Initialize();;
 
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)
@@ -1645,6 +1661,15 @@ public partial class GameManager : Node
 
         // M56: Göç ve Mülteci Krizleri sistemi yeni oyun için sıfırla.
         MigrationSystem.ResetForNewGame();
+
+        // HoI4 Map Mechanics Systems
+        StrategicRegionSystem.ResetForNewGame();
+        WeatherSystem.ResetForNewGame();
+        ProvinceAdjacencySystem.ResetForNewGame();
+        StraitCanalSystem.ResetForNewGame();
+        RailwaySystem.ResetForNewGame();
+        SupplyNodeSystem.ResetForNewGame();
+        BuildingSystem.ResetForNewGame();
 
         // M53: Danışman ekibini yeni oyun için sıfırla.
         AdvisorSystem.ResetForNewGame();

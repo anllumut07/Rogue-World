@@ -48,6 +48,10 @@ public class ProceduralProvinceSource : IProvinceSource
 
         BuildNeighborGraph(_provinces);
 
+        // M32.4: Assign terrain from terrain.bmp
+        AssignTerrainToProvinces(_provinces);
+        TerrainSystem.Initialize(); // Ensure terrain system is initialized
+
         _loaded = true;
         GD.Print($"[ProceduralProvinceSource] {_provinces.Count} il üretildi (hedef ~{TargetProvinceCount}, " +
                  $"ülke={countries.Count}, seed={FixedSeed})");
@@ -265,6 +269,116 @@ public class ProceduralProvinceSource : IProvinceSource
         float usableH = MapSizeY - TopMargin * 2;
         float y = TopMargin + (float)((90.0 - lat) / 180.0) * usableH;
         return new Vector2(x, y);
+    }
+
+    // ---- Arazi (Terrain) Örnekleme ----
+
+    private static byte[] _terrainBitmapData;
+    private static int _terrainWidth;
+    private static int _terrainHeight;
+
+    /// <summary>
+    /// terrain.bmp'yi yükler (8-bit paletted). Her piksel bir il merkezine karşılık gelir.
+    /// Palette index -> TerrainCategory mapping via TerrainSystem.
+    /// </summary>
+    private static void LoadTerrainBitmap()
+    {
+        if (_terrainBitmapData != null) return;
+
+        const string path = "res://Data/terrain.bmp";
+        if (!FileAccess.FileExists(path))
+        {
+            GD.PrintErr($"[ProceduralProvinceSource] terrain.bmp not found at {path}");
+            return;
+        }
+
+        using var file = FileAccess.Open(path, FileAccess.ModeFlags.Read);
+        if (file == null)
+        {
+            GD.PrintErr($"[ProceduralProvinceSource] Failed to open {path}");
+            return;
+        }
+
+        // BMP header (14 bytes)
+        file.Seek(14); // Skip file header
+        // Info header (40 bytes for BITMAPINFOHEADER)
+        _terrainWidth = (int)file.Get32();
+        _terrainHeight = (int)file.Get32();
+        file.Seek(file.GetPosition() + 2 + 2 + 4 + 4 + 4 + 4 + 4); // Skip planes, bits, compression, imagesize, xppm, yppm, colors_used, colors_important
+        long dataOffset = (long)file.GetPosition();
+
+        // BMP is bottom-up, row stride is 4-byte aligned
+        int stride = ((_terrainWidth + 3) / 4) * 4;
+        int imageSize = stride * _terrainHeight;
+
+        file.Seek((ulong)dataOffset);
+        var rawData = new byte[imageSize];
+        // Godot 4: GetBuffer reads into array at position
+        for (int i = 0; i < imageSize; i++)
+        {
+            rawData[i] = file.Get8();
+        }
+
+        // Convert bottom-up to top-down, extract palette index (single byte per pixel for 8-bit)
+        _terrainBitmapData = new byte[_terrainWidth * _terrainHeight];
+        for (int y = 0; y < _terrainHeight; y++)
+        {
+            int srcRow = (_terrainHeight - 1 - y) * stride; // bottom-up
+            int dstRow = y * _terrainWidth;
+            for (int x = 0; x < _terrainWidth; x++)
+            {
+                _terrainBitmapData[dstRow + x] = rawData[srcRow + x];
+            }
+        }
+
+        GD.Print($"[ProceduralProvinceSource] Terrain bitmap loaded: {_terrainWidth}x{_terrainHeight}, {_terrainBitmapData.Length} pixels");
+    }
+
+    /// <summary>
+    /// Dünya koordinatından (0..MapSizeX, 0..MapSizeY) terrain palette index'ini alır.
+    /// </summary>
+    public static byte GetTerrainPaletteIndexAt(Vector2 worldPos)
+    {
+        LoadTerrainBitmap();
+        if (_terrainBitmapData == null) return 0;
+
+        // World pos to bitmap UV (0..1)
+        float u = Mathf.Clamp(worldPos.X / MapSizeX, 0f, 0.999f);
+        float v = Mathf.Clamp(worldPos.Y / MapSizeY, 0f, 0.999f);
+
+        int x = (int)(u * _terrainWidth);
+        int y = (int)(v * _terrainHeight);
+
+        if (x < 0 || x >= _terrainWidth || y < 0 || y >= _terrainHeight) return 0;
+
+        return _terrainBitmapData[y * _terrainWidth + x];
+    }
+
+    /// <summary>
+    /// Tüm illere arazi tipi atar (terrain.bmp örneği).
+    /// </summary>
+    private void AssignTerrainToProvinces(List<ProvinceData> provinces)
+    {
+        if (provinces == null || provinces.Count == 0) return;
+
+        foreach (var prov in provinces)
+        {
+            byte paletteIndex = GetTerrainPaletteIndexAt(prov.Centroid);
+            prov.TerrainPaletteIndex = paletteIndex;
+            prov.Terrain = TerrainSystem.GetByPaletteIndex(paletteIndex).Category;
+        }
+
+        // Stats
+        var counts = new System.Collections.Generic.Dictionary<TerrainSystem.TerrainCategory, int>();
+        foreach (var prov in provinces)
+        {
+            if (!counts.ContainsKey(prov.Terrain)) counts[prov.Terrain] = 0;
+            counts[prov.Terrain]++;
+        }
+        foreach (var kv in counts)
+        {
+            GD.Print($"[Terrain] {kv.Key}: {kv.Value} provinces");
+        }
     }
 
     // ---- ülkeyi bölgelere ayırma (deterministik bisection) ----

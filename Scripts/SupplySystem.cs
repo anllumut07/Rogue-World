@@ -109,7 +109,19 @@ public static class SupplySystem
             string owner = ProvinceOwnershipSystem.GetProvinceOwner(state.ProvinceId);
             bool friendly = owner == state.CountryId;
 
-            float delta = friendly ? FriendlyRegenPerDay : -HostileDrainPerDay;
+            // M32.4: Terrain-based supply flow penalty
+            float terrainSupplyPenalty = 0f;
+            var prov = WorldMap.Instance?.GetProvinceById(state.ProvinceId);
+            if (prov != null)
+            {
+                var terrainDef = TerrainSystem.Get(prov.Terrain);
+                terrainSupplyPenalty = terrainDef.SupplyFlowPenalty;
+            }
+
+            float baseDelta = friendly ? FriendlyRegenPerDay : -HostileDrainPerDay;
+            // Apply terrain supply flow penalty (reduces regeneration or increases drain)
+            float delta = baseDelta * (1f - terrainSupplyPenalty);
+
             state.SupplyLevel = Math.Clamp(state.SupplyLevel + delta, 0f, MaxSupply);
             state.DaysOutOfSupply = state.SupplyLevel < OutOfSupplyThreshold
                 ? state.DaysOutOfSupply + 1 : 0;

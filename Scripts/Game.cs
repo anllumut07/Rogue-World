@@ -1,12 +1,9 @@
 using Godot;
 using System;
 
-// Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMap/WorldMapV2/WorldMapV3/WorldMapV4/WorldMapV5, ülke bilgi paneli, HUD.
+// Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMapV5 (tek harita), ülke bilgi paneli, HUD.
 // M11: Harita TAM EKRAN (MapViewportFrame FullRect). HUD ve CountryInfoPanel overlay.
-// Stage B: --map-v2 flag enables WorldMapV2 (Natural Earth data pipeline)
-// Stage C: --map-v3 flag enables WorldMapV3 (HOI4-style LOD, paper texture, cities)
-// Stage D: --map-v4 flag enables WorldMapV4 (Full HOI4-style: shaded relief, semi-transparent countries, cities, LOD)
-// Stage E: --map-v5 flag enables WorldMapV5 (Visual-reference map from scratch)
+// WorldMapV5: Visual-reference map from scratch (HOI4-style appearance)
 public partial class Game : Control
 {
     private MapViewportFrame _mapFrame;
@@ -14,12 +11,8 @@ public partial class Game : Control
     private CountryMiniCard _miniCard; // M15.1: kilitli oyundaki küçük ülke kartı
     private GameHud _hud;
     private MiniMapPanel _miniMap; // M32.4: sağ-alt köşede mini harita
-    private Node2D _worldMap; // WorldMap, WorldMapV2, WorldMapV3, WorldMapV4, or WorldMapV5 - X/ESC kapatma isteğinde ClearSelection() için
+    private WorldMapV5 _worldMap; // WorldMapV5 - X/ESC kapatma isteğinde ClearSelection() için
     private bool _isNewGame; // M24.1: yeni oyun mu yoksa yükleme mi?
-    private bool _useMapV2; // Stage B: use WorldMapV2 instead of WorldMap
-    private bool _useMapV3; // Stage C: use WorldMapV3 instead of WorldMap/V2
-    private bool _useMapV4; // Stage D: use WorldMapV4 instead of WorldMap/V2/V3
-    private bool _useMapV5; // Stage E: use WorldMapV5 instead of WorldMap/V2/V3/V4
 
     public const int HudHeight = 64; // HUD yüksekliği (görsel ölçüm) — info panel bundan sonra başlar
 
@@ -64,27 +57,10 @@ public partial class Game : Control
 
     private void OnMapFrameReady()
     {
-        // Stage B: Check for --map-v2 flag
-        _useMapV2 = GameManager.UseMapV2;
-        if (_useMapV2)
-            GD.Print("Game: Using WorldMapV2 (Natural Earth data pipeline)");
+        // WorldMapV5 is the only map version
+        GD.Print("Game: Using WorldMapV5 (Visual-reference map from scratch)");
 
-        // Stage C: Check for --map-v3 flag
-        _useMapV3 = GameManager.UseMapV3;
-        if (_useMapV3)
-            GD.Print("Game: Using WorldMapV3 (HOI4-style LOD, paper texture, cities)");
-
-        // Stage D: Check for --map-v4 flag
-        _useMapV4 = GameManager.UseMapV4;
-        if (_useMapV4)
-            GD.Print("Game: Using WorldMapV4 (Full HOI4-style: shaded relief, semi-transparent countries, cities, LOD)");
-
-        // Stage E: Check for --map-v5 flag
-        _useMapV5 = GameManager.UseMapV5;
-        if (_useMapV5)
-            GD.Print("Game: Using WorldMapV5 (Visual-reference map from scratch)");
-
-        // --- Merkez: SubViewport içinde WorldMap/WorldMapV2/WorldMapV3/WorldMapV4/WorldMapV5 ---
+        // --- Merkez: SubViewport içinde WorldMapV5 ---
         var subViewport = new SubViewport();
         // DÜZELTME (eski projeden öğrenildi): HandleInputLocally=true olmalı,
         // yoksa input SubViewport yerine parent'a gider.
@@ -95,38 +71,15 @@ public partial class Game : Control
         var winSize = GetViewportRect().Size;
         subViewport.Size = new Vector2I(System.Math.Max(64, (int)winSize.X), System.Math.Max(64, (int)winSize.Y));
 
-        // Create WorldMap, WorldMapV2, WorldMapV3, WorldMapV4, or WorldMapV5 based on flag
-        if (_useMapV5)
-        {
-            var mapV5 = new WorldMapV5();
-            _worldMap = mapV5;
-            subViewport.AddChild(mapV5);
-        }
-        else if (_useMapV4)
-        {
-            var mapV4 = new WorldMapV4();
-            _worldMap = mapV4;
-            subViewport.AddChild(mapV4);
-        }
-        else if (_useMapV3)
-        {
-            var mapV3 = new WorldMapV3();
-            _worldMap = mapV3;
-            subViewport.AddChild(mapV3);
-        }
-        else if (_useMapV2)
-        {
-            var mapV2 = new WorldMapV2();
-            _worldMap = mapV2;
-            subViewport.AddChild(mapV2);
-        }
-        else
-        {
-            var map = new WorldMap();
-            _worldMap = map;
-            subViewport.AddChild(map);
-        }
+        // Create WorldMapV5 (visual map)
+        var mapV5 = new WorldMapV5();
+        _worldMap = mapV5;
+        subViewport.AddChild(mapV5);
         _mapFrame.CenterViewport.AddChild(subViewport);
+
+        // Create WorldMap compatibility layer (data provider, not visual)
+        var worldMapCompat = new WorldMap();
+        AddChild(worldMapCompat);
 
         // DÜZELTME (eski projeden öğrenildi): SubViewportContainer input'u
         // SADECE Stretch=true iken SubViewport'e iletir.
@@ -141,12 +94,16 @@ public partial class Game : Control
             var containerRect = viewportContainer.GetGlobalRect();
             GD.Print($"[Teşhis] SubViewport={subViewport.Size}, konteyner={containerRect}, " +
                      $"Stretch={viewportContainer.Stretch}, görünür={viewportContainer.IsVisibleInTree()}");
-            // Ensure camera is current for all map versions
-            if (_worldMap is WorldMap wm) wm.EnsureCameraCurrent();
-            else if (_worldMap is WorldMapV2 wmv2) wmv2.EnsureCameraCurrent();
-            else if (_worldMap is WorldMapV3 wmv3) wmv3.EnsureCameraCurrent();
-            else if (_worldMap is WorldMapV4 wmv4) wmv4.EnsureCameraCurrent();
-            else if (_worldMap is WorldMapV5 wmv5) wmv5.EnsureCameraCurrent();
+            // Ensure camera is current for WorldMapV5
+            var wmv5 = _worldMap as WorldMapV5;
+            wmv5?.EnsureCameraCurrent();
+            // Provide camera to WorldMap compatibility layer
+            if (wmv5 != null && wmv5.Camera != null)
+            {
+                var wmCompat = WorldMap.Instance;
+                if (wmCompat != null)
+                    wmCompat._camera = wmv5.Camera;
+            }
         }).CallDeferred();
 
         // --- Sol panel: ülke bilgi paneli (overlay — HUD altında, genişlik sınırlı) ---
@@ -177,7 +134,7 @@ public partial class Game : Control
         _miniMap = new MiniMapPanel();
         AddChild(_miniMap);
 
-        // --- Sinyaller (both WorldMap and WorldMapV2 have same signals) ---
+        // --- Sinyaller (WorldMapV5 has CountrySelected/CountryDeselected signals) ---
         _worldMap.Connect("CountrySelected", new Callable(this, nameof(OnCountrySelected)));
         _worldMap.Connect("CountryDeselected", new Callable(this, nameof(OnCountryDeselected)));
 
@@ -194,14 +151,14 @@ public partial class Game : Control
                 SetupMapshot(arg.Substring("--mapshot=".Length), subViewport, viewportContainer);
 
         // --- Render teşhisi: --v5-shot=<name> ile PNG kaydet ve çık (WorldMapV5 test modu) ---
-        // Kullanım: godot --path . res://Scenes/game.tscn -- --map-v5 --v5-shot=world --quit-after=1
-        if (GameManager.V5ShotName != null && _useMapV5)
+        // Kullanım: godot --path . res://Scenes/game.tscn -- --v5-shot=world --quit-after=1
+        if (GameManager.V5ShotName != null)
         {
             SetupV5Shot(GameManager.V5ShotName, subViewport, viewportContainer);
         }
 
         // Phase 5: Country Selection Test
-        if (GameManager.CountrySelectTest && _useMapV5 && _worldMap is WorldMapV5 mapV5Instance)
+        if (GameManager.CountrySelectTest && _worldMap is WorldMapV5 mapV5Instance)
         {
             SetupCountrySelectTest(mapV5Instance);
         }
@@ -216,6 +173,7 @@ public partial class Game : Control
         var testCases = new[]
         {
             ("Turkey", 35.0, 39.0),
+            ("Indonesia", 120.0, -5.0),
             ("Germany", 10.0, 51.0),
             ("Brazil", -50.0, -15.0),
             ("Egypt", 31.0, 26.0),
@@ -512,6 +470,7 @@ public partial class Game : Control
                         var absPath = ProjectSettings.GlobalizePath(path);
                         img.SavePng(path);
                         GD.Print($"[V5Shot] Saved: {path} -> {absPath} ({img.GetWidth()}x{img.GetHeight()})");
+                        GD.Print($"[V5Shot] SONUÇ: PASS ✓");
 
                         // Also log camera state if WorldMapV5
                         if (_worldMap is WorldMapV5 wmv5)
@@ -522,11 +481,13 @@ public partial class Game : Control
                     else
                     {
                         GD.PrintErr($"[V5Shot] Image too small: {img?.GetWidth()}x{img?.GetHeight()}");
+                        GD.Print($"[V5Shot] SONUÇ: FAIL ✗");
                     }
                 }
                 catch (System.Exception e)
                 {
                     GD.PrintErr($"[V5Shot] ERROR: {e.Message}");
+                    GD.Print($"[V5Shot] SONUÇ: FAIL ✗");
                 }
 
                 tree.Quit();

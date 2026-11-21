@@ -12,6 +12,7 @@ using System.Collections.Generic;
 //  4. Kamera dikdörtgeni minimap SINIRLARI İÇİNDE kıpraştırılır
 //     ((kamera görüşü / harita boyutu) * minimap boyutu).
 //  5. Tıklama VE sürükle ile kamera kaydırma (daha önce yalnızca tıklama vardı).
+// Updated for WorldMapV5 compatibility.
 public partial class MiniMapPanel : CanvasLayer
 {
     // Modal panellerin (Layer=100) üstünde DEĞİL: harita üstünde, modal altında.
@@ -109,17 +110,18 @@ public partial class MiniMapPanel : CanvasLayer
     public override void _Process(double delta)
     {
         // Yalnızca kamera/zoom/pencere değiştiğinde yeniden çiz (eskiden her kare).
-        var wm = WorldMap.Instance;
-        if (wm?._camera == null) return;
+        var wm = WorldMapV5.Instance;
+        var cam = wm?.Camera;
+        if (wm == null || cam == null) return;
 
         bool changed = _dirty
-            || !_lastCamPos.IsEqualApprox(wm._camera.Position)
-            || !Mathf.IsEqualApprox(_lastZoom, wm._camera.Zoom.X)
+            || !_lastCamPos.IsEqualApprox(cam.Position)
+            || !Mathf.IsEqualApprox(_lastZoom, cam.Zoom.X)
             || _lastViewport != _surface.GetViewportRect().Size;
         if (!changed) return;
 
-        _lastCamPos = wm._camera.Position;
-        _lastZoom = wm._camera.Zoom.X;
+        _lastCamPos = cam.Position;
+        _lastZoom = cam.Zoom.X;
         _lastViewport = (Vector2I)_surface.GetViewportRect().Size;
         _dirty = false;
         _surface.QueueRedraw();
@@ -128,43 +130,44 @@ public partial class MiniMapPanel : CanvasLayer
     // Çizim yüzeyde (Control) yapılır: CanvasLayer kendisi çizilebilir CanvasItem değildir.
     private void DrawSurface(MiniMapSurface c)
     {
-        var wm = WorldMap.Instance;
+        var wm = WorldMapV5.Instance;
         if (wm == null) return;
 
         // Check if viewport is ready (avoid issues in screenshot test/windowed mode)
         var vp = c.GetViewportRect().Size;
         if (vp.X <= 0f || vp.Y <= 0f) return;
 
-        float sx = _mapRect.Size.X / wm.MapSize.X;
-        float sy = _mapRect.Size.Y / wm.MapSize.Y;
+        float sx = _mapRect.Size.X / wm.TextureSize.X;
+        float sy = _mapRect.Size.Y / wm.TextureSize.Y;
 
         // Ülke poligonları: minimap ölçeğinde bir kez hesaplanır, önbellekte tutulur.
         // Ülke sayısı değiştiyse (yeni harita yüklendi) önbellek yenilenir.
-        if (_cachedPolys == null || _cachedPolyCount != wm._countries.Count)
+        if (_cachedPolys == null || _cachedPolyCount != wm.Countries.Count)
         {
-            _cachedPolyCount = wm._countries.Count;
+            _cachedPolyCount = wm.Countries.Count;
             var list = new List<(Vector2[], Color[])>(1024);
-            foreach (var country in wm._countries)
+            foreach (var kvp in wm.Countries)
             {
-                foreach (var ring in country.CleanRings)
+                var country = kvp.Value;
+                foreach (var exterior in country.CachedExteriors)
                 {
                     // Sıfır/nötr alanlı poligonu atla — DrawPolygon triüleyemez.
-                    if (ring.Length < 3 || Mathf.Abs(PolygonSignedArea(ring)) < 1.0f) continue;
-                    var pts = new Vector2[ring.Length];
-                    for (int i = 0; i < ring.Length; i++)
-                        pts[i] = _mapRect.Position + new Vector2(ring[i].X * sx, ring[i].Y * sy);
+                    if (exterior.Length < 3 || Mathf.Abs(PolygonSignedArea(exterior)) < 1.0f) continue;
+                    var pts = new Vector2[exterior.Length];
+                    for (int i = 0; i < exterior.Length; i++)
+                        pts[i] = _mapRect.Position + new Vector2(exterior[i].X * sx, exterior[i].Y * sy);
                     // Ekran alanında çok küçük / bozuk poligonu da atla.
                     if (Mathf.Abs(PolygonSignedArea(pts)) < 0.5f) continue;
                     // Minimap ölçeğinde sadeleştir (Ramer-Douglas-Peucker):
                     //  - iki kez üst üste binen ve aynı doğru üzerindeki köşeler
                     //    Godot triüleyicisini "Invalid polygon data" ile düşürür,
-                    //  - minimap çok küçük olduğu için görsel fark yok,
+                    //  - minimap çok küçük olduğu 때문에 görsel fark yok,
                     //  - çizim maliyeti de düşer.
                     var cleaned = SimplifyRdp(pts, 0.7f);
                     if (cleaned.Count < 3) continue;
                     if (Mathf.Abs(PolygonSignedArea(cleaned.ToArray())) < 0.5f) continue;
                     var cols = new Color[cleaned.Count];
-                    for (int i = 0; i < cols.Length; i++) cols[i] = country.MapColor;
+                    for (int i = 0; i < cols.Length; i++) cols[i] = country.FillColor;
                     list.Add((cleaned.ToArray(), cols));
                 }
             }
@@ -175,15 +178,16 @@ public partial class MiniMapPanel : CanvasLayer
         foreach (var poly in _cachedPolys)
             c.DrawPolygon(poly.Points, poly.Colors);
 
-        if (wm._camera == null) return;
+        var cam = wm.Camera;
+        if (cam == null) return;
 
         // Kamera dikdörtgeni — minimap SINIRLARI İÇİNDE kıpraştırılır.
-        float z = wm._camera.Zoom.X;
+        float z = cam.Zoom.X;
         if (vp.X <= 0f || vp.Y <= 0f || z <= 0f) return;
 
         float viewW = vp.X / z;
         float viewH = vp.Y / z;
-        Vector2 camTopLeft = wm._camera.Position - new Vector2(viewW, viewH) / 2f;
+        Vector2 camTopLeft = cam.Position - new Vector2(viewW, viewH) / 2f;
         _cameraRectScreen = new Rect2(
             _mapRect.Position + camTopLeft * new Vector2(sx, sy),
             new Vector2(viewW * sx, viewH * sy));
@@ -195,9 +199,17 @@ public partial class MiniMapPanel : CanvasLayer
             clamped.Size = new Vector2(Mathf.Min(clamped.Size.X, _mapRect.Size.X),
                                        Mathf.Min(clamped.Size.Y, _mapRect.Size.Y));
         }
+        // Clamp position to stay within map rect
+        float minX = _mapRect.Position.X;
+        float maxX = _mapRect.End.X - clamped.Size.X;
+        float minY = _mapRect.Position.Y;
+        float maxY = _mapRect.End.Y - clamped.Size.Y;
+        // Ensure min <= max (in case camera rect is larger than map rect)
+        if (minX > maxX) { var tmp = minX; minX = maxX; maxX = tmp; }
+        if (minY > maxY) { var tmp = minY; minY = maxY; maxY = tmp; }
         clamped.Position = new Vector2(
-            Mathf.Clamp(clamped.Position.X, _mapRect.End.X - clamped.Size.X, _mapRect.Position.X),
-            Mathf.Clamp(clamped.Position.Y, _mapRect.End.Y - clamped.Size.Y, _mapRect.Position.Y));
+            Mathf.Clamp(clamped.Position.X, minX, maxX),
+            Mathf.Clamp(clamped.Position.Y, minY, maxY));
 
         c.DrawRect(clamped, new Color(1f, 1f, 0.2f, 0.15f), true);
         c.DrawRect(clamped, new Color(1f, 0.9f, 0.2f, 0.95f), false);
@@ -206,8 +218,9 @@ public partial class MiniMapPanel : CanvasLayer
     // Tıklama ve sürükle: minimap yüzeyinde basılı tut + hareket → kamera kaydır.
     private void OnSurfaceInput(InputEvent e)
     {
-        var wm = WorldMap.Instance;
-        if (wm?._camera == null) return;
+        var wm = WorldMapV5.Instance;
+        var cam = wm?.Camera;
+        if (wm == null || cam == null) return;
 
         if (e is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
         {
@@ -224,29 +237,39 @@ public partial class MiniMapPanel : CanvasLayer
     // Minimap yerel koordinatını dünya koordinatına çevirip kamerayı oraya sabitler.
     private void JumpTo(Vector2 localPos)
     {
-        var wm = WorldMap.Instance;
-        if (wm?._camera == null) return;
+        var wm = WorldMapV5.Instance;
+        var cam = wm?.Camera;
+        if (wm == null || cam == null) return;
 
         var local = localPos - _mapRect.Position;
-        float wx = wm.MapSize.X / _mapRect.Size.X;
-        float wy = wm.MapSize.Y / _mapRect.Size.Y;
+        float wx = wm.TextureSize.X / _mapRect.Size.X;
+        float wy = wm.TextureSize.Y / _mapRect.Size.Y;
         var worldPos = new Vector2(local.X * wx, local.Y * wy);
 
-        wm._targetPos = wm.ClampCameraPos(worldPos);
-        wm._targetZoom = wm._camera.Zoom.X; // zoom'u değiştirme
-        wm._zoomAnim = true;
+        // Clamp to valid camera range
+        var vp = _surface.GetViewportRect().Size;
+        float viewW = vp.X / cam.Zoom.X;
+        float viewH = vp.Y / cam.Zoom.X;
+        float halfW = viewW / 2f;
+        float halfH = viewH / 2f;
+        worldPos.X = Mathf.Clamp(worldPos.X, halfW, wm.TextureSize.X - halfW);
+        worldPos.Y = Mathf.Clamp(worldPos.Y, halfH, wm.TextureSize.Y - halfH);
+
+        cam.Position = worldPos;
         MarkDirty();
     }
 
     private void ZoomFactor(float factor)
     {
-        var wm = WorldMap.Instance;
-        if (wm?._camera == null) return;
-        float z = Mathf.Clamp(wm._targetZoom * factor, MinZoom, MaxZoom);
-        if (Mathf.IsEqualApprox(z, wm._targetZoom)) return;
-        wm._targetZoom = z;
-        wm._targetPos = wm._camera.Position;
-        wm._zoomAnim = true;
+        var wm = WorldMapV5.Instance;
+        var cam = wm?.Camera;
+        if (wm == null || cam == null) return;
+        float z = Mathf.Clamp(cam.Zoom.X * factor, MinZoom, MaxZoom);
+        if (Mathf.IsEqualApprox(z, cam.Zoom.X)) return;
+        cam.Zoom = new Vector2(z, z);
+        // Update camera limits after zoom
+        wm.UpdateCameraLimits();
+        wm.ClampCamera();
         MarkDirty();
     }
 

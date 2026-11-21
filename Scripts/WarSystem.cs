@@ -397,6 +397,30 @@ public static class WarSystem
         attP *= 1f + skill * 0.05f;
         defP *= 1f + skill * 0.05f;
 
+        // M32.4: Terrain combat modifiers (HoI4 style)
+        // Apply terrain modifiers based on the frontline province
+        float terrainAttMod = 1f, terrainDefMod = 1f;
+        if (war.InvolvesPlayer && !string.IsNullOrEmpty(war.DefenderId))
+        {
+            // Find frontline province - for simplicity, use a province in defender's territory
+            // that borders attacker. In a more detailed system, this would be the specific frontline.
+            var defenderData = CountryDatabase.Get(war.DefenderId);
+            if (defenderData != null)
+            {
+                // Get a sample province in defender's territory
+                var provs = WorldMap.Instance.GetProvincesForCountry(war.DefenderId);
+                if (provs.Count > 0)
+                {
+                    var sampleProv = provs[0];
+                    var terrainDef = TerrainSystem.Get(sampleProv.Terrain);
+                    terrainAttMod = 1f + terrainDef.AttackModifier;
+                    terrainDefMod = 1f + terrainDef.DefenceModifier;
+                }
+            }
+        }
+        attP *= terrainAttMod;
+        defP *= terrainDefMod;
+
         // M31.1: Teknoloji modifikatörleri — yeni silahlar savaş istatistiklerini değiştirir.
         // Araştırılan saldırı/savunma teknolojileri direkt olarak gun gücünü etkiler.
         attP *= 1f + TechnologySystem.GetModifier("land_attack");

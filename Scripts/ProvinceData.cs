@@ -16,4 +16,8 @@ public class ProvinceData
     public List<string> NeighborIds = new(); // komşu il id'leri (18.2'de doldurulur)
     public bool IsCore = true;        // ülkenin asal mı değil mi (yeni ilhaklarda false)
     public bool IsCoastal = false;    // deniz kıyısında / liman erişimi var (M38.3: deniz hattı komşuluğu)
+
+    // M32.4: HoI4-style terrain system
+    public TerrainSystem.TerrainCategory Terrain = TerrainSystem.TerrainCategory.Unknown;
+    public int TerrainPaletteIndex = -1; // terrain.bmp palette index for this province
 }

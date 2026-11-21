@@ -417,6 +417,29 @@ public static class ArmySystem
                     }
                 }
             }
+
+            // M32.4: Terrain-based attrition (non-combat losses)
+            // Apply attrition based on terrain of the province where division is located
+            var army = _armies.FirstOrDefault(a => a.DivisionIds.Contains(div.Id));
+            if (army != null && !string.IsNullOrEmpty(army.ProvinceId))
+            {
+                var prov = WorldMap.Instance?.GetProvinceById(army.ProvinceId);
+                if (prov != null)
+                {
+                    var terrainDef = TerrainSystem.Get(prov.Terrain);
+                    if (terrainDef.Attrition > 0f)
+                    {
+                        // Apply attrition as HP loss (percentage of max HP)
+                        int attritionLoss = (int)Math.Ceiling(div.MaxHp * terrainDef.Attrition / 100f);
+                        div.CurrentHp = Math.Max(0, div.CurrentHp - attritionLoss);
+                        if (div.CurrentHp <= 0)
+                        {
+                            // Division destroyed by attrition
+                            GD.Print($"[Army] {div.DisplayName} yok oldu (arazi atrisyonu: {terrainDef.Name})");
+                        }
+                    }
+                }
+            }
         }
 
         // Ayda bir özet
@@ -447,8 +470,11 @@ public static class ArmySystem
 
                 if (army.MovementPathIndex < army.WaypointIds.Count)
                 {
-                    army.DaysRemainingInHop = army.DaysPerProvince;
-                    GD.Print($"[Army] {army.Name} {army.ProvinceId} iline vardı (rota {army.MovementPathIndex}/{army.WaypointIds.Count})");
+                    // M32.4: Terrain-based movement cost
+                    string nextProvId = army.WaypointIds[army.MovementPathIndex];
+                    float moveTime = CalculateMoveTime(army.ProvinceId, nextProvId, army);
+                    army.DaysRemainingInHop = moveTime;
+                    GD.Print($"[Army] {army.Name} {army.ProvinceId} iline vardı (rota {army.MovementPathIndex}/{army.WaypointIds.Count}, süre={moveTime:F1} gün)");
                 }
                 else
                 {
@@ -486,6 +512,71 @@ public static class ArmySystem
         army.MovementPathIndex = 0;
         GD.Print($"[Army] {army.Name} {owner} ilinin {provinceId} bölgesinde — tema (savaş ilanı ile çatışma başlatılabilir)");
         return true;
+    }
+
+    // M32.4: Terrain-based movement time calculation (HoI4 style)
+    // Returns days to move from one province to adjacent province
+    public static float CalculateMoveTime(string fromProvId, string toProvId, Army army)
+    {
+        var fromProv = WorldMap.Instance?.GetProvinceById(fromProvId);
+        var toProv = WorldMap.Instance?.GetProvinceById(toProvId);
+
+        if (fromProv == null || toProv == null)
+        {
+            // Fallback to default if provinces not found
+            return army.DaysPerProvince;
+        }
+
+        var fromTerrain = TerrainSystem.Get(fromProv.Terrain);
+        var toTerrain = TerrainSystem.Get(toProv.Terrain);
+
+        // Base movement cost from terrain (use higher of the two)
+        float terrainCost = Math.Max(fromTerrain.MovementCost, toTerrain.MovementCost);
+
+        // Unit speed modifier (from army template/divisions)
+        float unitSpeed = GetArmySpeed(army);
+
+        // Base time = distance * terrain_cost / unit_speed
+        // For adjacent provinces, distance = 1
+        float baseTime = terrainCost / Math.Max(unitSpeed, 0.1f);
+
+        // Apply supply penalty
+        float supplyLevel = SupplySystem.GetSupplyLevel(army.Id);
+        if (supplyLevel < 50f)
+        {
+            baseTime *= 1.0f + (50f - supplyLevel) / 100f; // Up to 2x slower at 0 supply
+        }
+
+        // Convert to days (baseTime is in hours, assuming 1 province = ~100km)
+        float moveDays = baseTime / 24f; // Convert hours to days
+
+        // Clamp to reasonable range
+        return Math.Clamp(moveDays, 0.25f, 14f); // 6 hours to 14 days
+    }
+
+    // Get average speed of army's divisions
+    private static float GetArmySpeed(Army army)
+    {
+        if (army.DivisionIds.Count == 0) return 1f;
+
+        float totalSpeed = 0f;
+        int count = 0;
+
+        foreach (var divId in army.DivisionIds)
+        {
+            var div = _divisions.Find(d => d.Id == divId);
+            if (div != null)
+            {
+                var template = _templates.GetValueOrDefault(div.TemplateId);
+                if (template != null)
+                {
+                    totalSpeed += template.Speed;
+                    count++;
+                }
+            }
+        }
+
+        return count > 0 ? totalSpeed / count : 1f;
     }
 
     // ===== Şablon hesaplama =====

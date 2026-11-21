@@ -1409,10 +1409,9 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         float halfH = visibleWorld.Y / 2f;
 
         // VERTICAL LIMITS (no wrapping vertically - clamp to world bounds)
-        // Account for HUD top bar offset
-        float effectiveViewportHeight = viewportSize.Y - _hudTopHeight;
-        float effectiveHalfH = (effectiveViewportHeight / _camera.Zoom.X) / 2f;
-
+        // Camera can view the FULL texture (0 to textureSize.Y).
+        // The HUD is a separate CanvasLayer overlay - it does NOT restrict camera view.
+        // Camera center Y must stay within [halfH, textureHeight - halfH]
         float limitTop, limitBottom;
         if (visibleWorld.Y >= _textureSize.Y)
         {
@@ -1420,10 +1419,8 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         }
         else
         {
-            // Camera center Y must stay within [effectiveHalfH, textureHeight - effectiveHalfH]
-            // But with HUD at top, the top limit is slightly lower
-            limitTop = effectiveHalfH + _hudTopHeight / _camera.Zoom.X;
-            limitBottom = _textureSize.Y - effectiveHalfH;
+            limitTop = halfH;
+            limitBottom = _textureSize.Y - halfH;
         }
 
         // HORIZONTAL: Infinite wrapping - NO LIMITS (camera can go anywhere)
@@ -1434,7 +1431,7 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         _camera.LimitBottom = (int)Mathf.Floor(limitBottom);
         // Don't set LimitLeft/LimitRight - leave at default 0 (disabled) for infinite horizontal
 
-        GD.Print($"[CamLimits] VisibleWorld={visibleWorld}, Tex={_textureSize}, Zoom={_camera.Zoom.X:F4}, HalfH={halfH:F1}, EffHalfH={effectiveHalfH:F1}, Vertical: T{limitTop:F1} B{limitBottom:F1} (range={limitBottom-limitTop:F1}), Horizontal: INFINITE WRAPPING");
+        GD.Print($"[CamLimits] VisibleWorld={visibleWorld}, Tex={_textureSize}, Zoom={_camera.Zoom.X:F4}, HalfH={halfH:F1}, Vertical: T{limitTop:F1} B{limitBottom:F1} (range={limitBottom-limitTop:F1}), Horizontal: INFINITE WRAPPING");
     }
 
     public void ClampCamera()

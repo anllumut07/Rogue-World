@@ -28,6 +28,7 @@ public partial class GameHud : CanvasLayer
     private readonly List<(string Text, string Tooltip, Action Open)> _panelSections = new();
     private readonly List<Button> _panelButtons = new();
     private readonly List<Action> _moreActions = new();
+    private readonly Dictionary<Button, Action> _buttonActions = new(); // Button -> its action
 
     // === BOTTOM BAR ===
     private Label _selectedLabel;
@@ -324,6 +325,7 @@ public partial class GameHud : CanvasLayer
             };
             btn.Pressed += action;
             _panelButtonRow.AddChild(btn);
+            _buttonActions[btn] = action; // Store action for MORE menu
             UITheme.AddHoverScale(btn, 1.06f);
         }
 
@@ -500,7 +502,7 @@ public partial class GameHud : CanvasLayer
 
         float viewportW = GetViewport().GetVisibleRect().Size.X;
         // Account for left + center sections (approximate)
-        const float leftCenterWidth = 500f; // flag + name + date + speed controls + pause
+        const float leftCenterWidth = 450f; // flag + name + date + speed controls + pause (reduced)
         float rightSectionStart = leftCenterWidth;
         float availableForRight = viewportW - rightSectionStart - 40f; // margins
 
@@ -517,64 +519,86 @@ public partial class GameHud : CanvasLayer
         // Calculate button widths
         float buttonWidth = 0f;
         int buttonCount = 0;
+        List<Button> allButtons = new();
         foreach (Node child in _panelButtonRow.GetChildren())
         {
             if (child is Button btn)
             {
                 buttonWidth += btn.GetMinimumSize().X + 4f; // separation
                 buttonCount++;
+                allButtons.Add(btn);
             }
         }
 
         float totalNeeded = resourceWidth + buttonWidth + 24f; // extra padding
         float available = availableForRight;
 
+        // Clear MORE popup
+        _morePopup.Clear();
+        _moreActions.Clear();
+
         if (totalNeeded <= available)
         {
             // Everything fits - show all
-            foreach (Node child in _panelButtonRow.GetChildren())
-                if (child is Button btn) btn.Visible = true;
+            foreach (var btn in allButtons) btn.Visible = true;
             foreach (Node child in _resourceBox.GetChildren())
                 if (child is Control ctrl) ctrl.Visible = true;
-        }
-        else if (resourceWidth < available * 0.6f)
-        {
-            // Resources fit, hide some buttons
-            float buttonsAvailable = available - resourceWidth - 12f;
-            float accWidth = 0f;
-            int visibleButtons = 0;
-            foreach (Node child in _panelButtonRow.GetChildren())
-            {
-                if (child is Button btn)
-                {
-                    accWidth += btn.GetMinimumSize().X + 4f;
-                    if (accWidth <= buttonsAvailable)
-                    {
-                        btn.Visible = true;
-                        visibleButtons++;
-                    }
-                    else
-                    {
-                        btn.Visible = false;
-                    }
-                }
-            }
-            // If too many hidden, show MORE button
-            _moreBtn.Visible = visibleButtons < buttonCount;
+            _moreBtn.Visible = false;
         }
         else
         {
-            // Not enough space even for resources - compact resources (icon only)
+            // Not enough space - determine how many buttons fit
+            float buttonsAvailable = available - resourceWidth - 12f;
+            if (buttonsAvailable < 80f) buttonsAvailable = 80f; // At least 1 button
+
+            float accWidth = 0f;
+            int visibleButtons = 0;
+
+            foreach (var btn in allButtons)
+            {
+                float btnWidth = btn.GetMinimumSize().X + 4f;
+                if (accWidth + btnWidth <= buttonsAvailable || visibleButtons == 0)
+                {
+                    btn.Visible = true;
+                    accWidth += btnWidth;
+                    visibleButtons++;
+                }
+                else
+                {
+                    btn.Visible = false;
+                    // Add to MORE menu using stored action
+                    if (_buttonActions.TryGetValue(btn, out var action))
+                    {
+                        _moreActions.Add(action);
+                        _morePopup.AddItem(btn.Text, _moreActions.Count - 1);
+                        _morePopup.SetItemTooltip(_moreActions.Count - 1, btn.TooltipText);
+                    }
+                }
+            }
+
+            // Ensure at least 1 button visible
+            if (visibleButtons == 0 && allButtons.Count > 0)
+            {
+                allButtons[0].Visible = true;
+                visibleButtons = 1;
+            }
+
+            _moreBtn.Visible = visibleButtons < allButtons.Count;
+        }
+
+        // Compact resources if still too tight
+        float usedWidth = resourceWidth;
+        foreach (var btn in allButtons) if (btn.Visible) usedWidth += btn.GetMinimumSize().X + 4f;
+        if (usedWidth > available)
+        {
             foreach (Node child in _resourceBox.GetChildren())
             {
                 if (child is HBoxContainer container && container.GetChildCount() == 2)
                 {
-                    // Hide value label, keep only icon
                     if (container.GetChild(1) is Label valueLabel)
                         valueLabel.Visible = false;
                 }
             }
-            // Recalculate and try again
             CallDeferred(nameof(ReflowPanels));
         }
 

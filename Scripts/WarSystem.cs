@@ -408,8 +408,27 @@ public static class WarSystem
             if (defenderData != null)
             {
                 // Get a sample province in defender's territory
-                var provs = WorldMap.Instance.GetProvincesForCountry(war.DefenderId);
-                if (provs.Count > 0)
+                // Try WorldMap compatibility layer first, then WorldMapV5
+                var provs = WorldMap.Instance?.GetProvincesForCountry(war.DefenderId);
+                if (provs == null || provs.Count == 0)
+                {
+                    // Fallback to WorldMapV5 if compatibility layer not ready
+                    if (WorldMapV5.Instance != null)
+                    {
+                        var countries = WorldMapV5.Instance.Countries;
+                        if (countries.TryGetValue(war.DefenderId, out var country))
+                        {
+                            // Use the first province from the country's cached exteriors as sample
+                            if (country.CachedExteriors.Count > 0)
+                            {
+                                // We don't have ProvinceData here, but we can use terrain from WorldMapV5
+                                // For now, skip terrain modifier if compatibility layer not ready
+                                GD.Print("[WarSystem] WorldMap not ready, skipping terrain modifier");
+                            }
+                        }
+                    }
+                }
+                else if (provs.Count > 0)
                 {
                     var sampleProv = provs[0];
                     var terrainDef = TerrainSystem.Get(sampleProv.Terrain);

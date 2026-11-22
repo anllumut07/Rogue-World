@@ -612,6 +612,15 @@ public partial class GameManager : Node
         SupplyNodeSystem.Initialize();
         BuildingSystem.Initialize();
 
+        // HoI4 Province Bitmap Map System (new)
+        // Initialize the complete province system with bitmap-based lookup
+        // This replaces the GeoJSON country polygon system with HoI4-style provinces
+        if (!ProvinceBitmapLoader.InitializeAsync().IsCompleted)
+        {
+            // We'll await this in Game.cs after GameManager is ready
+            GD.Print("[GameManager] ProvinceBitmapLoader initialization started...");
+        }
+
         // Prod test: örnek hatlar ekle
         if (prodTest && HasPlayer)
             SetupProductionTest();

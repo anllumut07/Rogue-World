@@ -55,9 +55,19 @@ public partial class Game : Control
         GameManager.Instance.DayChanged -= OnDayChangedForDebug;
     }
 
-    private void OnMapFrameReady()
+    private async void OnMapFrameReady()
     {
-        // WorldMapV5 is the only map version
+        // Initialize HoI4 Province Bitmap Map System
+        GD.Print("Game: Initializing HoI4 Province Bitmap Map System...");
+
+        // Initialize ProvinceManager (this also initializes ProvinceBitmapLoader, TerrainBitmapLoader, etc.)
+        var provinceManager = new ProvinceManager();
+        AddChild(provinceManager);
+        await provinceManager.InitializeAsync();
+
+        GD.Print("Game: HoI4 Province Bitmap Map System initialized");
+
+        // WorldMapV5 is the only map version (visual layer)
         GD.Print("Game: Using WorldMapV5 (Visual-reference map from scratch)");
 
         // --- Merkez: SubViewport içinde WorldMapV5 ---

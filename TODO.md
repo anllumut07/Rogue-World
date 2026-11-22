@@ -273,6 +273,24 @@ Her milestone **Godot headless + editörde oynanarak** test edilecek. Bir sonrak
 
 ---
 
+### ✅ HoI4 "No Compromise No Surrender" Map Porting (2026-11-21)
+**Hedef:** HoI4 province bitmap tabanlı harita sistemini (16,290 province, 5632×2048) Rogue World'a tam entegre etmek.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|
+| H1 | Province Bitmap Loader: `provinces.bmp` (24-bit) yükle, RGB→ProvinceID hash table (16,290 entries) | BMP yüklenir, validation %100 | ✅ Bitti — `ProvinceBitmapLoader.cs`, 11.5M pixels validated |
+| H2 | Terrain Bitmap Loader: `terrain.bmp` (8-bit) yükle, color index → terrain category (16 types) | Terrain mappings yüklenir | ✅ Bitti — `TerrainBitmapLoader.cs`, 16 terrain types |
+| H3 | Heightmap Loader: `heightmap.bmp` yükle, elevation data (0-255) | Height data yüklenir | ✅ Bitti — `HeightmapLoader.cs` |
+| H4 | Rivers Loader: `rivers.bmp` yükle, river network extraction | River segments oluşturulur | ✅ Bitti — `RiversLoader.cs` |
+| H5 | Province Manager: Runtime province state, ownership, adjacency, supply, buildings | Tüm province verisi yönetilir | ✅ Bitti — `ProvinceManager.cs` |
+| H6 | Adjacency Graph: 669 connections (228 sea, 432 impassable), strait/canal rules (33) | Graph yüklenir, pathfinding hazır | ✅ Bitti — `AdjacencyGraph.cs`, `StraitCanalManager.cs` |
+| H7 | Supply Network: 895 nodes, 1284 railways (gauge system), terrain penalties | Supply flow çalışır | ✅ Bitti — `SupplyNetworkManager.cs` |
+| H8 | Building Manager: 15 building types, terrain limits, 3D positions | Buildings yönetilir | ✅ Bitti — `BuildingManager.cs` |
+| H9 | WorldMapHoI4: Visual map with province rendering, terrain, borders, rivers, infinite wrap | Harita render edilir | ✅ Bitti — `WorldMapHoI4.cs` |
+| H10 | Integration: GameManager + Game.cs initialization, headless test passes | Oyun başlar, hata yok | ✅ Bitti — `dotnet build` 0/0, Godot import OK, 5-frame headless test OK |
+
+---
+
 ### 📋 Milestone 19: Birlik Hareketi ve Komut (HOI4 tarzı)
 
 | Alt Görev | Açıklama | Test Kriteri | Durum |

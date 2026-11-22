@@ -565,6 +565,9 @@ public partial class GameManager : Node
         // M57.1: Yargı Sistemi — Anayasa Mahkemesi, hakim atama, dava sistemi, presedens.
         JudiciarySystem.Initialize();
 
+        // M58.1: Ordu Morali ve İkmal Hatları Sistemi — Morale, veteränlık, ikmal hatları, özel kuvvetler, psikolojik savaş.
+        ArmyMoraleSystem.Initialize();
+
         // M23.1/23.2: Seçim ve kampanya verileri ResetForNewGame() -> InitializeAll() -> LoadData() ile tek sefer başlatılır.
         // Burada LoadData() çağrısı çıkarılıyor çünkü ResetForNewGame() zaten InitializeAll() içinden LoadData() çağırır;
         // aksi takdirde hem _Ready() hem de ResetForNewGame() üzerinden çift başlatma ve çift log satırı oluşur.
@@ -1323,6 +1326,9 @@ public partial class GameManager : Node
         // M57.1: Yargı Sistemi — dava süreçleri, hakim emekliliği/atamaları, presedens sönümü
         JudiciarySystem.DailyTick(TotalDays);
 
+        // M58.1: Ordu Morali ve İkmal Hatları Sistemi — morale, veteränlık, ikmal hatları, özel kuvvetler, psikolojik savaş.
+        ArmyMoraleSystem.DailyTick(TotalDays);
+
         // M48.3: Yeni doğan ülkelerin tanınması — talepten SONRA çağrılır çünkü
         // o gün bağımsızlaşan ülke de aynı gün tanınma değerlendirmesine girsin.
         // Talep bir ülkeyi bırakmışsa yeni doğan ülke diğerleri tarafından
@@ -1670,6 +1676,9 @@ public partial class GameManager : Node
 
         // M56: Göç ve Mülteci Krizleri sistemi yeni oyun için sıfırla.
         MigrationSystem.ResetForNewGame();
+
+        // M58.1: Ordu Morali ve İkmal Hatları Sistemi — morale, veteränlık, ikmal hatları, özel kuvvetler, psikolojik savaş.
+        ArmyMoraleSystem.ResetForNewGame();
 
         // HoI4 Map Mechanics Systems
         StrategicRegionSystem.ResetForNewGame();

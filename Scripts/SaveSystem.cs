@@ -113,6 +113,7 @@ public static class SaveSystem
         public ClimateSystem.ClimateSave Climate { get; set; } // M55: iklim, çevre ve enerji geçişi
         public MigrationSystem.MigrationSave Migration { get; set; } // M56: göç ve mülteci krizleri
         public JudiciarySystem.JudiciarySave Judiciary { get; set; } // M57.1: yargı sistemi — dava, hakim, presedens
+        public ArmyMoraleSystem.ArmyMoraleSystemSave ArmyMorale { get; set; } // M58.1: ordu morali, ikmal hatları, özel kuvvetler, psikolojik savaş
     }
 
     // ===== Economy DTOs =====
@@ -792,6 +793,7 @@ public static class SaveSystem
             Climate = ClimateSystem.GetSaveData(), // M55: iklim, çevre ve enerji geçişi
             Migration = MigrationSystem.GetSaveData(), // M56: göç ve mülteci krizleri
             Judiciary = JudiciarySystem.GetSaveData(), // M57.1: yargı sistemi — dava, hakim, presedens
+            ArmyMorale = ArmyMoraleSystem.GetSaveData(), // M58.1: ordu morali, ikmal hatları, özel kuvvetler, psikolojik savaş
         };
 
         EnsureSavesDir();
@@ -953,6 +955,12 @@ public static class SaveSystem
                 JudiciarySystem.LoadSaveData(save.Judiciary);
             else
                 JudiciarySystem.ResetForNewGame(); // Eski kayıtlarda judiciary yoksa yeni başlat
+
+            // M58.1: Ordu Morali ve İkmal Hatları Sistemi — morale, veteränlık, ikmal hatları, özel kuvvetler, psikolojik savaş
+            if (save.ArmyMorale != null)
+                ArmyMoraleSystem.LoadSaveData(save.ArmyMorale);
+            else
+                ArmyMoraleSystem.ResetForNewGame(); // Eski kayıtlarda army morale yoksa yeni başlat
 
             ParliamentSystem.LoadSaveData(save.Parliament); // M22.3: partiler, sandalye, veto, koalisyon, referandum
             AutoritarianSystem.LoadSaveData(save.Autoritarian); // M22.4: parti Kongresi ve darbe riski

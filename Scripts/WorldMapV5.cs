@@ -1402,6 +1402,13 @@ private bool _dragStarted = false; // Track if drag has actually started moving
             viewportSize = viewport.GetVisibleRect().Size;
         }
 
+        // Safety check
+        if (!IsFinite(viewportSize) || viewportSize.X <= 0 || viewportSize.Y <= 0)
+        {
+            GD.PrintErr("[InitializeCamera] Invalid viewport size, using defaults");
+            viewportSize = new Vector2(1280, 720);
+        }
+
         // Calculate cover zoom: VERTICAL only (horizontal wraps infinitely)
         // Account for HUD top bar reducing visible map area
         float effectiveViewportHeight = viewportSize.Y - _hudTopHeight;
@@ -1440,6 +1447,13 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         {
             var viewport = GetViewport();
             viewportSize = viewport.GetVisibleRect().Size;
+        }
+
+        // Safety check
+        if (!IsFinite(viewportSize) || !IsFinite(_camera.Zoom.X) || _camera.Zoom.X <= 0)
+        {
+            GD.PrintErr("[CamLimits] Invalid viewport or zoom, skipping update");
+            return;
         }
 
         // Effective viewport height accounts for HUD top bar
@@ -1490,6 +1504,14 @@ private bool _dragStarted = false; // Track if drag has actually started moving
     {
         Vector2 pos = _camera.Position;
 
+        // Safety check
+        if (!IsFinite(pos) || !IsFinite(_camera.Zoom.X) || _camera.Zoom.X <= 0)
+        {
+            GD.PrintErr("[ClampCamera] Invalid camera state, resetting to center");
+            pos = _textureSize / 2f;
+            _camera.Zoom = new Vector2(Mathf.Max(_minZoom, 0.1f), Mathf.Max(_minZoom, 0.1f));
+        }
+
         // Use SubViewport size for accurate horizontal wrapping calculations
         var subViewport = GetSubViewport();
         float viewportWidth;
@@ -1501,6 +1523,13 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         {
             var viewport = GetViewport();
             viewportWidth = viewport.GetVisibleRect().Size.X;
+        }
+
+        // Safety check
+        if (!IsFinite(viewportWidth) || viewportWidth <= 0 || !IsFinite(_camera.Zoom.X) || _camera.Zoom.X <= 0)
+        {
+            GD.PrintErr("[ClampCamera] Invalid viewport or zoom, skipping clamp");
+            return;
         }
 
         // Horizontal wrapping (HOI4 style): wrap camera position seamlessly
@@ -1601,6 +1630,13 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         // screenPos should be in SubViewport coordinates (or main viewport if no SubViewport)
         var viewportSize = GetConversionViewportSize();
 
+        // Safety check
+        if (!IsFinite(screenPos) || !IsFinite(_camera.Position) ||
+            !IsFinite(viewportSize) || !IsFinite(_camera.Zoom.X) || _camera.Zoom.X <= 0)
+        {
+            return _camera.Position; // Return camera position as fallback
+        }
+
         // Screen to world: camera position + (screen - viewport_center) / zoom
         // Camera2D position is in world coordinates
         Vector2 worldPos = _camera.Position + (screenPos - viewportSize / 2f) / _camera.Zoom.X;
@@ -1615,6 +1651,14 @@ private bool _dragStarted = false; // Track if drag has actually started moving
     {
         // World to screen: (world - camera_pos) * zoom + viewport_center
         var viewportSize = GetConversionViewportSize();
+
+        if (!IsFinite(worldPos) || !IsFinite(_camera.Position) ||
+            !IsFinite(viewportSize) || !IsFinite(_camera.Zoom.X) || _camera.Zoom.X <= 0)
+        {
+            return viewportSize / 2f; // Return center as fallback
+        }
+
+        // World to screen: (world - camera_pos) * zoom + viewport_center
         return (worldPos - _camera.Position) * _camera.Zoom.X + viewportSize / 2f;
     }
 
@@ -1912,6 +1956,13 @@ private bool _dragStarted = false; // Track if drag has actually started moving
 
     private void HandleWheelZoom(float zoomFactor, Vector2 screenPos)
     {
+        // Safety check
+        if (!IsFinite(_camera.Zoom.X) || _camera.Zoom.X <= 0)
+        {
+            GD.PrintErr("[HandleWheelZoom] Invalid camera zoom, skipping");
+            return;
+        }
+
         // Get world position under cursor BEFORE zoom
         Vector2 worldBefore = ScreenToWorld(screenPos);
 
@@ -1951,6 +2002,13 @@ private bool _dragStarted = false; // Track if drag has actually started moving
                 viewportSize = viewport.GetVisibleRect().Size;
             }
 
+            // Safety check
+            if (!IsFinite(viewportSize) || viewportSize.X <= 0 || viewportSize.Y <= 0)
+            {
+                GD.PrintErr("[OnViewportResized] Invalid viewport size, skipping update");
+                return;
+            }
+
             // Recalculate min zoom (vertical only - horizontal wraps)
             float effectiveViewportHeight = viewportSize.Y - _hudTopHeight;
             if (effectiveViewportHeight < 100f) effectiveViewportHeight = 100f;
@@ -1988,6 +2046,14 @@ private bool _dragStarted = false; // Track if drag has actually started moving
             viewportSize = viewport.GetVisibleRect().Size;
         }
 
+        // Safety check: ensure camera and viewport values are valid
+        if (!IsFinite(_camera.Position) || !IsFinite(_camera.Zoom) ||
+            !IsFinite(viewportSize) || !IsFinite(_textureSize))
+        {
+            _debugLabel.Text = "WorldMapV5 Debug\nInvalid camera/viewport state detected";
+            return;
+        }
+
         var convViewportSize = GetConversionViewportSize();
         var mouseScreen = GetConversionMousePosition();
         var mouseWorld = ScreenToWorld(mouseScreen);
@@ -2002,13 +2068,16 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         // Camera vertical clamp info (detailed)
         float effectiveViewportHeight = viewportSize.Y - _hudTopHeight;
         if (effectiveViewportHeight < 100f) effectiveViewportHeight = 100f;
-        float visibleWorldH = effectiveViewportHeight / _camera.Zoom.X;
+
+        // Safety check for zoom
+        float zoom = IsFinite(_camera.Zoom.X) && _camera.Zoom.X > 0 ? _camera.Zoom.X : 1.0f;
+        float visibleWorldH = effectiveViewportHeight / zoom;
         float halfViewH = visibleWorldH / 2f;
         float minCamY = _camera.LimitTop;
         float maxCamY = _camera.LimitBottom;
         float clampRange = maxCamY - minCamY;
         bool clampValid = minCamY <= maxCamY;
-        float mapCoverageH = _textureSize.Y * _camera.Zoom.X;
+        float mapCoverageH = _textureSize.Y * zoom;
 
         // Round-trip validation for known reference points (Turkey center ~35°E, 39°N)
         var testLonLat = (35.0, 39.0); // Turkey approx center
@@ -2040,6 +2109,22 @@ Countries: {_countries.Count} | Grid Cells: {_countryGrid.Count}
 World: ({testWorld.X:F1},{testWorld.Y:F1}) -> Screen: ({testScreen.X:F1},{testScreen.Y:F1}) -> World: ({testWorldBack.X:F1},{testWorldBack.Y:F1}) -> LonLat: ({lonBack:F4}°,{latBack:F4}°)
 LonErr: {lonError:F6}° | LatErr: {latError:F6}° | WorldErr: {worldError:F3}px
 Debug: F3 | Shot: F11 | Grid: G | Coast: C | Ref: R";
+    }
+
+    /// <summary>
+    /// Check if a float is finite (non-NaN, non-infinite).
+    /// </summary>
+    private static bool IsFinite(float f)
+    {
+        return float.IsFinite(f);
+    }
+
+    /// <summary>
+    /// Check if a Vector2 has finite (non-NaN, non-infinite) components.
+    /// </summary>
+    private static bool IsFinite(Vector2 v)
+    {
+        return float.IsFinite(v.X) && float.IsFinite(v.Y);
     }
 
     /// <summary>

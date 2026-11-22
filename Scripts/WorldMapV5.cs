@@ -25,7 +25,7 @@ public partial class WorldMapV5 : Node2D
     private const float MAX_ZOOM = 10f;      // HOI4 goes to ~10x
     private const float ZOOM_SPEED = 1.15f;  // Smoother zoom
     private const float PAN_SPEED_KEYBOARD = 1200f; // WASD pan speed
-    private const float MIN_ZOOM_CLAMP = 0.3f; // Don't zoom out past world coverage
+    private const float MIN_ZOOM_CLAMP = 0.15f; // Don't zoom out past world coverage - reduced to allow full map view
 
     // Map wrapping - HOI4 style infinite horizontal
     private const float WORLD_WIDTH = 10800f;  // Texture width in world pixels
@@ -1194,7 +1194,7 @@ private bool _dragStarted = false; // Track if drag has actually started moving
 
     private void HandleCountryHover()
     {
-        var mouseScreen = GetViewport().GetMousePosition();
+        var mouseScreen = GetConversionMousePosition();
         var mouseWorld = ScreenToWorld(mouseScreen);
 
         // Quick bbox check first
@@ -1434,16 +1434,17 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         // VERTICAL LIMITS (no wrapping vertically - clamp to world bounds)
         // Camera center Y must stay within [halfH, textureHeight - halfH]
         // This ensures the visible world area always stays within texture bounds
-        float limitTop, limitBottom;
-        if (visibleWorld.Y >= _textureSize.Y)
+        // ALWAYS allow panning to see edges (Antarctica, northern Russia) even at min zoom
+        float limitTop = halfH;
+        float limitBottom = _textureSize.Y - halfH;
+
+        // SAFETY: Ensure valid clamp range (min <= max)
+        // If min > max (can happen at extreme zoom or tiny viewport), center camera but don't block input
+        if (limitTop > limitBottom)
         {
-            // Zoomed out enough that full texture fits vertically - center camera, no vertical movement needed
-            limitTop = limitBottom = _textureSize.Y / 2f;
-        }
-        else
-        {
-            limitTop = halfH;
-            limitBottom = _textureSize.Y - halfH;
+            float centerY = _textureSize.Y / 2f;
+            limitTop = limitBottom = centerY;
+            GD.PrintErr($"[CamLimits] INVALID RANGE (min_y > max_y): T{limitTop:F1} B{limitBottom:F1} -> Forced to center {centerY:F1}. Camera movement still allowed via input handling.");
         }
 
         // SAFETY: Ensure valid clamp range (min <= max)
@@ -1660,15 +1661,15 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         // UI Controls consume input first (MouseFilter.Stop on panels)
         // Only handle input if not consumed by UI
 
-        // Wheel zoom (cursor-anchored)
+        // Wheel zoom (cursor-anchored) - FIXED: User reported zoom direction swapped
         if (@event is InputEventMouseButton mb && mb.ButtonIndex == MouseButton.WheelUp && mb.Pressed)
         {
-            HandleWheelZoom(1f / ZOOM_SPEED, mb.Position);
+            HandleWheelZoom(ZOOM_SPEED, mb.Position); // FIXED: WheelUp = zoom out (was zoom in)
             GetViewport().SetInputAsHandled();
         }
         else if (@event is InputEventMouseButton mb2 && mb2.ButtonIndex == MouseButton.WheelDown && mb2.Pressed)
         {
-            HandleWheelZoom(ZOOM_SPEED, mb2.Position);
+            HandleWheelZoom(1f / ZOOM_SPEED, mb2.Position); // FIXED: WheelDown = zoom in (was zoom out)
             GetViewport().SetInputAsHandled();
         }
 
@@ -1719,7 +1720,7 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         // LMB click - country selection
         if (@event is InputEventMouseButton mb4 && mb4.ButtonIndex == MouseButton.Left && mb4.Pressed)
         {
-            var mouseScreen = mb4.Position;
+            var mouseScreen = GetConversionMousePosition(); // Use same coordinate system as hover
             var mouseWorld = ScreenToWorld(mouseScreen); // Handles wrapping
 
             // Find clicked country
@@ -1885,7 +1886,8 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         // Get world position under cursor BEFORE zoom
         Vector2 worldBefore = ScreenToWorld(screenPos);
 
-        // Apply zoom
+        // Apply zoom - FIXED: WheelUp = zoom in (factor < 1), WheelDown = zoom out (factor > 1)
+        // User reported: zoom buttons swapped - fix by inverting the factor interpretation
         float newZoom = _camera.Zoom.X * zoomFactor;
         newZoom = Mathf.Clamp(newZoom, _minZoom, MAX_ZOOM);
         _camera.Zoom = new Vector2(newZoom, newZoom);

@@ -458,6 +458,10 @@ public partial class CharacterCreationPanel : Control
 
     private void OnStartPressed()
     {
+        // Ensure name is captured from input field (in case TextChanged didn't fire)
+        if (_nameInput != null)
+            _character.FirstName = _nameInput.Text;
+
         if (!string.IsNullOrWhiteSpace(_character.FirstName) && _character.FirstName.Length >= 2)
         {
             GD.Print($"[CharacterCreationPanel] Karakter onaylandı: {_character.FullName} ({_character.Background}, yaş {_character.Age})");

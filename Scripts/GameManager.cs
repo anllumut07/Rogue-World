@@ -562,6 +562,9 @@ public partial class GameManager : Node
         // M41.1: Zafer koşulları — Data/victory_conditions.json'dan senaryo bazlı kazanma kuralları.
         VictorySystem.LoadData();
 
+        // M57.1: Yargı Sistemi — Anayasa Mahkemesi, hakim atama, dava sistemi, presedens.
+        JudiciarySystem.Initialize();
+
         // M23.1/23.2: Seçim ve kampanya verileri ResetForNewGame() -> InitializeAll() -> LoadData() ile tek sefer başlatılır.
         // Burada LoadData() çağrısı çıkarılıyor çünkü ResetForNewGame() zaten InitializeAll() içinden LoadData() çağırır;
         // aksi takdirde hem _Ready() hem de ResetForNewGame() üzerinden çift başlatma ve çift log satırı oluşur.
@@ -1317,6 +1320,9 @@ public partial class GameManager : Node
         // koşul değerlendirilir. Aynı gün artan direniş talebi hemen açar.
         ReleasableSystem.AdvanceAllDays(TotalDays);
 
+        // M57.1: Yargı Sistemi — dava süreçleri, hakim emekliliği/atamaları, presedens sönümü
+        JudiciarySystem.DailyTick(TotalDays);
+
         // M48.3: Yeni doğan ülkelerin tanınması — talepten SONRA çağrılır çünkü
         // o gün bağımsızlaşan ülke de aynı gün tanınma değerlendirmesine girsin.
         // Talep bir ülkeyi bırakmışsa yeni doğan ülke diğerleri tarafından
@@ -1592,6 +1598,9 @@ public partial class GameManager : Node
 
         // M22.2: Yasa sistemini yeni oyuna başlat (etkin yasa/etki state'i sıfırlanır)
         LawSystem.ResetForNewGame();
+
+        // M57.1: Yargı Sistemi — Anayasa Mahkemesi, hakim atama, dava sistemi, presedens
+        JudiciarySystem.ResetForNewGame();
 
         // M22.3: Parlamento-yeni oyun (parti/sandalye/veto state'i sıfırlanır)
         ParliamentSystem.ResetForNewGame();

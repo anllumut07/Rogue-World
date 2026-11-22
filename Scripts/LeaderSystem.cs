@@ -44,7 +44,7 @@ public static class LeaderSystem
     }
 
     // Kültür havuzu (Data/names/*.json ile aynı yapı)
-    private class NamePool
+    public class NamePool
     {
         public List<string> FirstNames { get; set; } = new();
         public List<string> LastNames { get; set; } = new();
@@ -266,6 +266,17 @@ public static class LeaderSystem
 
     public static IReadOnlyDictionary<string, Leader> All => _leaders;
     public static int LoadedCount => _leaders.Count;
+
+    /// <summary>
+    /// Belirli bir kültür için isim havuzunu getirir (yoksa Anglo havuzunu döner).
+    /// Diğer sistemler (JudiciarySystem vb.) hakim isimleri üretmek için kullanabilir.
+    /// </summary>
+    public static NamePool GetNamePool(string cultureKey)
+    {
+        EnsureLoaded();
+        return _namePools.GetValueOrDefault(cultureKey)
+               ?? _namePools.GetValueOrDefault("anglo");
+    }
 
     public static Leader GetLeader(string countryId)
     {

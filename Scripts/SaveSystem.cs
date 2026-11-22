@@ -112,6 +112,7 @@ public static class SaveSystem
         public AdvisorSystem.AdvisorsSave Advisors { get; set; } // M53: danışman ekibi
         public ClimateSystem.ClimateSave Climate { get; set; } // M55: iklim, çevre ve enerji geçişi
         public MigrationSystem.MigrationSave Migration { get; set; } // M56: göç ve mülteci krizleri
+        public JudiciarySystem.JudiciarySave Judiciary { get; set; } // M57.1: yargı sistemi — dava, hakim, presedens
     }
 
     // ===== Economy DTOs =====
@@ -790,6 +791,7 @@ public static class SaveSystem
             Advisors = AdvisorSystem.GetSaveData(), // M53: danışman ekibi
             Climate = ClimateSystem.GetSaveData(), // M55: iklim, çevre ve enerji geçişi
             Migration = MigrationSystem.GetSaveData(), // M56: göç ve mülteci krizleri
+            Judiciary = JudiciarySystem.GetSaveData(), // M57.1: yargı sistemi — dava, hakim, presedens
         };
 
         EnsureSavesDir();
@@ -945,6 +947,13 @@ public static class SaveSystem
             PublicSatisfactionSystem.LoadSaveData(save.PublicSatisfaction); // M20.3: grup memnuniyeti
             CabinetSystem.LoadSaveData(save.Cabinet); // M21.1: bakanlık atamaları
             LawSystem.LoadSaveData(save.Law); // M22.2: aktif yasalar ve birikmiş etkilere göre indirimler
+
+            // M57.1: Yargı Sistemi — dava, hakim, presedens
+            if (save.Judiciary != null)
+                JudiciarySystem.LoadSaveData(save.Judiciary);
+            else
+                JudiciarySystem.ResetForNewGame(); // Eski kayıtlarda judiciary yoksa yeni başlat
+
             ParliamentSystem.LoadSaveData(save.Parliament); // M22.3: partiler, sandalye, veto, koalisyon, referandum
             AutoritarianSystem.LoadSaveData(save.Autoritarian); // M22.4: parti Kongresi ve darbe riski
             ElectionSystem.LoadSaveData(save.Election); // M23.1: seçim takvimi

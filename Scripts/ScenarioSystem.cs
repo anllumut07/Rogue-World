@@ -127,6 +127,7 @@ public static class ScenarioSystem
         EquipmentSystem.ResetForScenario();
         LeaderSystem.ResetForScenario();
         VictorySystem.ResetForScenario();
+        JudiciarySystem.ResetForScenario();
 
         return true;
     }

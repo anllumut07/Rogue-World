@@ -71,7 +71,8 @@ $Process = Start-Process -FilePath $GodotExe -ArgumentList $GodotArgs -WorkingDi
 
 # Longer timeout for save-load test (runs 200 days simulation + save/load)
     # occupation-test also needs more time (15 days simulation with 637 provinces)
-    $TimeoutMs = if ($TestFlag -eq "--save-load-test") { 900000 } elseif ($TestFlag -eq "--occupation-test") { 300000 } else { 120000 } # 900 sn for save-load, 300 sn for occupation, 120 sn for others
+    # civil-war-test also needs more time (complex civil war simulation with save/load)
+    $TimeoutMs = if ($TestFlag -eq "--save-load-test") { 900000 } elseif ($TestFlag -eq "--occupation-test") { 300000 } elseif ($TestFlag -eq "--civil-war-test") { 300000 } else { 120000 } # 900 sn for save-load, 300 sn for occupation/civil-war, 120 sn for others
     $Waited = $Process.WaitForExit($TimeoutMs)
 $Stopwatch.Stop()
 

@@ -562,6 +562,9 @@ public partial class GameManager : Node
         // M41.1: Zafer koşulları — Data/victory_conditions.json'dan senaryo bazlı kazanma kuralları.
         VictorySystem.LoadData();
 
+        // M59.1: Yerelleştirme Sistemi — TR/EN dil desteği, parametreli çeviriler, plural formlar.
+        LocalizationSystem.Initialize();
+
         // M57.1: Yargı Sistemi — Anayasa Mahkemesi, hakim atama, dava sistemi, presedens.
         JudiciarySystem.Initialize();
 
@@ -1607,6 +1610,9 @@ public partial class GameManager : Node
 
         // M57.1: Yargı Sistemi — Anayasa Mahkemesi, hakim atama, dava sistemi, presedens
         JudiciarySystem.ResetForNewGame();
+
+        // M59.1: Yerelleştirme Sistemi — TR/EN dil desteği, parametreli çeviriler, plural formlar.
+        LocalizationSystem.ResetForNewGame();
 
         // M22.3: Parlamento-yeni oyun (parti/sandalye/veto state'i sıfırlanır)
         ParliamentSystem.ResetForNewGame();

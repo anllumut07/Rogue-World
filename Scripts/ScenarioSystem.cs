@@ -129,6 +129,7 @@ public static class ScenarioSystem
         VictorySystem.ResetForScenario();
         JudiciarySystem.ResetForScenario();
         ArmyMoraleSystem.ResetForScenario();
+        LocalizationSystem.ResetForScenario();
 
         return true;
     }

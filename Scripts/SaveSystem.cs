@@ -114,6 +114,7 @@ public static class SaveSystem
         public MigrationSystem.MigrationSave Migration { get; set; } // M56: göç ve mülteci krizleri
         public JudiciarySystem.JudiciarySave Judiciary { get; set; } // M57.1: yargı sistemi — dava, hakim, presedens
         public ArmyMoraleSystem.ArmyMoraleSystemSave ArmyMorale { get; set; } // M58.1: ordu morali, ikmal hatları, özel kuvvetler, psikolojik savaş
+        public LocalizationSystem.LocalizationSave Localization { get; set; } // M59.1: yerelleştirme — dil tercihi
     }
 
     // ===== Economy DTOs =====
@@ -961,6 +962,12 @@ public static class SaveSystem
                 ArmyMoraleSystem.LoadSaveData(save.ArmyMorale);
             else
                 ArmyMoraleSystem.ResetForNewGame(); // Eski kayıtlarda army morale yoksa yeni başlat
+
+            // M59.1: Yerelleştirme Sistemi — TR/EN dil desteği
+            if (save.Localization != null)
+                LocalizationSystem.LoadSaveData(save.Localization);
+            else
+                LocalizationSystem.ResetForNewGame(); // Eski kayıtlarda localization yoksa yeni başlat
 
             ParliamentSystem.LoadSaveData(save.Parliament); // M22.3: partiler, sandalye, veto, koalisyon, referandum
             AutoritarianSystem.LoadSaveData(save.Autoritarian); // M22.4: parti Kongresi ve darbe riski

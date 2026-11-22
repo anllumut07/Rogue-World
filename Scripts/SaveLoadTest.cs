@@ -50,12 +50,12 @@ public static class SaveLoadTest
             var provinceSource = new ProceduralProvinceSource();
             var provs = provinceSource.LoadProvinces().ToList();
             ProvinceOwnershipSystem.InitializeFromProvinces(provs);
-            ProvinceCultureSystem.GenerateFor(provs, ScenarioSystem.ActiveId ?? "historical_1936");
+            ProvinceCultureSystem.GenerateFor(provs, ScenarioSystem.ActiveId);
             // M47.4: il ekonomi ağırlık katmanı — kültür katmanından SONRA üretilir
             // (nüfus payı il nüfus kaydına bağlanır). Bu olmadan "İlEkonomisi"
             // özet satırı kayıt=0/hash=0 kalır ve M47.2'den sonraki devir durumu
             // A==B karşılaştırmasına hiç girmiyordu.
-            ProvinceEconomySystem.GenerateFor(provs, ScenarioSystem.ActiveId ?? "historical_1936");
+            ProvinceEconomySystem.GenerateFor(provs, ScenarioSystem.ActiveId);
             // M50.4: iç çatışma — isyan bölgesi seçimi komşuluk grafini kullanır.
             // Normal oyunda bunu WorldMap.SetProvinces yapar; headless akışta
             // WorldMap hiç yüklenmediği için CivilWarSystem.IsReady false kalır ve

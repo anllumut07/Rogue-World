@@ -853,7 +853,7 @@ public static class SaveSystem
             save = JsonSerializer.Deserialize<SaveFile>(json, _jsonOpts);
             if (save == null) throw new InvalidDataException("JSON boş/null");
 
-            // M17.1: Sürüm kontrolü — v1 kayıtları historical_1936 olarak kabul et, v2 için senaryo doğrula
+            // M17.1: Sürüm kontrolü — v1 kayıtları modern_world olarak kabul et, v2 için senaryo doğrula
             if (save.Version < 1 || save.Version > SaveVersion)
             {
                 GD.PrintErr($"[SaveSystem] Yükleme başarısız: sürüm uyumsuz — kayıt v{save.Version}, oyun v{SaveVersion}");
@@ -866,8 +866,8 @@ public static class SaveSystem
             return false;
         }
 
-        // M17.1: Aktif senaryoyu kaydedene göre ayarla (v1 kayıtlarda ScenarioId yok → historical_1936)
-        string scenarioId = save.Version >= 2 && !string.IsNullOrEmpty(save.ScenarioId) ? save.ScenarioId : "historical_1936";
+        // M17.1: Aktif senaryoyu kaydedene göre ayarla (v1 kayıtlarda ScenarioId yok → modern_world)
+        string scenarioId = save.Version >= 2 && !string.IsNullOrEmpty(save.ScenarioId) ? save.ScenarioId : "modern_world";
         if (!ScenarioSystem.SetActive(scenarioId))
         {
             GD.PrintErr($"[SaveSystem] Yükleme başarısız: senaryo bulunamadı: {scenarioId}");
@@ -1111,7 +1111,7 @@ public static class SaveSystem
         public string CountryId { get; set; }
         public int Speed { get; set; }
         public string SavedAt { get; set; }
-        public string ScenarioId { get; set; }      // M17.1: kaydın senaryosu (v1 → historical_1936)
+        public string ScenarioId { get; set; }      // M17.1: kaydın senaryosu (v1 → modern_world)
         public string ScenarioName { get; set; }    // M17.1: LoadGamePanel satırında gösterilir
         public string SavedAtText { get; set; }  // M15.3: "14 Oct 2026 15:30" gibi kısa gösterim
     }
@@ -1142,9 +1142,9 @@ public static class SaveSystem
             info.Speed = save.Speed;
             info.SavedAt = save.SavedAt;
             info.SlotName = save.SlotName;
-            // M17.1: senaryo bilgisi (v1 kayıtlar → historical_1936)
+            // M17.1: senaryo bilgisi (v1 kayıtlar → modern_world)
             info.ScenarioId = save.Version >= 2 && !string.IsNullOrEmpty(save.ScenarioId)
-                ? save.ScenarioId : "historical_1936";
+                ? save.ScenarioId : "modern_world";
             info.ScenarioName = ScenarioSystem.GetById(info.ScenarioId)?.Name ?? info.ScenarioId;
             // Kayıt anının kısa bilgisi (gerçek dünya zamanı)
             if (DateTime.TryParse(save.SavedAt, out var savedAt))

@@ -414,7 +414,7 @@ public static class LeaderSystem
             }
             else
             {
-                // Klasik format (historical_1936): RegimeType yok → Ideology'den türet
+                // Klasik format (eski countries_data.json): RegimeType yok → Ideology'den türet
                 var classics = JsonSerializer.Deserialize<List<CountryData>>(json, options);
                 foreach (var c in classics)
                 {

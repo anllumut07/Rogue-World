@@ -45,9 +45,8 @@ public static class ScenarioSystem
     private static Scenario _active;
     private static bool _loaded;
 
-    // Varsayılan senaryo: headless testlerde historical_1936 çalışır (içerikli).
-    // Menüde modern_world öne çıkar (TODO: "Modern Dünya (varsayılan)").
-    private const string DefaultScenarioId = "historical_1936";
+    // Varsayılan senaryo: modern_world (tek senaryo, historical_1936 DLC için ayrıldı).
+    private const string DefaultScenarioId = "modern_world";
 
     // ===== Public API =====
 

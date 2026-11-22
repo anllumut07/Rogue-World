@@ -34,7 +34,7 @@ public partial class GameManager : Node
     [Export] public double SecondsPerDay { get; set; } = 1.0; // 1x hız = 1 saniyede 1 gün
 
     // --- Durum ---
-    // M17.1: başlangıç tarihi aktif senaryodan (historical_1936 → 1936-01-01, modern_world → 2026-01-01)
+    // M17.1: başlangıç tarihi aktif senaryodan (modern_world → 2026-10-15)
     public DateTime CurrentDate { get; private set; } = new DateTime(1936, 1, 1); // HOI4 başlangıcı
     public DateTime StartDate => ScenarioSystem.ActiveStartDate; // aktif senaryonun başlangıç tarihi
     public int TotalDays { get; private set; } = 0;
@@ -134,8 +134,8 @@ public partial class GameManager : Node
         bool warSimTest = false;        // JOB1: 5 yıllık savaş simülasyonu
         bool agendaTest = false;        // M16: ajanda sistem testi (aksiyon ekle + gün ilerlet + efekt kontrol)
         bool cabinetMeetingTest = false; // M21.5: kabine toplantısı testi (ajanda slotu + bakan sadakati)
-        string scenarioId = null;       // M17.1: --scenario=ID — aktif senaryoyu seç (modern_world / historical_1936)
-        bool scenarioTest = false;      // M17.1: --scenario-test — her iki senaryonun yükleme sayılarını doğrula
+        string scenarioId = null;       // M17.1: --scenario=ID — aktif senaryoyu seç (modern_world)
+        bool scenarioTest = false;      // M17.1: --scenario-test — senaryo yükleme sayılarını doğrula
         int loadSlot = -1;              // M17.1: --load-slot=N — mevcut kaydı yükle (v1 migration testi)
         bool constitutionTest = false;  // M22.1: anayasa yönetim-biçimi tanımlarını doğrula
         bool lawsTest = false;            // M22.2: yasa çıkarma/kaldırma + etki testi
@@ -486,8 +486,7 @@ public partial class GameManager : Node
             WeatherSystem.EnableTestMode();
 
         // M17.1: Aktif senaryoyu ayarla — veri yükleyicilerin yolları buradan gelir.
-        // --scenario verilmezse ScenarioSystem varsayılanı (historical_1936) kullanılır.
-        // Headless testlerde: --scenario=modern_world / --scenario=historical_1936
+        // --scenario verilmezse ScenarioSystem varsayılanı (modern_world) kullanılır.
         if (scenarioId != null)
         {
             if (!ScenarioSystem.SetActive(scenarioId))
@@ -1950,7 +1949,7 @@ public partial class GameManager : Node
         GD.Print("=========================================");
 
         var all = ScenarioSystem.All;
-        bool result = all.Count >= 2;
+        bool result = all.Count >= 1;
 
         foreach (var s in all)
         {
@@ -1977,13 +1976,6 @@ public partial class GameManager : Node
                 ok = c == 50 && fTrees >= 1 && fFocuses >= 10 && e == 0 && d == 0
                      && t > 0 && lib == 50 && cbTypes == 0 && cbClaims == 0;
                 GD.Print($"     modern_world assert: {ok} (50 ülke / >=1 odak agaci / >=10 fokus / 0 olay / 0 karar / >0 tech / 50 kutuphane / 0 CB / 0 iddiâ)");
-            }
-            else if (s.Id == "historical_1936")
-            {
-                // Tarihi 1936: 8 odak agaci / 73 fokus, 73 tech, 50 ülke + 50 kütüphane girişi.
-                ok = c == 50 && fTrees == 8 && fFocuses == 73 && e == 0 && d == 0
-                     && t == 73 && lib == 50 && cbTypes == 0 && cbClaims == 0;
-                GD.Print($"     historical_1936 assert: {ok} (50 ulke / 8 odak-73 fokus / 0 olay / 0 karar / 73 tech / 50 kutuphane / 0 CB / 0 iddiâ)");
             }
             else
             {
@@ -9531,7 +9523,7 @@ private void RunBalanceTest()
         if (provinces.Count < 100) ok = false;
 
         // 2) Kültür üretimi
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         int recordCount = ProvinceCultureSystem.RecordCount;
         GD.Print($"[CultureTest] 2) Kültür kaydı: {recordCount}");
         if (recordCount != provinces.Count) ok = false;
@@ -9570,7 +9562,7 @@ private void RunBalanceTest()
 
         // 5) Determinizm: aynı girdiyle yeniden üret → aynı sonuç
         ProvinceCultureSystem.ResetForNewGame();
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         int afterReset = ProvinceCultureSystem.RecordCount;
         bool deterministic = afterReset == recordCount && recordCount > 0;
         GD.Print($"[CultureTest] 5) Sıfırlama + yeniden üretim: {afterReset} kayıt — deterministik: {deterministic}");
@@ -9611,7 +9603,7 @@ private void RunBalanceTest()
         provinces.Add(new ProvinceData { Id = "?", CountryId = "DEU" });
         provinces.Add(new ProvinceData { Id = "", CountryId = "DEU" });
         ProvinceCultureSystem.ResetForNewGame();
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         bool skippedInvalid = ProvinceCultureSystem.RecordCount == provinces.Count - 2;
         GD.Print($"[CultureTest] 9) Geçersiz il atlandı: {skippedInvalid} (kayıt={ProvinceCultureSystem.RecordCount})");
         if (!skippedInvalid) ok = false;
@@ -9640,8 +9632,8 @@ private void RunBalanceTest()
         if (provinces.Count < 100) ok = false;
 
         // 2) Kültür katmanı (nüfus payının kaynağı) sonra ekonomi katmanı
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
-        ProvinceEconomySystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
+        ProvinceEconomySystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         int recordCount = ProvinceEconomySystem.RecordCount;
         GD.Print($"[ProvEconomyTest] 2) Ekonomi kaydı: {recordCount}");
         if (recordCount != provinces.Count) ok = false;
@@ -9767,7 +9759,7 @@ private void RunBalanceTest()
             beforeSnapshot[w.ProvinceId] = $"{w.Urban:F6}|{w.FactoryW:F6}|{w.ResourceW:F6}|{w.PopulationW:F6}|{w.Civ}|{w.Oil}";
         ulong rngBefore = DeterministicRNG.GetState();
         ProvinceEconomySystem.ResetForNewGame();
-        ProvinceEconomySystem.GenerateFor(provinces, "historical_1936");
+        ProvinceEconomySystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         ulong rngAfter = DeterministicRNG.GetState();
         int driftCount = 0;
         foreach (var w in ProvinceEconomySystem.All())
@@ -9914,8 +9906,8 @@ private void RunBalanceTest()
 
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
-        ProvinceEconomySystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
+        ProvinceEconomySystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
 
         var rich = CountryDatabase.Get("USA");
 
@@ -10070,7 +10062,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         FormableSystem.ResetForNewGame();
         GD.Print($"[AiFormableTest] 1) İl: {provinces.Count}, kültür: {ProvinceCultureSystem.RecordCount}");
 
@@ -10276,7 +10268,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         FormableSystem.ResetForNewGame();
         GD.Print($"[FormableTest] 1) İl: {provinces.Count}, kültür kaydı: {ProvinceCultureSystem.RecordCount}");
 
@@ -10471,7 +10463,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         ReleasableSystem.ResetForNewGame();
         AutonomySystem.ResetForNewGame();
         ResistanceSystem.ResetForNewGame();
@@ -10715,7 +10707,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         ReleasableSystem.ResetForNewGame();
         ReleasableSystem.ResetDemands();
         AutonomySystem.ResetForNewGame();
@@ -10958,7 +10950,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         ReleasableSystem.ResetForNewGame();
         ReleasableSystem.ResetDemands();
         AutonomySystem.ResetForNewGame();
@@ -11183,7 +11175,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         ReleasableSystem.ResetForNewGame();
         ReleasableSystem.ResetDemands();
         AutonomySystem.ResetForNewGame();
@@ -11412,7 +11404,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
 
         var byId = new Dictionary<string, ProvinceData>(StringComparer.Ordinal);
         foreach (var p in provinces)
@@ -11440,7 +11432,7 @@ private void RunBalanceTest()
                 cultureBefore[p.Id] = ProvinceCultureSystem.CultureOf(p.Id);
 
         // ---- 2) Oyuncu ve cephe köşesi ----
-        if (!HasPlayer) SetPlayerCountry("DEU");
+        if (!HasPlayer) SetPlayerCountry("RUS");
         string playerId = PlayerCountryId;
         var player = CountryDatabase.Get(playerId);
         if (player == null)
@@ -11455,6 +11447,7 @@ private void RunBalanceTest()
         // cephe için komşu ülkeler arasından en çok ili olan seçilir ve hedefe
         // yeterli toprak verilir — aksi halde "cephe" 2-3 ilde tükenir ve
         // savaşın haritayı değiştirdiği görülemez.
+        // Aynı faksiyondaki ülkeleri filtrele (aynı faksiyonda savaş ilanı yapılamaz).
         var frontierCount = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var pid in ProvinceOwnershipSystem.GetProvincesByOwner(playerId))
         {
@@ -11467,12 +11460,24 @@ private void RunBalanceTest()
                 frontierCount[o] = frontierCount.TryGetValue(o, out var c) ? c + 1 : 1;
             }
         }
-        string enemyId = frontierCount
-            .OrderByDescending(kv => ProvinceOwnershipSystem.ProvinceCountFor(kv.Key))
-            .ThenBy(kv => kv.Key, StringComparer.Ordinal)
-            .Select(kv => kv.Key)
+        // Aynı faksiyondaki ülkeleri filtrele, ve sadece CountryDatabase'de olanları al
+        var playerFaction = DiplomacySystem.GetFactionOf(playerId);
+        string playerFactionId = playerFaction?.Id;
+        var validEnemies = new List<string>();
+        foreach (var kv in frontierCount)
+        {
+            // CountryDatabase'de bu ülke var mı kontrol et
+            if (CountryDatabase.Get(kv.Key) == null) continue;
+            var enemyFaction = DiplomacySystem.GetFactionOf(kv.Key);
+            if (!string.IsNullOrEmpty(playerFactionId) && enemyFaction?.Id == playerFactionId) continue;
+            validEnemies.Add(kv.Key);
+        }
+        string enemyId = validEnemies
+            .OrderByDescending(id => ProvinceOwnershipSystem.ProvinceCountFor(id))
+            .ThenBy(id => id, StringComparer.Ordinal)
             .FirstOrDefault();
-        bool frontierOk = frontierCount.Count > 0 && !string.IsNullOrEmpty(enemyId);
+        // No fallback - if all neighbors are in same faction, test fails
+        bool frontierOk = !string.IsNullOrEmpty(enemyId);
         GD.Print($"[OccTest] 2) Cephe: {playerId} topraklarına komşu ülke={frontierCount.Count}, " +
                  $"hedef={enemyId} ({frontierOk})");
         if (!frontierOk)
@@ -11818,8 +11823,8 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
-        ProvinceEconomySystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
+        ProvinceEconomySystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
 
         var byId = new Dictionary<string, ProvinceData>(StringComparer.Ordinal);
         foreach (var p in provinces)
@@ -12245,7 +12250,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         CivilWarSystem.SetWorld(provinces);
         CivilWarSystem.ResetForNewGame();
         // M50.2: İsyancı devletin bağımsızlık savaşı açabilmesi için gerekçe
@@ -13273,7 +13278,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         FormableSystem.ResetForNewGame();
         GD.Print($"[FormablePanelTest] İl: {provinces.Count}, kültür kaydı: {ProvinceCultureSystem.RecordCount}");
 
@@ -13616,7 +13621,7 @@ private void RunBalanceTest()
             }
             ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
             ProvinceCultureSystem.ResetForNewGame();
-            ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+            ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
             FormableSystem.ResetForNewGame();
             player.PoliticalPower = ppBefore;
             GD.Print("[FormablePanelTest] Dünya verisi geri yüklendi");
@@ -13652,7 +13657,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         ReleasableSystem.ResetForNewGame();
         AutonomySystem.ResetForNewGame();
         ResistanceSystem.ResetForNewGame();
@@ -14016,7 +14021,7 @@ private void RunBalanceTest()
                 c.Dockyards = kv.Value.Dock;
             }
             ProvinceCultureSystem.ResetForNewGame();
-            ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+            ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
             ReleasableSystem.ResetForNewGame();
             AutonomySystem.ResetForNewGame();
             ResistanceSystem.ResetForNewGame();
@@ -14056,7 +14061,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         ReleasableSystem.ResetForNewGame();
         AutonomySystem.ResetForNewGame();
         ResistanceSystem.ResetForNewGame();
@@ -14397,7 +14402,7 @@ private void RunBalanceTest()
             var map = WorldMap.Instance;
             if (map != null && existingMap == null) map.QueueFree();
             ProvinceCultureSystem.ResetForNewGame();
-            ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+            ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
             ReleasableSystem.ResetForNewGame();
             AutonomySystem.ResetForNewGame();
             ResistanceSystem.ResetForNewGame();
@@ -14464,7 +14469,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         ReleasableSystem.ResetForNewGame();
         AutonomySystem.ResetForNewGame();
         ResistanceSystem.ResetForNewGame();
@@ -14866,7 +14871,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         ReleasableSystem.ResetForNewGame();
         AutonomySystem.ResetForNewGame();
         ResistanceSystem.ResetForNewGame();
@@ -15178,7 +15183,7 @@ private void RunBalanceTest()
         puppet.OwnerId = "";
         mirror.OwnerId = "";
         ProvinceCultureSystem.ResetForNewGame();
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         GD.Print("[AutonomyTest] Dünya verisi geri yüklendi");
 
         GD.Print("=========================================");
@@ -15210,7 +15215,7 @@ private void RunBalanceTest()
         var source = new ProceduralProvinceSource();
         var provinces = source.LoadProvinces().ToList();
         ProvinceOwnershipSystem.InitializeFromProvinces(provinces);
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         ReleasableSystem.ResetForNewGame();
         AutonomySystem.ResetForNewGame();
         ResistanceSystem.ResetForNewGame();
@@ -15385,7 +15390,7 @@ private void RunBalanceTest()
         subject.MilFactories = milBefore;
         subject.Dockyards = dockBefore;
         ProvinceCultureSystem.ResetForNewGame();
-        ProvinceCultureSystem.GenerateFor(provinces, "historical_1936");
+        ProvinceCultureSystem.GenerateFor(provinces, ScenarioSystem.ActiveId);
         GD.Print("[ResistanceTest] Dünya verisi geri yüklendi");
 
         GD.Print("=========================================");

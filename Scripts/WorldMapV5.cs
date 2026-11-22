@@ -894,6 +894,9 @@ private bool _dragStarted = false; // Track if drag has actually started moving
     {
         // Camera limits will be set in UpdateCameraLimits() after we know viewport size
         // Don't set horizontal limits - infinite wrapping handled by ClampCamera()
+        // Explicitly disable horizontal limits (0 = disabled in Godot)
+        _camera.LimitLeft = 0;
+        _camera.LimitRight = 0;
         // Only vertical limits will be set in UpdateCameraLimits()
         _camera.LimitTop = 0;
         _camera.LimitBottom = (int)_textureSize.Y;
@@ -1386,8 +1389,18 @@ private bool _dragStarted = false; // Track if drag has actually started moving
 
     private void InitializeCamera()
     {
-        var viewport = GetViewport();
-        var viewportSize = viewport.GetVisibleRect().Size;
+        // Use SubViewport size for accurate camera initialization
+        var subViewport = GetSubViewport();
+        Vector2 viewportSize;
+        if (subViewport != null)
+        {
+            viewportSize = new Vector2(subViewport.Size.X, subViewport.Size.Y);
+        }
+        else
+        {
+            var viewport = GetViewport();
+            viewportSize = viewport.GetVisibleRect().Size;
+        }
 
         // Calculate cover zoom: VERTICAL only (horizontal wraps infinitely)
         // Account for HUD top bar reducing visible map area
@@ -1416,8 +1429,18 @@ private bool _dragStarted = false; // Track if drag has actually started moving
 
     public void UpdateCameraLimits()
     {
-        var viewport = GetViewport();
-        var viewportSize = viewport.GetVisibleRect().Size;
+        // Use SubViewport size for accurate camera limits (camera is inside SubViewport)
+        var subViewport = GetSubViewport();
+        Vector2 viewportSize;
+        if (subViewport != null)
+        {
+            viewportSize = new Vector2(subViewport.Size.X, subViewport.Size.Y);
+        }
+        else
+        {
+            var viewport = GetViewport();
+            viewportSize = viewport.GetVisibleRect().Size;
+        }
 
         // Effective viewport height accounts for HUD top bar
         // The HUD is a CanvasLayer overlay that covers the top portion of the map
@@ -1447,15 +1470,6 @@ private bool _dragStarted = false; // Track if drag has actually started moving
             GD.PrintErr($"[CamLimits] INVALID RANGE (min_y > max_y): T{limitTop:F1} B{limitBottom:F1} -> Forced to center {centerY:F1}. Camera movement still allowed via input handling.");
         }
 
-        // SAFETY: Ensure valid clamp range (min <= max)
-        // If min > max (can happen at extreme zoom or tiny viewport), center camera but don't block input
-        if (limitTop > limitBottom)
-        {
-            float centerY = _textureSize.Y / 2f;
-            limitTop = limitBottom = centerY;
-            GD.PrintErr($"[CamLimits] INVALID RANGE (min_y > max_y): T{limitTop:F1} B{limitBottom:F1} -> Forced to center {centerY:F1}. Camera movement still allowed via input handling.");
-        }
-
         // HORIZONTAL: Infinite wrapping - NO LIMITS (camera can go anywhere)
         // We handle wrapping in ClampCamera() by shifting camera position
         // Don't set horizontal limits - leave them disabled (default 0 = no limit)
@@ -1463,6 +1477,8 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         _camera.LimitTop = (int)Mathf.Ceil(limitTop);
         _camera.LimitBottom = (int)Mathf.Floor(limitBottom);
         // Don't set LimitLeft/LimitRight - leave at default 0 (disabled) for infinite horizontal
+        _camera.LimitLeft = 0;
+        _camera.LimitRight = 0;
 
         // Debug logging for clamp range validation
         bool clampValid = limitTop <= limitBottom;
@@ -1474,8 +1490,21 @@ private bool _dragStarted = false; // Track if drag has actually started moving
     {
         Vector2 pos = _camera.Position;
 
+        // Use SubViewport size for accurate horizontal wrapping calculations
+        var subViewport = GetSubViewport();
+        float viewportWidth;
+        if (subViewport != null)
+        {
+            viewportWidth = subViewport.Size.X;
+        }
+        else
+        {
+            var viewport = GetViewport();
+            viewportWidth = viewport.GetVisibleRect().Size.X;
+        }
+
         // Horizontal wrapping (HOI4 style): wrap camera position seamlessly
-        float halfVisibleW = GetViewport().GetVisibleRect().Size.X / _camera.Zoom.X / 2f;
+        float halfVisibleW = viewportWidth / _camera.Zoom.X / 2f;
         float worldWrapMin = -halfVisibleW;      // Left edge where we wrap right
         float worldWrapMax = WORLD_WIDTH + halfVisibleW; // Right edge where we wrap left
 
@@ -1510,7 +1539,7 @@ private bool _dragStarted = false; // Track if drag has actually started moving
         float camX = _camera.Position.X;
 
         // Center background on camera's "tile"
-        float centerTileX = Mathf.Floor(camX / WORLD_WIDTH) * WORLD_WIDTH;
+        float centerTileX = Mathf.Floor(_camera.Position.X / WORLD_WIDTH) * WORLD_WIDTH;
 
         _bgCenter.Position = new Vector2(centerTileX, 0);
         _bgLeft.Position = new Vector2(centerTileX - WORLD_WIDTH, 0);
@@ -1909,10 +1938,20 @@ private bool _dragStarted = false; // Track if drag has actually started moving
     {
         if (_textureSize.X > 0)
         {
-            // Recalculate min zoom (vertical only - horizontal wraps)
-            var viewport = GetViewport();
-            var viewportSize = viewport.GetVisibleRect().Size;
+            // Use SubViewport size for accurate camera limits
+            var subViewport = GetSubViewport();
+            Vector2 viewportSize;
+            if (subViewport != null)
+            {
+                viewportSize = new Vector2(subViewport.Size.X, subViewport.Size.Y);
+            }
+            else
+            {
+                var viewport = GetViewport();
+                viewportSize = viewport.GetVisibleRect().Size;
+            }
 
+            // Recalculate min zoom (vertical only - horizontal wraps)
             float effectiveViewportHeight = viewportSize.Y - _hudTopHeight;
             if (effectiveViewportHeight < 100f) effectiveViewportHeight = 100f;
             float zoomY = effectiveViewportHeight / _textureSize.Y;
@@ -1936,8 +1975,19 @@ private bool _dragStarted = false; // Track if drag has actually started moving
 
     private void UpdateDebugLabel()
     {
-        var viewport = GetViewport();
-        var viewportSize = viewport.GetVisibleRect().Size;
+        // Use SubViewport size for accurate debug info
+        var subViewport = GetSubViewport();
+        Vector2 viewportSize;
+        if (subViewport != null)
+        {
+            viewportSize = new Vector2(subViewport.Size.X, subViewport.Size.Y);
+        }
+        else
+        {
+            var viewport = GetViewport();
+            viewportSize = viewport.GetVisibleRect().Size;
+        }
+
         var convViewportSize = GetConversionViewportSize();
         var mouseScreen = GetConversionMousePosition();
         var mouseWorld = ScreenToWorld(mouseScreen);

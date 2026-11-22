@@ -14,7 +14,6 @@ config/name="Rogue World"
 run/main_scene="res://Scenes/main_menu.tscn"
 config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
 config/icon="res://icon.svg"
-run/max_fps=0
 
 [autoload]
 

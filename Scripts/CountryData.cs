@@ -7,6 +7,7 @@ public class CountryData
     public string Name = "?";
     public string Capital = "—";
     public string Ideology = "Neutral";   // Democracy / Fascism / Communism / Neutral
+    public string RegimeType = "Republic"; // Republic, Monarchy, Theocracy, Military Junta, Single Party, Federal Republic
 
     // Demografi
     public long Population;              // 1936 nüfus
@@ -31,12 +32,37 @@ public class CountryData
     public double StabilityPercent = 60; // 0-100
     public double WarSupportPercent = 30;// 0-100
     public int ResearchSlots = 3;
+    public double Legitimacy = 70;       // meşruiyet/yasallık (0-100)
+    public double TrustInGovernment = 50; // hükümete güven (0-100)
+    public double Polarization = 30;     // toplumsal kutuplaşma (0-100)
+    public double CorruptionLevel = 20;  // yolsuzluk seviyesi (0-100)
+    public double InflationRate = 2;     // enflasyon % (yıllık)
+    public double UnemploymentRate = 5;  // işsizlik %
+
+    // Sosyal
+    public double HealthcareCapacity = 70; // sağlık sistemi kapasitesi (0-100)
+    public double EducationLevel = 60;    // eğitim seviyesi (0-100)
 
     // Askeri (başlangıç ordusu — Milestone 7'de bölüklere dönüşecek)
     public int StartingDivisions = 10;   // yaklaşık tümen sayısı
 
     // M17.2: Teknoloji seviyesi (1-4) — kişi başı GSYİH ve savunma bütçesinden türetilir
     public int TechLevel = 1;
+    public int IntelligenceLevel = 50;    // istihbarat yeteneği (0-100)
+    public int CyberLevel = 30;           // siber yeteneği (0-100)
+    public int CyberDefense = 40;         // siber savunma (0-100)
+    public int CounterIntelLevel = 30;    // karşı istihbarat (0-100)
+
+    // Nükleer
+    public int NuclearProgramProgress = 0; // nükleer program ilerlemesi (0-100)
+    public int NuclearSafetyIncidents = 0; // nükleer güvenlik olayları
+
+    // Seçim/İç politika
+    public int ElectionInterferenceLevel = 0; // seçim müdahalesi seviyesi (0-100)
+    public string LeaderName = "";         // lider adı (LeaderSystem'den)
+
+    // Altyapı
+    public int InfrastructureLevel = 50;   // altyapı seviyesi (0-100)
 
     // Savaş durumu (çalışma anında değişir)
     public bool IsAnnexed = false;

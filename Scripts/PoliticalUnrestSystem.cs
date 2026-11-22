@@ -337,6 +337,74 @@ public static class PoliticalUnrestSystem
                  $"{state.ProtestCount + state.StrikeCount + state.VoteOfConfidenceCount + state.CoupAttemptCount}");
     }
 
+    /// <summary>
+    /// CovertOps: Sızıntı (leak) baskısı ekler — istikrar ve memnuniyet düşer.
+    /// </summary>
+    public static void AddLeakPressure(string countryId, int severity)
+    {
+        if (string.IsNullOrEmpty(countryId)) return;
+        var data = GetCountryData(countryId);
+        if (data == null) return;
+
+        double stabilityHit = -Math.Clamp(severity * 0.2, 5, 30);
+        double wsHit = -Math.Clamp(severity * 0.15, 3, 20);
+        double ppHit = -Math.Clamp(severity * 0.5, 5, 50);
+        double satHit = -Math.Clamp(severity * 0.1, 2, 15);
+
+        ApplyStability(countryId, stabilityHit);
+        ApplyWarSupport(countryId, wsHit);
+        ApplyPP(countryId, ppHit);
+        HitAllSatisfaction(countryId, satHit);
+
+        GD.Print($"[PoliticalUnrest] {countryId}: LEAK BASKISI (şiddet={severity}) → stabilite {stabilityHit:F1}, WS {wsHit:F1}, PP {ppHit:F1}, memnuniyet {satHit:F1}");
+    }
+
+    /// <summary>
+    /// CovertOps: Suikast şoku ekler — istikrar ve memnuniyet büyük düşüş.
+    /// </summary>
+    public static void AddAssassinationShock(string countryId, int intensity)
+    {
+        if (string.IsNullOrEmpty(countryId)) return;
+        var data = GetCountryData(countryId);
+        if (data == null) return;
+
+        double stabilityHit = -Math.Clamp(intensity * 0.5, 15, 50);
+        double wsHit = -Math.Clamp(intensity * 0.3, 10, 30);
+        double satHit = -Math.Clamp(intensity * 0.2, 5, 25);
+
+        ApplyStability(countryId, stabilityHit);
+        ApplyWarSupport(countryId, wsHit);
+        HitAllSatisfaction(countryId, satHit);
+
+        GD.Print($"[PoliticalUnrest] {countryId}: SUIKAST ŞOKU (yoğunluk={intensity}) → stabilite {stabilityHit:F1}, WS {wsHit:F1}, memnuniyet {satHit:F1}");
+    }
+
+    /// <summary>
+    /// CovertOps: Dezinformasyon/propaganda baskısı ekler.
+    /// </summary>
+    public static void AddPropagandaPressure(string countryId, int intensity)
+    {
+        if (string.IsNullOrEmpty(countryId)) return;
+        var data = GetCountryData(countryId);
+        if (data == null) return;
+
+        double stabilityHit = -Math.Clamp(intensity * 0.15, 3, 15);
+        double wsHit = -Math.Clamp(intensity * 0.1, 2, 10);
+        double satHit = -Math.Clamp(intensity * 0.2, 5, 20);
+        double polarizationHit = Math.Clamp(intensity * 0.1, 2, 15);
+
+        ApplyStability(countryId, stabilityHit);
+        ApplyWarSupport(countryId, wsHit);
+        HitAllSatisfaction(countryId, satHit);
+
+        if (data != null)
+        {
+            data.Polarization = Math.Clamp(data.Polarization + polarizationHit, 0, 100);
+        }
+
+        GD.Print($"[PoliticalUnrest] {countryId}: PROPAGANDA BASKISI (yoğunluk={intensity}) → stabilite {stabilityHit:F1}, WS {wsHit:F1}, kutuplaşma +{polarizationHit:F1}");
+    }
+
     // ===== M12: Save/Load =====
     public static PoliticalUnrestSave GetSaveData() => new PoliticalUnrestSave
     {
@@ -388,7 +456,7 @@ public static class PoliticalUnrestSystem
     /// Propaganda baskısı ekler (espionage propaganda etkisi için).
     /// Halk memnuniyetini ve protesto olasılığını artırır.
     /// </summary>
-    public static void AddPropagandaPressure(string countryId, int pressureAmount)
+    public static void AddEspionagePropagandaPressure(string countryId, int pressureAmount)
     {
         var state = EnsureState(countryId);
         if (state == null) return;
@@ -396,6 +464,6 @@ public static class PoliticalUnrestSystem
         // Propaganda baskısını protesto sayacı gibi işle - ProtestCount artır
         // Bu, DailyTick'te protesto olasılığını dolaylı olarak artıracaktır
         state.ProtestCount += Math.Max(0, pressureAmount / 5); // Her 5 basınç = 1 protesto sayacı
-        GD.Print($"[PoliticalUnrest] Propaganda baskısı: {countryId} ProtestCount +{pressureAmount / 5} (toplam={state.ProtestCount})");
+        GD.Print($"[PoliticalUnrest] Espionage propaganda baskısı: {countryId} ProtestCount +{pressureAmount / 5} (toplam={state.ProtestCount})");
     }
 }

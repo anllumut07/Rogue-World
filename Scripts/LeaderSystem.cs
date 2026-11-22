@@ -288,6 +288,21 @@ public static class LeaderSystem
         return leader;
     }
 
+    // CovertOps: Darbe/suikast sonrası yeni lider üretir (RegenerateLeader benzeri).
+    // Seed'e operasyon günü ve "covert" tag'i dahil edilir → deterministik ama seçimden farklı.
+    public static Leader GenerateNewLeaderForCovertOp(string countryId, int currentDay)
+    {
+        EnsureLoaded();
+        var current = _leaders.GetValueOrDefault(countryId);
+        if (current == null) return GetLeader(countryId);
+
+        ulong seed = HashSeed($"{ScenarioSystem.ActiveId}:{countryId}:{currentDay}:covert");
+        var leader = GenerateLeader(countryId, current.Ideology, current.RegimeType, false, 0, seed);
+        _leaders[countryId] = leader;
+        GD.Print($"[LeaderSystem] {countryId}: gizli operasyon sonrası yeni lider üretildi (gün {currentDay}): {leader.FullName}");
+        return leader;
+    }
+
     // ===== M17.1: Senaryo değişikliği =====
 
     public static void ResetForScenario()

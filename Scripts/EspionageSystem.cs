@@ -828,7 +828,7 @@ public static class EspionageSystem
         targetData.WarSupportPercent = Math.Max(0, targetData.WarSupportPercent - warSupportLoss);
 
         // PoliticalUnrestSystem'e de etki ekle (protesto şansını artır)
-        PoliticalUnrestSystem.AddPropagandaPressure(targetCountryId, (int)(effectStrength * 10));
+        PoliticalUnrestSystem.AddEspionagePropagandaPressure(targetCountryId, (int)(effectStrength * 10));
 
         string summary = $"Propaganda: {targetCountryId} — Stabilite -{stabilityLoss:F1}%, Savaş Desteği -{warSupportLoss:F1}%";
 

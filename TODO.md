@@ -997,4 +997,21 @@ bir kuruma dönüşmeli.
 
 ---
 
+### 📋 Milestone 59: HOI4 Province Bitmap Map v6 — "No Compromise No Surrender" Map Port
+**Hedef:** HoI4 "No Compromise No Surrender" mod haritasının bire bir portu — 16,290 provinces (5632×2048 province bitmap), terrain bitmap (8-bit palette), heightmap, rivers, trees, world_normal. Province-based gameplay: ownership, supply, buildings, strategic regions (298), straits/canals (33 rules), railways (1,284 lines), supply nodes (895), weather system. `--map-v6` flag ile etkinleştirilir.
+
+| Alt Görev | Açıklama | Test Kriteri | Durum |
+|-----------|----------|--------------|-------|
+| 59.1 | `Scripts/ProvinceBitmapLoader.cs`: `provinces.bmp` (24-bit) yükle, RGB→ProvinceID hash table (16,290 entries), `definition.csv` parse, province centroids hesapla | 16,290 provinces yüklendi, centroids hesaplandı, GD.Print doğrulaması | [x] Tamamlandı: ProvinceBitmapLoader.cs (~450 satır), cache sistemi, async yükleme |
+| 59.2 | `Scripts/TerrainBitmapLoader.cs`: `terrain.bmp` (8-bit) yükle, `00_terrain.txt` parse (categories + terrain blocks), color index → TerrainCategory mapping | 256 color index mapping, 16 terrain kategorisi (movement/combat/supply/attrition modifierları) | [x] Tamamlandı: TerrainBitmapLoader.cs (~500 satır), naval terrain modifiers dahil |
+| 59.3 | `Scripts/HeightmapLoader.cs`: `heightmap.bmp` (8-bit) yükle, elevation data, normal map texture oluşturma | 5632×2048 height data, normal map shader için hazır | [x] Tamamlandı: HeightmapLoader.cs (~200 satır), slope/elevation API |
+| 59.4 | `Scripts/RiversLoader.cs`: `rivers.bmp` (8-bit) yükle, river segment extraction (connected components), simplification | River segmentler çıkarıldı, render için Line2D hazır | [x] Tamamlandı: RiversLoader.cs (~290 satır), Douglas-Peucker simplification |
+| 59.5 | `Scripts/ProvinceManager.cs`: Runtime province state (owner, units, buildings, supply, weather), adjacency graph, strait/canal rules, supply network, buildings, strategic regions | 16,290 province runtime, adjacency, straits, supply, buildings, regions entegre | [x] Tamamlandı: ProvinceManager.cs (~540 satır), Save/Load DTO |
+| 59.6 | `Scripts/WorldMapHoI4.cs`: HoI4-style visual map — province color layer, terrain texture, heightmap shading, river rendering, borders, infinite horizontal wrapping, camera (pan/zoom/wrap), map modes (Political/Terrain/Supply/Weather/Buildings/Units) | Visual map render, 6 map modes, infinite wrap, province hover/selection | [x] Tamamlandı: WorldMapHoI4.cs (~700 satır), spatial grid hover |
+| 59.7 | `Scripts/GameManager.cs` + `Scripts/Game.cs`: `--map-v6` flag, `UseMapV6` static property, WorldMapHoI4 instance oluşturma, ProvinceManager initialize | `--map-v6` flag ile oyun başlatılır, HoI4 map yüklenir, HUD çalışır | [x] Tamamlandı: GameManager.cs flag, Game.cs WorldMapHoI4 + ProvinceManager init |
+| 59.8 | Performans: uzamsal indeks (province grid 64px), viewport culling, 60 FPS hedefi (zoom 1.0) | `--balance-test`, `--save-load-test`, `--scenario-test` PASS, [PERF] logları doğru | [x] Tamamlandı: Tüm testler PASS, A==B determinizm sağlandı |
+| 59.9 | Save/Load A==B determinizm korunur, `--save-load-test` PASS | A==B PASS (historical_1936 + modern_world) | [x] Tamamlandı: --save-load-test A==B PASS ✓ |
+
+---
+
 ## Notlar

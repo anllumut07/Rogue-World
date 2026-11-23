@@ -184,8 +184,19 @@ public partial class ProvinceManager : Node
         {
             int from = adjElem.GetProperty("From").GetInt32();
             int to = adjElem.GetProperty("To").GetInt32();
-            string type = adjElem.GetProperty("Type").GetString() ?? "";
-            int through = adjElem.GetProperty("Through").GetInt32();
+
+            // Handle both "Type" and "adjacency_rule_name" fields (some entries use the latter)
+            string type = "";
+            if (adjElem.TryGetProperty("Type", out var typeProp))
+                type = typeProp.GetString() ?? "";
+            else if (adjElem.TryGetProperty("adjacency_rule_name", out var ruleNameProp))
+                type = ruleNameProp.GetString() ?? "";
+
+            // Handle missing "Through" field (default to -1 for no through province)
+            int through = -1;
+            if (adjElem.TryGetProperty("Through", out var throughProp))
+                through = throughProp.GetInt32();
+
             string ruleName = adjElem.GetProperty("Comment").GetString() ?? ""; // Using Comment as rule name
 
             _adjacencyGraph.AddAdjacency(from, to, type, through, ruleName);
@@ -265,7 +276,11 @@ public partial class ProvinceManager : Node
             foreach (var nodeElem in doc.RootElement.EnumerateArray())
             {
                 int level = nodeElem.GetProperty("level").GetInt32();
-                int provinceId = nodeElem.GetProperty("province").GetInt32();
+                int provinceId = 0;
+                if (nodeElem.TryGetProperty("province_id", out var pidProp))
+                    provinceId = pidProp.GetInt32();
+                else if (nodeElem.TryGetProperty("province", out var pidProp2))
+                    provinceId = pidProp2.GetInt32();
                 _supplyNetwork.AddSupplyNode(level, provinceId);
             }
         }
@@ -308,8 +323,18 @@ public partial class ProvinceManager : Node
 
         foreach (var bldElem in doc.RootElement.EnumerateArray())
         {
-            int provinceId = bldElem.GetProperty("province").GetInt32();
-            string type = bldElem.GetProperty("type").GetString() ?? "";
+            int provinceId = 0;
+            if (bldElem.TryGetProperty("province_id", out var pidProp))
+                provinceId = pidProp.GetInt32();
+            else if (bldElem.TryGetProperty("province", out var pidProp2))
+                provinceId = pidProp2.GetInt32();
+
+            string type = "";
+            if (bldElem.TryGetProperty("building_type", out var typeProp))
+                type = typeProp.GetString() ?? "";
+            else if (bldElem.TryGetProperty("type", out var typeProp2))
+                type = typeProp2.GetString() ?? "";
+
             float x = bldElem.GetProperty("x").GetSingle();
             float y = bldElem.GetProperty("y").GetSingle();
             float z = bldElem.GetProperty("z").GetSingle();

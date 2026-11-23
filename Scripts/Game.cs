@@ -1,9 +1,9 @@
 using Godot;
 using System;
 
-// Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMapV5 (tek harita), ülke bilgi paneli, HUD.
+// Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMapHoI4 (Map v6), ülke bilgi paneli, HUD.
 // M11: Harita TAM EKRAN (MapViewportFrame FullRect). HUD ve CountryInfoPanel overlay.
-// WorldMapV5: Visual-reference map from scratch (HOI4-style appearance)
+// WorldMapHoI4: HoI4 Province Bitmap Map v6 (16,290 provinces, 5632x2048)
 public partial class Game : Control
 {
     private MapViewportFrame _mapFrame;
@@ -11,7 +11,7 @@ public partial class Game : Control
     private CountryMiniCard _miniCard; // M15.1: kilitli oyundaki küçük ülke kartı
     private GameHud _hud;
     private MiniMapPanel _miniMap; // M32.4: sağ-alt köşede mini harita
-    private WorldMapV5 _worldMap; // WorldMapV5 - X/ESC kapatma isteğinde ClearSelection() için
+    private Node2D _worldMap; // WorldMapHoI4 (Map v6) - X/ESC kapatma isteğinde ClearSelection() için
     private bool _isNewGame; // M24.1: yeni oyun mu yoksa yükleme mi?
 
     public const int HudHeight = 64; // HUD yüksekliği (görsel ölçüm) — info panel bundan sonra başlar
@@ -57,42 +57,46 @@ public partial class Game : Control
 
     private async void OnMapFrameReady()
     {
-        // Initialize HoI4 Province Bitmap Map System
-        GD.Print("Game: Initializing HoI4 Province Bitmap Map System...");
+        // Initialize HoI4 Province Bitmap Map System (Map v6)
+        GD.Print("Game: Initializing HoI4 Province Bitmap Map System (Map v6)...");
 
         // Initialize ProvinceManager (this also initializes ProvinceBitmapLoader, TerrainBitmapLoader, etc.)
         var provinceManager = new ProvinceManager();
         AddChild(provinceManager);
         await provinceManager.InitializeAsync();
 
+        // Initialize Heightmap and Rivers
+        await HeightmapLoader.InitializeAsync();
+        await RiversLoader.InitializeAsync();
+
         GD.Print("Game: HoI4 Province Bitmap Map System initialized");
 
-        // WorldMapV5 is the only map version (visual layer)
-        GD.Print("Game: Using WorldMapV5 (Visual-reference map from scratch)");
+        // WorldMapHoI4 is the Map v6 visual layer (HoI4 province bitmap map)
+        GD.Print("Game: Using WorldMapHoI4 (HoI4 Province Bitmap Map v6)");
 
-        // --- Merkez: SubViewport içinde WorldMapV5 ---
+        // --- Merkez: SubViewport içinde WorldMapHoI4 ---
         var subViewport = new SubViewport();
-        // DÜZELTME (eski projeden öğrenildi): HandleInputLocally=true olmalı,
-        // yoksa input SubViewport yerine parent'a gider.
+        // DÜZELTME: HandleInputLocally=true olmalı, yoksa input SubViewport yerine parent'a gider.
         subViewport.HandleInputLocally = true;
         subViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
-        // Stretch=true iken boyutu konteyner yönetir; başlangıçta geçerli bir
-        // render hedefi ver (layout oturunca konteyner güncelleyecek).
+        // Stretch=true iken boyutu konteyner yönetir; başlangıçta geçerli bir render hedefi ver.
         var winSize = GetViewportRect().Size;
         subViewport.Size = new Vector2I(System.Math.Max(64, (int)winSize.X), System.Math.Max(64, (int)winSize.Y));
 
-        // Create WorldMapV5 (visual map)
-        var mapV5 = new WorldMapV5();
-        _worldMap = mapV5;
-        subViewport.AddChild(mapV5);
+        // Create WorldMapHoI4 (Map v6 - HoI4 province bitmap visual map)
+        var mapHoI4 = new WorldMapHoI4();
+        _worldMap = mapHoI4;
+        subViewport.AddChild(mapHoI4);
         _mapFrame.CenterViewport.AddChild(subViewport);
+
+        // Initialize the map visual system
+        await mapHoI4.InitializeAsync();
 
         // Create WorldMap compatibility layer (data provider, not visual)
         var worldMapCompat = new WorldMap();
         AddChild(worldMapCompat);
 
-        // DÜZELTME (eski projeden öğrenildi): SubViewportContainer input'u
-        // SADECE Stretch=true iken SubViewport'e iletir.
+        // DÜZELTME: SubViewportContainer input'u SADECE Stretch=true iken SubViewport'e iletir.
         var viewportContainer = _mapFrame.CenterViewport;
         // NOT: Stretch, MapViewportFrame._Ready'de true yapılıyor.
 
@@ -104,15 +108,14 @@ public partial class Game : Control
             var containerRect = viewportContainer.GetGlobalRect();
             GD.Print($"[Teşhis] SubViewport={subViewport.Size}, konteyner={containerRect}, " +
                      $"Stretch={viewportContainer.Stretch}, görünür={viewportContainer.IsVisibleInTree()}");
-            // Ensure camera is current for WorldMapV5
-            var wmv5 = _worldMap as WorldMapV5;
-            wmv5?.EnsureCameraCurrent();
+            // Ensure camera is current for WorldMapHoI4
+            mapHoI4?.EnsureCameraCurrent();
             // Provide camera to WorldMap compatibility layer
-            if (wmv5 != null && wmv5.Camera != null)
+            if (mapHoI4 != null && mapHoI4.GetCamera() != null)
             {
                 var wmCompat = WorldMap.Instance;
                 if (wmCompat != null)
-                    wmCompat._camera = wmv5.Camera;
+                    wmCompat._camera = mapHoI4.GetCamera();
             }
         }).CallDeferred();
 
@@ -120,7 +123,7 @@ public partial class Game : Control
         _infoPanel = new CountryInfoPanel();
         AddChild(_infoPanel); // Game köküne overlay olarak ekle (harita üstünde)
 
-        // X / ESC: panel kapatma isteği → harita seçimini de kaldır (tek yol: Deselected)
+        // X / ESC: panel kapatma isteği → harita seçimini de kaldır
         _infoPanel.CloseRequested += () =>
         {
             GD.Print("[Diag] Game: CloseRequested → WorldMap.ClearSelection()");
@@ -140,24 +143,13 @@ public partial class Game : Control
         _hud = new GameHud();
         AddChild(_hud);
 
-        // Update WorldMapV5 with actual HUD height for camera vertical clamp
-        if (_worldMap is WorldMapV5 wmv5)
-        {
-            // HUD needs one frame to calculate its size, so defer
-            Callable.From(() =>
-            {
-                float hudHeight = _hud.TopBarHeight;
-                wmv5.UpdateHudTopHeight(hudHeight);
-            }).CallDeferred();
-        }
-
         // --- M32.4: Mini harita (her zaman görünür, sağ-alt köşe) ---
         _miniMap = new MiniMapPanel();
         AddChild(_miniMap);
 
-        // --- Sinyaller (WorldMapV5 has CountrySelected/CountryDeselected signals) ---
-        _worldMap.Connect("CountrySelected", new Callable(this, nameof(OnCountrySelected)));
-        _worldMap.Connect("CountryDeselected", new Callable(this, nameof(OnCountryDeselected)));
+        // --- Sinyaller (WorldMapHoI4 has ProvinceSelected/ProvinceHovered signals) ---
+        _worldMap.Connect("ProvinceSelected", new Callable(this, nameof(OnProvinceSelected)));
+        _worldMap.Connect("ProvinceHovered", new Callable(this, nameof(OnProvinceHovered)));
 
         // --- Diagnostik: --screenshot-test (yalnızca komut satırı) ---
         if (ScreenshotTest.Enabled) SetupScreenshotShot();
@@ -231,12 +223,31 @@ public partial class Game : Control
         }
     }
 
-    private void OnCountrySelected(string countryId, string countryName)
+    private void OnProvinceSelected(int provinceId, string countryTag)
     {
-        var data = CountryDatabase.GetOrCreate(countryId, countryName);
+        if (string.IsNullOrEmpty(countryTag))
+        {
+            GD.Print($"[Game] Province {provinceId} has no owner");
+            OnProvinceDeselected();
+            return;
+        }
+
+        var prov = ProvinceManager.Instance.GetProvince(provinceId);
+        if (prov == null)
+        {
+            GD.PrintErr($"[Game] Province {provinceId} not found in ProvinceManager");
+            return;
+        }
+
+        var data = CountryDatabase.GetOrCreate(countryTag, prov.Definition.TerrainCategory);
+        if (data == null)
+        {
+            GD.PrintErr($"[Game] Country data not found for {countryTag}");
+            return;
+        }
 
         // M24.1: Yeni oyunda ilk ülke seçimi sonrası karakter oluşturma paneli açılır.
-        // Yüklü oyunda karakter zaten kaytta mevcut → panel açılmaz.
+        // Yüklü oyunda karakter zaten kayıtta mevcut → panel açılmaz.
         if (GameManager.IsAvailable && !GameManager.Instance.HasPlayer && _isNewGame)
         {
             GameManager.Instance.PlayerCountryChanged += OnPlayerCountryLockedForCharacter;
@@ -247,15 +258,29 @@ public partial class Game : Control
         if (GameManager.IsAvailable && GameManager.Instance.IsPlayerCountryLocked)
         {
             _infoPanel.HidePanel();
-            _miniCard?.ShowCountry(data, countryName);
+            _miniCard?.ShowCountry(data, data.Name);
         }
         else
         {
             _miniCard?.HideCard();
-            _infoPanel.ShowCountry(data, countryName);
+            _infoPanel.ShowCountry(data, data.Name);
         }
         // Alt çubuğa da seçimi yaz
-        _hud?.OnCountrySelected(countryName);
+        _hud?.OnCountrySelected(data.Name);
+    }
+
+    private void OnProvinceHovered(int provinceId, string countryTag)
+    {
+        // Hover handling - could show tooltip in HUD (GameHud doesn't have this yet)
+        // _hud?.OnProvinceHovered(provinceId, countryTag);
+    }
+
+    private void OnProvinceDeselected()
+    {
+        GD.Print("[Diag] Game: ProvinceDeselected → HidePanel");
+        _infoPanel.HidePanel();
+        _miniCard?.HideCard();
+        _hud?.OnCountryDeselected();
     }
 
     // M24.1: SetPlayerCountry kilidi açıklandıktan sonra karakter panelsini aç (yeni oyun).
@@ -329,14 +354,6 @@ public partial class Game : Control
         // M36.2: İlk açılış rehberini göster (daha önce görülmediyse).
         if (!SettingsSystem.TutorialSeen)
             TutorialPanel.OpenUnder(this);
-    }
-
-    private void OnCountryDeselected()
-    {
-        GD.Print("[Diag] Game: CountryDeselected → HidePanel");
-        _infoPanel.HidePanel();
-        _miniCard?.HideCard();
-        _hud?.OnCountryDeselected();
     }
 
     private void OnDayChangedForDebug(long totalDays)

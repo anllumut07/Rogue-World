@@ -20,6 +20,8 @@ public partial class GameManager : Node
     public static string V5ShotName { get; private set; }
     // Phase 5: --country-select-test flag for automated country selection test
     public static bool CountrySelectTest { get; private set; }
+    // Map v6: --map-v6 flag for HoI4 Province Bitmap Map
+    public static bool UseMapV6 { get; private set; } = false;
 
     // --- Sinyaller ---
     [Signal] public delegate void DateChangedEventHandler(string dateText);
@@ -516,6 +518,13 @@ public partial class GameManager : Node
         CountrySelectTest = countrySelectTest;
         if (CountrySelectTest)
             GD.Print("Phase 5: Country Selection Test ENABLED via --country-select-test flag");
+
+        // Map v6: --map-v6 flag for HoI4 Province Bitmap Map
+        if (OS.GetCmdlineUserArgs().Contains("--map-v6"))
+        {
+            UseMapV6 = true;
+            GD.Print("Map v6 ENABLED (HoI4 Province Bitmap Map - No Compromise No Surrender)");
+        }
 
         // M17.1: aktif senaryoyu başta logla
         GD.Print($"Senaryo: {ScenarioSystem.ActiveId} — {ScenarioSystem.ActiveName} | Başlangıç: {ScenarioSystem.ActiveStartDate:yyyy-MM-dd} | Placeholder: {ScenarioSystem.ActiveIsPlaceholder}");

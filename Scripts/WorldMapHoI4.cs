@@ -704,4 +704,12 @@ F1-F6: Map Modes | B: Borders | R: Rivers | T: Terrain";
     public int GetHoveredProvinceId() => _hoveredProvinceId;
     public Camera2D GetCamera() => _camera;
     public MapMode GetMapMode() => _currentMapMode;
+
+    /// <summary>
+    /// Ensure camera is current (for compatibility with WorldMapV5 API)
+    /// </summary>
+    public void EnsureCameraCurrent()
+    {
+        _camera?.MakeCurrent();
+    }
 }

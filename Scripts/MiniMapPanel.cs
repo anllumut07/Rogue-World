@@ -12,7 +12,7 @@ using System.Collections.Generic;
 //  4. Kamera dikdörtgeni minimap SINIRLARI İÇİNDE kıpraştırılır
 //     ((kamera görüşü / harita boyutu) * minimap boyutu).
 //  5. Tıklama VE sürükle ile kamera kaydırma (daha önce yalnızca tıklama vardı).
-// Updated for WorldMapV5 compatibility.
+// Updated for WorldMapHoI4 (Map v6) compatibility.
 public partial class MiniMapPanel : CanvasLayer
 {
     // Modal panellerin (Layer=100) üstünde DEĞİL: harita üstünde, modal altında.
@@ -28,10 +28,7 @@ public partial class MiniMapPanel : CanvasLayer
     private Rect2 _mapRect = new Rect2(MapInset, MapInset, PanelSize - MapInset * 2f, PanelSize - MapInset * 2f);
     private Rect2 _cameraRectScreen;
 
-    // Ülke poligonlarını minimap ölçeğinde BİR KEZ hesaplayıp tutarız:
-    //  - 1000+ ülke poligonunu her karede ölçeklemek pahalıydı,
-    //  - ölçeklenmiş halkalarda dejener (triangülasyon başarısız) poligonlar
-    //    oluşuyordu; bir kez süzüp geçerli listeyi saklıyoruz.
+    // Ülke/province poligonlarını minimap ölçeğinde BİR KEZ hesaplayıp tutarız.
     private List<(Vector2[] Points, Color[] Colors)> _cachedPolys;
     private int _cachedPolyCount = -1;
 
@@ -41,9 +38,40 @@ public partial class MiniMapPanel : CanvasLayer
     private Vector2I _lastViewport = new(-1, -1);
     private bool _dirty = true;
 
+    // Reference to the active map (WorldMapHoI4 for Map v6)
+    private IMinimapProvider _mapProvider;
+
+    public interface IMinimapProvider
+    {
+        Vector2 TextureSize { get; }
+        Camera2D Camera { get; }
+        IReadOnlyDictionary<string, MinimapCountryData> Countries { get; }
+        void UpdateCameraLimits();
+        void ClampCamera();
+    }
+
+    public class MinimapCountryData
+    {
+        public List<Vector2[]> CachedExteriors { get; set; } = new();
+        public Color FillColor { get; set; }
+    }
+
     public override void _Ready()
     {
         Layer = LayerId;
+
+        // Try to get WorldMapHoI4 instance (Map v6)
+        var mapHoI4 = WorldMapHoI4.Instance;
+        if (mapHoI4 != null)
+        {
+            _mapProvider = new WorldMapHoI4Adapter(mapHoI4);
+            GD.Print("[MiniMapPanel] Using WorldMapHoI4 (Map v6) provider");
+        }
+        else
+        {
+            GD.PrintErr("[MiniMapPanel] No map provider available! WorldMapHoI4 not found.");
+            return;
+        }
 
         // Kök: pencereyi kaplayan, girdiyi geçiren katman (sürüklemenin kaybolmaması için).
         var root = new Control
@@ -343,6 +371,25 @@ public partial class MiniMapPanel : CanvasLayer
             area += pts[i].X * pts[j].Y - pts[j].X * pts[i].Y;
         }
         return area * 0.5f;
+    }
+
+    // Adapter for WorldMapHoI4 (Map v6)
+    private class WorldMapHoI4Adapter : IMinimapProvider
+    {
+        private readonly WorldMapHoI4 _map;
+
+        public WorldMapHoI4Adapter(WorldMapHoI4 map) => _map = map;
+
+        public Vector2 TextureSize => new Vector2(WorldMapHoI4.WORLD_WIDTH, WorldMapHoI4.WORLD_HEIGHT);
+
+        public Camera2D Camera => _map.GetCamera();
+
+        public IReadOnlyDictionary<string, MinimapCountryData> Countries =>
+            _map.GetMinimapCountries();
+
+        public void UpdateCameraLimits() => _map.UpdateCameraLimits();
+
+        public void ClampCamera() => _map.ClampCamera();
     }
 
     // Çizim + girdi yüzeyi. Control olmak zorunda: CanvasLayer'in kendi _Draw/_GuiInput'u yoktur.

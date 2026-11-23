@@ -445,7 +445,7 @@ public partial class WorldMapHoI4 : Node2D
         return (point - prov.Centroid).Length() < radius;
     }
 
-    private void UpdateCameraLimits()
+    public void UpdateCameraLimits()
     {
         var viewport = GetViewport();
         var viewportSize = viewport.GetVisibleRect().Size;
@@ -473,7 +473,7 @@ public partial class WorldMapHoI4 : Node2D
         _camera.LimitRight = 0;
     }
 
-    private void ClampCamera()
+    public void ClampCamera()
     {
         Vector2 pos = _camera.Position;
 
@@ -711,5 +711,108 @@ F1-F6: Map Modes | B: Borders | R: Rivers | T: Terrain";
     public void EnsureCameraCurrent()
     {
         _camera?.MakeCurrent();
+    }
+
+    /// <summary>
+    /// Get country data for minimap rendering
+    /// </summary>
+    public System.Collections.Generic.IReadOnlyDictionary<string, MiniMapPanel.MinimapCountryData> GetMinimapCountries()
+    {
+        var result = new System.Collections.Generic.Dictionary<string, MiniMapPanel.MinimapCountryData>();
+
+        if (ProvinceManager.Instance == null) return result;
+
+        // Group provinces by owner country
+        var countryProvinces = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<int>>();
+        foreach (var prov in ProvinceManager.Instance.GetAllProvinces().Values)
+        {
+            if (!string.IsNullOrEmpty(prov.Owner) && prov.Definition.Type == ProvinceType.Land)
+            {
+                if (!countryProvinces.ContainsKey(prov.Owner))
+                    countryProvinces[prov.Owner] = new System.Collections.Generic.List<int>();
+                countryProvinces[prov.Owner].Add(prov.Definition.Id);
+            }
+        }
+
+        // Create minimap data for each country
+        foreach (var kvp in countryProvinces)
+        {
+            var countryTag = kvp.Key;
+            var provinces = kvp.Value;
+
+            // Generate deterministic color for country using hash
+            uint hash = 0;
+            foreach (char c in countryTag) hash = hash * 31 + (uint)c;
+
+            // Simple xorshift for deterministic color (using ulong for intermediate)
+            ulong x = hash;
+            x ^= x >> 12;
+            x ^= x << 25;
+            x ^= x >> 27;
+            x *= 0x2545F4914F6CDD1DUL;
+            float r = ((x >> 8) & 0xFFFFFF) / 16777216.0f;
+
+            x = x * 0x2545F4914F6CDD1DUL;
+            x ^= x >> 12;
+            x ^= x << 25;
+            x ^= x >> 27;
+            float g = ((x >> 8) & 0xFFFFFF) / 16777216.0f;
+
+            x = x * 0x2545F4914F6CDD1DUL;
+            x ^= x >> 12;
+            x ^= x << 25;
+            x ^= x >> 27;
+            float b = ((x >> 8) & 0xFFFFFF) / 16777216.0f;
+
+            var color = new Color(
+                0.3f + r * 0.5f,
+                0.3f + g * 0.5f,
+                0.3f + b * 0.5f,
+                0.8f
+            );
+
+            // Get province centroids as exterior points
+            var exteriors = new System.Collections.Generic.List<Vector2[]>();
+            foreach (var provId in provinces)
+            {
+                var centroid = ProvinceBitmapLoader.GetProvinceCentroid(provId);
+                if (centroid != Vector2.Zero)
+                {
+                    // Create a small square around centroid for minimap
+                    float size = 20f;
+                    exteriors.Add(new Vector2[]
+                    {
+                        centroid + new Vector2(-size, -size),
+                        centroid + new Vector2(size, -size),
+                        centroid + new Vector2(size, size),
+                        centroid + new Vector2(-size, size)
+                    });
+                }
+            }
+
+            if (exteriors.Count > 0)
+            {
+                result[countryTag] = new MiniMapPanel.MinimapCountryData
+                {
+                    CachedExteriors = exteriors,
+                    FillColor = color
+                };
+            }
+        }
+
+        return result;
+    }
+}
+
+// MiniMapPanel support class (forward declaration)
+namespace MiniMapPanelNamespace
+{
+    public partial class MiniMapPanel
+    {
+        public class MinimapCountryData
+        {
+            public System.Collections.Generic.List<Vector2[]> CachedExteriors { get; set; } = new();
+            public Color FillColor { get; set; }
+        }
     }
 }

@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Threading.Tasks;
 
 // Oyun sahnesinin kökü: harita çerçevesi, SubViewport → WorldMapHoI4 (Map v6), ülke bilgi paneli, HUD.
 // M11: Harita TAM EKRAN (MapViewportFrame FullRect). HUD ve CountryInfoPanel overlay.
@@ -57,22 +58,35 @@ public partial class Game : Control
 
     private async void OnMapFrameReady()
     {
+        // Show loading screen while initializing heavy map systems
+        var loadingScreen = new LoadingScreen();
+        AddChild(loadingScreen);
+        // Total steps: ProvinceManager + Heightmap + Rivers + WorldMapHoI4 + UI setup
+        loadingScreen.Show(7);
+
         // Initialize HoI4 Province Bitmap Map System (Map v6)
         GD.Print("Game: Initializing HoI4 Province Bitmap Map System (Map v6)...");
+        loadingScreen.UpdateProgress("Loading province definitions...");
 
         // Initialize ProvinceManager (this also initializes ProvinceBitmapLoader, TerrainBitmapLoader, etc.)
         var provinceManager = new ProvinceManager();
         AddChild(provinceManager);
         await provinceManager.InitializeAsync();
+        loadingScreen.UpdateProgress("Province system ready", 1);
 
-        // Initialize Heightmap and Rivers
+        // Initialize Heightmap
         await HeightmapLoader.InitializeAsync();
+        loadingScreen.UpdateProgress("Heightmap loaded", 2);
+
+        // Initialize Rivers
         await RiversLoader.InitializeAsync();
+        loadingScreen.UpdateProgress("River network loaded", 3);
 
         GD.Print("Game: HoI4 Province Bitmap Map System initialized");
 
         // WorldMapHoI4 is the Map v6 visual layer (HoI4 province bitmap map)
         GD.Print("Game: Using WorldMapHoI4 (HoI4 Province Bitmap Map v6)");
+        loadingScreen.UpdateProgress("Creating map visual layer...");
 
         // --- Merkez: SubViewport içinde WorldMapHoI4 ---
         var subViewport = new SubViewport();
@@ -91,6 +105,7 @@ public partial class Game : Control
 
         // Initialize the map visual system
         await mapHoI4.InitializeAsync();
+        loadingScreen.UpdateProgress("Map visual system ready", 4);
 
         // Create WorldMap compatibility layer (data provider, not visual)
         var worldMapCompat = new WorldMap();
@@ -119,6 +134,8 @@ public partial class Game : Control
             }
         }).CallDeferred();
 
+        loadingScreen.UpdateProgress("Setting up UI panels...");
+
         // --- Sol panel: ülke bilgi paneli (overlay — HUD altında, genişlik sınırlı) ---
         _infoPanel = new CountryInfoPanel();
         AddChild(_infoPanel); // Game köküne overlay olarak ekle (harita üstünde)
@@ -142,10 +159,12 @@ public partial class Game : Control
         // --- Üst bar: HUD (CanvasLayer overlay) ---
         _hud = new GameHud();
         AddChild(_hud);
+        loadingScreen.UpdateProgress("HUD initialized", 5);
 
         // --- M32.4: Mini harita (her zaman görünür, sağ-alt köşe) ---
         _miniMap = new MiniMapPanel();
         AddChild(_miniMap);
+        loadingScreen.UpdateProgress("Mini-map ready", 6);
 
         // --- Sinyaller (WorldMapHoI4 has ProvinceSelected/ProvinceHovered signals) ---
         _worldMap.Connect("ProvinceSelected", new Callable(this, nameof(OnProvinceSelected)));
@@ -175,6 +194,13 @@ public partial class Game : Control
         {
             SetupCountrySelectTest(mapV5Instance);
         }
+
+        loadingScreen.UpdateProgress("All systems ready", 7);
+
+        // Hide loading screen
+        await Task.Delay(500); // Brief pause to show completion
+        loadingScreen.HideScreen();
+        loadingScreen.QueueFree();
 
         GD.Print("Game: harita + paneller hazır");
     }

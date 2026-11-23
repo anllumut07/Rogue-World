@@ -1,4 +1,53 @@
-﻿# GECE-RAPOR — 2026-11-19 (gece-calisma dalı)
+﻿# GECE-RAPOR — 2026-11-22 (gece-calisma dalı)
+
+## Stage 6 — WorldMapV6 HoI4 Province Bitmap Map — COMPLETE ✓
+
+### Map v6: HoI4 "No Compromise No Surrender" Province Bitmap Map Port
+
+**Core Systems:**
+- **ProvinceBitmapLoader.cs** (~450 lines): Loads `provinces.bmp` (5632×2048, 24-bit) with 16,290 provinces, builds RGB→ProvinceID hash table, parses `definition.csv`, computes centroids. Cache system for fast reload.
+- **TerrainBitmapLoader.cs** (~500 lines): Loads `terrain.bmp` (5632×2048, 8-bit), parses `00_terrain.txt` (categories{} + terrain{} blocks), 256 color index → TerrainCategory mapping with 16 terrain types (movement/combat/supply/attrition modifiers, naval terrain modifiers).
+- **HeightmapLoader.cs** (~200 lines): Loads `heightmap.bmp` (8-bit), elevation data 0-8000m, normal map texture generation for shader lighting, slope calculation API.
+- **RiversLoader.cs** (~290 lines): Loads `rivers.bmp` (8-bit), river segment extraction via connected components, Douglas-Peucker simplification, viewport culling support.
+- **ProvinceManager.cs** (~540 lines): Runtime province state (owner, units, buildings, supply, weather), adjacency graph (669 connections, 432 impassable), strait/canal rules (33: Suez, Panama, Bosporus, Gibraltar, etc. with relationship-gated passage), supply network (895 nodes, 1284 railway lines, gauge throughput), buildings (75,676 across 1,214 provinces), strategic regions (298 with weather periods).
+- **WorldMapHoI4.cs** (~700 lines): HoI4-style visual map with province color layer, terrain texture, heightmap shading, river rendering, borders, infinite horizontal wrapping, camera (pan/zoom/wrap), 6 map modes (Political/Terrain/Supply/Weather/Buildings/Units), spatial grid hover detection (64px cells).
+
+**Integration:**
+- `GameManager.cs`: Added `--map-v6` flag, `UseMapV6` static property
+- `Game.cs`: Switched from WorldMapV5 to WorldMapHoI4, ProvinceManager initialization, HeightmapLoader, RiversLoader
+- `TODO.md`: Added Milestone 59 with 9 completed sub-tasks
+
+**Test Results (All PASS with `--map-v6`):**
+- `--save-load-test` ✓ (A==B determinism, historical_1936 + modern_world)
+- `--balance-test` ✓ 
+- `--scenario-test` ✓
+- `--occupation-test` ✓
+- `--recognition-test` ✓
+
+**Technical Specs:**
+- 16,290 provinces (5632×2048 province bitmap)
+- 16 terrain categories with gameplay modifiers
+- 298 strategic regions with weather system
+- 33 strait/canal rules (relationship-gated)
+- 895 supply nodes, 1,284 railway lines (standard/broad/narrow gauge)
+- 75,676 buildings across 1,214 provinces
+- Infinite horizontal wrapping (HoI4 style)
+- Save/Load A==B determinism verified
+
+### Files Created/Modified
+- `Scripts/ProvinceBitmapLoader.cs` (existing, enhanced)
+- `Scripts/TerrainBitmapLoader.cs` (existing, enhanced)
+- `Scripts/HeightmapLoader.cs` (existing)
+- `Scripts/RiversLoader.cs` (existing)
+- `Scripts/ProvinceManager.cs` (existing, enhanced with JSON field flexibility)
+- `Scripts/WorldMapHoI4.cs` (existing, added EnsureCameraCurrent())
+- `Scripts/GameManager.cs` — Added `--map-v6` flag + `UseMapV6` property
+- `Scripts/Game.cs` — WorldMapHoI4 + ProvinceManager init (Map v6)
+- `TODO.md` — Added Milestone 59 with 9 sub-tasks
+
+---
+
+# GECE-RAPOR — 2026-11-19 (gece-calisma dalı)
 
 ## Stage 6 — WorldMapV4 HOI4-Style Full Shaded Relief Map — COMPLETE ✓
 

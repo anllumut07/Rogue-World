@@ -296,7 +296,7 @@ public partial class MapView : Node2D
             foreach (var countryVariant in countriesData)
             {
                 var country = countryVariant.AsGodotDictionary();
-                string id = country["id"].AsString();
+                string id = country["iso3"].AsString();
                 string name = country["name"].AsString();
 
                 // Assign a unique color to each country
@@ -370,7 +370,7 @@ public partial class MapView : Node2D
         foreach (var countryVariant in countriesData)
         {
             var country = countryVariant.AsGodotDictionary();
-            string id = country["id"].AsString();
+            string id = country["iso3"].AsString();
             string name = country["name"].AsString();
 
             Color countryColor = GenerateCountryColor(id);
@@ -488,7 +488,7 @@ public partial class MapView : Node2D
         foreach (var countryVariant in countriesData)
         {
             var country = countryVariant.AsGodotDictionary();
-            string id = country["id"].AsString();
+            string id = country["iso3"].AsString();
             string name = country["name"].AsString();
 
             _countries[id] = new CountryData

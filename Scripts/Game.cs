@@ -69,7 +69,9 @@ public partial class Game : Control
         // Create MapView (new map system with pixel-perfect hit-test via ID map)
         var mapView = new MapView();
         _worldMap = mapView;
-        _mapFrame.CenterViewport.AddChild(mapView);
+        // Harita, SubViewportContainer'ın render hedefi olan MapSubViewport'in içine
+        // eklenmelidir; doğrudan CenterViewport'e eklenirse rendersiz kalır.
+        _mapFrame.MapSubViewport.AddChild(mapView);
         loadingScreen.UpdateProgress("Map data loaded", 1);
 
         // Initialize MapView (loads ID map, country data, map texture)
@@ -151,7 +153,7 @@ public partial class Game : Control
         // Kullanım: godot --path . res://Scenes/game.tscn -- --mapshot=C:/g/shot.png
         foreach (var arg in OS.GetCmdlineUserArgs())
             if (arg.StartsWith("--mapshot="))
-                SetupMapshot(arg.Substring("--mapshot=".Length), null, _mapFrame.CenterViewport);
+                SetupMapshot(arg.Substring("--mapshot=".Length), _mapFrame.MapSubViewport, _mapFrame.CenterViewport);
 
         loadingScreen.UpdateProgress("All systems ready", 4);
         await Task.Delay(500);

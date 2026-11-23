@@ -58,83 +58,48 @@ public partial class Game : Control
 
     private async void OnMapFrameReady()
     {
-        // Show loading screen while initializing heavy map systems
+        // Show loading screen while initializing map systems
         var loadingScreen = new LoadingScreen();
         AddChild(loadingScreen);
-        // Total steps: ProvinceManager + Heightmap + Rivers + WorldMapHoI4 + UI setup
-        loadingScreen.Show(7);
+        loadingScreen.Show(4);
 
-        // Initialize HoI4 Province Bitmap Map System (Map v6)
-        GD.Print("Game: Initializing HoI4 Province Bitmap Map System (Map v6)...");
-        loadingScreen.UpdateProgress("Loading province definitions...");
+        GD.Print("Game: Initializing MapView (New map system with pixel-perfect hit-test)...");
+        loadingScreen.UpdateProgress("Loading map data...");
 
-        // Initialize ProvinceManager (this also initializes ProvinceBitmapLoader, TerrainBitmapLoader, etc.)
-        var provinceManager = new ProvinceManager();
-        AddChild(provinceManager);
-        await provinceManager.InitializeAsync();
-        loadingScreen.UpdateProgress("Province system ready", 1);
+        // Create MapView (new map system with pixel-perfect hit-test via ID map)
+        var mapView = new MapView();
+        _worldMap = mapView;
+        _mapFrame.CenterViewport.AddChild(mapView);
+        loadingScreen.UpdateProgress("Map data loaded", 1);
 
-        // Initialize Heightmap
-        await HeightmapLoader.InitializeAsync();
-        loadingScreen.UpdateProgress("Heightmap loaded", 2);
-
-        // Initialize Rivers
-        await RiversLoader.InitializeAsync();
-        loadingScreen.UpdateProgress("River network loaded", 3);
-
-        GD.Print("Game: HoI4 Province Bitmap Map System initialized");
-
-        // WorldMapHoI4 is the Map v6 visual layer (HoI4 province bitmap map)
-        GD.Print("Game: Using WorldMapHoI4 (HoI4 Province Bitmap Map v6)");
-        loadingScreen.UpdateProgress("Creating map visual layer...");
-
-        // --- Merkez: SubViewport içinde WorldMapHoI4 ---
-        var subViewport = new SubViewport();
-        // DÜZELTME: HandleInputLocally=true olmalı, yoksa input SubViewport yerine parent'a gider.
-        subViewport.HandleInputLocally = true;
-        subViewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Always;
-        // Stretch=true iken boyutu konteyner yönetir; başlangıçta geçerli bir render hedefi ver.
-        var winSize = GetViewportRect().Size;
-        subViewport.Size = new Vector2I(System.Math.Max(64, (int)winSize.X), System.Math.Max(64, (int)winSize.Y));
-
-        // Create WorldMapHoI4 (Map v6 - HoI4 province bitmap visual map)
-        var mapHoI4 = new WorldMapHoI4();
-        _worldMap = mapHoI4;
-        subViewport.AddChild(mapHoI4);
-        _mapFrame.CenterViewport.AddChild(subViewport);
-
-        // Initialize the map visual system
-        await mapHoI4.InitializeAsync();
-        loadingScreen.UpdateProgress("Map visual system ready", 4);
+        // Initialize MapView (loads ID map, country data, map texture)
+        await mapView.InitializeAsync();
+        loadingScreen.UpdateProgress("MapView ready", 2);
 
         // Create WorldMap compatibility layer (data provider, not visual)
         var worldMapCompat = new WorldMap();
         AddChild(worldMapCompat);
-
-        // DÜZELTME: SubViewportContainer input'u SADECE Stretch=true iken SubViewport'e iletir.
-        var viewportContainer = _mapFrame.CenterViewport;
-        // NOT: Stretch, MapViewportFrame._Ready'de true yapılıyor.
 
         // Layout'u scene oturunca bir kez daha uygula (pencere Game'i boyutlandıktan sonra)
         Callable.From(() =>
         {
             _mapFrame.EnforceLayout();
 
+            var viewportContainer = _mapFrame.CenterViewport;
             var containerRect = viewportContainer.GetGlobalRect();
-            GD.Print($"[Teşhis] SubViewport={subViewport.Size}, konteyner={containerRect}, " +
+            GD.Print($"[Teşhis] MapView={mapView.GetMapSize()}, konteyner={containerRect}, " +
                      $"Stretch={viewportContainer.Stretch}, görünür={viewportContainer.IsVisibleInTree()}");
-            // Ensure camera is current for WorldMapHoI4
-            mapHoI4?.EnsureCameraCurrent();
+
             // Provide camera to WorldMap compatibility layer
-            if (mapHoI4 != null && mapHoI4.GetCamera() != null)
+            if (mapView.GetCamera() != null)
             {
                 var wmCompat = WorldMap.Instance;
                 if (wmCompat != null)
-                    wmCompat._camera = mapHoI4.GetCamera();
+                    wmCompat._camera = mapView.GetCamera();
             }
         }).CallDeferred();
 
-        loadingScreen.UpdateProgress("Setting up UI panels...");
+        loadingScreen.UpdateProgress("Setting up UI panels...", 3);
 
         // --- Sol panel: ülke bilgi paneli (overlay — HUD altında, genişlik sınırlı) ---
         _infoPanel = new CountryInfoPanel();
@@ -143,7 +108,7 @@ public partial class Game : Control
         // X / ESC: panel kapatma isteği → harita seçimini de kaldır
         _infoPanel.CloseRequested += () =>
         {
-            GD.Print("[Diag] Game: CloseRequested → WorldMap.ClearSelection()");
+            GD.Print("[Diag] Game: CloseRequested → MapView.ClearSelection()");
             _worldMap?.Call("ClearSelection");
         };
 
@@ -152,23 +117,29 @@ public partial class Game : Control
         AddChild(_miniCard);
         _miniCard.CloseRequested += () =>
         {
-            GD.Print("[Diag] Game: MiniCard CloseRequested → WorldMap.ClearSelection()");
+            GD.Print("[Diag] Game: MiniCard CloseRequested → MapView.ClearSelection()");
             _worldMap?.Call("ClearSelection");
         };
 
         // --- Üst bar: HUD (CanvasLayer overlay) ---
         _hud = new GameHud();
         AddChild(_hud);
-        loadingScreen.UpdateProgress("HUD initialized", 5);
+
+        // Update MapView with actual HUD height for camera vertical clamp
+        Callable.From(() =>
+        {
+            float hudHeight = _hud.TopBarHeight;
+            mapView.SetHudTopHeight(hudHeight);
+        }).CallDeferred();
 
         // --- M32.4: Mini harita (her zaman görünür, sağ-alt köşe) ---
         _miniMap = new MiniMapPanel();
         AddChild(_miniMap);
-        loadingScreen.UpdateProgress("Mini-map ready", 6);
 
-        // --- Sinyaller (WorldMapHoI4 has ProvinceSelected/ProvinceHovered signals) ---
-        _worldMap.Connect("ProvinceSelected", new Callable(this, nameof(OnProvinceSelected)));
-        _worldMap.Connect("ProvinceHovered", new Callable(this, nameof(OnProvinceHovered)));
+        // --- Sinyaller (MapView has CountrySelected/CountryHovered/CountryDeselected signals) ---
+        _worldMap.Connect("CountrySelected", new Callable(this, nameof(OnCountrySelected)));
+        _worldMap.Connect("CountryHovered", new Callable(this, nameof(OnCountryHovered)));
+        _worldMap.Connect("CountryDeselected", new Callable(this, nameof(OnCountryDeselected)));
 
         // --- Diagnostik: --screenshot-test (yalnızca komut satırı) ---
         if (ScreenshotTest.Enabled) SetupScreenshotShot();
@@ -180,25 +151,10 @@ public partial class Game : Control
         // Kullanım: godot --path . res://Scenes/game.tscn -- --mapshot=C:/g/shot.png
         foreach (var arg in OS.GetCmdlineUserArgs())
             if (arg.StartsWith("--mapshot="))
-                SetupMapshot(arg.Substring("--mapshot=".Length), subViewport, viewportContainer);
+                SetupMapshot(arg.Substring("--mapshot=".Length), null, _mapFrame.CenterViewport);
 
-        // --- Render teşhisi: --v5-shot=<name> ile PNG kaydet ve çık (WorldMapV5 test modu) ---
-        // Kullanım: godot --path . res://Scenes/game.tscn -- --v5-shot=world --quit-after=1
-        if (GameManager.V5ShotName != null)
-        {
-            SetupV5Shot(GameManager.V5ShotName, subViewport, viewportContainer);
-        }
-
-        // Phase 5: Country Selection Test
-        if (GameManager.CountrySelectTest && _worldMap is WorldMapV5 mapV5Instance)
-        {
-            SetupCountrySelectTest(mapV5Instance);
-        }
-
-        loadingScreen.UpdateProgress("All systems ready", 7);
-
-        // Hide loading screen
-        await Task.Delay(500); // Brief pause to show completion
+        loadingScreen.UpdateProgress("All systems ready", 4);
+        await Task.Delay(500);
         loadingScreen.HideScreen();
         loadingScreen.QueueFree();
 
@@ -249,26 +205,19 @@ public partial class Game : Control
         }
     }
 
-    private void OnProvinceSelected(int provinceId, string countryTag)
+    private void OnCountrySelected(string countryId, string countryName)
     {
-        if (string.IsNullOrEmpty(countryTag))
+        if (string.IsNullOrEmpty(countryId))
         {
-            GD.Print($"[Game] Province {provinceId} has no owner");
-            OnProvinceDeselected();
+            GD.Print($"[Game] No country selected");
+            OnCountryDeselected();
             return;
         }
 
-        var prov = ProvinceManager.Instance.GetProvince(provinceId);
-        if (prov == null)
-        {
-            GD.PrintErr($"[Game] Province {provinceId} not found in ProvinceManager");
-            return;
-        }
-
-        var data = CountryDatabase.GetOrCreate(countryTag, prov.Definition.TerrainCategory);
+        var data = CountryDatabase.GetOrCreate(countryId, "");
         if (data == null)
         {
-            GD.PrintErr($"[Game] Country data not found for {countryTag}");
+            GD.PrintErr($"[Game] Country data not found for {countryId}");
             return;
         }
 
@@ -295,18 +244,30 @@ public partial class Game : Control
         _hud?.OnCountrySelected(data.Name);
     }
 
+    private void OnCountryHovered(string countryId, string countryName)
+    {
+        // Hover handling - could show tooltip in HUD
+        // _hud?.OnCountryHovered(countryId, countryName);
+    }
+
+    private void OnCountryDeselected()
+    {
+        GD.Print("[Diag] Game: CountryDeselected → HidePanel");
+        _infoPanel.HidePanel();
+        _miniCard?.HideCard();
+        _hud?.OnCountryDeselected();
+    }
+
+    // Legacy handler - remove after all references updated
     private void OnProvinceHovered(int provinceId, string countryTag)
     {
-        // Hover handling - could show tooltip in HUD (GameHud doesn't have this yet)
-        // _hud?.OnProvinceHovered(provinceId, countryTag);
+        // Legacy - MapView uses CountryHovered
     }
 
     private void OnProvinceDeselected()
     {
-        GD.Print("[Diag] Game: ProvinceDeselected → HidePanel");
-        _infoPanel.HidePanel();
-        _miniCard?.HideCard();
-        _hud?.OnCountryDeselected();
+        // Legacy - MapView uses CountryDeselected
+        OnCountryDeselected();
     }
 
     // M24.1: SetPlayerCountry kilidi açıklandıktan sonra karakter panelsini aç (yeni oyun).

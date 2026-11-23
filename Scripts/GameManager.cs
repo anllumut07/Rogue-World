@@ -22,6 +22,8 @@ public partial class GameManager : Node
     public static bool CountrySelectTest { get; private set; }
     // Map v6: --map-v6 flag for HoI4 Province Bitmap Map
     public static bool UseMapV6 { get; private set; } = false;
+    // MapView: --map-click-test flag for automated click test
+    public static bool MapClickTest { get; private set; } = false;
 
     // --- Sinyaller ---
     [Signal] public delegate void DateChangedEventHandler(string dateText);
@@ -220,6 +222,7 @@ public partial class GameManager : Node
         bool weatherTest = false;            // WeatherSystem testi (--weather-test)
         bool uiTest = false;              // M-UI: UI sistemi testi (--ui-test)
         bool countrySelectTest = false;   // Phase 5: ülke seçimi testi (--country-select-test)
+        bool mapClickTest = false;        // MapView: tıklama testi (--map-click-test)
         string v5ShotName = null;        // --v5-shot=<name> — capture screenshot and quit
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -439,6 +442,8 @@ public partial class GameManager : Node
                 uiTest = true;
             else if (arg == "--country-select-test")
                 countrySelectTest = true;
+            else if (arg == "--map-click-test")
+                mapClickTest = true;
             else if (arg.StartsWith("--v5-shot="))
                 v5ShotName = arg.Substring(10);
             else if (arg.StartsWith("--load-slot=") && int.TryParse(arg.Substring(12), out var ls))
@@ -518,6 +523,11 @@ public partial class GameManager : Node
         CountrySelectTest = countrySelectTest;
         if (CountrySelectTest)
             GD.Print("Phase 5: Country Selection Test ENABLED via --country-select-test flag");
+
+        // MapView: Set static MapClickTest flag
+        MapClickTest = mapClickTest;
+        if (MapClickTest)
+            GD.Print("MapView: Click Test ENABLED via --map-click-test flag");
 
         // Map v6: --map-v6 flag for HoI4 Province Bitmap Map
         if (OS.GetCmdlineUserArgs().Contains("--map-v6"))

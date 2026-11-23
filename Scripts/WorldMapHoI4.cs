@@ -15,9 +15,13 @@ public partial class WorldMapHoI4 : Node2D
 
     public static WorldMapHoI4 Instance { get; private set; }
 
-    // Map dimensions (from province bitmap)
-    public const float WORLD_WIDTH = 5632f;
-    public const float WORLD_HEIGHT = 2048f;
+    // Map dimensions (from province bitmap - 5632x2048)
+    public const float MAP_WIDTH = 5632f;
+    public const float MAP_HEIGHT = 2048f;
+
+    // Background texture dimensions (Natural Earth 10800x5400)
+    public const float BG_TEXTURE_WIDTH = 10800f;
+    public const float BG_TEXTURE_HEIGHT = 5400f;
 
     // Camera settings
     private const float MIN_ZOOM = 0.15f;
@@ -40,11 +44,12 @@ public partial class WorldMapHoI4 : Node2D
     private Node2D _unitLayer;
     private Node2D _weatherLayer;
 
-    // Wrapping backgrounds (3 copies for infinite horizontal)
+    // Wrapping backgrounds (3 copies for infinite horizontal) - using background texture size
     private Sprite2D _bgCenter, _bgLeft, _bgRight;
 
-    // State
-    private Vector2 _textureSize = new Vector2(WORLD_WIDTH, WORLD_HEIGHT);
+    // State - use MAP dimensions for game logic, BG_TEXTURE for background rendering
+    private Vector2 _mapSize = new Vector2(MAP_WIDTH, MAP_HEIGHT);
+    private Vector2 _bgTextureSize = new Vector2(BG_TEXTURE_WIDTH, BG_TEXTURE_HEIGHT);
     private float _minZoom = MIN_ZOOM;
     private Vector2 _lastMousePos;
     private bool _dragging = false;
@@ -176,9 +181,36 @@ public partial class WorldMapHoI4 : Node2D
         return sprite;
     }
 
+    /// <summary>
+    /// Convert map coordinates to background texture coordinates (for background sprites)
+    /// </summary>
+    private Vector2 MapToBgCoords(Vector2 mapPos)
+    {
+        return new Vector2(
+            mapPos.X / MAP_WIDTH * BG_TEXTURE_WIDTH,
+            mapPos.Y / MAP_HEIGHT * BG_TEXTURE_HEIGHT
+        );
+    }
+
+    /// <summary>
+    /// Convert background texture coordinates to map coordinates
+    /// </summary>
+    private Vector2 BgToMapCoords(Vector2 bgPos)
+    {
+        return new Vector2(
+            bgPos.X / BG_TEXTURE_WIDTH * MAP_WIDTH,
+            bgPos.Y / BG_TEXTURE_HEIGHT * MAP_HEIGHT
+        );
+    }
+
+    // Legacy property aliases for backward compatibility
+    public const float WORLD_WIDTH = MAP_WIDTH;
+    public const float WORLD_HEIGHT = MAP_HEIGHT;
+    private Vector2 _textureSize => _bgTextureSize;
+
     private async Task LoadTexturesAsync()
     {
-        // Create province lookup texture from bitmap
+        // Create province lookup texture from bitmap (MAP dimensions: 5632x2048)
         var provinceTexture = ProvinceBitmapLoader.CreateProvinceLookupTexture();
         if (provinceTexture != null)
         {
@@ -186,18 +218,29 @@ public partial class WorldMapHoI4 : Node2D
             GD.Print("[WorldMapHoI4] Province lookup texture loaded");
         }
 
-        // Load terrain texture (create from terrain bitmap + atlas)
+        // Load terrain texture (create from terrain bitmap + atlas) - MAP dimensions
         await CreateTerrainTextureAsync();
 
-        // Load background texture (Natural Earth or similar)
+        // Load background texture (Natural Earth or similar) - BG_TEXTURE dimensions
         var bgTexture = GD.Load<Texture2D>("res://Assets/map_textures/natural_earth_2.png");
         if (bgTexture != null)
         {
             _bgCenter.Texture = bgTexture;
             _bgLeft.Texture = bgTexture;
             _bgRight.Texture = bgTexture;
-            _textureSize = new Vector2(bgTexture.GetWidth(), bgTexture.GetHeight());
-            GD.Print($"[WorldMapHoI4] Background texture: {_textureSize.X}x{_textureSize.Y}");
+            _bgTextureSize = new Vector2(bgTexture.GetWidth(), bgTexture.GetHeight());
+
+            // Scale background sprites to match MAP dimensions
+            // Background texture is BG_TEXTURE (10800x5400), map is MAP (5632x2048)
+            float scaleX = MAP_WIDTH / _bgTextureSize.X;
+            float scaleY = MAP_HEIGHT / _bgTextureSize.Y;
+            float scale = Mathf.Min(scaleX, scaleY); // Uniform scaling
+
+            _bgCenter.Scale = new Vector2(scale, scale);
+            _bgLeft.Scale = new Vector2(scale, scale);
+            _bgRight.Scale = new Vector2(scale, scale);
+
+            GD.Print($"[WorldMapHoI4] Background texture: {_bgTextureSize.X}x{_bgTextureSize.Y}, scale={scale:F4}");
         }
     }
 
@@ -352,7 +395,7 @@ public partial class WorldMapHoI4 : Node2D
         if (ProvinceManager.Instance == null) return;
 
         // Initialize camera on first frame
-        if (_minZoom == MIN_ZOOM && _textureSize.X > 0)
+        if (_minZoom == MIN_ZOOM && _bgTextureSize.X > 0)
         {
             InitializeCamera();
         }
@@ -369,12 +412,12 @@ public partial class WorldMapHoI4 : Node2D
         var viewport = GetViewport();
         var viewportSize = viewport.GetVisibleRect().Size;
 
-        // Calculate min zoom to cover vertically
-        float zoomY = viewportSize.Y / _textureSize.Y;
+        // Calculate min zoom to cover vertically (using map height)
+        float zoomY = viewportSize.Y / MAP_HEIGHT;
         _minZoom = Mathf.Max(zoomY, MIN_ZOOM);
 
         _camera.Zoom = new Vector2(_minZoom, _minZoom);
-        _camera.Position = _textureSize / 2f;
+        _camera.Position = new Vector2(MAP_WIDTH / 2f, MAP_HEIGHT / 2f);
 
         UpdateCameraLimits();
         ClampCamera();
